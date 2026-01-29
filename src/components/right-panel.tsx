@@ -1,4 +1,5 @@
 import { useDraggable } from "@dnd-kit/core"
+import { DragHandleIcon } from "./icons/DragHandleIcon";
 import { useWindows } from "~src/hooks/use-windows"
 
 const OpenedTab = ({ tab, windowId }: { tab: chrome.tabs.Tab, windowId: number }) => {
@@ -27,9 +28,7 @@ const OpenedTab = ({ tab, windowId }: { tab: chrome.tabs.Tab, windowId: number }
         className={`${isDragging ? 'opacity-100' : 'opacity-40 group-hover:opacity-50 hover:!opacity-100'} cursor-grab active:cursor-grabbing p-1 rounded transition-opacity`}
         title="Drag to save"
       >
-        <svg className="w-3 h-3 text-white/50" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M7 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"></path>
-        </svg>
+        <DragHandleIcon />
       </div>
 
       {/* Clickable content */}

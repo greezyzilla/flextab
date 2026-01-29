@@ -1,4 +1,5 @@
 import type { SavedGroup } from "~src/types"
+import { DragHandleIcon } from "./icons/DragHandleIcon"
 
 interface DraggedTabGroupProps {
   group: SavedGroup
@@ -12,10 +13,14 @@ export function DraggedTabGroup({ group }: DraggedTabGroupProps) {
     return orderA - orderB;
   });
 
+  // Constants
+  const MAX_DISPLAY_TABS = 3;
+  const GRID_COLS = 4;
+
   // If 4 or fewer tabs, show all. If more than 4, show first 3 + stack indicator
-  const hasMoreThanFour = sortedTabs.length > 4;
-  const displayTabs = hasMoreThanFour ? sortedTabs.slice(0, 3) : sortedTabs;
-  const extraCount = hasMoreThanFour ? sortedTabs.length - 3 : 0;
+  const hasMoreThanFour = sortedTabs.length > GRID_COLS;
+  const displayTabs = hasMoreThanFour ? sortedTabs.slice(0, MAX_DISPLAY_TABS) : sortedTabs;
+  const extraCount = hasMoreThanFour ? sortedTabs.length - MAX_DISPLAY_TABS : 0;
 
   return (
     <div className="flex flex-col gap-2 p-4">
@@ -32,9 +37,7 @@ export function DraggedTabGroup({ group }: DraggedTabGroupProps) {
                 className="opacity-40 group-hover:opacity-50 hover:!opacity-100 cursor-grab active:cursor-grabbing p-1 rounded transition-opacity"
                 title="Drag to reorder"
               >
-                <svg className="w-3 h-3 text-white/50" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M7 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"></path>
-                </svg>
+                <DragHandleIcon />
               </div>
 
               {/* Tab content */}

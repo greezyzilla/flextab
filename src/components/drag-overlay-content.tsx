@@ -1,0 +1,56 @@
+import { DraggedTabGroup } from "./dragged-tab-group";
+import type { SavedGroup, SavedTab } from "~src/types";
+import { DragHandleIcon } from "./icons/DragHandleIcon";
+
+interface DragOverlayContentProps {
+  activeId: string | number | null;
+  draggedGroup: SavedGroup | null;
+  draggedTab: chrome.tabs.Tab | null;
+  draggedSavedTab: SavedTab | null;
+}
+
+export function DragOverlayContent({ activeId, draggedGroup, draggedTab, draggedSavedTab }: DragOverlayContentProps) {
+  if (activeId && draggedGroup) {
+    return <DraggedTabGroup group={draggedGroup} />;
+  }
+
+  if (activeId && (draggedTab || draggedSavedTab)) {
+    return (
+      <div className="flex gap-3 items-center w-full rounded-md bg-black-800 hover:bg-black-700 px-3 py-2 text-left shadow-lg border border-blue-500">
+        <div className="opacity-100 cursor-grabbing p-1 rounded">
+          <DragHandleIcon />
+        </div>
+
+        {draggedTab && (
+          <>
+            <img
+              src={draggedTab.favIconUrl}
+              alt={draggedTab.title}
+              className="w-5 h-5"
+            />
+            <div className="flex flex-col text-white/90 truncate">
+              <div>{draggedTab.title}</div>
+              <div className="truncate">{draggedTab.url}</div>
+            </div>
+          </>
+        )}
+
+        {draggedSavedTab && (
+          <>
+            <img
+              src={draggedSavedTab.favicon}
+              alt={draggedSavedTab.title}
+              className="w-5 h-5"
+            />
+            <div className="flex flex-col text-white/90 truncate">
+              <div>{draggedSavedTab.title}</div>
+              <div className="truncate">{draggedSavedTab.url}</div>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  return null;
+}

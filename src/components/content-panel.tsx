@@ -2,6 +2,8 @@ import { useSavedSpaces } from "~src/context/SavedSpacesContext";
 import { TabGroup } from "./tab-group";
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { DragHandleIcon } from "./icons/DragHandleIcon";
+import { ChevronDownIcon } from "./icons/ChevronDownIcon";
 
 function SortableGroup({ group }: { group: any }) {
   const {
@@ -22,9 +24,7 @@ function SortableGroup({ group }: { group: any }) {
   return (
     <div ref={setNodeRef} style={style} className="relative">
       <div className="absolute top-4 left-4 z-10 opacity-30 hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing" {...attributes} {...listeners}>
-        <svg className="w-4 h-4 text-white/50" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M7 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"></path>
-        </svg>
+        <DragHandleIcon className="w-4 h-4 text-white/50" />
       </div>
       <TabGroup group={group} />
     </div>
@@ -44,9 +44,7 @@ export function ContentPanel() {
         <h2 className="text-white/70 font-sans text-base font-medium">{savedSpaces.at(activeSpace)?.projects.at(activeProject)?.categories.at(activeCategory)?.name}</h2>
         <div className="flex gap-2">
           <button className="text-white/70 font-sans text-sm">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
+            <ChevronDownIcon />
           </button>
         </div>
       </div>
