@@ -1,3 +1,18 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@source "./src/**/*.tsx";
+
+@theme {
+  --color-black-50: var(--color-neutral-50);
+  --color-black-100: var(--color-neutral-100);
+  --color-black-200: var(--color-neutral-200);
+  --color-black-300: var(--color-neutral-300);
+  --color-black-400: var(--color-neutral-400);
+  --color-black-500: var(--color-neutral-500);
+  --color-black-600: var(--color-neutral-600);
+  --color-black-700: var(--color-neutral-700);
+  --color-black-800: var(--color-neutral-800);
+  --color-black-900: var(--color-neutral-900);
+  --color-black-950: var(--color-neutral-950);
+  --color-black: #000;
+}

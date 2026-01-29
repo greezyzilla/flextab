@@ -1,5 +1,5 @@
 {
-  "extends": "plasmo/templates/tsconfig.base",
+  "extends": "plasmo/templates/tsconfig.base.json",
   "exclude": [
     "node_modules"
   ],
@@ -15,6 +15,11 @@
         "./*"
       ]
     },
-    "baseUrl": "."
+    "baseUrl": ".",
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "types": ["chrome", "node"]
   }
 }
