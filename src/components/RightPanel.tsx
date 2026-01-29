@@ -1,6 +1,8 @@
 import { useDraggable } from "@dnd-kit/core"
 import { DragHandleIcon } from "./icons/DragHandleIcon";
 import { useWindows } from "~src/hooks/useWindows"
+import { useVirtualizer } from '@tanstack/react-virtual'
+import { useRef, useMemo } from 'react'
 
 const OpenedTab = ({ tab, windowId }: { tab: chrome.tabs.Tab, windowId: number }) => {
   const onTabClick = (tab: chrome.tabs.Tab, windowId: number) => {
@@ -46,34 +48,83 @@ const OpenedTab = ({ tab, windowId }: { tab: chrome.tabs.Tab, windowId: number }
   )
 }
 
+type VirtualItemData = 
+  | { type: 'header'; windowId: number; index: number }
+  | { type: 'tab'; tab: chrome.tabs.Tab; windowId: number };
+
 export function RightPanel() {
   const { windows } = useWindows({
     populate: true,
+  })
+  const parentRef = useRef<HTMLDivElement>(null)
+
+  // Flatten windows and tabs into a single list
+  const rows = useMemo(() => {
+    const items: VirtualItemData[] = [];
+    windows.forEach((window, index) => {
+      items.push({ type: 'header', windowId: window.id, index: index + 1 });
+      window.tabs?.forEach(tab => {
+        items.push({ type: 'tab', tab, windowId: window.id });
+      });
+    });
+    return items;
+  }, [windows]);
+
+  const rowVirtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 60, // Approximate height average
+    overscan: 5,
   })
 
   return (
     <div className="min-w-80 w-80 h-full flex flex-col">
       <div className="min-h-16 h-16 p-4 flex items-center gap-2 border-b border-black-800">
-
+        <h2 className="text-white/90 font-sans text-lg">Opened Tabs</h2>
       </div>
-      <div className="flex flex-col gap-4 p-4 overflow-y-auto">
-        {
-          windows.map((window, windowIndex) => (
-            <div key={window.id} className="flex flex-col gap-2">
-              <div className="flex items-center gap-2 text-sm text-white/70">Window {windowIndex + 1}</div>
-              <div className="flex flex-col gap-2">
-                {
-                  window.tabs?.map((tab) => (
-                    <OpenedTab key={tab.id} tab={tab} windowId={window.id} />
-                  ))
-                }
+      
+      <div 
+        ref={parentRef} 
+        className="flex-1 overflow-y-auto p-4"
+        style={{ contain: 'strict' }}
+      >
+        <div
+          style={{
+            height: `${rowVirtualizer.getTotalSize()}px`,
+            width: '100%',
+            position: 'relative',
+          }}
+        >
+          {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+            const item = rows[virtualRow.index];
+            return (
+              <div
+                key={virtualRow.key}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: `${virtualRow.size}px`,
+                  transform: `translateY(${virtualRow.start}px)`,
+                  paddingBottom: '8px', // Spacing between items
+                }}
+              >
+                {item.type === 'header' ? (
+                  <div className="flex items-center gap-2 text-sm text-white/70 h-full">
+                    Window {item.index}
+                  </div>
+                ) : (
+                  <OpenedTab tab={item.tab} windowId={item.windowId} />
+                )}
               </div>
-            </div>
-          ))
-        }
+            )
+          })}
+        </div>
       </div>
-      <div className="min-h-16 h-16 p-4 flex items-center gap-2 border-t border-black-800">
 
+      <div className="min-h-16 h-16 p-4 flex items-center gap-2 border-t border-black-800">
+        {/* Footer actions could go here */}
       </div>
     </div>
   )

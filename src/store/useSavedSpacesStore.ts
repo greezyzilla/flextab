@@ -1,7 +1,21 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
+import { immer } from 'zustand/middleware/immer';
 import type { SavedSpace, SavedProject, SavedCategory, SavedGroup, SavedTab } from "../types";
 import { v7 as uuidv7 } from "uuid";
+
+const storage: StateStorage = {
+  getItem: async (name: string): Promise<string | null> => {
+    const result = await chrome.storage.local.get(name);
+    return result[name] || null;
+  },
+  setItem: async (name: string, value: string): Promise<void> => {
+    await chrome.storage.local.set({ [name]: value });
+  },
+  removeItem: async (name: string): Promise<void> => {
+    await chrome.storage.local.remove(name);
+  },
+};
 
 interface SavedSpacesState {
   savedSpaces: SavedSpace[];
@@ -37,7 +51,7 @@ interface SavedSpacesState {
 
 export const useSavedSpacesStore = create<SavedSpacesState>()(
   persist(
-    (set) => ({
+    immer((set) => ({
       savedSpaces: [
         {
           id: uuidv7(),
@@ -67,267 +81,132 @@ export const useSavedSpacesStore = create<SavedSpacesState>()(
       activeProject: 0,
       activeCategory: 0,
 
-      setSavedSpaces: (savedSpaces) => set({ savedSpaces }),
-      setActiveSpace: (activeSpace) => set({ activeSpace }),
-      setActiveProject: (activeProject) => set({ activeProject }),
-      setActiveCategory: (activeCategory) => set({ activeCategory }),
+      setSavedSpaces: (savedSpaces) => set((state) => { state.savedSpaces = savedSpaces }),
+      setActiveSpace: (activeSpace) => set((state) => { state.activeSpace = activeSpace }),
+      setActiveProject: (activeProject) => set((state) => { state.activeProject = activeProject }),
+      setActiveCategory: (activeCategory) => set((state) => { state.activeCategory = activeCategory }),
 
-      addSavedSpace: (space) => set((state) => ({ savedSpaces: [...state.savedSpaces, space] })),
-      removeSavedSpace: (space) => set((state) => ({ savedSpaces: state.savedSpaces.filter((s) => s.id !== space.id) })),
-      updateSavedSpace: (space) => set((state) => ({ savedSpaces: state.savedSpaces.map((s) => (s.id === space.id ? space : s)) })),
+      addSavedSpace: (space) => set((state) => {
+        state.savedSpaces.push(space);
+      }),
+      removeSavedSpace: (space) => set((state) => {
+        state.savedSpaces = state.savedSpaces.filter((s) => s.id !== space.id);
+      }),
+      updateSavedSpace: (space) => set((state) => {
+        const index = state.savedSpaces.findIndex((s) => s.id === space.id);
+        if (index !== -1) state.savedSpaces[index] = space;
+      }),
 
-      addSavedProject: (spaceId, project) =>
-        set((state) => ({
-          savedSpaces: state.savedSpaces.map((s) =>
-            s.id === spaceId ? { ...s, projects: [...s.projects, project] } : s
-          ),
-        })),
+      addSavedProject: (spaceId, project) => set((state) => {
+        const space = state.savedSpaces.find((s) => s.id === spaceId);
+        if (space) space.projects.push(project);
+      }),
 
-      removeSavedProject: (spaceId, project) =>
-        set((state) => ({
-          savedSpaces: state.savedSpaces.map((s) =>
-            s.id === spaceId ? { ...s, projects: s.projects.filter((p) => p.id !== project.id) } : s
-          ),
-        })),
+      removeSavedProject: (spaceId, project) => set((state) => {
+        const space = state.savedSpaces.find((s) => s.id === spaceId);
+        if (space) {
+          space.projects = space.projects.filter((p) => p.id !== project.id);
+        }
+      }),
 
-      updateSavedProject: (spaceId, project) =>
-        set((state) => ({
-          savedSpaces: state.savedSpaces.map((s) =>
-            s.id === spaceId
-              ? { ...s, projects: s.projects.map((p) => (p.id === project.id ? project : p)) }
-              : s
-          ),
-        })),
+      updateSavedProject: (spaceId, project) => set((state) => {
+        const space = state.savedSpaces.find((s) => s.id === spaceId);
+        const pIndex = space?.projects.findIndex((p) => p.id === project.id);
+        if (space && pIndex !== undefined && pIndex !== -1) {
+          space.projects[pIndex] = project;
+        }
+      }),
 
-      addSavedCategory: (spaceId, projectId, category) =>
-        set((state) => ({
-          savedSpaces: state.savedSpaces.map((s) =>
-            s.id === spaceId
-              ? {
-                  ...s,
-                  projects: s.projects.map((p) =>
-                    p.id === projectId ? { ...p, categories: [...p.categories, category] } : p
-                  ),
-                }
-              : s
-          ),
-        })),
+      addSavedCategory: (spaceId, projectId, category) => set((state) => {
+        const space = state.savedSpaces.find((s) => s.id === spaceId);
+        const project = space?.projects.find((p) => p.id === projectId);
+        if (project) project.categories.push(category);
+      }),
 
-      removeSavedCategory: (spaceId, projectId, category) =>
-        set((state) => ({
-          savedSpaces: state.savedSpaces.map((s) =>
-            s.id === spaceId
-              ? {
-                  ...s,
-                  projects: s.projects.map((p) =>
-                    p.id === projectId
-                      ? { ...p, categories: p.categories.filter((c) => c.id !== category.id) }
-                      : p
-                  ),
-                }
-              : s
-          ),
-        })),
+      removeSavedCategory: (spaceId, projectId, category) => set((state) => {
+        const space = state.savedSpaces.find((s) => s.id === spaceId);
+        const project = space?.projects.find((p) => p.id === projectId);
+        if (project) {
+          project.categories = project.categories.filter((c) => c.id !== category.id);
+        }
+      }),
 
-      updateSavedCategory: (spaceId, projectId, category) =>
-        set((state) => ({
-          savedSpaces: state.savedSpaces.map((s) =>
-            s.id === spaceId
-              ? {
-                  ...s,
-                  projects: s.projects.map((p) =>
-                    p.id === projectId
-                      ? {
-                          ...p,
-                          categories: p.categories.map((c) =>
-                            c.id === category.id ? category : c
-                          ),
-                        }
-                      : p
-                  ),
-                }
-              : s
-          ),
-        })),
+      updateSavedCategory: (spaceId, projectId, category) => set((state) => {
+        const space = state.savedSpaces.find((s) => s.id === spaceId);
+        const project = space?.projects.find((p) => p.id === projectId);
+        const cIndex = project?.categories.findIndex((c) => c.id === category.id);
+        if (project && cIndex !== undefined && cIndex !== -1) {
+          project.categories[cIndex] = category;
+        }
+      }),
 
-      addSavedGroup: (spaceId, projectId, categoryId, group) =>
-        set((state) => ({
-          savedSpaces: state.savedSpaces.map((s) =>
-            s.id === spaceId
-              ? {
-                  ...s,
-                  projects: s.projects.map((p) =>
-                    p.id === projectId
-                      ? {
-                          ...p,
-                          categories: p.categories.map((c) =>
-                            c.id === categoryId ? { ...c, groups: [...c.groups, group] } : c
-                          ),
-                        }
-                      : p
-                  ),
-                }
-              : s
-          ),
-        })),
+      addSavedGroup: (spaceId, projectId, categoryId, group) => set((state) => {
+        const space = state.savedSpaces.find((s) => s.id === spaceId);
+        const project = space?.projects.find((p) => p.id === projectId);
+        const category = project?.categories.find((c) => c.id === categoryId);
+        if (category) category.groups.push(group);
+      }),
 
-      removeSavedGroup: (spaceId, projectId, categoryId, group) =>
-        set((state) => ({
-          savedSpaces: state.savedSpaces.map((s) =>
-            s.id === spaceId
-              ? {
-                  ...s,
-                  projects: s.projects.map((p) =>
-                    p.id === projectId
-                      ? {
-                          ...p,
-                          categories: p.categories.map((c) =>
-                            c.id === categoryId
-                              ? { ...c, groups: c.groups.filter((g) => g.id !== group.id) }
-                              : c
-                          ),
-                        }
-                      : p
-                  ),
-                }
-              : s
-          ),
-        })),
+      removeSavedGroup: (spaceId, projectId, categoryId, group) => set((state) => {
+        const space = state.savedSpaces.find((s) => s.id === spaceId);
+        const project = space?.projects.find((p) => p.id === projectId);
+        const category = project?.categories.find((c) => c.id === categoryId);
+        if (category) {
+          category.groups = category.groups.filter((g) => g.id !== group.id);
+        }
+      }),
 
-      updateSavedGroup: (spaceId, projectId, categoryId, group) =>
-        set((state) => ({
-          savedSpaces: state.savedSpaces.map((s) =>
-            s.id === spaceId
-              ? {
-                  ...s,
-                  projects: s.projects.map((p) =>
-                    p.id === projectId
-                      ? {
-                          ...p,
-                          categories: p.categories.map((c) =>
-                            c.id === categoryId
-                              ? {
-                                  ...c,
-                                  groups: c.groups.map((g) => (g.id === group.id ? group : g)),
-                                }
-                              : c
-                          ),
-                        }
-                      : p
-                  ),
-                }
-              : s
-          ),
-        })),
+      updateSavedGroup: (spaceId, projectId, categoryId, group) => set((state) => {
+        const space = state.savedSpaces.find((s) => s.id === spaceId);
+        const project = space?.projects.find((p) => p.id === projectId);
+        const category = project?.categories.find((c) => c.id === categoryId);
+        const gIndex = category?.groups.findIndex((g) => g.id === group.id);
+        if (category && gIndex !== undefined && gIndex !== -1) {
+          category.groups[gIndex] = group;
+        }
+      }),
 
-      addSavedTab: (spaceId, projectId, categoryId, groupId, tab) =>
-        set((state) => ({
-          savedSpaces: state.savedSpaces.map((s) =>
-            s.id === spaceId
-              ? {
-                  ...s,
-                  projects: s.projects.map((p) =>
-                    p.id === projectId
-                      ? {
-                          ...p,
-                          categories: p.categories.map((c) =>
-                            c.id === categoryId
-                              ? {
-                                  ...c,
-                                  groups: c.groups.map((g) =>
-                                    g.id === groupId
-                                      ? {
-                                          ...g,
-                                          tabs: [
-                                            ...g.tabs.map((existingTab, index) => ({
-                                              ...existingTab,
-                                              order: existingTab.order ?? index,
-                                            })),
-                                            {
-                                              ...tab,
-                                              order: tab.order ?? g.tabs.length,
-                                            },
-                                          ],
-                                        }
-                                      : g
-                                  ),
-                                }
-                              : c
-                          ),
-                        }
-                      : p
-                  ),
-                }
-              : s
-          ),
-        })),
+      addSavedTab: (spaceId, projectId, categoryId, groupId, tab) => set((state) => {
+        const space = state.savedSpaces.find((s) => s.id === spaceId);
+        const project = space?.projects.find((p) => p.id === projectId);
+        const category = project?.categories.find((c) => c.id === categoryId);
+        const group = category?.groups.find((g) => g.id === groupId);
 
-      removeSavedTab: (spaceId, projectId, categoryId, groupId, tab) =>
-        set((state) => ({
-          savedSpaces: state.savedSpaces.map((s) =>
-            s.id === spaceId
-              ? {
-                  ...s,
-                  projects: s.projects.map((p) =>
-                    p.id === projectId
-                      ? {
-                          ...p,
-                          categories: p.categories.map((c) =>
-                            c.id === categoryId
-                              ? {
-                                  ...c,
-                                  groups: c.groups.map((g) =>
-                                    g.id === groupId
-                                      ? { ...g, tabs: g.tabs.filter((t) => t.id !== tab.id) }
-                                      : g
-                                  ),
-                                }
-                              : c
-                          ),
-                        }
-                      : p
-                  ),
-                }
-              : s
-          ),
-        })),
+        if (group) {
+          // Re-indexing existing tabs
+          group.tabs.forEach((t, i) => { t.order = t.order ?? i; });
+          
+          const newTab = { ...tab, order: tab.order ?? group.tabs.length };
+          group.tabs.push(newTab);
+        }
+      }),
 
-      updateSavedTab: (spaceId, projectId, categoryId, groupId, tab) =>
-        set((state) => ({
-          savedSpaces: state.savedSpaces.map((s) =>
-            s.id === spaceId
-              ? {
-                  ...s,
-                  projects: s.projects.map((p) =>
-                    p.id === projectId
-                      ? {
-                          ...p,
-                          categories: p.categories.map((c) =>
-                            c.id === categoryId
-                              ? {
-                                  ...c,
-                                  groups: c.groups.map((g) =>
-                                    g.id === groupId
-                                      ? {
-                                          ...g,
-                                          tabs: g.tabs.map((t) => (t.id === tab.id ? tab : t)),
-                                        }
-                                      : g
-                                  ),
-                                }
-                              : c
-                          ),
-                        }
-                      : p
-                  ),
-                }
-              : s
-          ),
-        })),
-    }),
+      removeSavedTab: (spaceId, projectId, categoryId, groupId, tab) => set((state) => {
+        const space = state.savedSpaces.find((s) => s.id === spaceId);
+        const project = space?.projects.find((p) => p.id === projectId);
+        const category = project?.categories.find((c) => c.id === categoryId);
+        const group = category?.groups.find((g) => g.id === groupId);
+
+        if (group) {
+          group.tabs = group.tabs.filter((t) => t.id !== tab.id);
+        }
+      }),
+
+      updateSavedTab: (spaceId, projectId, categoryId, groupId, tab) => set((state) => {
+        const space = state.savedSpaces.find((s) => s.id === spaceId);
+        const project = space?.projects.find((p) => p.id === projectId);
+        const category = project?.categories.find((c) => c.id === categoryId);
+        const group = category?.groups.find((g) => g.id === groupId);
+        const tIndex = group?.tabs.findIndex((t) => t.id === tab.id);
+
+        if (group && tIndex !== undefined && tIndex !== -1) {
+          group.tabs[tIndex] = tab;
+        }
+      }),
+    })),
     {
-      name: 'spaces', // unique name for localStorage
-      storage: createJSONStorage(() => localStorage),
+      name: 'spaces',
+      storage: createJSONStorage(() => storage),
     }
   )
 );
