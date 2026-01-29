@@ -1,6 +1,6 @@
 import { useDraggable } from "@dnd-kit/core"
 import { DragHandleIcon } from "./icons/DragHandleIcon";
-import { useWindows } from "~src/hooks/use-windows"
+import { useWindows } from "~src/hooks/useWindows"
 
 const OpenedTab = ({ tab, windowId }: { tab: chrome.tabs.Tab, windowId: number }) => {
   const onTabClick = (tab: chrome.tabs.Tab, windowId: number) => {

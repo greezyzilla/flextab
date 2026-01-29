@@ -41,11 +41,11 @@ export interface WindowSummaryState {
 /**
  * Hook untuk manage semua windows
  */
-export const useWindows = (options: {
+export function useWindows(options: {
   populate?: boolean;
   autoRefresh?: boolean;
   refreshInterval?: number;
-} = {}) => {
+} = {}) {
   const { populate = false, autoRefresh = false, refreshInterval = 5000 } = options;
 
   const [state, setState] = useState<WindowHookState>({
@@ -113,16 +113,16 @@ export const useWindows = (options: {
     refresh,
     fetchWindows
   };
-};
+}
 
 /**
  * Hook untuk current window
  */
-export const useCurrentWindow = (options: {
+export function useCurrentWindow(options: {
   populate?: boolean;
   autoRefresh?: boolean;
   refreshInterval?: number;
-} = {}) => {
+} = {}) {
   const { populate = false, autoRefresh = false, refreshInterval = 3000 } = options;
 
   const [state, setState] = useState<CurrentWindowHookState>({
@@ -191,12 +191,12 @@ export const useCurrentWindow = (options: {
     refresh,
     fetchCurrentWindow
   };
-};
+}
 
 /**
  * Hook untuk tabs di window tertentu
  */
-export const useWindowTabs = (windowId: number | null) => {
+export function useWindowTabs(windowId: number | null) {
   const [state, setState] = useState<WindowTabsState>({
     tabs: [],
     loading: true,
@@ -236,15 +236,15 @@ export const useWindowTabs = (windowId: number | null) => {
     refresh,
     fetchWindowTabs
   };
-};
+}
 
 /**
  * Hook untuk window summary/statistics
  */
-export const useWindowSummary = (options: {
+export function useWindowSummary(options: {
   autoRefresh?: boolean;
   refreshInterval?: number;
-} = {}) => {
+} = {}) {
   const { autoRefresh = false, refreshInterval = 5000 } = options;
 
   const [state, setState] = useState<WindowSummaryState>({
@@ -292,12 +292,12 @@ export const useWindowSummary = (options: {
     refresh,
     fetchSummary
   };
-};
+}
 
 /**
  * Hook untuk window operations (create, close, manipulate)
  */
-export const useWindowOperations = () => {
+export function useWindowOperations() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -488,12 +488,12 @@ export const useWindowOperations = () => {
     resizeWindow,
     centerWindow
   };
-};
+}
 
 /**
  * Hook untuk window filtering
  */
-export const useWindowFilter = (windows: WindowData[]) => {
+export function useWindowFilter(windows: WindowData[]) {
   const normalWindows = useMemo(() =>
     windows.filter(window => window.type === 'normal'),
   [windows]
@@ -548,12 +548,12 @@ export const useWindowFilter = (windows: WindowData[]) => {
     focusedWindow,
     filterWindows
   };
-};
+}
 
 /**
  * Hook untuk window existence check
  */
-export const useWindowExists = (windowId: number | null) => {
+export function useWindowExists(windowId: number | null) {
   const [exists, setExists] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -583,12 +583,12 @@ export const useWindowExists = (windowId: number | null) => {
     loading,
     checkExists
   };
-};
+}
 
 /**
  * Hook untuk window state management dengan localStorage persistence
  */
-export const useWindowState = <T,>(windowId: number | null, key: string, defaultValue: T) => {
+export function useWindowState<T>(windowId: number | null, key: string, defaultValue: T) {
   const storageKey = windowId ? `window_${windowId}_${key}` : null;
 
   const [state, setState] = useState<T>(() => {
@@ -626,16 +626,16 @@ export const useWindowState = <T,>(windowId: number | null, key: string, default
   }, [defaultValue, storageKey]);
 
   return [state, updateState, clearState] as const;
-};
+}
 
 /**
  * Combined hook untuk semua window functionality
  */
-export const useWindowManager = (options: {
+export function useWindowManager(options: {
   autoRefresh?: boolean;
   refreshInterval?: number;
   populate?: boolean;
-} = {}) => {
+} = {}) {
   const windows = useWindows(options);
   const currentWindow = useCurrentWindow(options);
   const summary = useWindowSummary(options);
@@ -670,4 +670,4 @@ export const useWindowManager = (options: {
     refreshCurrentWindow: currentWindow.refresh,
     refreshSummary: summary.refresh
   };
-};
+}
