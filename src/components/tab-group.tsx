@@ -74,7 +74,7 @@ export function TabGroup({ group }: TabGroupProps) {
 
   return (
     <div className="flex flex-col gap-2 p-4">
-      <h3 className="text-white/60 font-sans text-sm">{group.name}</h3>
+      <h3 className="pl-6 text-white/60 font-sans text-sm">{group.name}</h3>
       {sortedTabs.length > 0 ? (
         <SortableContext items={sortedTabs.map((tab) => tab.id)}>
           <div

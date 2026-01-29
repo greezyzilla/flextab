@@ -1,4 +1,4 @@
-import { ContentPanel, LeftPanel, ProfilePanel, RightPanel } from "~src/components"
+import { ContentPanel, LeftPanel, ProfilePanel, RightPanel, DraggedTabGroup } from "~src/components"
 import "../../style.css"
 import SavedSpacesProvider from "~src/context/SavedSpacesContext"
 import { DndContext, type DragEndEvent, DragOverlay, type DragStartEvent, pointerWithin, rectIntersection } from "@dnd-kit/core"
@@ -13,6 +13,7 @@ function NewTabPageContent() {
   const [activeId, setActiveId] = useState<string | number | null>(null);
   const [draggedTab, setDraggedTab] = useState<chrome.tabs.Tab | null>(null);
   const [draggedSavedTab, setDraggedSavedTab] = useState<SavedTab | null>(null);
+  const [draggedGroup, setDraggedGroup] = useState<SavedGroup | null>(null);
 
   const handleDragStart = async (event: DragStartEvent) => {
     const { active } = event;
@@ -20,13 +21,23 @@ function NewTabPageContent() {
 
     console.log('Drag started:', active.id);
 
+    const currentSpace = savedSpaces[activeSpace];
+    const currentProject = currentSpace?.projects[activeProject];
+    const currentCategory = currentProject?.categories[activeCategory];
+
+    // Check if we're dragging a group
+    if (typeof active.id === 'string' && currentCategory) {
+      const group = currentCategory.groups.find(g => g.id === active.id);
+      if (group) {
+        setDraggedGroup(group);
+        console.log('Dragged group info:', group);
+        return;
+      }
+    }
+
     // Check if we're dragging a saved tab (string ID) or an opened tab (number ID)
     if (typeof active.id === 'string') {
       // Find the saved tab being dragged
-      const currentSpace = savedSpaces[activeSpace];
-      const currentProject = currentSpace?.projects[activeProject];
-      const currentCategory = currentProject?.categories[activeCategory];
-
       if (currentCategory) {
         for (const group of currentCategory.groups) {
           const foundTab = group.tabs.find(tab => tab.id === active.id);
@@ -95,6 +106,7 @@ function NewTabPageContent() {
     setActiveId(null);
     setDraggedTab(null);
     setDraggedSavedTab(null);
+    setDraggedGroup(null);
 
     if (!over) {
       console.log('No drop target detected - drag was cancelled or dropped outside valid area');
@@ -108,6 +120,49 @@ function NewTabPageContent() {
     if (!currentCategory) {
       console.error('Could not find active space/project/category');
       return;
+    }
+
+    // Handle group reordering (if both active and over are group IDs)
+    if (typeof active.id === 'string' && typeof over.id === 'string') {
+      const activeGroup = currentCategory.groups.find(g => g.id === active.id);
+      const overGroup = currentCategory.groups.find(g => g.id === over.id);
+
+      // Check if both are groups (not tabs)
+      if (activeGroup && overGroup && active.id !== over.id) {
+        console.log('Reordering groups:', activeGroup.name, 'to position of', overGroup.name);
+
+        const sortedGroups = [...currentCategory.groups].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+        const activeIndex = sortedGroups.findIndex(g => g.id === active.id);
+        const overIndex = sortedGroups.findIndex(g => g.id === over.id);
+
+        if (activeIndex !== -1 && overIndex !== -1) {
+          const reorderedGroups = arrayMove(sortedGroups, activeIndex, overIndex);
+          const groupsWithUpdatedOrder = reorderedGroups.map((group, index) => ({
+            ...group,
+            order: index
+          }));
+
+          setSavedSpaces(savedSpaces.map(s =>
+            s.id === currentSpace.id ? {
+              ...s,
+              projects: s.projects.map(p =>
+                p.id === currentProject.id ? {
+                  ...p,
+                  categories: p.categories.map(c =>
+                    c.id === currentCategory.id ? {
+                      ...c,
+                      groups: groupsWithUpdatedOrder
+                    } : c
+                  )
+                } : p
+              )
+            } : s
+          ));
+
+          console.log('Group reordering completed');
+          return;
+        }
+      }
     }
 
     // Handle dropping opened tabs (from right panel)
@@ -341,7 +396,9 @@ function NewTabPageContent() {
       </div>
 
       <DragOverlay style={{ zIndex: 1000, pointerEvents: 'none' }}>
-        {activeId && (draggedTab || draggedSavedTab) ? (
+        {activeId && draggedGroup ? (
+          <DraggedTabGroup group={draggedGroup} />
+        ) : activeId && (draggedTab || draggedSavedTab) ? (
           <div className="flex gap-3 items-center w-full rounded-md bg-black-800 hover:bg-black-700 px-3 py-2 text-left shadow-lg border border-blue-500">
             <div className="opacity-100 cursor-grabbing p-1 rounded">
               <svg className="w-3 h-3 text-white/50" fill="currentColor" viewBox="0 0 20 20">
@@ -349,15 +406,33 @@ function NewTabPageContent() {
               </svg>
             </div>
 
-            <img
-              src={draggedTab?.favIconUrl || draggedSavedTab?.favicon}
-              alt={draggedTab?.title || draggedSavedTab?.title}
-              className="w-5 h-5"
-            />
-            <div className="flex flex-col text-white/90 truncate">
-              <div>{draggedTab?.title || draggedSavedTab?.title}</div>
-              <div className="truncate">{draggedTab?.url || draggedSavedTab?.url}</div>
-            </div>
+            {draggedTab && (
+              <>
+                <img
+                  src={draggedTab.favIconUrl}
+                  alt={draggedTab.title}
+                  className="w-5 h-5"
+                />
+                <div className="flex flex-col text-white/90 truncate">
+                  <div>{draggedTab.title}</div>
+                  <div className="truncate">{draggedTab.url}</div>
+                </div>
+              </>
+            )}
+
+            {draggedSavedTab && (
+              <>
+                <img
+                  src={draggedSavedTab.favicon}
+                  alt={draggedSavedTab.title}
+                  className="w-5 h-5"
+                />
+                <div className="flex flex-col text-white/90 truncate">
+                  <div>{draggedSavedTab.title}</div>
+                  <div className="truncate">{draggedSavedTab.url}</div>
+                </div>
+              </>
+            )}
           </div>
         ) : null}
       </DragOverlay>
