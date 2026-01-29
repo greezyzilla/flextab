@@ -1,4 +1,4 @@
-import { useSavedSpaces } from "~src/context/SavedSpacesContext";
+import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { TabGroup } from "./tab-group";
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -32,7 +32,7 @@ function SortableGroup({ group }: { group: any }) {
 }
 
 export function ContentPanel() {
-  const { savedSpaces, activeSpace, activeProject, activeCategory } = useSavedSpaces();
+  const { savedSpaces, activeSpace, activeProject, activeCategory } = useSavedSpacesStore();
 
   const currentGroups = savedSpaces.at(activeSpace)?.projects.at(activeProject)?.categories.at(activeCategory)?.groups || [];
   const sortedGroups = [...currentGroups].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));

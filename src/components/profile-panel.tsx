@@ -1,7 +1,7 @@
-import { useSavedSpaces } from "~src/context/SavedSpacesContext";
+import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 
 export function ProfilePanel() {
-  const { savedSpaces } = useSavedSpaces();
+  const { savedSpaces } = useSavedSpacesStore();
 
   return (
     <div className="w-16 h-full flex flex-col border-r border-black-800">

@@ -3,10 +3,10 @@ import { type DragStartEvent, type DragEndEvent, rectIntersection, pointerWithin
 import { arrayMove } from "@dnd-kit/sortable";
 import { v7 as uuidv7 } from "uuid";
 import type { SavedTab, SavedGroup } from "~src/types";
-import { useSavedSpaces } from "~src/context/SavedSpacesContext";
+import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 
 export function useDragAndDrop() {
-  const { savedSpaces, setSavedSpaces, activeSpace, activeProject, activeCategory, addSavedTab, updateSavedGroup } = useSavedSpaces();
+  const { savedSpaces, setSavedSpaces, activeSpace, activeProject, activeCategory, addSavedTab, updateSavedGroup } = useSavedSpacesStore();
   const [activeId, setActiveId] = useState<string | number | null>(null);
   const [draggedTab, setDraggedTab] = useState<chrome.tabs.Tab | null>(null);
   const [draggedSavedTab, setDraggedSavedTab] = useState<SavedTab | null>(null);
@@ -210,6 +210,9 @@ export function useDragAndDrop() {
         return;
       }
 
+      // Ensure draggedTab is captured for closures
+      const capturedDraggedTab = draggedTab;
+
       console.log('Found dragged tab:', draggedTab.title, 'in group:', sourceGroup.name);
 
       // Case 1: Dropping on another saved tab (reorder within same group or move between groups)
@@ -271,11 +274,11 @@ export function useDragAndDrop() {
 
           // Remove from source group
           const updatedSourceTabs = sourceGroup.tabs
-            .filter(tab => tab.id !== draggedTab.id)
+            .filter(tab => tab.id !== capturedDraggedTab.id)
             .map((tab, index) => ({ ...tab, order: index }));
 
           // Insert into target group at correct position
-          const tabToMove = { ...draggedTab };
+          const tabToMove = { ...capturedDraggedTab };
           sortedTargetTabs.splice(insertPosition, 0, tabToMove);
 
           // Update order indices
@@ -330,11 +333,11 @@ export function useDragAndDrop() {
 
           // Remove from source group
           const updatedSourceTabs = sourceGroup.tabs
-            .filter(tab => tab.id !== draggedTab.id)
+            .filter(tab => tab.id !== capturedDraggedTab.id)
             .map((tab, index) => ({ ...tab, order: index }));
 
           // Add to end of target group
-          const tabToMove = { ...draggedTab, order: targetGroup.tabs.length };
+          const tabToMove = { ...capturedDraggedTab, order: targetGroup.tabs.length };
           const updatedTargetTabs = [
             ...targetGroup.tabs.map((tab, index) => ({ ...tab, order: tab.order ?? index })),
             tabToMove

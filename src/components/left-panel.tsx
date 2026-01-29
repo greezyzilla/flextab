@@ -1,8 +1,8 @@
-import { useSavedSpaces } from '~src/context/SavedSpacesContext';
+import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import config from '../../package.json'
 
 export function LeftPanel() {
-  const { savedSpaces, activeSpace } = useSavedSpaces();
+  const { savedSpaces, activeSpace } = useSavedSpacesStore();
 
   return (
     <div className="w-64 h-full flex flex-col">

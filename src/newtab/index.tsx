@@ -1,6 +1,6 @@
 import { ContentPanel, LeftPanel, ProfilePanel, RightPanel, DragOverlayContent } from "~src/components"
 import "../../style.css"
-import SavedSpacesProvider from "~src/context/SavedSpacesContext"
+
 import { DndContext, DragOverlay } from "@dnd-kit/core"
 import { useDragAndDrop } from "~src/hooks/useDragAndDrop"
 
@@ -50,9 +50,7 @@ function NewTabPageContent() {
 
 function NewTabPage() {
   return (
-    <SavedSpacesProvider>
-      <NewTabPageContent />
-    </SavedSpacesProvider>
+    <NewTabPageContent />
   )
 }
 
