@@ -1,9 +1,11 @@
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
-import { TabGroup } from "./tab-group";
+import { TabGroup } from "./TabGroup";
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { DragHandleIcon } from "./icons/DragHandleIcon";
 import { ChevronDownIcon } from "./icons/ChevronDownIcon";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { useRef } from "react";
 
 function SortableGroup({ group }: { group: any }) {
   const {
@@ -33,14 +35,21 @@ function SortableGroup({ group }: { group: any }) {
 
 export function ContentPanel() {
   const { savedSpaces, activeSpace, activeProject, activeCategory } = useSavedSpacesStore();
+  const parentRef = useRef<HTMLDivElement>(null);
 
   const currentGroups = savedSpaces.at(activeSpace)?.projects.at(activeProject)?.categories.at(activeCategory)?.groups || [];
   const sortedGroups = [...currentGroups].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
-  console.log(savedSpaces.at(activeSpace)?.projects.at(activeProject)?.categories.at(activeCategory))
+  const rowVirtualizer = useVirtualizer({
+    count: sortedGroups.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 150, // Initial estimate for group height
+    overscan: 2,
+  });
+
   return (
-    <div className="flex-1 flex flex-col">
-      <div className="flex justify-between gap-2 p-4 border-b border-black-800">
+    <div className="flex-1 flex flex-col h-full overflow-hidden">
+      <div className="flex justify-between gap-2 p-4 border-b border-black-800 shrink-0">
         <h2 className="text-white/70 font-sans text-base font-medium">{savedSpaces.at(activeSpace)?.projects.at(activeProject)?.categories.at(activeCategory)?.name}</h2>
         <div className="flex gap-2">
           <button className="text-white/70 font-sans text-sm">
@@ -48,17 +57,42 @@ export function ContentPanel() {
           </button>
         </div>
       </div>
-      {sortedGroups.length > 0 ? (
-        <div className="flex flex-col gap-2">
-          <SortableContext items={sortedGroups.map(g => g.id)} strategy={verticalListSortingStrategy}>
-            {sortedGroups.map((group) => (
-              <SortableGroup key={group.id} group={group} />
-            ))}
-          </SortableContext>
-        </div>
-      ) : (
-        <div className="text-white/50 font-sans text-sm p-12 text-center flex items-center justify-center">No saved groups yet</div>
-      )}
+      
+      <div ref={parentRef} className="flex-1 overflow-y-auto p-4 content-panel-scroll">
+        {sortedGroups.length > 0 ? (
+          <div
+            style={{
+              height: `${rowVirtualizer.getTotalSize()}px`,
+              width: '100%',
+              position: 'relative',
+            }}
+          >
+            <SortableContext items={sortedGroups.map(g => g.id)} strategy={verticalListSortingStrategy}>
+              {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                const group = sortedGroups[virtualRow.index];
+                return (
+                  <div
+                    key={group.id}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      transform: `translateY(${virtualRow.start}px)`,
+                    }}
+                    ref={rowVirtualizer.measureElement}
+                    data-index={virtualRow.index}
+                  >
+                    <SortableGroup group={group} />
+                  </div>
+                );
+              })}
+            </SortableContext>
+          </div>
+        ) : (
+          <div className="text-white/50 font-sans text-sm p-12 text-center flex items-center justify-center">No saved groups yet</div>
+        )}
+      </div>
     </div>
   )
 }

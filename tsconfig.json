@@ -20,6 +20,7 @@
     "module": "esnext",
     "moduleResolution": "bundler",
     "lib": ["dom", "dom.iterable", "esnext"],
-    "types": ["chrome", "node"]
+    "types": ["chrome", "node"],
+    "resolveJsonModule": true
   }
 }
