@@ -31,6 +31,7 @@ interface SavedSpacesState {
   addSavedSpace: (space: SavedSpace) => void;
   removeSavedSpace: (space: SavedSpace) => void;
   updateSavedSpace: (space: SavedSpace) => void;
+  reorderSpaces: (oldIndex: number, newIndex: number) => void;
 
   addSavedProject: (spaceId: string, project: SavedProject) => void;
   removeSavedProject: (spaceId: string, project: SavedProject) => void;
@@ -95,6 +96,11 @@ export const useSavedSpacesStore = create<SavedSpacesState>()(
       updateSavedSpace: (space) => set((state) => {
         const index = state.savedSpaces.findIndex((s) => s.id === space.id);
         if (index !== -1) state.savedSpaces[index] = space;
+      }),
+
+      reorderSpaces: (oldIndex, newIndex) => set((state) => {
+        const [removed] = state.savedSpaces.splice(oldIndex, 1);
+        state.savedSpaces.splice(newIndex, 0, removed);
       }),
 
       addSavedProject: (spaceId, project) => set((state) => {

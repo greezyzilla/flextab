@@ -1,4 +1,4 @@
-import { DraggedTabGroup } from "./dragged-tab-group";
+import { DraggedTabGroup } from "./DraggedTabGroup";
 import type { SavedGroup, SavedTab } from "~src/types";
 import { DragHandleIcon } from "./icons/DragHandleIcon";
 
