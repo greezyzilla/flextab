@@ -70,9 +70,26 @@ export function TabGroup({ group }: TabGroupProps) {
     return orderA - orderB;
   });
 
+  const handleOpenAll = () => {
+    const urls = sortedTabs.map(t => t.url).filter(Boolean);
+    if (urls.length === 0) return;
+    chrome.windows.create({ url: urls });
+  };
+
   return (
     <div className="flex flex-col gap-2 p-4">
-      <h3 className="pl-6 text-white/60 font-sans text-sm">{group.name}</h3>
+      <div className="flex items-center justify-between pl-6 pr-1">
+        <h3 className="text-white/60 font-sans text-sm">{group.name}</h3>
+        {sortedTabs.length > 0 && (
+          <button
+            onClick={handleOpenAll}
+            className="text-white/40 hover:text-white/70 font-sans text-xs transition-colors"
+            title="Open all tabs in new window"
+          >
+            Open All
+          </button>
+        )}
+      </div>
       {sortedTabs.length > 0 ? (
         <SortableContext items={sortedTabs.map((tab) => tab.id)}>
           <div

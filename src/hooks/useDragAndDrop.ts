@@ -2,11 +2,11 @@ import { useState } from "react";
 import { type DragStartEvent, type DragEndEvent, rectIntersection, pointerWithin } from "@dnd-kit/core";
 import { v7 as uuidv7 } from "uuid";
 import type { SavedTab, SavedGroup } from "~src/types";
-import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
+import { useSavedSpacesStore, useActiveSpace, useActiveProject, useActiveCategory } from "~src/store/useSavedSpacesStore";
+import { faviconToDataUrl } from "~src/utils/favicon";
 
 export function useDragAndDrop() {
   const {
-    savedSpaces, activeSpace, activeProject, activeCategory,
     addSavedTab, reorderGroups, reorderTabsInGroup, moveTabBetweenGroups
   } = useSavedSpacesStore();
 
@@ -15,9 +15,9 @@ export function useDragAndDrop() {
   const [draggedSavedTab, setDraggedSavedTab] = useState<SavedTab | null>(null);
   const [draggedGroup, setDraggedGroup] = useState<SavedGroup | null>(null);
 
-  const currentSpace = savedSpaces[activeSpace];
-  const currentProject = currentSpace?.projects[activeProject];
-  const currentCategory = currentProject?.categories[activeCategory];
+  const currentSpace = useActiveSpace();
+  const currentProject = useActiveProject();
+  const currentCategory = useActiveCategory();
 
   const handleDragStart = async (event: DragStartEvent) => {
     const { active } = event;
@@ -115,12 +115,13 @@ export function useDragAndDrop() {
         const tab = await chrome.tabs.get(active.id as number);
         const targetGroup = currentCategory.groups.find(g => g.id === groupId);
         const nextOrder = targetGroup ? targetGroup.tabs.length : 0;
+        const favicon = await faviconToDataUrl(tab.favIconUrl || '');
 
         const savedTab: SavedTab = {
           id: uuidv7(),
           url: tab.url || '',
           title: tab.title || 'Untitled',
-          favicon: tab.favIconUrl || '',
+          favicon,
           description: tab.url || '',
           order: nextOrder
         };

@@ -1,0 +1,153 @@
+import { useState, useMemo, useRef, useEffect } from "react";
+import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
+import { useWindows } from "~src/hooks/useWindows";
+import { FaviconImg } from "./FaviconImg";
+
+interface SearchResult {
+  type: 'saved' | 'opened';
+  title: string;
+  url: string;
+  favicon: string;
+  tabId?: number;
+  windowId?: number;
+  breadcrumb?: string;
+}
+
+export function SearchBar() {
+  const [query, setQuery] = useState("");
+  const [isFocused, setIsFocused] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { savedSpaces } = useSavedSpacesStore();
+  const { windows } = useWindows({ populate: true });
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+      if (e.key === 'Escape') {
+        inputRef.current?.blur();
+        setQuery("");
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const results = useMemo<SearchResult[]>(() => {
+    const q = query.toLowerCase().trim();
+    if (!q) return [];
+
+    const matches: SearchResult[] = [];
+
+    // Search saved tabs
+    for (const space of savedSpaces) {
+      for (const project of space.projects) {
+        for (const category of project.categories) {
+          for (const group of category.groups) {
+            for (const tab of group.tabs) {
+              if (tab.title.toLowerCase().includes(q) || tab.url.toLowerCase().includes(q)) {
+                matches.push({
+                  type: 'saved',
+                  title: tab.title,
+                  url: tab.url,
+                  favicon: tab.favicon,
+                  breadcrumb: `${space.name} / ${project.name} / ${category.name} / ${group.name}`,
+                });
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Search opened tabs
+    for (const window of windows) {
+      for (const tab of window.tabs ?? []) {
+        if (!tab.url || tab.url.startsWith('chrome://')) continue;
+        if ((tab.title ?? '').toLowerCase().includes(q) || tab.url.toLowerCase().includes(q)) {
+          matches.push({
+            type: 'opened',
+            title: tab.title ?? '',
+            url: tab.url,
+            favicon: tab.favIconUrl ?? '',
+            tabId: tab.id,
+            windowId: window.id,
+          });
+        }
+      }
+    }
+
+    return matches.slice(0, 20);
+  }, [query, savedSpaces, windows]);
+
+  const handleResultClick = (result: SearchResult) => {
+    if (result.type === 'opened' && result.tabId && result.windowId) {
+      chrome.tabs.update(result.tabId, { active: true });
+      chrome.windows.update(result.windowId, { focused: true });
+    } else {
+      chrome.tabs.create({ url: result.url });
+    }
+    setQuery("");
+    inputRef.current?.blur();
+  };
+
+  const showDropdown = isFocused && query.trim().length > 0;
+
+  return (
+    <div ref={containerRef} className="relative flex-1 max-w-lg">
+      <div className="flex items-center gap-2 bg-white/5 rounded-md px-3 py-1.5 border border-white/10 focus-within:border-white/30 transition-colors">
+        <svg className="w-4 h-4 text-white/30 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input
+          ref={inputRef}
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setTimeout(() => setIsFocused(false), 150)}
+          placeholder="Search tabs... (Cmd+K)"
+          className="flex-1 bg-transparent text-white/80 text-sm placeholder-white/30 outline-none font-sans"
+        />
+        {query && (
+          <button onClick={() => setQuery("")} className="text-white/30 hover:text-white/50 text-xs">
+            ✕
+          </button>
+        )}
+      </div>
+
+      {showDropdown && (
+        <div className="absolute top-full left-0 right-0 mt-1 bg-black-800 border border-white/10 rounded-md shadow-lg max-h-80 overflow-y-auto z-50">
+          {results.length > 0 ? (
+            results.map((result, i) => (
+              <button
+                key={`${result.type}-${result.url}-${i}`}
+                onClick={() => handleResultClick(result)}
+                className="w-full flex items-center gap-3 px-3 py-2 hover:bg-white/5 transition-colors text-left"
+              >
+                <FaviconImg src={result.favicon} alt={result.title} className="w-4 h-4 shrink-0" />
+                <div className="flex-1 overflow-hidden">
+                  <div className="text-white/80 text-xs truncate">{result.title}</div>
+                  <div className="text-white/40 text-xs truncate">{result.url}</div>
+                  {result.breadcrumb && (
+                    <div className="text-white/30 text-xs truncate">{result.breadcrumb}</div>
+                  )}
+                </div>
+                <span className={`text-xs px-1.5 py-0.5 rounded shrink-0 ${
+                  result.type === 'saved' ? 'bg-blue-500/20 text-blue-400' : 'bg-green-500/20 text-green-400'
+                }`}>
+                  {result.type === 'saved' ? 'saved' : 'open'}
+                </span>
+              </button>
+            ))
+          ) : (
+            <div className="px-3 py-4 text-white/40 text-xs text-center">No results found</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

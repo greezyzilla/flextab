@@ -2,15 +2,16 @@ import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { v7 as uuidv7 } from "uuid";
 
 export function ProfilePanel() {
-  const { savedSpaces, activeSpace, setActiveSpace, addSavedSpace } = useSavedSpacesStore();
+  const { savedSpaces, activeSpaceId, setActiveSpace, addSavedSpace } = useSavedSpacesStore();
 
   const handleAddSpace = () => {
+    const id = uuidv7();
     addSavedSpace({
-      id: uuidv7(),
+      id,
       name: `Space ${savedSpaces.length + 1}`,
       projects: [],
     });
-    setActiveSpace(savedSpaces.length);
+    setActiveSpace(id);
   };
 
   return (
@@ -19,9 +20,9 @@ export function ProfilePanel() {
         {savedSpaces.map((space, index) => (
           <div
             key={space.id}
-            onClick={() => setActiveSpace(index)}
+            onClick={() => setActiveSpace(space.id)}
             className={`w-10 h-10 rounded-full cursor-pointer transition-colors ${
-              activeSpace === index ? "bg-white/20 ring-2 ring-white/50" : "bg-black-800 hover:bg-black-700"
+              activeSpaceId === space.id ? "bg-white/20 ring-2 ring-white/50" : "bg-black-800 hover:bg-black-700"
             }`}
             title={space.name}
           ></div>

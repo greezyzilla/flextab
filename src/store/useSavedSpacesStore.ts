@@ -1,21 +1,12 @@
+import { useState, useEffect } from 'react';
 import { create } from 'zustand';
-import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import type { SavedSpace, SavedProject, SavedCategory, SavedGroup, SavedTab } from "../types";
 import { v7 as uuidv7 } from "uuid";
+import { storage, setupStorageSync } from './syncStorage';
 
-const storage: StateStorage = {
-  getItem: async (name: string): Promise<string | null> => {
-    const result = await chrome.storage.local.get(name);
-    return result[name] || null;
-  },
-  setItem: async (name: string, value: string): Promise<void> => {
-    await chrome.storage.local.set({ [name]: value });
-  },
-  removeItem: async (name: string): Promise<void> => {
-    await chrome.storage.local.remove(name);
-  },
-};
+const STORE_VERSION = 1;
 
 // --- Helpers for nested traversal (work on Immer drafts) ---
 
@@ -37,13 +28,14 @@ function findGroup(state: SavedSpacesState, spaceId: string, projectId: string, 
 
 interface SavedSpacesState {
   savedSpaces: SavedSpace[];
-  activeSpace: number;
-  activeProject: number;
-  activeCategory: number;
+  activeSpaceId: string | null;
+  activeProjectId: string | null;
+  activeCategoryId: string | null;
+  lastModified: number;
 
-  setActiveSpace: (index: number) => void;
-  setActiveProject: (index: number) => void;
-  setActiveCategory: (index: number) => void;
+  setActiveSpace: (id: string | null) => void;
+  setActiveProject: (id: string | null) => void;
+  setActiveCategory: (id: string | null) => void;
 
   addSavedSpace: (space: SavedSpace) => void;
   removeSavedSpace: (space: SavedSpace) => void;
@@ -74,25 +66,42 @@ interface SavedSpacesState {
 
 // --- Derived selectors ---
 
-export const useActiveSpace = () => useSavedSpacesStore(s => s.savedSpaces[s.activeSpace]);
-export const useActiveProject = () => useSavedSpacesStore(s => s.savedSpaces[s.activeSpace]?.projects[s.activeProject]);
-export const useActiveCategory = () => useSavedSpacesStore(s => s.savedSpaces[s.activeSpace]?.projects[s.activeProject]?.categories[s.activeCategory]);
-export const useActiveGroups = () => useSavedSpacesStore(s => s.savedSpaces[s.activeSpace]?.projects[s.activeProject]?.categories[s.activeCategory]?.groups ?? []);
+export const useActiveSpace = () => useSavedSpacesStore(s => s.savedSpaces.find(sp => sp.id === s.activeSpaceId));
+export const useActiveProject = () => useSavedSpacesStore(s => {
+  const space = s.savedSpaces.find(sp => sp.id === s.activeSpaceId);
+  return space?.projects.find(p => p.id === s.activeProjectId);
+});
+export const useActiveCategory = () => useSavedSpacesStore(s => {
+  const space = s.savedSpaces.find(sp => sp.id === s.activeSpaceId);
+  const project = space?.projects.find(p => p.id === s.activeProjectId);
+  return project?.categories.find(c => c.id === s.activeCategoryId);
+});
+export const useActiveGroups = () => useSavedSpacesStore(s => {
+  const space = s.savedSpaces.find(sp => sp.id === s.activeSpaceId);
+  const project = space?.projects.find(p => p.id === s.activeProjectId);
+  const category = project?.categories.find(c => c.id === s.activeCategoryId);
+  return category?.groups ?? [];
+});
+
+// Pre-generate IDs so initial active selections can reference them
+const defaultSpaceId = uuidv7();
+const defaultProjectId = uuidv7();
+const defaultCategoryId = uuidv7();
 
 export const useSavedSpacesStore = create<SavedSpacesState>()(
   persist(
     immer((set) => ({
       savedSpaces: [
         {
-          id: uuidv7(),
+          id: defaultSpaceId,
           name: "Personal",
           projects: [
             {
-              id: uuidv7(),
+              id: defaultProjectId,
               name: "Default Project",
               categories: [
                 {
-                  id: uuidv7(),
+                  id: defaultCategoryId,
                   name: "Default Category",
                   groups: [
                     {
@@ -107,13 +116,14 @@ export const useSavedSpacesStore = create<SavedSpacesState>()(
           ],
         },
       ],
-      activeSpace: 0,
-      activeProject: 0,
-      activeCategory: 0,
+      activeSpaceId: defaultSpaceId,
+      activeProjectId: defaultProjectId,
+      activeCategoryId: defaultCategoryId,
+      lastModified: Date.now(),
 
-      setActiveSpace: (activeSpace) => set((state) => { state.activeSpace = activeSpace }),
-      setActiveProject: (activeProject) => set((state) => { state.activeProject = activeProject }),
-      setActiveCategory: (activeCategory) => set((state) => { state.activeCategory = activeCategory }),
+      setActiveSpace: (id) => set((state) => { state.activeSpaceId = id }),
+      setActiveProject: (id) => set((state) => { state.activeProjectId = id }),
+      setActiveCategory: (id) => set((state) => { state.activeCategoryId = id }),
 
       // --- Space CRUD ---
       addSavedSpace: (space) => set((state) => {
@@ -121,8 +131,10 @@ export const useSavedSpacesStore = create<SavedSpacesState>()(
       }),
       removeSavedSpace: (space) => set((state) => {
         state.savedSpaces = state.savedSpaces.filter(s => s.id !== space.id);
-        if (state.activeSpace >= state.savedSpaces.length) {
-          state.activeSpace = Math.max(0, state.savedSpaces.length - 1);
+        if (state.activeSpaceId === space.id) {
+          state.activeSpaceId = state.savedSpaces[0]?.id ?? null;
+          state.activeProjectId = null;
+          state.activeCategoryId = null;
         }
       }),
       updateSavedSpace: (space) => set((state) => {
@@ -142,8 +154,9 @@ export const useSavedSpacesStore = create<SavedSpacesState>()(
         const space = findSpace(state, spaceId);
         if (space) {
           space.projects = space.projects.filter(p => p.id !== project.id);
-          if (state.activeProject >= space.projects.length) {
-            state.activeProject = Math.max(0, space.projects.length - 1);
+          if (state.activeProjectId === project.id) {
+            state.activeProjectId = space.projects[0]?.id ?? null;
+            state.activeCategoryId = null;
           }
         }
       }),
@@ -168,8 +181,8 @@ export const useSavedSpacesStore = create<SavedSpacesState>()(
         const project = findProject(state, spaceId, projectId);
         if (project) {
           project.categories = project.categories.filter(c => c.id !== category.id);
-          if (state.activeCategory >= project.categories.length) {
-            state.activeCategory = Math.max(0, project.categories.length - 1);
+          if (state.activeCategoryId === category.id) {
+            state.activeCategoryId = project.categories[0]?.id ?? null;
           }
         }
       }),
@@ -253,7 +266,67 @@ export const useSavedSpacesStore = create<SavedSpacesState>()(
     })),
     {
       name: 'spaces',
+      version: STORE_VERSION,
       storage: createJSONStorage(() => storage),
+      merge: (persisted, current) => {
+        const data = persisted as Partial<SavedSpacesState> | null;
+        if (!data || !Array.isArray(data.savedSpaces)) {
+          console.warn('[FlexTab] Invalid persisted state, using defaults');
+          return current;
+        }
+        // Validate each space has required fields
+        const validSpaces = data.savedSpaces.filter(
+          (s): s is SavedSpace =>
+            !!s && typeof s.id === 'string' && typeof s.name === 'string' && Array.isArray(s.projects),
+        );
+        return {
+          ...current,
+          ...data,
+          savedSpaces: validSpaces,
+          activeSpaceId: data.activeSpaceId ?? current.activeSpaceId,
+          activeProjectId: data.activeProjectId ?? current.activeProjectId,
+          activeCategoryId: data.activeCategoryId ?? current.activeCategoryId,
+          lastModified: data.lastModified ?? current.lastModified,
+        };
+      },
+      migrate: (persisted: unknown, version: number) => {
+        const state = persisted as Record<string, unknown>;
+        if (version === 0) {
+          // v0 → v1: index-based → ID-based selection + add lastModified
+          const spaces = state.savedSpaces as SavedSpace[] | undefined;
+          const oldSpaceIdx = (state.activeSpace as number) ?? 0;
+          const oldProjectIdx = (state.activeProject as number) ?? 0;
+          const oldCategoryIdx = (state.activeCategory as number) ?? 0;
+
+          const space = spaces?.[oldSpaceIdx];
+          const project = space?.projects[oldProjectIdx];
+          const category = project?.categories[oldCategoryIdx];
+
+          state.activeSpaceId = space?.id ?? spaces?.[0]?.id ?? null;
+          state.activeProjectId = project?.id ?? space?.projects[0]?.id ?? null;
+          state.activeCategoryId = category?.id ?? project?.categories[0]?.id ?? null;
+          state.lastModified = (state.lastModified as number) ?? Date.now();
+
+          // Clean up old index fields
+          delete state.activeSpace;
+          delete state.activeProject;
+          delete state.activeCategory;
+        }
+        return state as SavedSpacesState;
+      },
     }
   )
 );
+
+// Hydration hook — prevents flash of default state before persisted data loads
+export const useHydrated = () => {
+  const [hydrated, setHydrated] = useState(useSavedSpacesStore.persist.hasHydrated());
+  useEffect(() => {
+    const unsubscribe = useSavedSpacesStore.persist.onFinishHydration(() => setHydrated(true));
+    return unsubscribe;
+  }, []);
+  return hydrated;
+};
+
+// Enable cross-tab and cross-device sync
+setupStorageSync('spaces', () => useSavedSpacesStore.persist.rehydrate());

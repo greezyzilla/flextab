@@ -14,6 +14,15 @@ vi.mock('chrome', () => ({
       set: vi.fn(() => Promise.resolve()),
       remove: vi.fn(() => Promise.resolve()),
     },
+    sync: {
+      get: vi.fn(() => Promise.resolve({})),
+      set: vi.fn(() => Promise.resolve()),
+      remove: vi.fn(() => Promise.resolve()),
+    },
+    onChanged: {
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+    },
   },
 }));
 
@@ -21,9 +30,10 @@ describe('useSavedSpacesStore', () => {
   beforeEach(() => {
     useSavedSpacesStore.setState({
       savedSpaces: [],
-      activeSpace: 0,
-      activeProject: 0,
-      activeCategory: 0,
+      activeSpaceId: null,
+      activeProjectId: null,
+      activeCategoryId: null,
+      lastModified: Date.now(),
     });
   });
 
@@ -52,6 +62,18 @@ describe('useSavedSpacesStore', () => {
       useSavedSpacesStore.getState().removeSavedSpace(space);
 
       expect(useSavedSpacesStore.getState().savedSpaces).toHaveLength(0);
+    });
+
+    it('should reset activeSpaceId when active space is removed', () => {
+      const space1: SavedSpace = { id: 'space-1', name: 'Space 1', projects: [] };
+      const space2: SavedSpace = { id: 'space-2', name: 'Space 2', projects: [] };
+
+      useSavedSpacesStore.getState().addSavedSpace(space1);
+      useSavedSpacesStore.getState().addSavedSpace(space2);
+      useSavedSpacesStore.getState().setActiveSpace('space-1');
+      useSavedSpacesStore.getState().removeSavedSpace(space1);
+
+      expect(useSavedSpacesStore.getState().activeSpaceId).toBe('space-2');
     });
 
     it('should update a space', () => {
@@ -321,19 +343,33 @@ describe('useSavedSpacesStore', () => {
   });
 
   describe('Active state management', () => {
-    it('should set active space', () => {
-      useSavedSpacesStore.getState().setActiveSpace(2);
-      expect(useSavedSpacesStore.getState().activeSpace).toBe(2);
+    it('should set active space by ID', () => {
+      useSavedSpacesStore.getState().setActiveSpace('space-123');
+      expect(useSavedSpacesStore.getState().activeSpaceId).toBe('space-123');
     });
 
-    it('should set active project', () => {
-      useSavedSpacesStore.getState().setActiveProject(1);
-      expect(useSavedSpacesStore.getState().activeProject).toBe(1);
+    it('should set active project by ID', () => {
+      useSavedSpacesStore.getState().setActiveProject('project-456');
+      expect(useSavedSpacesStore.getState().activeProjectId).toBe('project-456');
     });
 
-    it('should set active category', () => {
-      useSavedSpacesStore.getState().setActiveCategory(3);
-      expect(useSavedSpacesStore.getState().activeCategory).toBe(3);
+    it('should set active category by ID', () => {
+      useSavedSpacesStore.getState().setActiveCategory('category-789');
+      expect(useSavedSpacesStore.getState().activeCategoryId).toBe('category-789');
+    });
+
+    it('should cascade reset when active space is removed', () => {
+      const space: SavedSpace = { id: 'space-1', name: 'S1', projects: [] };
+      useSavedSpacesStore.getState().addSavedSpace(space);
+      useSavedSpacesStore.getState().setActiveSpace('space-1');
+      useSavedSpacesStore.getState().setActiveProject('proj-1');
+      useSavedSpacesStore.getState().setActiveCategory('cat-1');
+
+      useSavedSpacesStore.getState().removeSavedSpace(space);
+
+      expect(useSavedSpacesStore.getState().activeSpaceId).toBeNull();
+      expect(useSavedSpacesStore.getState().activeProjectId).toBeNull();
+      expect(useSavedSpacesStore.getState().activeCategoryId).toBeNull();
     });
   });
 });
