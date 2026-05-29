@@ -1,4 +1,5 @@
 import { ContentPanel, LeftPanel, ProfilePanel, RightPanel, DragOverlayContent } from "~src/components"
+import { ErrorBoundary } from "~src/components/ErrorBoundary"
 import "../../style.css"
 
 import { DndContext, DragOverlay } from "@dnd-kit/core"
@@ -48,4 +49,12 @@ function NewTabPageContent() {
   )
 }
 
-export default NewTabPageContent
+function NewTabPage() {
+  return (
+    <ErrorBoundary>
+      <NewTabPageContent />
+    </ErrorBoundary>
+  )
+}
+
+export default NewTabPage
