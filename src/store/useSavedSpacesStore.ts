@@ -271,7 +271,6 @@ export const useSavedSpacesStore = create<SavedSpacesState>()(
       merge: (persisted, current) => {
         const data = persisted as Partial<SavedSpacesState> | null;
         if (!data || !Array.isArray(data.savedSpaces)) {
-          console.warn('[FlexTab] Invalid persisted state, using defaults');
           return current;
         }
         // Validate each space has required fields

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { type DragStartEvent, type DragEndEvent, rectIntersection, pointerWithin } from "@dnd-kit/core";
+import { type DragStartEvent, type DragEndEvent, type CollisionDetection, rectIntersection, pointerWithin } from "@dnd-kit/core";
 import { v7 as uuidv7 } from "uuid";
 import type { SavedTab, SavedGroup } from "~src/types";
 import { useSavedSpacesStore, useActiveSpace, useActiveProject, useActiveCategory } from "~src/store/useSavedSpacesStore";
@@ -52,12 +52,12 @@ export function useDragAndDrop() {
     }
   };
 
-  const collisionDetectionStrategy = (args: any) => {
+  const collisionDetectionStrategy: CollisionDetection = (args) => {
     if (typeof activeId === 'number') {
       // For opened tabs, prioritize droppable areas
       const droppableCollisions = rectIntersection({
         ...args,
-        droppableContainers: args.droppableContainers.filter((container: any) =>
+        droppableContainers: args.droppableContainers.filter((container) =>
           container.id.toString().startsWith('droppable-')
         ),
       });
@@ -69,7 +69,7 @@ export function useDragAndDrop() {
     const allCollisions = pointerWithin(args);
     const droppableCollisions = rectIntersection({
       ...args,
-      droppableContainers: args.droppableContainers.filter((container: any) =>
+      droppableContainers: args.droppableContainers.filter((container) =>
         container.id.toString().startsWith('droppable-')
       ),
     });

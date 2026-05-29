@@ -63,6 +63,10 @@ global.chrome = {
         return Promise.resolve();
       }),
     },
+    onChanged: {
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+    },
   },
   runtime: {
     getURL: vi.fn((path: string) => `chrome-extension://test/${path}`),

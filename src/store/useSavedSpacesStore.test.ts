@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useSavedSpacesStore } from './useSavedSpacesStore';
-import { v7 as uuidv7 } from 'uuid';
 import type { SavedSpace, SavedProject, SavedCategory, SavedGroup, SavedTab } from '../types';
 
 vi.mock('uuid', () => ({
