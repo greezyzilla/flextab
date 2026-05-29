@@ -1,10 +1,11 @@
 import { SortableContext, useSortable } from "@dnd-kit/sortable";
 import { useDroppable } from "@dnd-kit/core";
 import { DragHandleIcon } from "./icons/DragHandleIcon";
+import { FaviconImg } from "./FaviconImg";
 import { CSS } from "@dnd-kit/utilities";
 import type { SavedGroup, SavedTab } from "~src/types";
 
-const SavedTab = ({ tab, isDragOverlay = false }: { tab: SavedTab, isDragOverlay?: boolean }) => {
+function SavedTabItem({ tab }: { tab: SavedTab }) {
   const {
     attributes,
     listeners,
@@ -28,9 +29,8 @@ const SavedTab = ({ tab, isDragOverlay = false }: { tab: SavedTab, isDragOverlay
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-2 py-2 px-3 bg-white/5 rounded-md hover:bg-white/10 transition-colors group ${isDragOverlay ? 'pointer-events-none' : ''}`}
+      className="flex items-center gap-2 py-2 px-3 bg-white/5 rounded-md hover:bg-white/10 transition-colors group"
     >
-      {/* Drag handle */}
       <div
         {...attributes}
         {...listeners}
@@ -40,12 +40,11 @@ const SavedTab = ({ tab, isDragOverlay = false }: { tab: SavedTab, isDragOverlay
         <DragHandleIcon />
       </div>
 
-      {/* Clickable content */}
       <div
         className="flex items-center gap-3 flex-1 cursor-pointer overflow-hidden"
         onClick={onClick}
       >
-        <img src={tab.favicon} alt={tab.title} className="w-5 h-5" />
+        <FaviconImg src={tab.favicon} alt={tab.title} />
         <div className="flex flex-col gap-0.5 text-white/90 overflow-hidden">
           <div className="text-xs truncate">{tab.title}</div>
           <div className="text-white/50 text-xs truncate flex-1">{tab.url}</div>
@@ -86,7 +85,7 @@ export function TabGroup({ group }: TabGroupProps) {
             )}
             {
               sortedTabs.map((tab) => (
-                <SavedTab key={tab.id} tab={tab} />
+                <SavedTabItem key={tab.id} tab={tab} />
               ))
             }
           </div>

@@ -14,18 +14,6 @@ export interface TabGroup {
   windowId: number
 }
 
-export interface WindowInfo {
-  id?: number
-  focused?: boolean
-  top?: number
-  left?: number
-  width?: number
-  height?: number
-  tabs?: TabInfo[]
-  incognito?: boolean
-  type?: 'normal' | 'popup' | 'panel' | 'app' | 'devtools'
-  state?: 'normal' | 'minimized' | 'maximized' | 'fullscreen' | 'locked-fullscreen'
-}
 
 /**
  * Tab Query and Retrieval Functions
@@ -455,62 +443,6 @@ export class TabGroupManager {
   }
 }
 
-/**
- * Window Management Functions
- */
-export class WindowManager {
-  /**
-   * Get all windows
-   */
-  static async getAllWindows(): Promise<WindowInfo[]> {
-    try {
-      const windows = await chrome.windows.getAll({ populate: true })
-      return windows
-    } catch (error) {
-      console.error('Error getting all windows:', error)
-      return []
-    }
-  }
-
-  /**
-   * Get current window
-   */
-  static async getCurrentWindow(): Promise<WindowInfo | null> {
-    try {
-      const window = await chrome.windows.getCurrent({ populate: true })
-      return window
-    } catch (error) {
-      console.error('Error getting current window:', error)
-      return null
-    }
-  }
-
-  /**
-   * Create new window with tabs
-   */
-  static async createWindow(createData?: chrome.windows.CreateData): Promise<WindowInfo | null> {
-    try {
-      const window = await chrome.windows.create(createData)
-      return window
-    } catch (error) {
-      console.error('Error creating window:', error)
-      return null
-    }
-  }
-
-  /**
-   * Close window
-   */
-  static async closeWindow(windowId: number): Promise<boolean> {
-    try {
-      await chrome.windows.remove(windowId)
-      return true
-    } catch (error) {
-      console.error('Error closing window:', error)
-      return false
-    }
-  }
-}
 
 /**
  * Tab Utility Helper Functions

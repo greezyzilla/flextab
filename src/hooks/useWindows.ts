@@ -1,23 +1,22 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  WindowMgr,
+  WindowManager,
   WindowCreator,
   WindowManipulator,
   WindowUtils,
   WindowEventManager,
-  type WindowData,
+  type WindowInfo,
   TabEventManager
 } from '../utils';
 
-// Types for hooks
 export interface WindowHookState {
-  windows: WindowData[];
+  windows: WindowInfo[];
   loading: boolean;
   error: string | null;
 }
 
 export interface CurrentWindowHookState {
-  currentWindow: WindowData | null;
+  currentWindow: WindowInfo | null;
   loading: boolean;
   error: string | null;
 }
@@ -38,9 +37,6 @@ export interface WindowSummaryState {
   error: string | null;
 }
 
-/**
- * Hook untuk manage semua windows
- */
 export function useWindows(options: {
   populate?: boolean;
   autoRefresh?: boolean;
@@ -57,13 +53,13 @@ export function useWindows(options: {
   const fetchWindows = useCallback(async () => {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }));
-      const windows = await WindowMgr.getAllWindows(populate);
+      const windows = await WindowManager.getAllWindows(populate);
       if (populate) {
-        windows.forEach((window, windowIndex) => {
+        windows.forEach((window, i) => {
           if (window.tabs?.length) {
-            windows[windowIndex].tabs = window.tabs.filter(tab => !!tab.url)
+            windows[i].tabs = window.tabs.filter(tab => !!tab.url);
           }
-        })
+        });
       }
       setState({ windows, loading: false, error: null });
     } catch (error) {
@@ -79,7 +75,6 @@ export function useWindows(options: {
     fetchWindows();
   }, [fetchWindows]);
 
-  // Initial fetch
   useEffect(() => {
     fetchWindows();
   }, [fetchWindows]);
@@ -87,37 +82,34 @@ export function useWindows(options: {
   // Auto refresh
   useEffect(() => {
     if (!autoRefresh) return;
-
     const interval = setInterval(fetchWindows, refreshInterval);
     return () => clearInterval(interval);
   }, [autoRefresh, refreshInterval, fetchWindows]);
 
-  // Event listeners
+  // Window + tab event listeners for real-time updates
   useEffect(() => {
-    const handleWindowCreated = () => fetchWindows();
-    const handleWindowRemoved = () => fetchWindows();
-    const handleWindowFocusChanged = () => fetchWindows();
+    const handler = () => fetchWindows();
 
-    WindowEventManager.onWindowCreated(handleWindowCreated);
-    WindowEventManager.onWindowRemoved(handleWindowRemoved);
-    WindowEventManager.onWindowFocusChanged(handleWindowFocusChanged);
+    WindowEventManager.onWindowCreated(handler);
+    WindowEventManager.onWindowRemoved(handler);
+    WindowEventManager.onWindowFocusChanged(handler);
+    TabEventManager.onTabCreated(handler);
+    TabEventManager.onTabRemoved(handler);
+    TabEventManager.onTabUpdated(handler);
 
     return () => {
-      // Note: Chrome doesn't provide removeListener for individual callbacks
-      // so we'll rely on component unmount
+      WindowEventManager.removeWindowCreatedListener(handler);
+      WindowEventManager.removeWindowRemovedListener(handler);
+      WindowEventManager.removeWindowFocusChangedListener(handler);
+      TabEventManager.removeTabCreatedListener(handler);
+      TabEventManager.removeTabRemovedListener(handler);
+      TabEventManager.removeTabUpdatedListener(handler);
     };
   }, [fetchWindows]);
 
-  return {
-    ...state,
-    refresh,
-    fetchWindows
-  };
+  return { ...state, refresh, fetchWindows };
 }
 
-/**
- * Hook untuk current window
- */
 export function useCurrentWindow(options: {
   populate?: boolean;
   autoRefresh?: boolean;
@@ -134,12 +126,10 @@ export function useCurrentWindow(options: {
   const fetchCurrentWindow = useCallback(async () => {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }));
-      const currentWindow = await WindowMgr.getCurrentWindow(populate);
-
-      if (currentWindow.tabs?.length) {
+      const currentWindow = await WindowManager.getCurrentWindow(populate);
+      if (currentWindow?.tabs?.length) {
         currentWindow.tabs = currentWindow.tabs.filter(tab => !!tab.url);
       }
-
       setState({ currentWindow, loading: false, error: null });
     } catch (error) {
       setState(prev => ({
@@ -150,24 +140,10 @@ export function useCurrentWindow(options: {
     }
   }, [populate]);
 
-  useEffect(() => {
-    const handleExtensionTabActivated = () => {
-      console.log('Extension tab activated, refreshing window summary...');
-      fetchCurrentWindow();
-    };
-
-    TabEventManager.onTabActivated(handleExtensionTabActivated);
-
-    return () => {
-      TabEventManager.removeTabActivatedListener(handleExtensionTabActivated);
-    };
-  }, []);
-
   const refresh = useCallback(() => {
     fetchCurrentWindow();
   }, [fetchCurrentWindow]);
 
-  // Initial fetch
   useEffect(() => {
     fetchCurrentWindow();
   }, [fetchCurrentWindow]);
@@ -175,27 +151,27 @@ export function useCurrentWindow(options: {
   // Auto refresh
   useEffect(() => {
     if (!autoRefresh) return;
-
     const interval = setInterval(fetchCurrentWindow, refreshInterval);
     return () => clearInterval(interval);
   }, [autoRefresh, refreshInterval, fetchCurrentWindow]);
 
-  // Event listeners
+  // Event listeners with proper cleanup
   useEffect(() => {
-    const handleWindowFocusChanged = () => fetchCurrentWindow();
-    WindowEventManager.onWindowFocusChanged(handleWindowFocusChanged);
+    const handleFocusChanged = () => fetchCurrentWindow();
+    const handleTabActivated = () => fetchCurrentWindow();
+
+    WindowEventManager.onWindowFocusChanged(handleFocusChanged);
+    TabEventManager.onTabActivated(handleTabActivated);
+
+    return () => {
+      WindowEventManager.removeWindowFocusChangedListener(handleFocusChanged);
+      TabEventManager.removeTabActivatedListener(handleTabActivated);
+    };
   }, [fetchCurrentWindow]);
 
-  return {
-    ...state,
-    refresh,
-    fetchCurrentWindow
-  };
+  return { ...state, refresh, fetchCurrentWindow };
 }
 
-/**
- * Hook untuk tabs di window tertentu
- */
 export function useWindowTabs(windowId: number | null) {
   const [state, setState] = useState<WindowTabsState>({
     tabs: [],
@@ -211,8 +187,8 @@ export function useWindowTabs(windowId: number | null) {
 
     try {
       setState(prev => ({ ...prev, loading: true, error: null }));
-      const window = await WindowMgr.getWindowById(windowId, true);
-      const tabs = window?.tabs?.filter((tab) => !!tab.url) || [];
+      const window = await WindowManager.getWindowById(windowId, true);
+      const tabs = window?.tabs?.filter(tab => !!tab.url) || [];
       setState({ tabs, loading: false, error: null });
     } catch (error) {
       setState(prev => ({
@@ -231,16 +207,9 @@ export function useWindowTabs(windowId: number | null) {
     fetchWindowTabs();
   }, [fetchWindowTabs]);
 
-  return {
-    ...state,
-    refresh,
-    fetchWindowTabs
-  };
+  return { ...state, refresh, fetchWindowTabs };
 }
 
-/**
- * Hook untuk window summary/statistics
- */
 export function useWindowSummary(options: {
   autoRefresh?: boolean;
   refreshInterval?: number;
@@ -279,206 +248,88 @@ export function useWindowSummary(options: {
     fetchSummary();
   }, [fetchSummary]);
 
-  // Auto refresh
   useEffect(() => {
     if (!autoRefresh) return;
-
     const interval = setInterval(fetchSummary, refreshInterval);
     return () => clearInterval(interval);
   }, [autoRefresh, refreshInterval, fetchSummary]);
 
-  return {
-    ...state,
-    refresh,
-    fetchSummary
-  };
+  return { ...state, refresh, fetchSummary };
 }
 
-/**
- * Hook untuk window operations (create, close, manipulate)
- */
 export function useWindowOperations() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const createWindow = useCallback(async (options: Parameters<typeof WindowCreator.createWindow>[0] = {}) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const window = await WindowCreator.createWindow(options);
-      return window;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create window';
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
+  const wrapAsync = useCallback(<T,>(fn: () => Promise<T>, errorMsg: string) => {
+    return async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        return await fn();
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : errorMsg;
+        setError(msg);
+        throw new Error(msg);
+      } finally {
+        setLoading(false);
+      }
+    };
   }, []);
+
+  const createWindow = useCallback(async (options: Parameters<typeof WindowCreator.createWindow>[0] = {}) => {
+    return wrapAsync(() => WindowCreator.createWindow(options), 'Failed to create window')();
+  }, [wrapAsync]);
 
   const createPopup = useCallback(async (url: string, width = 400, height = 300) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const window = await WindowCreator.createPopup(url, width, height);
-      return window;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create popup';
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    return wrapAsync(() => WindowCreator.createPopup(url, width, height), 'Failed to create popup')();
+  }, [wrapAsync]);
 
   const createIncognito = useCallback(async (url?: string) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const window = await WindowCreator.createIncognitoWindow(url);
-      return window;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create incognito window';
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    return wrapAsync(() => WindowCreator.createIncognitoWindow(url), 'Failed to create incognito window')();
+  }, [wrapAsync]);
 
   const closeWindow = useCallback(async (windowId: number) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const success = await WindowManipulator.closeWindow(windowId);
-      return success;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to close window';
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    return wrapAsync(() => WindowManipulator.closeWindow(windowId), 'Failed to close window')();
+  }, [wrapAsync]);
 
   const focusWindow = useCallback(async (windowId: number) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const success = await WindowManipulator.focusWindow(windowId);
-      return success;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to focus window';
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    return wrapAsync(() => WindowManipulator.focusWindow(windowId), 'Failed to focus window')();
+  }, [wrapAsync]);
 
   const minimizeWindow = useCallback(async (windowId: number) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const success = await WindowManipulator.minimizeWindow(windowId);
-      return success;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to minimize window';
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    return wrapAsync(() => WindowManipulator.minimizeWindow(windowId), 'Failed to minimize window')();
+  }, [wrapAsync]);
 
   const maximizeWindow = useCallback(async (windowId: number) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const success = await WindowManipulator.maximizeWindow(windowId);
-      return success;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to maximize window';
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    return wrapAsync(() => WindowManipulator.maximizeWindow(windowId), 'Failed to maximize window')();
+  }, [wrapAsync]);
 
   const restoreWindow = useCallback(async (windowId: number) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const success = await WindowManipulator.restoreWindow(windowId);
-      return success;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to restore window';
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    return wrapAsync(() => WindowManipulator.restoreWindow(windowId), 'Failed to restore window')();
+  }, [wrapAsync]);
 
   const moveWindow = useCallback(async (windowId: number, left: number, top: number) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const success = await WindowManipulator.moveWindow(windowId, left, top);
-      return success;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to move window';
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    return wrapAsync(() => WindowManipulator.moveWindow(windowId, left, top), 'Failed to move window')();
+  }, [wrapAsync]);
 
   const resizeWindow = useCallback(async (windowId: number, width: number, height: number) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const success = await WindowManipulator.resizeWindow(windowId, width, height);
-      return success;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to resize window';
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    return wrapAsync(() => WindowManipulator.resizeWindow(windowId, width, height), 'Failed to resize window')();
+  }, [wrapAsync]);
 
   const centerWindow = useCallback(async (windowId: number, width?: number, height?: number) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const success = await WindowManipulator.centerWindow(windowId, width, height);
-      return success;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to center window';
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    return wrapAsync(() => WindowManipulator.centerWindow(windowId, width, height), 'Failed to center window')();
+  }, [wrapAsync]);
 
-  const clearError = useCallback(() => {
-    setError(null);
-  }, []);
+  const clearError = useCallback(() => setError(null), []);
 
   return {
     loading,
     error,
     clearError,
-    // Create operations
     createWindow,
     createPopup,
     createIncognito,
-    // Manipulate operations
     closeWindow,
     focusWindow,
     minimizeWindow,
@@ -490,39 +341,13 @@ export function useWindowOperations() {
   };
 }
 
-/**
- * Hook untuk window filtering
- */
-export function useWindowFilter(windows: WindowData[]) {
-  const normalWindows = useMemo(() =>
-    windows.filter(window => window.type === 'normal'),
-  [windows]
-  );
-
-  const incognitoWindows = useMemo(() =>
-    windows.filter(window => window.incognito),
-  [windows]
-  );
-
-  const popupWindows = useMemo(() =>
-    windows.filter(window => window.type === 'popup'),
-  [windows]
-  );
-
-  const minimizedWindows = useMemo(() =>
-    windows.filter(window => window.state === 'minimized'),
-  [windows]
-  );
-
-  const maximizedWindows = useMemo(() =>
-    windows.filter(window => window.state === 'maximized'),
-  [windows]
-  );
-
-  const focusedWindow = useMemo(() =>
-    windows.find(window => window.focused) || null,
-  [windows]
-  );
+export function useWindowFilter(windows: WindowInfo[]) {
+  const normalWindows = useMemo(() => windows.filter(w => w.type === 'normal'), [windows]);
+  const incognitoWindows = useMemo(() => windows.filter(w => w.incognito), [windows]);
+  const popupWindows = useMemo(() => windows.filter(w => w.type === 'popup'), [windows]);
+  const minimizedWindows = useMemo(() => windows.filter(w => w.state === 'minimized'), [windows]);
+  const maximizedWindows = useMemo(() => windows.filter(w => w.state === 'maximized'), [windows]);
+  const focusedWindow = useMemo(() => windows.find(w => w.focused) || null, [windows]);
 
   const filterWindows = useCallback((criteria: {
     type?: 'normal' | 'popup' | 'panel' | 'app' | 'devtools';
@@ -530,11 +355,11 @@ export function useWindowFilter(windows: WindowData[]) {
     incognito?: boolean;
     focused?: boolean;
   }) => {
-    return windows.filter(window => {
-      if (criteria.type && window.type !== criteria.type) return false;
-      if (criteria.state && window.state !== criteria.state) return false;
-      if (criteria.incognito !== undefined && window.incognito !== criteria.incognito) return false;
-      if (criteria.focused !== undefined && window.focused !== criteria.focused) return false;
+    return windows.filter(w => {
+      if (criteria.type && w.type !== criteria.type) return false;
+      if (criteria.state && w.state !== criteria.state) return false;
+      if (criteria.incognito !== undefined && w.incognito !== criteria.incognito) return false;
+      if (criteria.focused !== undefined && w.focused !== criteria.focused) return false;
       return true;
     });
   }, [windows]);
@@ -550,9 +375,6 @@ export function useWindowFilter(windows: WindowData[]) {
   };
 }
 
-/**
- * Hook untuk window existence check
- */
 export function useWindowExists(windowId: number | null) {
   const [exists, setExists] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
@@ -562,11 +384,10 @@ export function useWindowExists(windowId: number | null) {
       setExists(null);
       return;
     }
-
     try {
       setLoading(true);
-      const windowExists = await WindowUtils.windowExists(windowId);
-      setExists(windowExists);
+      const result = await WindowUtils.windowExists(windowId);
+      setExists(result);
     } catch {
       setExists(false);
     } finally {
@@ -578,22 +399,14 @@ export function useWindowExists(windowId: number | null) {
     checkExists();
   }, [checkExists]);
 
-  return {
-    exists,
-    loading,
-    checkExists
-  };
+  return { exists, loading, checkExists };
 }
 
-/**
- * Hook untuk window state management dengan localStorage persistence
- */
 export function useWindowState<T>(windowId: number | null, key: string, defaultValue: T) {
   const storageKey = windowId ? `window_${windowId}_${key}` : null;
 
   const [state, setState] = useState<T>(() => {
     if (!storageKey) return defaultValue;
-
     try {
       const stored = localStorage.getItem(storageKey);
       return stored ? JSON.parse(stored) : defaultValue;
@@ -605,32 +418,25 @@ export function useWindowState<T>(windowId: number | null, key: string, defaultV
   const updateState = useCallback((newState: T | ((prev: T) => T)) => {
     setState(prev => {
       const nextState = typeof newState === 'function' ? (newState as (prev: T) => T)(prev) : newState;
-
       if (storageKey) {
         try {
           localStorage.setItem(storageKey, JSON.stringify(nextState));
-        } catch (error) {
-          console.warn('Failed to save window state to localStorage:', error);
+        } catch {
+          // Storage quota exceeded
         }
       }
-
       return nextState;
     });
   }, [storageKey]);
 
   const clearState = useCallback(() => {
     setState(defaultValue);
-    if (storageKey) {
-      localStorage.removeItem(storageKey);
-    }
+    if (storageKey) localStorage.removeItem(storageKey);
   }, [defaultValue, storageKey]);
 
   return [state, updateState, clearState] as const;
 }
 
-/**
- * Combined hook untuk semua window functionality
- */
 export function useWindowManager(options: {
   autoRefresh?: boolean;
   refreshInterval?: number;
@@ -643,29 +449,18 @@ export function useWindowManager(options: {
   const filter = useWindowFilter(windows.windows);
 
   return {
-    // Window data
     windows: windows.windows,
     currentWindow: currentWindow.currentWindow,
     summary,
-
-    // Loading states
     loading: windows.loading || currentWindow.loading || summary.loading,
     error: windows.error || currentWindow.error || summary.error,
-
-    // Operations
     operations,
-
-    // Filters
     filter,
-
-    // Refresh functions
     refresh: () => {
       windows.refresh();
       currentWindow.refresh();
       summary.refresh();
     },
-
-    // Individual refresh
     refreshWindows: windows.refresh,
     refreshCurrentWindow: currentWindow.refresh,
     refreshSummary: summary.refresh

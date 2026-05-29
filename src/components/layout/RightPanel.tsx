@@ -1,17 +1,18 @@
 import { useDraggable } from "@dnd-kit/core"
-import { DragHandleIcon } from "./icons/DragHandleIcon";
+import { DragHandleIcon } from "../icons/DragHandleIcon";
+import { FaviconImg } from "../FaviconImg";
 import { useWindows } from "~src/hooks/useWindows"
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useRef, useMemo } from 'react'
 
 const OpenedTab = ({ tab, windowId }: { tab: chrome.tabs.Tab, windowId: number }) => {
   const onTabClick = (tab: chrome.tabs.Tab, windowId: number) => {
-    chrome.tabs.update(tab.id, { active: true })
+    chrome.tabs.update(tab.id!, { active: true })
     chrome.windows.update(windowId, { focused: true })
   }
 
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: tab.id,
+    id: tab.id!,
   })
 
   return (
@@ -23,7 +24,6 @@ const OpenedTab = ({ tab, windowId }: { tab: chrome.tabs.Tab, windowId: number }
         opacity: isDragging ? 0.5 : 1,
       }}
     >
-      {/* Drag handle */}
       <div
         {...attributes}
         {...listeners}
@@ -33,12 +33,11 @@ const OpenedTab = ({ tab, windowId }: { tab: chrome.tabs.Tab, windowId: number }
         <DragHandleIcon />
       </div>
 
-      {/* Clickable content */}
       <div
         className="flex gap-3 items-center flex-1 cursor-pointer overflow-hidden"
         onClick={() => onTabClick(tab, windowId)}
       >
-        <img src={tab.favIconUrl} alt={tab.title} className="w-5 h-5" />
+        <FaviconImg src={tab.favIconUrl} alt={tab.title} />
         <div className="flex flex-col text-white/90 truncate">
           <div>{tab.title}</div>
           <div className="truncate">{tab.url}</div>
@@ -48,7 +47,7 @@ const OpenedTab = ({ tab, windowId }: { tab: chrome.tabs.Tab, windowId: number }
   )
 }
 
-type VirtualItemData = 
+type VirtualItemData =
   | { type: 'header'; windowId: number; index: number }
   | { type: 'tab'; tab: chrome.tabs.Tab; windowId: number };
 
@@ -58,13 +57,12 @@ export function RightPanel() {
   })
   const parentRef = useRef<HTMLDivElement>(null)
 
-  // Flatten windows and tabs into a single list
   const rows = useMemo(() => {
     const items: VirtualItemData[] = [];
     windows.forEach((window, index) => {
-      items.push({ type: 'header', windowId: window.id, index: index + 1 });
+      items.push({ type: 'header', windowId: window.id!, index: index + 1 });
       window.tabs?.forEach(tab => {
-        items.push({ type: 'tab', tab, windowId: window.id });
+        items.push({ type: 'tab', tab, windowId: window.id! });
       });
     });
     return items;
@@ -73,7 +71,7 @@ export function RightPanel() {
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 60, // Approximate height average
+    estimateSize: () => 60,
     overscan: 5,
   })
 
@@ -82,9 +80,9 @@ export function RightPanel() {
       <div className="min-h-16 h-16 p-4 flex items-center gap-2 border-b border-black-800">
         <h2 className="text-white/90 font-sans text-lg">Opened Tabs</h2>
       </div>
-      
-      <div 
-        ref={parentRef} 
+
+      <div
+        ref={parentRef}
         className="flex-1 overflow-y-auto p-4"
         style={{ contain: 'strict' }}
       >
@@ -107,7 +105,7 @@ export function RightPanel() {
                   width: '100%',
                   height: `${virtualRow.size}px`,
                   transform: `translateY(${virtualRow.start}px)`,
-                  paddingBottom: '8px', // Spacing between items
+                  paddingBottom: '8px',
                 }}
               >
                 {item.type === 'header' ? (
@@ -124,7 +122,6 @@ export function RightPanel() {
       </div>
 
       <div className="min-h-16 h-16 p-4 flex items-center gap-2 border-t border-black-800">
-        {/* Footer actions could go here */}
       </div>
     </div>
   )

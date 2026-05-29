@@ -728,34 +728,22 @@ export class WindowEventManager {
     }
   }
 
-  /**
-   * Remove all window event listeners
-   */
-  static removeAllListeners(): void {
-    if (chrome.windows) {
-      chrome.windows.onCreated.removeListener(() => {});
-      chrome.windows.onRemoved.removeListener(() => {});
-      chrome.windows.onFocusChanged.removeListener(() => {});
-      if (chrome.windows.onBoundsChanged) {
-        chrome.windows.onBoundsChanged.removeListener(() => {});
-      }
+  static removeWindowCreatedListener(callback: (window: chrome.windows.Window) => void): void {
+    if (chrome.windows?.onCreated) {
+      chrome.windows.onCreated.removeListener(callback);
+    }
+  }
+
+  static removeWindowRemovedListener(callback: (windowId: number) => void): void {
+    if (chrome.windows?.onRemoved) {
+      chrome.windows.onRemoved.removeListener(callback);
+    }
+  }
+
+  static removeWindowFocusChangedListener(callback: (windowId: number) => void): void {
+    if (chrome.windows?.onFocusChanged) {
+      chrome.windows.onFocusChanged.removeListener(callback);
     }
   }
 }
 
-// Export default instances for convenience
-export const windowManager = WindowManager;
-export const windowCreator = WindowCreator;
-export const windowManipulator = WindowManipulator;
-export const windowLayoutManager = WindowLayoutManager;
-export const windowUtils = WindowUtils;
-export const windowEventManager = WindowEventManager;
-
-export default {
-  WindowManager,
-  WindowCreator,
-  WindowManipulator,
-  WindowLayoutManager,
-  WindowUtils,
-  WindowEventManager
-};

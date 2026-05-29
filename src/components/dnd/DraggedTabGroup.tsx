@@ -1,23 +1,21 @@
 import type { SavedGroup } from "~src/types"
-import { DragHandleIcon } from "./icons/DragHandleIcon"
+import { DragHandleIcon } from "../icons/DragHandleIcon"
+import { FaviconImg } from "../FaviconImg"
 
 interface DraggedTabGroupProps {
   group: SavedGroup
 }
 
 export function DraggedTabGroup({ group }: DraggedTabGroupProps) {
-  // Sort tabs by order field to maintain consistent ordering
   const sortedTabs = [...(group.tabs || [])].sort((a, b) => {
     const orderA = a.order ?? 0;
     const orderB = b.order ?? 0;
     return orderA - orderB;
   });
 
-  // Constants
   const MAX_DISPLAY_TABS = 3;
   const GRID_COLS = 4;
 
-  // If 4 or fewer tabs, show all. If more than 4, show first 3 + stack indicator
   const hasMoreThanFour = sortedTabs.length > GRID_COLS;
   const displayTabs = hasMoreThanFour ? sortedTabs.slice(0, MAX_DISPLAY_TABS) : sortedTabs;
   const extraCount = hasMoreThanFour ? sortedTabs.length - MAX_DISPLAY_TABS : 0;
@@ -32,7 +30,6 @@ export function DraggedTabGroup({ group }: DraggedTabGroupProps) {
               key={tab.id}
               className="flex items-center gap-2 py-2 px-3 bg-white/5 rounded-md hover:bg-white/10 transition-colors group"
             >
-              {/* Drag handle */}
               <div
                 className="opacity-40 group-hover:opacity-50 hover:!opacity-100 cursor-grab active:cursor-grabbing p-1 rounded transition-opacity"
                 title="Drag to reorder"
@@ -40,9 +37,8 @@ export function DraggedTabGroup({ group }: DraggedTabGroupProps) {
                 <DragHandleIcon />
               </div>
 
-              {/* Tab content */}
               <div className="flex items-center gap-3 flex-1 cursor-pointer overflow-hidden">
-                <img src={tab.favicon} alt={tab.title} className="w-5 h-5" />
+                <FaviconImg src={tab.favicon} alt={tab.title} />
                 <div className="flex flex-col gap-0.5 text-white/90 overflow-hidden">
                   <div className="text-xs truncate">{tab.title}</div>
                   <div className="text-white/50 text-xs truncate flex-1">{tab.url}</div>
@@ -51,10 +47,8 @@ export function DraggedTabGroup({ group }: DraggedTabGroupProps) {
             </div>
           ))}
 
-          {/* Stack indicator replaces the 4th position when there are more than 4 tabs */}
           {hasMoreThanFour && (
             <div className="flex items-center justify-center bg-white/5 rounded-md py-2 px-3 relative">
-              {/* Stack effect with multiple divs positioned behind */}
               <div className="absolute inset-0 bg-white/5 rounded-md translate-x-0.5 translate-y-0.5 opacity-60"></div>
               <div className="absolute inset-0 bg-white/5 rounded-md translate-x-1 translate-y-1 opacity-40"></div>
               <div className="relative z-10 text-white/60 text-xs font-medium">

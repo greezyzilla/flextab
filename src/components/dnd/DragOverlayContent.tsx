@@ -1,6 +1,7 @@
 import { DraggedTabGroup } from "./DraggedTabGroup";
 import type { SavedGroup, SavedTab } from "~src/types";
-import { DragHandleIcon } from "./icons/DragHandleIcon";
+import { DragHandleIcon } from "../icons/DragHandleIcon";
+import { FaviconImg } from "../FaviconImg";
 
 interface DragOverlayContentProps {
   activeId: string | number | null;
@@ -23,11 +24,7 @@ export function DragOverlayContent({ activeId, draggedGroup, draggedTab, dragged
 
         {draggedTab && (
           <>
-            <img
-              src={draggedTab.favIconUrl}
-              alt={draggedTab.title}
-              className="w-5 h-5"
-            />
+            <FaviconImg src={draggedTab.favIconUrl} alt={draggedTab.title} />
             <div className="flex flex-col text-white/90 truncate">
               <div>{draggedTab.title}</div>
               <div className="truncate">{draggedTab.url}</div>
@@ -37,11 +34,7 @@ export function DragOverlayContent({ activeId, draggedGroup, draggedTab, dragged
 
         {draggedSavedTab && (
           <>
-            <img
-              src={draggedSavedTab.favicon}
-              alt={draggedSavedTab.title}
-              className="w-5 h-5"
-            />
+            <FaviconImg src={draggedSavedTab.favicon} alt={draggedSavedTab.title} />
             <div className="flex flex-col text-white/90 truncate">
               <div>{draggedSavedTab.title}</div>
               <div className="truncate">{draggedSavedTab.url}</div>

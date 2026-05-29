@@ -1,13 +1,14 @@
-import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
-import { TabGroup } from "./TabGroup";
+import { useActiveCategory, useActiveGroups } from "~src/store/useSavedSpacesStore";
+import type { SavedGroup } from "~src/types";
+import { TabGroup } from "../TabGroup";
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { DragHandleIcon } from "./icons/DragHandleIcon";
-import { ChevronDownIcon } from "./icons/ChevronDownIcon";
+import { DragHandleIcon } from "../icons/DragHandleIcon";
+import { ChevronDownIcon } from "../icons/ChevronDownIcon";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRef } from "react";
 
-function SortableGroup({ group }: { group: any }) {
+function SortableGroup({ group }: { group: SavedGroup }) {
   const {
     attributes,
     listeners,
@@ -34,30 +35,30 @@ function SortableGroup({ group }: { group: any }) {
 }
 
 export function ContentPanel() {
-  const { savedSpaces, activeSpace, activeProject, activeCategory } = useSavedSpacesStore();
+  const activeCategory = useActiveCategory();
+  const currentGroups = useActiveGroups();
   const parentRef = useRef<HTMLDivElement>(null);
 
-  const currentGroups = savedSpaces.at(activeSpace)?.projects.at(activeProject)?.categories.at(activeCategory)?.groups || [];
   const sortedGroups = [...currentGroups].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
   const rowVirtualizer = useVirtualizer({
     count: sortedGroups.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 150, // Initial estimate for group height
+    estimateSize: () => 150,
     overscan: 2,
   });
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
       <div className="flex justify-between gap-2 p-4 border-b border-black-800 shrink-0">
-        <h2 className="text-white/70 font-sans text-base font-medium">{savedSpaces.at(activeSpace)?.projects.at(activeProject)?.categories.at(activeCategory)?.name}</h2>
+        <h2 className="text-white/70 font-sans text-base font-medium">{activeCategory?.name}</h2>
         <div className="flex gap-2">
           <button className="text-white/70 font-sans text-sm">
             <ChevronDownIcon />
           </button>
         </div>
       </div>
-      
+
       <div ref={parentRef} className="flex-1 overflow-y-auto p-4 content-panel-scroll">
         {sortedGroups.length > 0 ? (
           <div
