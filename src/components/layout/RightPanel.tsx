@@ -38,9 +38,9 @@ const OpenedTab = ({ tab, windowId }: { tab: chrome.tabs.Tab, windowId: number }
         onClick={() => onTabClick(tab, windowId)}
       >
         <FaviconImg src={tab.favIconUrl} alt={tab.title} />
-        <div className="flex flex-col text-white/90 truncate">
-          <div>{tab.title}</div>
-          <div className="truncate">{tab.url}</div>
+        <div className="flex flex-col gap-0.5 text-white/90 overflow-hidden">
+          <div className="text-xs truncate">{tab.title}</div>
+          <div className="text-white/50 text-xs truncate">{tab.url}</div>
         </div>
       </div>
     </div>

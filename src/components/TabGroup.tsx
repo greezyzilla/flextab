@@ -4,8 +4,10 @@ import { DragHandleIcon } from "./icons/DragHandleIcon";
 import { FaviconImg } from "./FaviconImg";
 import { CSS } from "@dnd-kit/utilities";
 import type { SavedGroup, SavedTab } from "~src/types";
+import { useSavedSpacesStore, useActiveSpace, useActiveProject, useActiveCategory } from "~src/store/useSavedSpacesStore";
+import { showUndoToast } from "./UndoToast";
 
-function SavedTabItem({ tab }: { tab: SavedTab }) {
+function SavedTabItem({ tab, groupId }: { tab: SavedTab; groupId: string }) {
   const {
     attributes,
     listeners,
@@ -21,9 +23,23 @@ function SavedTabItem({ tab }: { tab: SavedTab }) {
     opacity: isDragging ? 0.5 : 1,
   };
 
+  const { removeSavedTab, addSavedTab } = useSavedSpacesStore();
+  const activeSpace = useActiveSpace();
+  const activeProject = useActiveProject();
+  const activeCategory = useActiveCategory();
+
   const onClick = () => {
     chrome.tabs.create({ url: tab.url });
   }
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!activeSpace || !activeProject || !activeCategory) return;
+    removeSavedTab(activeSpace.id, activeProject.id, activeCategory.id, groupId, tab);
+    showUndoToast(`Removed "${tab.title}"`, () => {
+      addSavedTab(activeSpace.id, activeProject.id, activeCategory.id, groupId, tab);
+    });
+  };
 
   return (
     <div
@@ -50,6 +66,14 @@ function SavedTabItem({ tab }: { tab: SavedTab }) {
           <div className="text-white/50 text-xs truncate flex-1">{tab.url}</div>
         </div>
       </div>
+
+      <button
+        onClick={handleDelete}
+        className="opacity-0 group-hover:opacity-100 text-white/30 hover:text-red-400 transition-all text-xs shrink-0"
+        title="Remove tab"
+      >
+        ✕
+      </button>
     </div>
   )
 }
@@ -62,6 +86,10 @@ export function TabGroup({ group }: TabGroupProps) {
   const { setNodeRef: setDroppableRef, isOver } = useDroppable({
     id: `droppable-${group.id}`,
   });
+  const { removeSavedGroup, addSavedGroup } = useSavedSpacesStore();
+  const activeSpace = useActiveSpace();
+  const activeProject = useActiveProject();
+  const activeCategory = useActiveCategory();
 
   // Sort tabs by order field to maintain consistent ordering
   const sortedTabs = [...(group.tabs || [])].sort((a, b) => {
@@ -76,19 +104,36 @@ export function TabGroup({ group }: TabGroupProps) {
     chrome.windows.create({ url: urls });
   };
 
+  const handleDeleteGroup = () => {
+    if (!activeSpace || !activeProject || !activeCategory) return;
+    removeSavedGroup(activeSpace.id, activeProject.id, activeCategory.id, group);
+    showUndoToast(`Deleted group "${group.name}"`, () => {
+      addSavedGroup(activeSpace.id, activeProject.id, activeCategory.id, group);
+    });
+  };
+
   return (
     <div className="flex flex-col gap-2 p-4">
-      <div className="flex items-center justify-between pl-6 pr-1">
+      <div className="flex items-center justify-between pl-6 pr-1 group/header">
         <h3 className="text-white/60 font-sans text-sm">{group.name}</h3>
-        {sortedTabs.length > 0 && (
+        <div className="flex items-center gap-2">
+          {sortedTabs.length > 0 && (
+            <button
+              onClick={handleOpenAll}
+              className="text-white/40 hover:text-white/70 font-sans text-xs transition-colors"
+              title="Open all tabs in new window"
+            >
+              Open All
+            </button>
+          )}
           <button
-            onClick={handleOpenAll}
-            className="text-white/40 hover:text-white/70 font-sans text-xs transition-colors"
-            title="Open all tabs in new window"
+            onClick={handleDeleteGroup}
+            className="opacity-0 group-hover/header:opacity-100 text-white/30 hover:text-red-400 font-sans text-xs transition-all"
+            title="Delete group"
           >
-            Open All
+            ✕
           </button>
-        )}
+        </div>
       </div>
       {sortedTabs.length > 0 ? (
         <SortableContext items={sortedTabs.map((tab) => tab.id)}>
@@ -102,7 +147,7 @@ export function TabGroup({ group }: TabGroupProps) {
             )}
             {
               sortedTabs.map((tab) => (
-                <SavedTabItem key={tab.id} tab={tab} />
+                <SavedTabItem key={tab.id} tab={tab} groupId={group.id} />
               ))
             }
           </div>

@@ -4,7 +4,6 @@ import { TabGroup } from "../TabGroup";
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { DragHandleIcon } from "../icons/DragHandleIcon";
-import { ChevronDownIcon } from "../icons/ChevronDownIcon";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRef, useCallback } from "react";
 import { v7 as uuidv7 } from "uuid";
@@ -89,7 +88,7 @@ export function ContentPanel() {
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
       <div className="flex justify-between gap-2 p-4 border-b border-black-800 shrink-0">
-        <h2 className="text-white/70 font-sans text-base font-medium">{activeCategory?.name}</h2>
+        <h2 className="text-white/70 font-sans text-base font-medium">{activeCategory?.name || 'No Category Selected'}</h2>
         <div className="flex gap-2 items-center">
           {activeCategory && (
             <button
@@ -100,9 +99,6 @@ export function ContentPanel() {
               Save All Tabs
             </button>
           )}
-          <button className="text-white/70 font-sans text-sm">
-            <ChevronDownIcon />
-          </button>
         </div>
       </div>
 

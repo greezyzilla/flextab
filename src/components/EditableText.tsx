@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export interface EditableTextProps {
   value: string;
@@ -12,8 +12,16 @@ export interface EditableTextProps {
 
 export function EditableText({ value, onSave, className, isEditing, canEdit, onEdit, onCancel }: EditableTextProps) {
   const [editValue, setEditValue] = useState(value);
+  const [cancelled, setCancelled] = useState(false);
+
+  // Sync editValue when entering edit mode or when value changes externally
+  useEffect(() => {
+    setEditValue(value);
+    setCancelled(false);
+  }, [value, isEditing]);
 
   const handleSave = () => {
+    if (cancelled) return;
     if (editValue.trim()) {
       onSave(editValue.trim());
     }
@@ -24,6 +32,8 @@ export function EditableText({ value, onSave, className, isEditing, canEdit, onE
     if (e.key === 'Enter') {
       handleSave();
     } else if (e.key === 'Escape') {
+      setCancelled(true);
+      setEditValue(value);
       onCancel();
     }
   };

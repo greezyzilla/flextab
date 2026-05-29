@@ -148,8 +148,11 @@ function SortableCategory({ category, spaceId, projectId }: { category: SavedCat
 // --- Main panel ---
 
 export function LeftPanel() {
-  const { savedSpaces, activeSpaceId, setActiveProject, addSavedProject, removeSavedProject, addSavedCategory, removeSavedCategory, reorderProjects, reorderCategories } = useSavedSpacesStore();
-  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
+  const { savedSpaces, activeSpaceId, activeProjectId, setActiveProject, addSavedProject, removeSavedProject, addSavedCategory, removeSavedCategory, reorderProjects, reorderCategories } = useSavedSpacesStore();
+  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(() => {
+    // Auto-expand the active project on initial render
+    return activeProjectId ? new Set([activeProjectId]) : new Set();
+  });
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [editingProject, setEditingProject] = useState<string | null>(null);
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
@@ -275,7 +278,7 @@ export function LeftPanel() {
 
   return (
     <LeftPanelContext.Provider value={contextValue}>
-      <div className="w-64 h-full flex flex-col bg-black/900">
+      <div className="w-64 h-full flex flex-col bg-black-900">
         <div className="h-16 p-4 flex items-end gap-2 border-b border-black-800">
           <h1 className="text-white/90 font-sans text-2xl">FlexTab</h1>
           <p className="text-white/50 font-sans text-sm">v{config.version || '0.0.1'}</p>
@@ -324,7 +327,7 @@ export function LeftPanel() {
                   <div key={project.id} className="flex flex-col gap-2">
                     <SortableProject project={project} spaceId={currentSpace.id} />
                     {expandedProjects.has(project.id) && (
-                      <div className="flex flex-col gap-2">
+                      <div className="flex flex-col gap-1 pl-4">
                         <DndContext
                           sensors={sensors}
                           collisionDetection={closestCenter}

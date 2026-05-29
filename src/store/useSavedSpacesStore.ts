@@ -121,8 +121,20 @@ export const useSavedSpacesStore = create<SavedSpacesState>()(
       activeCategoryId: defaultCategoryId,
       lastModified: Date.now(),
 
-      setActiveSpace: (id) => set((state) => { state.activeSpaceId = id }),
-      setActiveProject: (id) => set((state) => { state.activeProjectId = id }),
+      setActiveSpace: (id) => set((state) => {
+        state.activeSpaceId = id;
+        const space = id ? state.savedSpaces.find(s => s.id === id) : null;
+        const firstProject = space?.projects[0];
+        const firstCategory = firstProject?.categories[0];
+        state.activeProjectId = firstProject?.id ?? null;
+        state.activeCategoryId = firstCategory?.id ?? null;
+      }),
+      setActiveProject: (id) => set((state) => {
+        state.activeProjectId = id;
+        const space = state.savedSpaces.find(s => s.id === state.activeSpaceId);
+        const project = id ? space?.projects.find(p => p.id === id) : null;
+        state.activeCategoryId = project?.categories[0]?.id ?? null;
+      }),
       setActiveCategory: (id) => set((state) => { state.activeCategoryId = id }),
 
       // --- Space CRUD ---
@@ -241,9 +253,10 @@ export const useSavedSpacesStore = create<SavedSpacesState>()(
       reorderTabsInGroup: (spaceId, projectId, categoryId, groupId, fromIndex, toIndex) => set((state) => {
         const group = findGroup(state, spaceId, projectId, categoryId, groupId);
         if (!group) return;
-        const [removed] = group.tabs.splice(fromIndex, 1);
-        group.tabs.splice(toIndex, 0, removed);
-        group.tabs.forEach((t, i) => { t.order = i; });
+        const sorted = [...group.tabs].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+        const [removed] = sorted.splice(fromIndex, 1);
+        sorted.splice(toIndex, 0, removed);
+        group.tabs = sorted.map((t, i) => ({ ...t, order: i }));
       }),
       moveTabBetweenGroups: (spaceId, projectId, categoryId, sourceGroupId, targetGroupId, tabId, insertIndex) => set((state) => {
         const category = findCategory(state, spaceId, projectId, categoryId);

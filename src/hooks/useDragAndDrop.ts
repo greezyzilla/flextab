@@ -165,9 +165,10 @@ export function useDragAndDrop() {
       if (!targetGroup) return;
 
       if (sourceGroup.id === targetGroup.id) {
-        // Same group reorder
-        const fromIndex = sourceGroup.tabs.findIndex(tab => tab.id === active.id);
-        const toIndex = sourceGroup.tabs.findIndex(tab => tab.id === over.id);
+        // Same group reorder (use sorted order to match store's reorderTabsInGroup)
+        const sortedTabs = [...sourceGroup.tabs].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+        const fromIndex = sortedTabs.findIndex(tab => tab.id === active.id);
+        const toIndex = sortedTabs.findIndex(tab => tab.id === over.id);
         if (fromIndex !== -1 && toIndex !== -1) {
           reorderTabsInGroup(spaceId, projectId, categoryId, sourceGroup.id, fromIndex, toIndex);
         }

@@ -21,11 +21,13 @@ export function ProfilePanel() {
           <div
             key={space.id}
             onClick={() => setActiveSpace(space.id)}
-            className={`w-10 h-10 rounded-full cursor-pointer transition-colors ${
-              activeSpaceId === space.id ? "bg-white/20 ring-2 ring-white/50" : "bg-black-800 hover:bg-black-700"
+            className={`w-10 h-10 rounded-full cursor-pointer transition-colors flex items-center justify-center text-xs font-medium font-sans ${
+              activeSpaceId === space.id ? "bg-white/20 ring-2 ring-white/50 text-white/90" : "bg-black-800 hover:bg-black-700 text-white/50"
             }`}
             title={space.name}
-          ></div>
+          >
+            {space.name.slice(0, 2).toUpperCase()}
+          </div>
         ))}
         <div
           onClick={handleAddSpace}

@@ -3,6 +3,7 @@ import "../../style.css"
 import { useSavedSpacesStore, useHydrated } from "~src/store/useSavedSpacesStore"
 import { v7 as uuidv7 } from "uuid"
 import type { SavedTab } from "~src/types"
+import { faviconToDataUrl } from "~src/utils/favicon"
 
 function IndexPopup() {
   const hydrated = useHydrated();
@@ -28,11 +29,12 @@ function IndexPopup() {
       order: activeCategory.groups.length,
     });
 
+    const favicon = await faviconToDataUrl(tab.favIconUrl || '');
     const savedTab: SavedTab = {
       id: uuidv7(),
       url: tab.url,
       title: tab.title || 'Untitled',
-      favicon: tab.favIconUrl || '',
+      favicon,
       order: 0,
     };
     addSavedTab(activeSpace.id, activeProject.id, activeCategory.id, groupId, savedTab);
@@ -60,11 +62,12 @@ function IndexPopup() {
 
     for (let i = 0; i < filteredTabs.length; i++) {
       const tab = filteredTabs[i];
+      const favicon = await faviconToDataUrl(tab.favIconUrl || '');
       addSavedTab(activeSpace.id, activeProject.id, activeCategory.id, groupId, {
         id: uuidv7(),
         url: tab.url || '',
         title: tab.title || 'Untitled',
-        favicon: tab.favIconUrl || '',
+        favicon,
         order: i,
       });
     }
