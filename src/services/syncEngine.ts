@@ -5,7 +5,8 @@ import { loadTokens, apiFetch, API_BASE_URL } from "./api";
 // Structured sync (PUT /api/sync) is handled by background service worker
 import type { SavedSpace } from "~src/types";
 
-const WS_RECONNECT_MS = 3000;
+const WS_RECONNECT_BASE_MS = 3000;
+const WS_RECONNECT_MAX_MS = 60000;
 
 // --- BE types ---
 
@@ -40,10 +41,12 @@ function mapBeToLocal(spaces: BeSpace[]): SavedSpace[] {
 
 let ws: WebSocket | null = null;
 let wsReconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let wsReconnectDelay = WS_RECONNECT_BASE_MS;
 let sendingUpdate = false;
 
 function connectWebSocket() {
   if (ws) return;
+  if (!useAuthStore.getState().isAuthenticated) return;
 
   loadTokens().then(tokens => {
     if (!tokens) return;
@@ -52,6 +55,9 @@ function connectWebSocket() {
     ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
+      // Reset backoff on successful connection
+      wsReconnectDelay = WS_RECONNECT_BASE_MS;
+
       // Send our full state so the server has the latest
       const state = encodeState();
       ws?.send(JSON.stringify({
@@ -74,7 +80,6 @@ function connectWebSocket() {
           sendingUpdate = false;
           persistState();
         } else if (msg.type === "sync" && msg.entity_type === "full") {
-          // Legacy full sync broadcast — pull structured data and merge into Yjs
           pullStructuredAndMerge();
         }
       } catch { /* ignore parse errors */ }
@@ -83,7 +88,8 @@ function connectWebSocket() {
     ws.onclose = () => {
       ws = null;
       if (useAuthStore.getState().isAuthenticated) {
-        wsReconnectTimer = setTimeout(connectWebSocket, WS_RECONNECT_MS);
+        wsReconnectTimer = setTimeout(connectWebSocket, wsReconnectDelay);
+        wsReconnectDelay = Math.min(wsReconnectDelay * 2, WS_RECONNECT_MAX_MS);
       }
     };
 
@@ -93,6 +99,7 @@ function connectWebSocket() {
 
 function disconnectWebSocket() {
   if (wsReconnectTimer) { clearTimeout(wsReconnectTimer); wsReconnectTimer = null; }
+  wsReconnectDelay = WS_RECONNECT_BASE_MS;
   if (ws) { ws.onclose = null; ws.close(); ws = null; }
 }
 
@@ -112,24 +119,13 @@ async function pullStructuredAndMerge() {
     const data = await apiFetch<{ spaces: BeSpace[]; revision: number }>("/api/sync");
     const beSpaces = mapBeToLocal(data.spaces);
     if (beSpaces.length > 0) {
-      // Create a temporary Yjs doc with BE data, then merge
-      const tempDoc = new Y.Doc();
-      const tempArray = tempDoc.getArray<Y.Map<unknown>>("spaces");
-      // Build Yjs structure from BE data
-      const { setSpaces: setTempSpaces } = await import("~src/lib/yjsDoc").then(m => {
-        // We can't use setSpaces on the main doc directly, so build from plain
-        return { setSpaces: m.setSpaces };
-      });
-      // Merge by applying BE state as a remote update
-      // The simplest approach: if local Yjs has no data, set from BE
       const localSpaces = getSpaces();
+      // If local is default/empty, replace with BE data
       if (localSpaces.length === 0 || (localSpaces.length === 1 && localSpaces[0]?.name === "Personal" && localSpaces[0]?.projects[0]?.categories[0]?.groups[0]?.tabs.length === 0)) {
-        // Local is default/empty — use BE data
         setSpaces(beSpaces);
       }
-      // If local has data and BE has data, local Yjs is authoritative
-      // (Yjs merge will happen via WS updates between devices)
-      tempDoc.destroy();
+      // If local has real data, local Yjs is authoritative
+      // (Yjs merge happens via WS updates between devices)
     }
   } catch {
     // Offline or error — use local data
@@ -158,7 +154,8 @@ function setupDocListener() {
 // --- Public API ---
 
 export async function startSyncEngine() {
-  // Yjs state already loaded by hydrateYjs() — set up listeners
+  // Clean up any previous listener before setting up a new one
+  if (unsubDoc) { unsubDoc(); unsubDoc = null; }
   setupDocListener();
 
   // Pull BE data and merge if needed
