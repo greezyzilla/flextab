@@ -1,3 +1,4 @@
+import { useEffect } from "react"
 import { ContentPanel, LeftPanel, ProfilePanel, RightPanel, DragOverlayContent } from "~src/components"
 import { SearchBar } from "~src/components/SearchBar"
 import { UndoToastContainer } from "~src/components/UndoToast"
@@ -7,6 +8,8 @@ import "../../style.css"
 import { DndContext, DragOverlay } from "@dnd-kit/core"
 import { useDragAndDrop } from "~src/hooks/useDragAndDrop"
 import { useHydrated } from "~src/store/useSavedSpacesStore"
+import { useAuthStore } from "~src/store/useAuthStore"
+import { startSyncEngine, stopSyncEngine } from "~src/services/syncEngine"
 
 function LoadingScreen() {
   return (
@@ -64,8 +67,20 @@ function NewTabPageContent() {
 
 function NewTabPage() {
   const hydrated = useHydrated();
+  const { initialize, isAuthenticated, isLoading: authLoading } = useAuthStore();
 
-  if (!hydrated) return <LoadingScreen />;
+  useEffect(() => {
+    initialize();
+  }, []);
+
+  // Start sync engine (Yjs persistence + remote sync if authenticated)
+  useEffect(() => {
+    if (!hydrated) return;
+    startSyncEngine();
+    return () => stopSyncEngine();
+  }, [hydrated, isAuthenticated]);
+
+  if (!hydrated || authLoading) return <LoadingScreen />;
 
   return (
     <ErrorBoundary>

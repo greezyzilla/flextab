@@ -1,8 +1,10 @@
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
+import { useAuthStore } from "~src/store/useAuthStore";
 import { v7 as uuidv7 } from "uuid";
 
 export function ProfilePanel() {
   const { savedSpaces, activeSpaceId, setActiveSpace, addSavedSpace } = useSavedSpacesStore();
+  const { user, isAuthenticated, login, logout } = useAuthStore();
 
   const handleAddSpace = () => {
     const id = uuidv7();
@@ -39,7 +41,31 @@ export function ProfilePanel() {
         </div>
       </div>
       <div className="flex flex-col gap-2 py-4 items-center">
-        <div className="w-10 h-10 bg-black-800 rounded-full"></div>
+        {isAuthenticated && user ? (
+          <div
+            onClick={logout}
+            className="w-10 h-10 rounded-full cursor-pointer overflow-hidden"
+            title={`${user.name}\n${user.email}\nClick to logout`}
+          >
+            {user.avatar ? (
+              <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            ) : (
+              <div className="w-full h-full bg-blue-600 flex items-center justify-center text-white text-sm font-medium">
+                {user.name.slice(0, 1).toUpperCase()}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div
+            onClick={login}
+            className="w-10 h-10 rounded-full bg-black-800 hover:bg-black-700 cursor-pointer flex items-center justify-center transition-colors"
+            title="Sign in with Google"
+          >
+            <svg className="w-5 h-5 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+            </svg>
+          </div>
+        )}
       </div>
     </div>
   )

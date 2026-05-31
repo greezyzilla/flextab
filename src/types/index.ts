@@ -33,6 +33,7 @@ export interface SavedProject {
 export interface SavedSpace {
   id: string;
   name: string;
+  icon?: string;
   projects: SavedProject[];
   order?: number;
 }

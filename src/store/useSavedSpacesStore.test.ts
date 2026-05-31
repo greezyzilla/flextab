@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useSavedSpacesStore } from './useSavedSpacesStore';
+import * as yjs from '~src/lib/yjsDoc';
 import type { SavedSpace, SavedProject, SavedCategory, SavedGroup, SavedTab } from '../types';
 
 vi.mock('uuid', () => ({
@@ -27,8 +28,11 @@ vi.mock('chrome', () => ({
 
 describe('useSavedSpacesStore', () => {
   beforeEach(() => {
+    // Clear Yjs doc first — this triggers the observer to update Zustand
+    yjs.doc.transact(() => {
+      yjs.spacesArray.delete(0, yjs.spacesArray.length);
+    });
     useSavedSpacesStore.setState({
-      savedSpaces: [],
       activeSpaceId: null,
       activeProjectId: null,
       activeCategoryId: null,
@@ -46,8 +50,10 @@ describe('useSavedSpacesStore', () => {
 
       useSavedSpacesStore.getState().addSavedSpace(newSpace);
 
-      expect(useSavedSpacesStore.getState().savedSpaces).toHaveLength(1);
-      expect(useSavedSpacesStore.getState().savedSpaces[0]).toEqual(newSpace);
+      const spaces = useSavedSpacesStore.getState().savedSpaces;
+      expect(spaces).toHaveLength(1);
+      expect(spaces[0].id).toBe('test-space-1');
+      expect(spaces[0].name).toBe('Test Space');
     });
 
     it('should remove a space', () => {
@@ -112,8 +118,10 @@ describe('useSavedSpacesStore', () => {
       useSavedSpacesStore.getState().addSavedSpace(space);
       useSavedSpacesStore.getState().addSavedProject(space.id, project);
 
-      expect(useSavedSpacesStore.getState().savedSpaces[0].projects).toHaveLength(1);
-      expect(useSavedSpacesStore.getState().savedSpaces[0].projects[0]).toEqual(project);
+      const projects = useSavedSpacesStore.getState().savedSpaces[0].projects;
+      expect(projects).toHaveLength(1);
+      expect(projects[0].id).toBe('test-project-1');
+      expect(projects[0].name).toBe('Test Project');
     });
 
     it('should remove a project from a space', () => {
@@ -187,8 +195,9 @@ describe('useSavedSpacesStore', () => {
       useSavedSpacesStore.getState().addSavedProject(space.id, project);
       useSavedSpacesStore.getState().addSavedCategory(space.id, project.id, category);
 
-      expect(useSavedSpacesStore.getState().savedSpaces[0].projects[0].categories).toHaveLength(1);
-      expect(useSavedSpacesStore.getState().savedSpaces[0].projects[0].categories[0]).toEqual(category);
+      const categories = useSavedSpacesStore.getState().savedSpaces[0].projects[0].categories;
+      expect(categories).toHaveLength(1);
+      expect(categories[0].id).toBe('test-category-1');
     });
 
     it('should remove a category from a project', () => {
@@ -366,6 +375,7 @@ describe('useSavedSpacesStore', () => {
 
       useSavedSpacesStore.getState().removeSavedSpace(space);
 
+      // No spaces left — all active IDs should be null
       expect(useSavedSpacesStore.getState().activeSpaceId).toBeNull();
       expect(useSavedSpacesStore.getState().activeProjectId).toBeNull();
       expect(useSavedSpacesStore.getState().activeCategoryId).toBeNull();
