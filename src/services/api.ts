@@ -10,19 +10,23 @@ let tokenData: TokenData | null = null;
 let refreshPromise: Promise<TokenData | null> | null = null;
 
 export async function loadTokens(): Promise<TokenData | null> {
-  const result = await chrome.storage.local.get("auth_tokens");
-  tokenData = result.auth_tokens ?? null;
+  try {
+    const result = await chrome.storage.local.get("auth_tokens");
+    tokenData = result.auth_tokens ?? null;
+  } catch (_) {
+    tokenData = null;
+  }
   return tokenData;
 }
 
 export async function saveTokens(tokens: TokenData): Promise<void> {
   tokenData = tokens;
-  await chrome.storage.local.set({ auth_tokens: tokens });
+  try { await chrome.storage.local.set({ auth_tokens: tokens }); } catch (_) { /* no extension context */ }
 }
 
 export async function clearTokens(): Promise<void> {
   tokenData = null;
-  await chrome.storage.local.remove("auth_tokens");
+  try { await chrome.storage.local.remove("auth_tokens"); } catch (_) { /* no extension context */ }
 }
 
 function isTokenExpired(): boolean {
@@ -49,7 +53,7 @@ async function refreshTokens(): Promise<TokenData | null> {
     const newTokens: TokenData = await res.json();
     await saveTokens(newTokens);
     return newTokens;
-  } catch {
+  } catch (_) {
     return null;
   }
 }

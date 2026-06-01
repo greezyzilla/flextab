@@ -91,7 +91,7 @@ function injectTimestamp(value: string): string {
       parsed.state.lastModified = Date.now();
     }
     return JSON.stringify(parsed);
-  } catch {
+  } catch (_) {
     return value;
   }
 }
@@ -100,7 +100,7 @@ function extractTimestamp(value: string): number {
   try {
     const parsed = JSON.parse(value);
     return parsed.state?.lastModified ?? 0;
-  } catch {
+  } catch (_) {
     return 0;
   }
 }

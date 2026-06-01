@@ -15,7 +15,7 @@ export async function loadPersistedState(): Promise<boolean> {
       Y.applyUpdate(doc, new Uint8Array(data));
       return true;
     }
-  } catch { /* storage unavailable */ }
+  } catch (_) { /* storage unavailable */ }
   return false;
 }
 

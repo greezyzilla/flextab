@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { type DragStartEvent, type DragEndEvent, type CollisionDetection, rectIntersection, pointerWithin } from "@dnd-kit/core";
+import { rectIntersection, pointerWithin } from "@dnd-kit/core";
+import type { DragStartEvent, DragEndEvent, CollisionDetection } from "@dnd-kit/core";
 import { v7 as uuidv7 } from "uuid";
 import type { SavedTab, SavedGroup } from "~src/types";
 import { useSavedSpacesStore, useActiveSpace, useActiveProject, useActiveCategory } from "~src/store/useSavedSpacesStore";
@@ -46,7 +47,7 @@ export function useDragAndDrop() {
       try {
         const tab = await chrome.tabs.get(active.id as number);
         setDraggedTab(tab);
-      } catch {
+      } catch (_) {
         // Tab may have been closed
       }
     }
@@ -127,7 +128,7 @@ export function useDragAndDrop() {
         };
 
         addSavedTab(spaceId, projectId, categoryId, groupId, savedTab);
-      } catch {
+      } catch (_) {
         // Tab may have been closed during drag
       }
       return;

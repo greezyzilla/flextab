@@ -35,7 +35,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
         });
       }
     }
-  } catch {
+  } catch (_) {
     // Invalid URL, ignore
   }
 });
@@ -81,7 +81,7 @@ async function pushStructuredData(state: number[]) {
       method: "PUT",
       body: JSON.stringify({ spaces }),
     });
-  } catch {
+  } catch (_) {
     // Best-effort — will retry on next change
   }
 }
@@ -105,7 +105,7 @@ async function doInitialPush() {
     if (state && Array.isArray(state)) {
       await pushStructuredData(state);
     }
-  } catch {
+  } catch (_) {
     // Offline or no auth
   }
 }

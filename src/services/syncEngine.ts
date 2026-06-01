@@ -82,7 +82,7 @@ function connectWebSocket() {
         } else if (msg.type === "sync" && msg.entity_type === "full") {
           pullStructuredAndMerge();
         }
-      } catch { /* ignore parse errors */ }
+      } catch (_) { /* ignore parse errors */ }
     };
 
     ws.onclose = () => {
@@ -127,7 +127,7 @@ async function pullStructuredAndMerge() {
       // If local has real data, local Yjs is authoritative
       // (Yjs merge happens via WS updates between devices)
     }
-  } catch {
+  } catch (_) {
     // Offline or error — use local data
   }
 }

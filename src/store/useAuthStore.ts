@@ -32,7 +32,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       set({ isAuthenticated: true });
       try {
         await get().fetchUser();
-      } catch {
+      } catch (_) {
         // Token expired and refresh failed
         set({ isAuthenticated: false, user: null });
       }

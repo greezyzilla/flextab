@@ -4,6 +4,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import type { SavedSpace, SavedProject, SavedCategory, SavedGroup, SavedTab } from "../types";
 import { v7 as uuidv7 } from "uuid";
 import { storage } from './syncStorage';
+import type { Array as YArray, Map as YMap } from "yjs";
 import * as yjs from '~src/lib/yjsDoc';
 
 const STORE_VERSION = 2;
@@ -181,7 +182,7 @@ export const useSavedSpacesStore = create<SavedSpacesState>()(
       reorderProjects: (spaceId, oldIndex, newIndex) => {
         const space = yjs.findSpace(spaceId);
         if (!space) return;
-        const projects = space.map.get("projects") as import("yjs").Array<import("yjs").Map<unknown>>;
+        const projects = space.map.get("projects") as YArray<YMap<unknown>>;
         yjs.reorderInArray(projects, oldIndex, newIndex);
       },
 
@@ -204,7 +205,7 @@ export const useSavedSpacesStore = create<SavedSpacesState>()(
       reorderCategories: (spaceId, projectId, oldIndex, newIndex) => {
         const project = yjs.findProject(spaceId, projectId);
         if (!project) return;
-        const categories = project.map.get("categories") as import("yjs").Array<import("yjs").Map<unknown>>;
+        const categories = project.map.get("categories") as YArray<YMap<unknown>>;
         yjs.reorderInArray(categories, oldIndex, newIndex);
       },
 
@@ -221,7 +222,7 @@ export const useSavedSpacesStore = create<SavedSpacesState>()(
       reorderGroups: (spaceId, projectId, categoryId, fromIndex, toIndex) => {
         const category = yjs.findCategory(spaceId, projectId, categoryId);
         if (!category) return;
-        const groups = category.map.get("groups") as import("yjs").Array<import("yjs").Map<unknown>>;
+        const groups = category.map.get("groups") as YArray<YMap<unknown>>;
         yjs.reorderInArray(groups, fromIndex, toIndex);
       },
 
@@ -238,7 +239,7 @@ export const useSavedSpacesStore = create<SavedSpacesState>()(
       reorderTabsInGroup: (spaceId, projectId, categoryId, groupId, fromIndex, toIndex) => {
         const group = yjs.findGroup(spaceId, projectId, categoryId, groupId);
         if (!group) return;
-        const tabs = group.map.get("tabs") as import("yjs").Array<import("yjs").Map<unknown>>;
+        const tabs = group.map.get("tabs") as YArray<YMap<unknown>>;
         yjs.reorderInArray(tabs, fromIndex, toIndex);
       },
       moveTabBetweenGroups: (spaceId, projectId, categoryId, sourceGroupId, targetGroupId, tabId, insertIndex) => {
