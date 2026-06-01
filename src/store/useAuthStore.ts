@@ -1,12 +1,16 @@
 import { create } from "zustand";
-import { loadTokens, saveTokens, clearTokens, apiFetch, getAuthUrl } from "~src/services/api";
+import { loadTokens, saveTokens, clearTokens, apiFetch, getAuthUrl, apiRegister, apiLogin } from "~src/services/api";
+import { clearState } from "~src/lib/yjsDoc";
+import { resetYjsHydration } from "~src/store/useSavedSpacesStore";
 import type { TokenData } from "~src/services/api";
 
-interface User {
+export interface User {
   id: string;
   email: string;
   name: string;
   avatar: string;
+  provider: string;
+  has_password: boolean;
 }
 
 interface AuthState {
@@ -15,7 +19,9 @@ interface AuthState {
   isLoading: boolean;
 
   initialize: () => Promise<void>;
-  login: () => void;
+  loginWithGoogle: () => void;
+  loginWithEmail: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, name: string) => Promise<void>;
   handleAuthCallback: (tokens: TokenData) => Promise<void>;
   logout: () => Promise<void>;
   fetchUser: () => Promise<void>;
@@ -33,17 +39,24 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       try {
         await get().fetchUser();
       } catch (_) {
-        // Token expired and refresh failed
         set({ isAuthenticated: false, user: null });
       }
     }
     set({ isLoading: false });
   },
 
-  login: () => {
-    // Open BE's Google OAuth in a new tab
-    // The BE will redirect to the callback page after auth
+  loginWithGoogle: () => {
     chrome.tabs.create({ url: getAuthUrl() });
+  },
+
+  loginWithEmail: async (email: string, password: string) => {
+    const tokens = await apiLogin(email, password);
+    await get().handleAuthCallback(tokens);
+  },
+
+  register: async (email: string, password: string, name: string) => {
+    const tokens = await apiRegister(email, password, name);
+    await get().handleAuthCallback(tokens);
   },
 
   handleAuthCallback: async (tokens: TokenData) => {
@@ -54,6 +67,9 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
 
   logout: async () => {
     await clearTokens();
+    await clearState();
+    resetYjsHydration();
+    try { await chrome.storage.local.remove("spaces"); } catch (_) { /* ok */ }
     set({ user: null, isAuthenticated: false });
   },
 

@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { ContentPanel, LeftPanel, ProfilePanel, RightPanel, DragOverlayContent } from "~src/components"
 import { SearchBar } from "~src/components/SearchBar"
 import { UndoToastContainer } from "~src/components/UndoToast"
@@ -7,6 +7,7 @@ import "../../style.css"
 
 import { DndContext, DragOverlay } from "@dnd-kit/core"
 import { useDragAndDrop } from "~src/hooks/useDragAndDrop"
+import { useTheme } from "~src/hooks/useTheme"
 import { useHydrated } from "~src/store/useSavedSpacesStore"
 import { useAuthStore } from "~src/store/useAuthStore"
 import { startSyncEngine, stopSyncEngine } from "~src/services/syncEngine"
@@ -20,18 +21,39 @@ function LoadingScreen() {
 }
 
 function OnboardingScreen() {
-  const { login } = useAuthStore()
+  const { loginWithGoogle, loginWithEmail, register } = useAuthStore()
+  const [mode, setMode] = useState<'login' | 'register'>('login')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [name, setName] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    try {
+      if (mode === 'register') {
+        await register(email, password, name)
+      } else {
+        await loginWithEmail(email, password)
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="flex h-screen w-screen bg-black-900 font-sans overflow-hidden">
       {/* Left — hero */}
       <div className="flex-1 flex flex-col justify-between p-10 min-w-0 relative">
-        {/* Background gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600/[0.07] via-transparent to-purple-600/[0.05]" />
         <div className="absolute top-0 left-0 w-[600px] h-[600px] bg-blue-500/[0.04] rounded-full blur-[120px] -translate-x-1/3 -translate-y-1/3" />
         <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-indigo-500/[0.03] rounded-full blur-[100px] translate-x-1/4 translate-y-1/4" />
         <div className="relative z-10 flex-1 flex flex-col justify-between">
-        {/* Header */}
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-white/20 to-white/5 border border-white/10 flex items-center justify-center">
             <svg className="w-4 h-4 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
@@ -41,7 +63,6 @@ function OnboardingScreen() {
           <span className="text-white/70 text-sm font-medium">FlexTab</span>
         </div>
 
-        {/* Main copy */}
         <div className="flex flex-col gap-6 max-w-lg">
           <h1 className="text-white/90 text-4xl font-semibold tracking-tight leading-[1.15]">
             Stop losing tabs.<br />Start organizing them.
@@ -51,16 +72,13 @@ function OnboardingScreen() {
           </p>
         </div>
 
-        {/* Feature preview — mock UI */}
-        <div className="rounded-xl border border-black-800 bg-black-950/80 overflow-hidden max-w-2xl">
+        <div className="rounded-xl border border-black-800 overflow-hidden max-w-2xl" style={{ backgroundColor: 'color-mix(in srgb, var(--color-black-950) 80%, transparent)' }}>
           <div className="flex border-b border-black-800">
-            {/* Mini sidebar */}
             <div className="w-10 border-r border-black-800 p-2 flex flex-col items-center gap-2">
               <div className="w-6 h-6 rounded-full bg-white/15" />
               <div className="w-6 h-6 rounded-full bg-white/8" />
               <div className="w-6 h-6 rounded-full border border-dashed border-white/20" />
             </div>
-            {/* Mini nav */}
             <div className="flex-1 flex items-center gap-4 px-4 py-2.5">
               <div className="text-white/50 text-xs font-medium">Personal</div>
               <div className="flex gap-2">
@@ -70,7 +88,6 @@ function OnboardingScreen() {
             </div>
           </div>
           <div className="flex">
-            {/* Mock groups */}
             <div className="flex-1 p-3 flex flex-col gap-2">
               <div className="rounded-lg bg-white/[0.03] border border-white/5 p-2.5">
                 <div className="text-white/50 text-[10px] font-medium mb-2">Sprint Planning</div>
@@ -95,7 +112,6 @@ function OnboardingScreen() {
                 </div>
               </div>
             </div>
-            {/* Mock opened tabs */}
             <div className="w-48 border-l border-black-800 p-3">
               <div className="text-white/40 text-[10px] font-medium mb-2">Opened Tabs</div>
               <div className="flex flex-col gap-1.5">
@@ -113,60 +129,88 @@ function OnboardingScreen() {
       </div>
 
       {/* Right — sign in */}
-      <div className="w-[420px] flex flex-col justify-center border-l border-black-800 bg-black-950/50 p-10">
-        <div className="flex flex-col gap-8">
+      <div className="w-[420px] flex flex-col justify-center border-l border-black-800 p-10" style={{ backgroundColor: 'color-mix(in srgb, var(--color-black-950) 50%, transparent)' }}>
+        <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-2">
-            <h2 className="text-white/85 text-xl font-medium">Get started</h2>
+            <h2 className="text-white/85 text-xl font-medium">
+              {mode === 'login' ? 'Welcome back' : 'Create an account'}
+            </h2>
             <p className="text-white/35 text-sm leading-relaxed">
-              Sign in to sync your tabs across devices and never lose a browsing session again.
+              {mode === 'login'
+                ? 'Sign in to sync your tabs across devices.'
+                : 'Get started with FlexTab — organize and sync your tabs.'}
             </p>
           </div>
 
-          <div className="flex flex-col gap-3">
+          {/* Email/Password form */}
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+            {mode === 'register' && (
+              <input
+                type="text"
+                placeholder="Name"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                className="w-full px-4 py-2.5 bg-white/[0.06] border border-white/10 rounded-lg text-white/90 text-sm placeholder:text-white/25 outline-none focus:border-white/25 transition-colors"
+                required
+              />
+            )}
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              className="w-full px-4 py-2.5 bg-white/[0.06] border border-white/10 rounded-lg text-white/90 text-sm placeholder:text-white/25 outline-none focus:border-white/25 transition-colors"
+              required
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              className="w-full px-4 py-2.5 bg-white/[0.06] border border-white/10 rounded-lg text-white/90 text-sm placeholder:text-white/25 outline-none focus:border-white/25 transition-colors"
+              required
+              minLength={8}
+            />
+            {error && <div className="text-red-400 text-xs">{error}</div>}
             <button
-              onClick={login}
-              className="w-full flex items-center justify-center gap-3 px-5 py-3 bg-white text-black-900 rounded-lg hover:bg-white/90 transition-colors font-medium text-sm"
+              type="submit"
+              disabled={loading}
+              className="w-full px-5 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 text-white"
+              style={{ backgroundColor: 'var(--accent)' }}
             >
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-              </svg>
-              Continue with Google
+              {loading ? 'Please wait...' : mode === 'login' ? 'Sign in' : 'Create account'}
             </button>
+          </form>
+
+          {/* Divider */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-white/5" />
+            <span className="text-white/20 text-xs">or</span>
+            <div className="flex-1 h-px bg-white/5" />
           </div>
 
-          <div className="w-full h-px bg-white/5" />
+          {/* Google OAuth */}
+          <button
+            onClick={loginWithGoogle}
+            className="w-full flex items-center justify-center gap-3 px-5 py-2.5 bg-white/[0.06] border border-white/10 rounded-lg hover:bg-white/[0.1] transition-colors text-white/70 text-sm"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+            </svg>
+            Continue with Google
+          </button>
 
-          <div className="flex flex-col gap-4">
-            <div className="flex items-start gap-3">
-              <svg className="w-4 h-4 text-white/25 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z" />
-              </svg>
-              <div>
-                <div className="text-white/50 text-xs font-medium">Organize by context</div>
-                <div className="text-white/25 text-xs mt-0.5">Spaces, projects, and categories to keep every tab where it belongs.</div>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <svg className="w-4 h-4 text-white/25 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
-              </svg>
-              <div>
-                <div className="text-white/50 text-xs font-medium">Sync everywhere</div>
-                <div className="text-white/25 text-xs mt-0.5">Real-time sync across all your devices. Changes appear instantly.</div>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <svg className="w-4 h-4 text-white/25 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 8.25V18a2.25 2.25 0 0 0 2.25 2.25h13.5A2.25 2.25 0 0 0 21 18V8.25m-18 0V6a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 6v2.25m-18 0h18M5.25 6h.008v.008H5.25V6ZM7.5 6h.008v.008H7.5V6Zm2.25 0h.008v.008H9.75V6Z" />
-              </svg>
-              <div>
-                <div className="text-white/50 text-xs font-medium">Save sessions instantly</div>
-                <div className="text-white/25 text-xs mt-0.5">One click to save all open tabs. Drag and drop to organize.</div>
-              </div>
-            </div>
+          {/* Toggle mode */}
+          <div className="text-center">
+            <button
+              onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); }}
+              className="text-white/30 hover:text-white/50 text-xs transition-colors"
+            >
+              {mode === 'login' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
+            </button>
           </div>
 
           <p className="text-white/15 text-[11px] leading-relaxed">
@@ -179,6 +223,7 @@ function OnboardingScreen() {
 }
 
 function NewTabPageContent() {
+  useTheme();
   const {
     handleDragStart,
     handleDragEnd,

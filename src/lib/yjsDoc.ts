@@ -425,3 +425,14 @@ export function applyUpdate(update: Uint8Array) {
 export function mergeRemoteState(remoteState: Uint8Array) {
   Y.applyUpdate(doc, remoteState);
 }
+
+/** Clear all Yjs state and persisted storage. Used on logout / account switch. */
+export async function clearState(): Promise<void> {
+  doc.transact(() => {
+    spacesArray.delete(0, spacesArray.length);
+  });
+  try {
+    await chrome.storage.local.remove(PERSIST_KEY);
+  } catch (_) { /* storage unavailable */ }
+}
+

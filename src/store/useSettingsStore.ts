@@ -4,15 +4,31 @@ import { storage } from './syncStorage';
 
 export type GroupLayout = 'list' | 'grid';
 export type Density = 'compact' | 'comfortable';
+export type AccentColor = 'blue' | 'purple' | 'green' | 'orange' | 'pink' | 'cyan';
+
+export const ACCENT_COLORS: Record<AccentColor, { label: string; value: string; hover: string; subtle: string }> = {
+  blue:   { label: 'Blue',   value: '#3b82f6', hover: '#2563eb', subtle: '#3b82f620' },
+  purple: { label: 'Purple', value: '#8b5cf6', hover: '#7c3aed', subtle: '#8b5cf620' },
+  green:  { label: 'Green',  value: '#22c55e', hover: '#16a34a', subtle: '#22c55e20' },
+  orange: { label: 'Orange', value: '#f97316', hover: '#ea580c', subtle: '#f9731620' },
+  pink:   { label: 'Pink',   value: '#ec4899', hover: '#db2777', subtle: '#ec489920' },
+  cyan:   { label: 'Cyan',   value: '#06b6d4', hover: '#0891b2', subtle: '#06b6d420' },
+};
 
 interface SettingsState {
   groupLayout: GroupLayout;
   gridColumns: number;
   density: Density;
+  accentColor: AccentColor;
+  customAccent: string | null; // hex, overrides accentColor preset if set
+  bgTint: number; // 0-15, background tint intensity (hue derived from accent)
 
   setGroupLayout: (layout: GroupLayout) => void;
   setGridColumns: (columns: number) => void;
   setDensity: (density: Density) => void;
+  setAccentColor: (color: AccentColor) => void;
+  setCustomAccent: (color: string | null) => void;
+  setBgTint: (tint: number) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -21,10 +37,16 @@ export const useSettingsStore = create<SettingsState>()(
       groupLayout: 'list',
       gridColumns: 2,
       density: 'comfortable',
+      accentColor: 'blue',
+      customAccent: null,
+      bgTint: 0,
 
       setGroupLayout: (groupLayout) => set({ groupLayout }),
       setGridColumns: (gridColumns) => set({ gridColumns }),
       setDensity: (density) => set({ density }),
+      setAccentColor: (accentColor) => set({ accentColor, customAccent: null }),
+      setCustomAccent: (customAccent) => set({ customAccent }),
+      setBgTint: (bgTint) => set({ bgTint }),
     }),
     {
       name: 'flextab-settings',

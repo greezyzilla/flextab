@@ -8,7 +8,7 @@ import { faviconToDataUrl } from "~src/utils/favicon"
 
 function IndexPopup() {
   const hydrated = useHydrated();
-  const { initialize, isAuthenticated, isLoading: authLoading, login } = useAuthStore();
+  const { initialize, isAuthenticated, isLoading: authLoading, loginWithGoogle } = useAuthStore();
   const { savedSpaces, activeSpaceId, activeProjectId, activeCategoryId, addSavedGroup, addSavedTab } = useSavedSpacesStore();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -95,10 +95,10 @@ function IndexPopup() {
         <h2 className="text-white/90 text-base font-medium">FlexTab</h2>
         <p className="text-white/40 text-xs text-center">Sign in to save and sync your tabs.</p>
         <button
-          onClick={login}
+          onClick={loginWithGoogle}
           className="w-full px-3 py-2 bg-white/10 text-white/80 rounded-md hover:bg-white/20 transition-colors text-sm"
         >
-          Sign in with Google
+          Sign in
         </button>
       </div>
     );

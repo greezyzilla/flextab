@@ -10,6 +10,11 @@ import * as yjs from '~src/lib/yjsDoc';
 const STORE_VERSION = 2;
 let yjsHydrated = false;
 
+/** Reset hydration so hydrateYjs() re-runs on next login. */
+export function resetYjsHydration() {
+  yjsHydrated = false;
+}
+
 interface SavedSpacesState {
   savedSpaces: SavedSpace[];
   activeSpaceId: string | null;

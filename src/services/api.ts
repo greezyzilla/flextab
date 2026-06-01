@@ -127,5 +127,38 @@ export function getAuthUrl(): string {
   return `${API_BASE_URL}/api/auth/google`;
 }
 
+export async function apiRegister(email: string, password: string, name: string): Promise<TokenData> {
+  const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password, name }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new ApiError(res.status, body.error || res.statusText);
+  }
+  return res.json();
+}
+
+export async function apiLogin(email: string, password: string): Promise<TokenData> {
+  const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new ApiError(res.status, body.error || res.statusText);
+  }
+  return res.json();
+}
+
+export async function apiChangePassword(currentPassword: string, newPassword: string): Promise<void> {
+  await apiFetch("/api/auth/password", {
+    method: "PUT",
+    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+  });
+}
+
 export { API_BASE_URL };
 export type { TokenData };
