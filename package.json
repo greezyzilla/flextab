@@ -58,7 +58,8 @@
   "manifest": {
     "permissions": [
       "tabs",
-      "storage"
+      "storage",
+      "unlimitedStorage"
     ],
     "host_permissions": [
       "https://*/*",

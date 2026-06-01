@@ -1,379 +1,356 @@
-import { useState, useEffect, createContext, useContext } from 'react';
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import type { DragEndEvent } from '@dnd-kit/core';
-import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import { useState, useEffect, useRef } from 'react';
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
-import type { SavedProject, SavedCategory } from "~src/types";
 import { v7 as uuidv7 } from "uuid";
-import { EditableText } from "~src/components/EditableText";
 import config from '../../../package.json';
 import { showUndoToast } from "~src/components/UndoToast";
 
-// --- Context to eliminate prop drilling ---
+const SPACE_COLORS = [
+  "", "#3b82f6", "#8b5cf6", "#ec4899", "#ef4444",
+  "#f97316", "#eab308", "#22c55e", "#06b6d4",
+];
 
-interface LeftPanelContextValue {
-  editMode: boolean;
-  editingProject: string | null;
-  editingCategory: string | null;
-  expandedProjects: Set<string>;
-  expandedCategories: Set<string>;
-  setEditingProject: (id: string | null) => void;
-  setEditingCategory: (id: string | null) => void;
-  toggleProject: (projectId: string) => void;
-  toggleCategory: (categoryId: string) => void;
-  handleDeleteProject: (spaceId: string, projectId: string) => void;
-  handleDeleteCategory: (spaceId: string, projectId: string, categoryId: string) => void;
+interface ContextMenuState {
+  type: 'project' | 'category';
+  id: string;
+  spaceId: string;
+  projectId?: string;
+  x: number;
+  y: number;
 }
 
-const LeftPanelContext = createContext<LeftPanelContextValue>(null!);
-const useLeftPanelContext = () => useContext(LeftPanelContext);
-
-// --- Sortable components ---
-
-function SortableProject({ project, spaceId }: { project: SavedProject; spaceId: string }) {
-  const { editMode, editingProject, expandedProjects, setEditingProject, toggleProject, handleDeleteProject } = useLeftPanelContext();
-  const { updateSavedProject } = useSavedSpacesStore();
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: project.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  return (
-    <div ref={setNodeRef} style={style}>
-      <div className="flex items-center gap-2 py-2 px-2 rounded-md">
-        {editMode && (
-          <div {...attributes} {...listeners} className="cursor-grab text-white/30 hover:text-white/50">
-            ⋮⋮
-          </div>
-        )}
-        {!editMode && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleProject(project.id);
-            }}
-            className="text-white/50 hover:text-white/70 transition-colors"
-          >
-            <svg
-              className={`w-4 h-4 transition-transform ${expandedProjects.has(project.id) ? 'rotate-90' : 'rotate-0'}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        )}
-        <EditableText
-          value={project.name}
-          onSave={(name) => updateSavedProject(spaceId, { ...project, name })}
-          className="flex-1 text-white/60 font-sans text-sm"
-          isEditing={editMode && editingProject === project.id}
-          canEdit={editMode}
-          onEdit={() => setEditingProject(project.id)}
-          onCancel={() => setEditingProject(null)}
-        />
-        {editMode && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDeleteProject(spaceId, project.id);
-            }}
-            className="text-white/30 hover:text-red-400 transition-colors text-xs"
-            title="Delete Project"
-          >
-            ×
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function SortableCategory({ category, spaceId, projectId }: { category: SavedCategory; spaceId: string; projectId: string }) {
-  const { editMode, editingCategory, setEditingCategory, handleDeleteCategory } = useLeftPanelContext();
-  const { activeCategoryId, setActiveCategory, updateSavedCategory } = useSavedSpacesStore();
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: category.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  return (
-    <div ref={setNodeRef} style={style}>
-      <div
-        className={`flex items-center gap-2 py-2 px-2 rounded-md cursor-pointer transition-colors ${
-          activeCategoryId === category.id ? 'bg-white/10' : 'hover:bg-white/5'
-        }`}
-        onClick={() => setActiveCategory(category.id)}
-      >
-        {editMode && (
-          <div {...attributes} {...listeners} className="cursor-grab text-white/30 hover:text-white/50">
-            ⋮⋮
-          </div>
-        )}
-        <EditableText
-          value={category.name}
-          onSave={(name) => updateSavedCategory(spaceId, projectId, { ...category, name })}
-          className="flex-1 text-white/50 font-sans text-sm"
-          isEditing={editMode && editingCategory === category.id}
-          canEdit={editMode}
-          onEdit={() => setEditingCategory(category.id)}
-          onCancel={() => setEditingCategory(null)}
-        />
-        {editMode && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDeleteCategory(spaceId, projectId, category.id);
-            }}
-            className="text-white/30 hover:text-red-400 transition-colors text-xs"
-            title="Delete Category"
-          >
-            ×
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// --- Main panel ---
-
-export function LeftPanel() {
-  const { savedSpaces, activeSpaceId, activeProjectId, setActiveProject, addSavedProject, removeSavedProject, addSavedCategory, removeSavedCategory, reorderProjects, reorderCategories } = useSavedSpacesStore();
-  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(() => {
-    // Auto-expand the active project on initial render
-    return activeProjectId ? new Set([activeProjectId]) : new Set();
-  });
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
-  const [editingProject, setEditingProject] = useState<string | null>(null);
-  const [editingCategory, setEditingCategory] = useState<string | null>(null);
-  const [editMode, setEditMode] = useState(false);
+function SpaceSettings({ onClose }: { onClose: () => void }) {
+  const { savedSpaces, activeSpaceId, updateSavedSpace } = useSavedSpacesStore();
+  const currentSpace = savedSpaces.find(s => s.id === activeSpaceId);
+  const ref = useRef<HTMLDivElement>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
+  const [name, setName] = useState(currentSpace?.name ?? "");
+  const [abbreviation, setAbbreviation] = useState(currentSpace?.abbreviation ?? "");
+  const [color, setColor] = useState(currentSpace?.color ?? "");
 
   useEffect(() => {
-    if (!editMode) {
-      setEditingProject(null);
-      setEditingCategory(null);
-    }
-  }, [editMode]);
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+  useEffect(() => { nameRef.current?.focus(); }, []);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
+  if (!currentSpace) return null;
+
+  const handleSave = () => {
+    updateSavedSpace({
+      ...currentSpace,
+      name: name.trim() || currentSpace.name,
+      abbreviation: abbreviation.trim() || undefined,
+      color: color || undefined,
+    });
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
+      <div
+        ref={ref}
+        className="bg-black-900 border border-black-700 rounded-xl w-80 p-5 flex flex-col gap-4 shadow-2xl"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between">
+          <h3 className="text-white/80 font-sans text-sm font-medium">Space Settings</h3>
+          <button onClick={onClose} className="text-white/40 hover:text-white/70 transition-colors">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-white/40 text-[11px] font-sans">Name</label>
+          <input ref={nameRef} type="text" value={name} onChange={e => setName(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") onClose(); }}
+            className="bg-black-800 border border-black-700 rounded-md px-2.5 py-1.5 text-white/90 text-sm font-sans outline-none focus:border-white/30" />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-white/40 text-[11px] font-sans">Abbreviation (max 2)</label>
+          <input type="text" value={abbreviation} onChange={e => setAbbreviation(e.target.value.slice(0, 2))}
+            placeholder={currentSpace.name.slice(0, 2).toUpperCase()}
+            onKeyDown={e => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") onClose(); }}
+            className="bg-black-800 border border-black-700 rounded-md px-2.5 py-1.5 text-white/90 text-sm font-sans outline-none focus:border-white/30 w-20" />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-white/40 text-[11px] font-sans">Color</label>
+          <div className="flex gap-2 flex-wrap">
+            {SPACE_COLORS.map(c => (
+              <button key={c || "default"} onClick={() => setColor(c)}
+                className={`w-6 h-6 rounded-full border-2 transition-all ${color === c ? 'border-white/70 scale-110' : 'border-transparent hover:border-white/30'}`}
+                style={{ backgroundColor: c || 'rgba(255,255,255,0.15)' }} />
+            ))}
+          </div>
+        </div>
+        <button onClick={handleSave} className="w-full px-3 py-2 bg-white/10 hover:bg-white/15 text-white/80 text-sm font-sans rounded-md transition-colors mt-1">Save</button>
+      </div>
+    </div>
   );
+}
+
+export function LeftPanel() {
+  const {
+    savedSpaces, activeSpaceId, activeProjectId, activeCategoryId,
+    setActiveProject, setActiveCategory,
+    addSavedProject, removeSavedProject,
+    addSavedCategory, removeSavedCategory,
+    updateSavedProject, updateSavedCategory,
+  } = useSavedSpacesStore();
+
+  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(() =>
+    activeProjectId ? new Set([activeProjectId]) : new Set()
+  );
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [showSettings, setShowSettings] = useState(false);
+  const contextMenuRef = useRef<HTMLDivElement>(null);
+  const renameRef = useRef<HTMLInputElement>(null);
 
   const currentSpace = savedSpaces.find(s => s.id === activeSpaceId);
 
-  const toggleProject = (projectId: string) => {
-    const newExpanded = new Set(expandedProjects);
-    if (newExpanded.has(projectId)) {
-      newExpanded.delete(projectId);
-    } else {
-      newExpanded.add(projectId);
+  useEffect(() => {
+    if (!contextMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) setContextMenu(null);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [contextMenu]);
+
+  useEffect(() => {
+    if (renamingId && renameRef.current) {
+      renameRef.current.focus();
+      renameRef.current.select();
     }
-    setExpandedProjects(newExpanded);
+  }, [renamingId]);
+
+  const toggleProject = (projectId: string) => {
+    const next = new Set(expandedProjects);
+    if (next.has(projectId)) next.delete(projectId);
+    else next.add(projectId);
+    setExpandedProjects(next);
     setActiveProject(projectId);
   };
 
-  const toggleCategory = (categoryId: string) => {
-    const newExpanded = new Set(expandedCategories);
-    if (newExpanded.has(categoryId)) {
-      newExpanded.delete(categoryId);
+  const startRename = (id: string, currentName: string) => {
+    setRenameValue(currentName);
+    setRenamingId(id);
+    setContextMenu(null);
+  };
+
+  const submitRename = () => {
+    if (!renamingId || !renameValue.trim() || !currentSpace) { setRenamingId(null); return; }
+    const project = currentSpace.projects.find(p => p.id === renamingId);
+    if (project) {
+      updateSavedProject(currentSpace.id, { ...project, name: renameValue.trim() });
     } else {
-      newExpanded.add(categoryId);
+      for (const p of currentSpace.projects) {
+        const cat = p.categories.find(c => c.id === renamingId);
+        if (cat) { updateSavedCategory(currentSpace.id, p.id, { ...cat, name: renameValue.trim() }); break; }
+      }
     }
-    setExpandedCategories(newExpanded);
+    setRenamingId(null);
   };
 
   const handleAddProject = () => {
     if (!currentSpace) return;
-    const newProject = {
-      id: uuidv7(),
-      name: "New Project",
-      categories: [],
-    };
-    addSavedProject(currentSpace.id, newProject);
-    setExpandedProjects(new Set([...expandedProjects, newProject.id]));
+    const id = uuidv7();
+    addSavedProject(currentSpace.id, { id, name: "New Project", categories: [] });
+    setExpandedProjects(new Set([...expandedProjects, id]));
+    setTimeout(() => startRename(id, "New Project"), 50);
   };
 
-  const handleDeleteProject = (spaceId: string, projectId: string) => {
-    const space = savedSpaces.find(s => s.id === spaceId);
-    const project = space?.projects.find(p => p.id === projectId);
-    if (!project) return;
-    removeSavedProject(spaceId, project);
-    showUndoToast(`Deleted project "${project.name}"`, () => {
-      addSavedProject(spaceId, project);
-    });
+  const handleAddCategory = (projectId: string) => {
+    if (!currentSpace) return;
+    const id = uuidv7();
+    addSavedCategory(currentSpace.id, projectId, { id, name: "New Category", groups: [] });
+    setTimeout(() => startRename(id, "New Category"), 50);
   };
 
-  const handleAddCategory = (spaceId: string, projectId: string) => {
-    const newCategory = {
-      id: uuidv7(),
-      name: "New Category",
-      groups: [],
-    };
-    addSavedCategory(spaceId, projectId, newCategory);
-    setExpandedCategories(new Set([...expandedCategories, newCategory.id]));
-  };
-
-  const handleDeleteCategory = (spaceId: string, projectId: string, categoryId: string) => {
-    const space = savedSpaces.find(s => s.id === spaceId);
-    const project = space?.projects.find(p => p.id === projectId);
-    const category = project?.categories.find(c => c.id === categoryId);
-    if (!category) return;
-    removeSavedCategory(spaceId, projectId, category);
-    showUndoToast(`Deleted category "${category.name}"`, () => {
-      addSavedCategory(spaceId, projectId, category);
-    });
-  };
-
-  const handleProjectDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (over && active.id !== over.id && currentSpace) {
-      const oldIndex = currentSpace.projects.findIndex(p => p.id === active.id);
-      const newIndex = currentSpace.projects.findIndex(p => p.id === over.id);
-      if (oldIndex !== -1 && newIndex !== -1) {
-        reorderProjects(currentSpace.id, oldIndex, newIndex);
-      }
-    }
-  };
-
-  const handleCategoryDragEnd = (projectId: string) => (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (over && active.id !== over.id && currentSpace) {
-      const project = currentSpace.projects.find(p => p.id === projectId);
+  const handleDelete = () => {
+    if (!contextMenu || !currentSpace) return;
+    if (contextMenu.type === 'project') {
+      const project = currentSpace.projects.find(p => p.id === contextMenu.id);
       if (project) {
-        const oldIndex = project.categories.findIndex(c => c.id === active.id);
-        const newIndex = project.categories.findIndex(c => c.id === over.id);
-        if (oldIndex !== -1 && newIndex !== -1) {
-          reorderCategories(currentSpace.id, projectId, oldIndex, newIndex);
-        }
+        removeSavedProject(currentSpace.id, project);
+        showUndoToast(`Deleted "${project.name}"`, () => addSavedProject(currentSpace.id, project));
+      }
+    } else {
+      const project = currentSpace.projects.find(p => p.id === contextMenu.projectId);
+      const category = project?.categories.find(c => c.id === contextMenu.id);
+      if (category && project) {
+        removeSavedCategory(currentSpace.id, project.id, category);
+        showUndoToast(`Deleted "${category.name}"`, () => addSavedCategory(currentSpace.id, project.id, category));
       }
     }
-  };
-
-  const contextValue: LeftPanelContextValue = {
-    editMode,
-    editingProject,
-    editingCategory,
-    expandedProjects,
-    expandedCategories,
-    setEditingProject,
-    setEditingCategory,
-    toggleProject,
-    toggleCategory,
-    handleDeleteProject,
-    handleDeleteCategory,
+    setContextMenu(null);
   };
 
   return (
-    <LeftPanelContext.Provider value={contextValue}>
-      <div className="w-64 h-full flex flex-col bg-black-900">
-        <div className="h-16 p-4 flex items-end gap-2 border-b border-black-800">
-          <h1 className="text-white/90 font-sans text-2xl">FlexTab</h1>
-          <p className="text-white/50 font-sans text-sm">v{config.version || '0.0.1'}</p>
-        </div>
-        <div className="flex flex-col gap-2 p-3 overflow-y-auto flex-1 text-sm">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-white/70 font-sans text-sm font-medium">
-              {currentSpace?.name || 'No Space Selected'}
-            </h2>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setEditMode(!editMode)}
-                className={`text-white/50 hover:text-white/70 transition-colors ${editMode ? 'text-green-400' : ''}`}
-                title={editMode ? "Done Editing" : "Edit Mode"}
-              >
-                {editMode ? (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                ) : (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                  </svg>
-                )}
-              </button>
-              {currentSpace && (
-                <button
-                  onClick={handleAddProject}
-                  className="text-white/50 hover:text-white/70 text-lg leading-none font-sans"
-                  title="Add Project"
-                >
-                  +
-                </button>
-              )}
-            </div>
-          </div>
+    <div className="w-64 h-full flex flex-col bg-black-900 relative">
+      {/* Header */}
+      <div className="h-16 p-4 flex items-end gap-2 border-b border-black-800">
+        <h1 className="text-white/90 font-sans text-2xl">FlexTab</h1>
+        <p className="text-white/50 font-sans text-sm">v{config.version || '0.0.1'}</p>
+      </div>
 
-          {currentSpace ? (
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleProjectDragEnd}
-            >
-              <SortableContext items={currentSpace.projects.map(p => p.id)} strategy={verticalListSortingStrategy}>
-                {currentSpace.projects.map((project) => (
-                  <div key={project.id} className="flex flex-col gap-2">
-                    <SortableProject project={project} spaceId={currentSpace.id} />
-                    {expandedProjects.has(project.id) && (
-                      <div className="flex flex-col gap-1 pl-4">
-                        <DndContext
-                          sensors={sensors}
-                          collisionDetection={closestCenter}
-                          onDragEnd={handleCategoryDragEnd(project.id)}
-                        >
-                          <SortableContext items={project.categories.map(c => c.id)} strategy={verticalListSortingStrategy}>
-                            {project.categories.map((category) => (
-                              <SortableCategory
-                                key={category.id}
-                                category={category}
-                                spaceId={currentSpace.id}
-                                projectId={project.id}
-                              />
-                            ))}
-                          </SortableContext>
-                        </DndContext>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleAddCategory(currentSpace.id, project.id);
-                          }}
-                          className="w-full text-white/50 hover:text-white/70 text-sm font-sans py-2 px-2 rounded-md border border-dashed border-white/20 hover:border-white/40 hover:bg-white/5 transition-colors"
-                        >
-                          + Add Category
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </SortableContext>
-            </DndContext>
-          ) : (
-            <div
-              className="text-white/50 font-sans text-sm p-12 text-center border border-black-800 rounded-md border-dashed hover:bg-white/5 transition-colors"
-            >
-              <p className="mb-3">No space selected</p>
-              <p className="text-white/30">Select a space from the profile panel</p>
-            </div>
-          )}
+      {/* Space header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-black-800">
+        <div className="flex items-center gap-2.5 min-w-0">
+          {currentSpace?.color && <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: currentSpace.color }} />}
+          <h2 className="text-white/70 font-sans text-sm font-medium truncate">{currentSpace?.name || 'No Space'}</h2>
         </div>
-        <div className="h-16 p-4 flex items-center gap-2 border-t border-black-800">
-          <div className="flex-1 text-xs font-sans text-white/50">
-            {currentSpace?.projects.length || 0} project{(currentSpace?.projects.length || 0) !== 1 ? 's' : ''}
-          </div>
+        {currentSpace && (
+          <button onClick={() => setShowSettings(!showSettings)}
+            className={`text-white/30 hover:text-white/60 transition-colors shrink-0 ${showSettings ? 'text-white/60' : ''}`} title="Space settings">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+            </svg>
+          </button>
+        )}
+      </div>
+
+      {showSettings && <SpaceSettings onClose={() => setShowSettings(false)} />}
+
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto py-4">
+        {currentSpace ? (
+          <>
+            {currentSpace.projects.map((project) => {
+              const isExpanded = expandedProjects.has(project.id);
+
+              return (
+                <div key={project.id} className="mb-1">
+                  {/* Project — section label style */}
+                  <div
+                    className="group/proj flex items-center gap-1 px-4 py-1.5 cursor-pointer"
+                    onClick={() => toggleProject(project.id)}
+                    onContextMenu={e => {
+                      e.preventDefault();
+                      setContextMenu({ type: 'project', id: project.id, spaceId: currentSpace.id, x: e.clientX, y: e.clientY });
+                    }}
+                  >
+                    <svg className={`w-3 h-3 text-white/20 transition-transform shrink-0 ${isExpanded ? 'rotate-90' : ''}`}
+                      fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                    </svg>
+
+                    {renamingId === project.id ? (
+                      <input ref={renameRef} type="text" value={renameValue}
+                        onChange={e => setRenameValue(e.target.value)} onBlur={submitRename}
+                        onKeyDown={e => { if (e.key === "Enter") submitRename(); if (e.key === "Escape") setRenamingId(null); }}
+                        onClick={e => e.stopPropagation()}
+                        className="flex-1 bg-white/10 text-white/90 px-2 py-0.5 rounded outline-none focus:ring-1 focus:ring-blue-500 font-sans text-xs min-w-0" />
+                    ) : (
+                      <span className="flex-1 text-white/40 font-sans text-[11px] font-semibold uppercase tracking-wider truncate">
+                        {project.name}
+                      </span>
+                    )}
+
+                    <button
+                      onClick={e => { e.stopPropagation(); handleAddCategory(project.id); }}
+                      className="opacity-0 group-hover/proj:opacity-100 text-white/20 hover:text-white/50 transition-all shrink-0"
+                      title="Add category"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  {/* Categories */}
+                  {isExpanded && (
+                    <div className="mt-0.5">
+                      {project.categories.map((category) => {
+                        const isActive = activeCategoryId === category.id;
+                        return (
+                          <div
+                            key={category.id}
+                            className={`flex items-center gap-2 mx-2 px-4 py-[7px] rounded-md cursor-pointer transition-colors ${
+                              isActive
+                                ? 'bg-white/[0.08] text-white/80'
+                                : 'text-white/45 hover:text-white/65 hover:bg-white/[0.03]'
+                            }`}
+                            onClick={() => setActiveCategory(category.id)}
+                            onContextMenu={e => {
+                              e.preventDefault();
+                              setContextMenu({ type: 'category', id: category.id, spaceId: currentSpace.id, projectId: project.id, x: e.clientX, y: e.clientY });
+                            }}
+                          >
+                            <span className={`w-1 h-1 rounded-full shrink-0 ${isActive ? 'bg-white/60' : 'bg-white/20'}`} />
+                            {renamingId === category.id ? (
+                              <input ref={renameRef} type="text" value={renameValue}
+                                onChange={e => setRenameValue(e.target.value)} onBlur={submitRename}
+                                onKeyDown={e => { if (e.key === "Enter") submitRename(); if (e.key === "Escape") setRenamingId(null); }}
+                                onClick={e => e.stopPropagation()}
+                                className="flex-1 bg-white/10 text-white/90 px-2 py-0.5 rounded outline-none focus:ring-1 focus:ring-blue-500 font-sans text-xs min-w-0" />
+                            ) : (
+                              <span className="flex-1 font-sans text-[13px] truncate">{category.name}</span>
+                            )}
+                            {category.groups.length > 0 && (
+                              <span className={`text-[10px] font-sans shrink-0 ${isActive ? 'text-white/30' : 'text-white/15'}`}>
+                                {category.groups.length}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+
+                      {project.categories.length === 0 && (
+                        <button
+                          onClick={() => handleAddCategory(project.id)}
+                          className="mx-2 w-[calc(100%-16px)] text-white/20 hover:text-white/40 text-xs font-sans py-2 px-4 rounded-md hover:bg-white/[0.03] transition-colors text-left"
+                        >
+                          + Add category
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            <div className="px-4 mt-3">
+              <button
+                onClick={handleAddProject}
+                className="w-full text-white/20 hover:text-white/40 text-[11px] font-sans font-semibold uppercase tracking-wider py-2 px-1 transition-colors text-left"
+              >
+                + New Project
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="text-white/40 font-sans text-xs p-8 text-center">Select a space</div>
+        )}
+      </nav>
+
+      {/* Footer */}
+      <div className="px-4 py-3 border-t border-black-800">
+        <div className="text-[11px] font-sans text-white/20">
+          {currentSpace ? (() => {
+            const pc = currentSpace.projects.length;
+            const cc = currentSpace.projects.reduce((sum, p) => sum + p.categories.length, 0);
+            return `${pc} project${pc !== 1 ? 's' : ''} · ${cc} ${cc !== 1 ? 'categories' : 'category'}`;
+          })() : ''}
         </div>
       </div>
-    </LeftPanelContext.Provider>
+
+      {/* Context menu */}
+      {contextMenu && (
+        <div ref={contextMenuRef} className="fixed bg-black-800 border border-black-700 rounded-lg shadow-xl py-1 z-50 w-36" style={{ left: contextMenu.x, top: contextMenu.y }}>
+          <button onClick={() => {
+            const name = contextMenu.type === 'project'
+              ? currentSpace?.projects.find(p => p.id === contextMenu.id)?.name
+              : currentSpace?.projects.find(p => p.id === contextMenu.projectId)?.categories.find(c => c.id === contextMenu.id)?.name;
+            if (name) startRename(contextMenu.id, name);
+          }} className="w-full text-left px-3 py-1.5 text-white/70 hover:text-white/90 hover:bg-white/5 text-xs transition-colors">Rename</button>
+          <button onClick={handleDelete} className="w-full text-left px-3 py-1.5 text-red-400/70 hover:text-red-400 hover:bg-white/5 text-xs transition-colors">Delete</button>
+        </div>
+      )}
+    </div>
   );
 }

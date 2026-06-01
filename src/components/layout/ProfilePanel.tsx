@@ -1,10 +1,50 @@
+import { useState, useRef, useEffect } from "react";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { useAuthStore } from "~src/store/useAuthStore";
 import { v7 as uuidv7 } from "uuid";
+import { showUndoToast } from "~src/components/UndoToast";
+import { GlobalSettingsModal } from "~src/components/GlobalSettingsModal";
 
 export function ProfilePanel() {
-  const { savedSpaces, activeSpaceId, setActiveSpace, addSavedSpace } = useSavedSpacesStore();
+  const { savedSpaces, activeSpaceId, setActiveSpace, addSavedSpace, updateSavedSpace, removeSavedSpace } = useSavedSpacesStore();
   const { user, isAuthenticated, login, logout } = useAuthStore();
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{ spaceId: string; x: number; y: number } | null>(null);
+  const [renaming, setRenaming] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [showGlobalSettings, setShowGlobalSettings] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+  const contextMenuRef = useRef<HTMLDivElement>(null);
+  const renameInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!showUserMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setShowUserMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showUserMenu]);
+
+  useEffect(() => {
+    if (!contextMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
+        setContextMenu(null);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [contextMenu]);
+
+  useEffect(() => {
+    if (renaming && renameInputRef.current) {
+      renameInputRef.current.focus();
+      renameInputRef.current.select();
+    }
+  }, [renaming]);
 
   const handleAddSpace = () => {
     const id = uuidv7();
@@ -16,24 +56,82 @@ export function ProfilePanel() {
     setActiveSpace(id);
   };
 
+  const handleContextMenu = (e: React.MouseEvent, spaceId: string) => {
+    e.preventDefault();
+    setContextMenu({ spaceId, x: e.clientX, y: e.clientY });
+  };
+
+  const handleRenameStart = (spaceId: string) => {
+    const space = savedSpaces.find(s => s.id === spaceId);
+    if (!space) return;
+    setRenameValue(space.name);
+    setRenaming(spaceId);
+    setContextMenu(null);
+  };
+
+  const handleRenameSubmit = () => {
+    if (!renaming) return;
+    const space = savedSpaces.find(s => s.id === renaming);
+    if (space && renameValue.trim()) {
+      updateSavedSpace({ ...space, name: renameValue.trim() });
+    }
+    setRenaming(null);
+  };
+
+  const handleDeleteSpace = (spaceId: string) => {
+    const space = savedSpaces.find(s => s.id === spaceId);
+    if (!space) return;
+    if (savedSpaces.length <= 1) return; // Don't delete the last space
+    setContextMenu(null);
+    removeSavedSpace(space);
+    showUndoToast(`Deleted space "${space.name}"`, () => {
+      addSavedSpace(space);
+    });
+  };
+
   return (
     <div className="w-16 h-full flex flex-col border-r border-black-800">
       <div className="flex flex-col gap-3 py-4 items-center flex-1">
-        {savedSpaces.map((space, index) => (
-          <div
-            key={space.id}
-            onClick={() => setActiveSpace(space.id)}
-            className={`w-10 h-10 rounded-full cursor-pointer transition-colors flex items-center justify-center text-xs font-medium font-sans ${
-              activeSpaceId === space.id ? "bg-white/20 ring-2 ring-white/50 text-white/90" : "bg-black-800 hover:bg-black-700 text-white/50"
-            }`}
-            title={space.name}
-          >
-            {space.name.slice(0, 2).toUpperCase()}
+        {savedSpaces.map((space) => (
+          <div key={space.id} className="relative">
+            {renaming === space.id ? (
+              <div className="absolute left-14 top-0 z-50 bg-black-800 border border-black-700 rounded-lg shadow-xl p-2 w-40">
+                <input
+                  ref={renameInputRef}
+                  type="text"
+                  value={renameValue}
+                  onChange={e => setRenameValue(e.target.value)}
+                  onBlur={handleRenameSubmit}
+                  onKeyDown={e => {
+                    if (e.key === "Enter") handleRenameSubmit();
+                    if (e.key === "Escape") setRenaming(null);
+                  }}
+                  className="w-full bg-black-900 border border-black-700 rounded px-2 py-1 text-white/90 text-xs font-sans outline-none focus:border-white/30"
+                />
+              </div>
+            ) : null}
+            <div
+              onClick={() => setActiveSpace(space.id)}
+              onContextMenu={(e) => handleContextMenu(e, space.id)}
+              className={`w-10 h-10 rounded-full cursor-pointer transition-all flex items-center justify-center text-xs font-medium font-sans ${
+                activeSpaceId === space.id ? "ring-2 ring-white/50 text-white/90" : "hover:brightness-125 text-white/70"
+              }`}
+              style={{
+                backgroundColor: space.color
+                  ? `${space.color}${activeSpaceId === space.id ? '40' : '25'}`
+                  : activeSpaceId === space.id ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)',
+                ...(space.color && activeSpaceId === space.id ? { borderColor: space.color, ringColor: space.color } : {}),
+              }}
+              title={space.name}
+            >
+              {(space.abbreviation || space.name.slice(0, 2)).toUpperCase()}
+            </div>
           </div>
         ))}
         <div
           onClick={handleAddSpace}
           className="w-10 h-10 rounded-full border border-white/30 border-dashed text-white/50 flex items-center justify-center cursor-pointer hover:border-white/50 hover:text-white/70 transition-colors"
+          title="Add Space"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -41,17 +139,43 @@ export function ProfilePanel() {
         </div>
       </div>
       <div className="flex flex-col gap-2 py-4 items-center">
+        <div
+          onClick={() => setShowGlobalSettings(true)}
+          className="w-10 h-10 rounded-full bg-black-800 hover:bg-black-700 cursor-pointer flex items-center justify-center transition-colors"
+          title="Settings"
+        >
+          <svg className="w-5 h-5 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+          </svg>
+        </div>
         {isAuthenticated && user ? (
-          <div
-            onClick={logout}
-            className="w-10 h-10 rounded-full cursor-pointer overflow-hidden"
-            title={`${user.name}\n${user.email}\nClick to logout`}
-          >
-            {user.avatar ? (
-              <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-            ) : (
-              <div className="w-full h-full bg-blue-600 flex items-center justify-center text-white text-sm font-medium">
-                {user.name.slice(0, 1).toUpperCase()}
+          <div className="relative" ref={userMenuRef}>
+            <div
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              className="w-10 h-10 rounded-full cursor-pointer overflow-hidden"
+              title={user.name}
+            >
+              {user.avatar ? (
+                <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              ) : (
+                <div className="w-full h-full bg-blue-600 flex items-center justify-center text-white text-sm font-medium">
+                  {user.name.slice(0, 1).toUpperCase()}
+                </div>
+              )}
+            </div>
+            {showUserMenu && (
+              <div className="absolute bottom-12 left-0 w-48 bg-black-800 border border-black-700 rounded-lg shadow-xl py-1 z-50">
+                <div className="px-3 py-2 border-b border-black-700">
+                  <div className="text-white/80 text-xs font-medium truncate">{user.name}</div>
+                  <div className="text-white/40 text-[11px] truncate">{user.email}</div>
+                </div>
+                <button
+                  onClick={() => { setShowUserMenu(false); logout(); }}
+                  className="w-full text-left px-3 py-2 text-white/60 hover:text-white/90 hover:bg-white/5 text-xs transition-colors"
+                >
+                  Sign out
+                </button>
               </div>
             )}
           </div>
@@ -67,6 +191,32 @@ export function ProfilePanel() {
           </div>
         )}
       </div>
+
+      {showGlobalSettings && <GlobalSettingsModal onClose={() => setShowGlobalSettings(false)} />}
+
+      {/* Space context menu */}
+      {contextMenu && (
+        <div
+          ref={contextMenuRef}
+          className="fixed bg-black-800 border border-black-700 rounded-lg shadow-xl py-1 z-50 w-36"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+        >
+          <button
+            onClick={() => handleRenameStart(contextMenu.spaceId)}
+            className="w-full text-left px-3 py-1.5 text-white/70 hover:text-white/90 hover:bg-white/5 text-xs transition-colors"
+          >
+            Rename
+          </button>
+          {savedSpaces.length > 1 && (
+            <button
+              onClick={() => handleDeleteSpace(contextMenu.spaceId)}
+              className="w-full text-left px-3 py-1.5 text-red-400/70 hover:text-red-400 hover:bg-white/5 text-xs transition-colors"
+            >
+              Delete
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }

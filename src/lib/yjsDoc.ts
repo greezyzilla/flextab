@@ -73,10 +73,14 @@ function yMapToProject(m: Y.Map<unknown>): SavedProject {
 function yMapToSpace(m: Y.Map<unknown>): SavedSpace {
   const projects = m.get("projects") as Y.Array<Y.Map<unknown>>;
   const icon = m.get("icon") as string | undefined;
+  const color = m.get("color") as string | undefined;
+  const abbreviation = m.get("abbreviation") as string | undefined;
   return {
     id: m.get("id") as string,
     name: m.get("name") as string,
     ...(icon ? { icon } : {}),
+    ...(color ? { color } : {}),
+    ...(abbreviation ? { abbreviation } : {}),
     projects: projects ? projects.toArray().map(yMapToProject) : [],
     order: m.get("order") as number,
   };
@@ -139,6 +143,8 @@ function spaceToYMap(s: SavedSpace): Y.Map<unknown> {
   m.set("id", s.id);
   m.set("name", s.name);
   m.set("icon", s.icon || "");
+  m.set("color", s.color || "");
+  m.set("abbreviation", s.abbreviation || "");
   m.set("order", s.order ?? 0);
   const projects = new Y.Array<Y.Map<unknown>>();
   projects.push(s.projects.map(projectToYMap));
@@ -214,6 +220,8 @@ export function updateSpace(space: SavedSpace) {
     if (!found) return;
     found.map.set("name", space.name);
     found.map.set("icon", space.icon || "");
+    found.map.set("color", space.color || "");
+    found.map.set("abbreviation", space.abbreviation || "");
     if (space.order !== undefined) found.map.set("order", space.order);
     // Replace projects subtree
     const newProjects = new Y.Array<Y.Map<unknown>>();
@@ -334,6 +342,15 @@ export function addTab(spaceId: string, projectId: string, categoryId: string, g
     if (!group) return;
     const tabs = group.map.get("tabs") as Y.Array<Y.Map<unknown>>;
     tabs.push([tabToYMap({ ...tab, order: tab.order ?? tabs.length })]);
+  });
+}
+
+export function addTabsBatch(spaceId: string, projectId: string, categoryId: string, groupId: string, tabs: SavedTab[]) {
+  doc.transact(() => {
+    const group = findGroup(spaceId, projectId, categoryId, groupId);
+    if (!group) return;
+    const yTabs = group.map.get("tabs") as Y.Array<Y.Map<unknown>>;
+    yTabs.push(tabs.map(t => tabToYMap({ ...t, order: t.order ?? yTabs.length })));
   });
 }
 

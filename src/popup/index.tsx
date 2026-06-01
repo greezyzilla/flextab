@@ -1,15 +1,19 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import "../../style.css"
 import { useSavedSpacesStore, useHydrated } from "~src/store/useSavedSpacesStore"
+import { useAuthStore } from "~src/store/useAuthStore"
 import { v7 as uuidv7 } from "uuid"
 import type { SavedTab } from "~src/types"
 import { faviconToDataUrl } from "~src/utils/favicon"
 
 function IndexPopup() {
   const hydrated = useHydrated();
+  const { initialize, isAuthenticated, isLoading: authLoading, login } = useAuthStore();
   const { savedSpaces, activeSpaceId, activeProjectId, activeCategoryId, addSavedGroup, addSavedTab } = useSavedSpacesStore();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => { initialize(); }, []);
 
   const activeSpace = savedSpaces.find(s => s.id === activeSpaceId);
   const activeProject = activeSpace?.projects.find(p => p.id === activeProjectId);
@@ -76,6 +80,29 @@ function IndexPopup() {
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
+
+  if (authLoading) {
+    return (
+      <div className="w-72 bg-black-900 p-4 font-sans">
+        <div className="text-white/50 text-xs text-center">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="w-72 bg-black-900 p-4 font-sans flex flex-col items-center gap-3">
+        <h2 className="text-white/90 text-base font-medium">FlexTab</h2>
+        <p className="text-white/40 text-xs text-center">Sign in to save and sync your tabs.</p>
+        <button
+          onClick={login}
+          className="w-full px-3 py-2 bg-white/10 text-white/80 rounded-md hover:bg-white/20 transition-colors text-sm"
+        >
+          Sign in with Google
+        </button>
+      </div>
+    );
+  }
 
   if (!hydrated) {
     return (

@@ -34,6 +34,8 @@ export interface SavedSpace {
   id: string;
   name: string;
   icon?: string;
+  color?: string;
+  abbreviation?: string;
   projects: SavedProject[];
   order?: number;
 }

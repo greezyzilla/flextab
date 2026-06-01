@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from "react";
 import { SortableContext, useSortable } from "@dnd-kit/sortable";
 import { useDroppable } from "@dnd-kit/core";
 import { DragHandleIcon } from "./icons/DragHandleIcon";
@@ -6,6 +7,7 @@ import { CSS } from "@dnd-kit/utilities";
 import type { SavedGroup, SavedTab } from "~src/types";
 import { useSavedSpacesStore, useActiveSpace, useActiveProject, useActiveCategory } from "~src/store/useSavedSpacesStore";
 import { showUndoToast } from "./UndoToast";
+import type { GroupLayout } from "~src/store/useSettingsStore";
 
 function SavedTabItem({ tab, groupId }: { tab: SavedTab; groupId: string }) {
   const {
@@ -45,34 +47,36 @@ function SavedTabItem({ tab, groupId }: { tab: SavedTab; groupId: string }) {
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-center gap-2 py-2 px-3 bg-white/5 rounded-md hover:bg-white/10 transition-colors group"
+      className="flex items-center gap-2.5 py-2 px-3 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] transition-colors group"
     >
       <div
         {...attributes}
         {...listeners}
-        className={`${isDragging ? 'opacity-100' : 'opacity-40 group-hover:opacity-50 hover:!opacity-100'} cursor-grab active:cursor-grabbing p-1 rounded transition-opacity`}
+        className="opacity-0 group-hover:opacity-30 hover:!opacity-80 cursor-grab active:cursor-grabbing p-0.5 rounded transition-opacity shrink-0"
         title="Drag to reorder"
       >
-        <DragHandleIcon />
+        <DragHandleIcon className="w-3.5 h-3.5 text-white" />
       </div>
 
       <div
-        className="flex items-center gap-3 flex-1 cursor-pointer overflow-hidden"
+        className="flex items-center gap-2.5 flex-1 cursor-pointer overflow-hidden"
         onClick={onClick}
       >
         <FaviconImg src={tab.favicon} alt={tab.title} />
-        <div className="flex flex-col gap-0.5 text-white/90 overflow-hidden">
-          <div className="text-xs truncate">{tab.title}</div>
-          <div className="text-white/50 text-xs truncate flex-1">{tab.url}</div>
+        <div className="flex flex-col min-w-0">
+          <span className="text-white/80 text-xs font-sans truncate">{tab.title}</span>
+          <span className="text-white/30 text-[10px] font-sans truncate">{tab.url?.replace(/^https?:\/\//, '')}</span>
         </div>
       </div>
 
       <button
         onClick={handleDelete}
-        className="opacity-0 group-hover:opacity-100 text-white/30 hover:text-red-400 transition-all text-xs shrink-0"
+        className="opacity-0 group-hover:opacity-100 p-1.5 rounded-md text-white/30 hover:text-red-400 hover:bg-red-400/10 transition-all shrink-0"
         title="Remove tab"
       >
-        ✕
+        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
       </button>
     </div>
   )
@@ -80,16 +84,28 @@ function SavedTabItem({ tab, groupId }: { tab: SavedTab; groupId: string }) {
 
 export interface TabGroupProps {
   group: SavedGroup;
+  layout?: GroupLayout;
+  gridColumns?: number;
 }
 
-export function TabGroup({ group }: TabGroupProps) {
+export function TabGroup({ group, layout = 'list', gridColumns = 2 }: TabGroupProps) {
   const { setNodeRef: setDroppableRef, isOver } = useDroppable({
     id: `droppable-${group.id}`,
   });
-  const { removeSavedGroup, addSavedGroup } = useSavedSpacesStore();
+  const { removeSavedGroup, addSavedGroup, updateSavedGroup } = useSavedSpacesStore();
   const activeSpace = useActiveSpace();
   const activeProject = useActiveProject();
   const activeCategory = useActiveCategory();
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState(group.name);
+  const renameRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isRenaming && renameRef.current) {
+      renameRef.current.focus();
+      renameRef.current.select();
+    }
+  }, [isRenaming]);
 
   // Sort tabs by order field to maintain consistent ordering
   const sortedTabs = [...(group.tabs || [])].sort((a, b) => {
@@ -112,15 +128,47 @@ export function TabGroup({ group }: TabGroupProps) {
     });
   };
 
+  const handleRenameSubmit = () => {
+    if (!activeSpace || !activeProject || !activeCategory) return;
+    if (renameValue.trim() && renameValue.trim() !== group.name) {
+      updateSavedGroup(activeSpace.id, activeProject.id, activeCategory.id, { ...group, name: renameValue.trim() });
+    }
+    setIsRenaming(false);
+  };
+
   return (
-    <div className="flex flex-col gap-2 p-4">
-      <div className="flex items-center justify-between pl-6 pr-1 group/header">
-        <h3 className="text-white/60 font-sans text-sm">{group.name}</h3>
+    <div className="flex flex-col gap-2 p-5">
+      <div className="flex items-center justify-between pl-7 group/header">
+        {isRenaming ? (
+          <input
+            ref={renameRef}
+            type="text"
+            value={renameValue}
+            onChange={e => setRenameValue(e.target.value)}
+            onBlur={handleRenameSubmit}
+            onKeyDown={e => {
+              if (e.key === "Enter") handleRenameSubmit();
+              if (e.key === "Escape") { setRenameValue(group.name); setIsRenaming(false); }
+            }}
+            className="bg-white/10 text-white/90 px-2 py-0.5 rounded outline-none focus:ring-1 focus:ring-blue-500 font-sans text-sm"
+          />
+        ) : (
+          <div className="flex items-center gap-2.5 min-w-0">
+            <h3
+              className="text-white/60 font-sans text-sm cursor-pointer hover:text-white/80 transition-colors truncate"
+              onDoubleClick={() => { setRenameValue(group.name); setIsRenaming(true); }}
+              title="Double-click to rename"
+            >
+              {group.name}
+            </h3>
+            <span className="text-white/20 text-xs font-sans shrink-0">{sortedTabs.length} tab{sortedTabs.length !== 1 ? 's' : ''}</span>
+          </div>
+        )}
         <div className="flex items-center gap-2">
           {sortedTabs.length > 0 && (
             <button
               onClick={handleOpenAll}
-              className="text-white/40 hover:text-white/70 font-sans text-xs transition-colors"
+              className="text-white/30 hover:text-white/60 font-sans text-xs transition-colors opacity-0 group-hover/header:opacity-100"
               title="Open all tabs in new window"
             >
               Open All
@@ -128,38 +176,35 @@ export function TabGroup({ group }: TabGroupProps) {
           )}
           <button
             onClick={handleDeleteGroup}
-            className="opacity-0 group-hover/header:opacity-100 text-white/30 hover:text-red-400 font-sans text-xs transition-all"
+            className="text-white/20 hover:text-red-400 transition-colors opacity-0 group-hover/header:opacity-100"
             title="Delete group"
           >
-            ✕
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         </div>
       </div>
-      {sortedTabs.length > 0 ? (
-        <SortableContext items={sortedTabs.map((tab) => tab.id)}>
-          <div
-            className={`grid grid-cols-4 gap-2 border border-black-800 rounded-md p-2 transition-colors relative ${isOver ? 'border-blue-500 bg-blue-500/10' : ''}`}
-            ref={setDroppableRef}
-          >
-            {/* Invisible overlay to catch drops when dragging over saved tabs */}
-            {isOver && (
-              <div className="absolute inset-0 z-10 pointer-events-none bg-blue-500/5 rounded-md" />
-            )}
-            {
-              sortedTabs.map((tab) => (
+      <div ref={setDroppableRef}>
+        {sortedTabs.length > 0 ? (
+          <SortableContext items={sortedTabs.map((tab) => tab.id)}>
+            <div
+              className={`rounded-xl border p-3 transition-colors ${isOver ? 'border-blue-500/40 bg-blue-500/5' : 'border-black-800'} ${
+                layout === 'grid' ? 'grid gap-2' : 'flex flex-col gap-1.5'
+              }`}
+              style={layout === 'grid' ? { gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))` } : undefined}
+            >
+              {sortedTabs.map((tab) => (
                 <SavedTabItem key={tab.id} tab={tab} groupId={group.id} />
-              ))
-            }
+              ))}
+            </div>
+          </SortableContext>
+        ) : (
+          <div className={`text-white/30 font-sans text-xs py-8 text-center rounded-xl border border-dashed transition-colors ${isOver ? 'border-blue-500/50 bg-blue-500/5 text-blue-400' : 'border-black-800'}`}>
+            {isOver ? 'Drop tab here' : 'Drag tabs here to save'}
           </div>
-        </SortableContext>
-      ) : (
-        <div
-          className={`text-white/50 font-sans text-sm p-12 text-center border border-black-800 rounded-md border-dashed transition-colors ${isOver ? 'border-blue-500 bg-blue-500/10 text-blue-400' : ''}`}
-          ref={setDroppableRef}
-        >
-          {isOver ? 'Drop tab here' : 'No saved tabs yet'}
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }

@@ -42,6 +42,7 @@ interface SavedSpacesState {
   reorderGroups: (spaceId: string, projectId: string, categoryId: string, fromIndex: number, toIndex: number) => void;
 
   addSavedTab: (spaceId: string, projectId: string, categoryId: string, groupId: string, tab: SavedTab) => void;
+  addSavedTabsBatch: (spaceId: string, projectId: string, categoryId: string, groupId: string, tabs: SavedTab[]) => void;
   removeSavedTab: (spaceId: string, projectId: string, categoryId: string, groupId: string, tab: SavedTab) => void;
   updateSavedTab: (spaceId: string, projectId: string, categoryId: string, groupId: string, tab: SavedTab) => void;
   reorderTabsInGroup: (spaceId: string, projectId: string, categoryId: string, groupId: string, fromIndex: number, toIndex: number) => void;
@@ -60,11 +61,12 @@ export const useActiveCategory = () => useSavedSpacesStore(s => {
   const project = space?.projects.find(p => p.id === s.activeProjectId);
   return project?.categories.find(c => c.id === s.activeCategoryId);
 });
+const EMPTY_GROUPS: SavedGroup[] = [];
 export const useActiveGroups = () => useSavedSpacesStore(s => {
   const space = s.savedSpaces.find(sp => sp.id === s.activeSpaceId);
   const project = space?.projects.find(p => p.id === s.activeProjectId);
   const category = project?.categories.find(c => c.id === s.activeCategoryId);
-  return category?.groups ?? [];
+  return category?.groups ?? EMPTY_GROUPS;
 });
 
 // Pre-generate IDs for default data
@@ -77,10 +79,10 @@ function ensureDefaultData() {
     yjs.setSpaces([{
       id: defaultSpaceId, name: "Personal", order: 0,
       projects: [{
-        id: defaultProjectId, name: "Default Project", order: 0,
+        id: defaultProjectId, name: "My Project", order: 0,
         categories: [{
-          id: defaultCategoryId, name: "Default Category", order: 0,
-          groups: [{ id: uuidv7(), name: "Default Group", tabs: [], order: 0 }],
+          id: defaultCategoryId, name: "General", order: 0,
+          groups: [],
         }],
       }],
     }]);
@@ -96,23 +98,29 @@ export async function hydrateYjs(): Promise<void> {
   // Sync Yjs → Zustand after hydration
   const spaces = yjs.getSpaces();
   const state = useSavedSpacesStore.getState();
+  const activeSpaceId = state.activeSpaceId && spaces.some(s => s.id === state.activeSpaceId)
+    ? state.activeSpaceId : spaces[0]?.id ?? null;
+  const activeSpace = spaces.find(s => s.id === activeSpaceId);
+  const activeProjectId = state.activeProjectId && activeSpace?.projects.some(p => p.id === state.activeProjectId)
+    ? state.activeProjectId : activeSpace?.projects[0]?.id ?? null;
+  const activeProject = activeSpace?.projects.find(p => p.id === activeProjectId);
+  const activeCategoryId = state.activeCategoryId && activeProject?.categories.some(c => c.id === state.activeCategoryId)
+    ? state.activeCategoryId : activeProject?.categories[0]?.id ?? null;
   useSavedSpacesStore.setState({
     savedSpaces: spaces,
-    activeSpaceId: state.activeSpaceId && spaces.some(s => s.id === state.activeSpaceId)
-      ? state.activeSpaceId : spaces[0]?.id ?? null,
+    activeSpaceId,
+    activeProjectId,
+    activeCategoryId,
   });
 }
-
-// Initialize with empty or default — hydrateYjs() loads real data async
-ensureDefaultData();
 
 export const useSavedSpacesStore = create<SavedSpacesState>()(
   persist(
     (set, get) => ({
-      savedSpaces: yjs.getSpaces(),
-      activeSpaceId: defaultSpaceId,
-      activeProjectId: defaultProjectId,
-      activeCategoryId: defaultCategoryId,
+      savedSpaces: [],
+      activeSpaceId: null,
+      activeProjectId: null,
+      activeCategoryId: null,
       lastModified: Date.now(),
 
       // --- Active selections (UI state, no Yjs) ---
@@ -229,6 +237,9 @@ export const useSavedSpacesStore = create<SavedSpacesState>()(
       // --- Tab CRUD ---
       addSavedTab: (spaceId, projectId, categoryId, groupId, tab) => {
         yjs.addTab(spaceId, projectId, categoryId, groupId, tab);
+      },
+      addSavedTabsBatch: (spaceId, projectId, categoryId, groupId, tabs) => {
+        yjs.addTabsBatch(spaceId, projectId, categoryId, groupId, tabs);
       },
       removeSavedTab: (spaceId, projectId, categoryId, groupId, tab) => {
         yjs.removeTab(spaceId, projectId, categoryId, groupId, tab.id);
