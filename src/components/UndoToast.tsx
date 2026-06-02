@@ -60,7 +60,8 @@ export function UndoToastContainer() {
           <span className="text-white/80 text-sm font-sans">{toast.message}</span>
           <button
             onClick={() => handleUndo(toast)}
-            className="text-blue-400 hover:text-blue-300 text-sm font-medium font-sans transition-colors"
+            className="text-sm font-medium font-sans transition-colors"
+            style={{ color: 'var(--accent)' }}
           >
             Undo
           </button>

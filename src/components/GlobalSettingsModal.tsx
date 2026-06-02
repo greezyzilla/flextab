@@ -1,9 +1,11 @@
 import { useRef, useState } from "react";
 import { useSettingsStore, ACCENT_COLORS, type GroupLayout, type Density, type AccentColor } from "~src/store/useSettingsStore";
 import { useAuthStore } from "~src/store/useAuthStore";
+import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { apiChangePassword } from "~src/services/api";
+import * as yjs from "~src/lib/yjsDoc";
 
-type SettingsTab = 'appearance' | 'layout' | 'account';
+type SettingsTab = 'appearance' | 'layout' | 'account' | 'data';
 
 export function GlobalSettingsModal({ onClose }: { onClose: () => void }) {
   const [activeTab, setActiveTab] = useState<SettingsTab>('appearance');
@@ -20,6 +22,7 @@ export function GlobalSettingsModal({ onClose }: { onClose: () => void }) {
           <SidebarItem active={activeTab === 'appearance'} onClick={() => setActiveTab('appearance')} icon={<PaletteIcon />} label="Appearance" />
           <SidebarItem active={activeTab === 'layout'} onClick={() => setActiveTab('layout')} icon={<LayoutIcon />} label="Layout" />
           <SidebarItem active={activeTab === 'account'} onClick={() => setActiveTab('account')} icon={<UserIcon />} label="Account" />
+          <SidebarItem active={activeTab === 'data'} onClick={() => setActiveTab('data')} icon={<DataIcon />} label="Data" />
         </div>
 
         {/* Content */}
@@ -27,6 +30,7 @@ export function GlobalSettingsModal({ onClose }: { onClose: () => void }) {
           {activeTab === 'appearance' && <AppearanceTab />}
           {activeTab === 'layout' && <LayoutTab />}
           {activeTab === 'account' && <AccountTab />}
+          {activeTab === 'data' && <DataTab />}
         </div>
       </div>
     </div>
@@ -283,6 +287,99 @@ function AccountTab() {
   );
 }
 
+// --- Data Tab ---
+
+function DataTab() {
+  const { savedSpaces } = useSavedSpacesStore();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importStatus, setImportStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const totalTabs = savedSpaces.reduce((sum, s) =>
+    sum + s.projects.reduce((pSum, p) =>
+      pSum + p.categories.reduce((cSum, c) =>
+        cSum + c.groups.reduce((gSum, g) => gSum + g.tabs.length, 0), 0), 0), 0);
+
+  const dataSize = new Blob([JSON.stringify(savedSpaces)]).size;
+  const formatSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const handleExport = () => {
+    const data = JSON.stringify(savedSpaces, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `flextab-export-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportStatus(null);
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target?.result as string);
+        if (!Array.isArray(data)) throw new Error('Invalid format: expected array of spaces');
+        // Basic validation
+        for (const space of data) {
+          if (!space.id || !space.name || !Array.isArray(space.projects)) {
+            throw new Error('Invalid space format');
+          }
+        }
+        yjs.setSpaces(data);
+        setImportStatus({ type: 'success', message: `Imported ${data.length} space${data.length !== 1 ? 's' : ''}` });
+      } catch (err) {
+        setImportStatus({ type: 'error', message: err instanceof Error ? err.message : 'Failed to import' });
+      }
+    };
+    reader.readAsText(file);
+    // Reset so the same file can be re-imported
+    e.target.value = '';
+  };
+
+  return (
+    <div className="flex flex-col gap-5">
+      <SettingRow label="Export" description="Download all your data as a JSON file.">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleExport}
+            className="px-3.5 py-1.5 rounded-lg text-xs font-sans font-medium text-white/80 bg-white/[0.08] hover:bg-white/[0.12] transition-colors"
+          >
+            Export JSON
+          </button>
+          <span className="text-white/25 text-[11px] font-sans">
+            {savedSpaces.length} space{savedSpaces.length !== 1 ? 's' : ''} · {totalTabs} tab{totalTabs !== 1 ? 's' : ''} · {formatSize(dataSize)}
+          </span>
+        </div>
+      </SettingRow>
+
+      <SettingRow label="Import" description="Replace all data from a JSON backup. This overwrites existing data.">
+        <div className="flex flex-col gap-2">
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="self-start px-3.5 py-1.5 rounded-lg text-xs font-sans font-medium text-white/80 bg-white/[0.08] hover:bg-white/[0.12] transition-colors"
+          >
+            Import JSON
+          </button>
+          <input ref={fileInputRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
+          {importStatus && (
+            <div className={`text-[11px] font-sans ${importStatus.type === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+              {importStatus.message}
+            </div>
+          )}
+        </div>
+      </SettingRow>
+    </div>
+  );
+}
+
 // --- Shared Components ---
 
 function SettingRow({ label, description, children }: { label: string; description: string; children: React.ReactNode }) {
@@ -345,6 +442,14 @@ function UserIcon() {
   return (
     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+    </svg>
+  );
+}
+
+function DataIcon() {
+  return (
+    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
     </svg>
   );
 }

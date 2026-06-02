@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useDroppable } from "@dnd-kit/core";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { useAuthStore } from "~src/store/useAuthStore";
 import { v7 as uuidv7 } from "uuid";
@@ -6,7 +7,7 @@ import { showUndoToast } from "~src/components/UndoToast";
 import { GlobalSettingsModal } from "~src/components/GlobalSettingsModal";
 
 export function ProfilePanel() {
-  const { savedSpaces, activeSpaceId, setActiveSpace, addSavedSpace, updateSavedSpace, removeSavedSpace } = useSavedSpacesStore();
+  const { savedSpaces, activeSpaceId, setActiveSpace, addSavedSpace, updateSavedSpace, removeSavedSpace, reorderSpaces } = useSavedSpacesStore();
   const { user, isAuthenticated, loginWithGoogle, logout } = useAuthStore();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ spaceId: string; x: number; y: number } | null>(null);
@@ -93,40 +94,42 @@ export function ProfilePanel() {
     <div className="w-16 h-full flex flex-col border-r border-black-800">
       <div className="flex flex-col gap-3 py-4 items-center flex-1">
         {savedSpaces.map((space) => (
-          <div key={space.id} className="relative">
-            {renaming === space.id ? (
-              <div className="absolute left-14 top-0 z-50 bg-black-800 border border-black-700 rounded-lg shadow-xl p-2 w-40">
-                <input
-                  ref={renameInputRef}
-                  type="text"
-                  value={renameValue}
-                  onChange={e => setRenameValue(e.target.value)}
-                  onBlur={handleRenameSubmit}
-                  onKeyDown={e => {
-                    if (e.key === "Enter") handleRenameSubmit();
-                    if (e.key === "Escape") setRenaming(null);
-                  }}
-                  className="w-full bg-black-900 border border-black-700 rounded px-2 py-1 text-white/90 text-xs font-sans outline-none focus:border-white/30"
-                />
+          <DroppableSpace key={space.id} spaceId={space.id}>
+            <div className="relative">
+              {renaming === space.id ? (
+                <div className="absolute left-14 top-0 z-50 bg-black-800 border border-black-700 rounded-lg shadow-xl p-2 w-40">
+                  <input
+                    ref={renameInputRef}
+                    type="text"
+                    value={renameValue}
+                    onChange={e => setRenameValue(e.target.value)}
+                    onBlur={handleRenameSubmit}
+                    onKeyDown={e => {
+                      if (e.key === "Enter") handleRenameSubmit();
+                      if (e.key === "Escape") setRenaming(null);
+                    }}
+                    className="w-full bg-black-900 border border-black-700 rounded px-2 py-1 text-white/90 text-xs font-sans outline-none focus:border-white/30"
+                  />
+                </div>
+              ) : null}
+              <div
+                onClick={() => setActiveSpace(space.id)}
+                onContextMenu={(e) => handleContextMenu(e, space.id)}
+                className={`w-10 h-10 rounded-full cursor-pointer transition-all flex items-center justify-center text-xs font-medium font-sans ${
+                  activeSpaceId === space.id ? "ring-2 ring-white/50 text-white/90" : "hover:brightness-125 text-white/70"
+                }`}
+                style={{
+                  backgroundColor: space.color
+                    ? `${space.color}${activeSpaceId === space.id ? '40' : '25'}`
+                    : activeSpaceId === space.id ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)',
+                  ...(space.color && activeSpaceId === space.id ? { borderColor: space.color, ringColor: space.color } : {}),
+                }}
+                title={space.name}
+              >
+                {(space.abbreviation || space.name.slice(0, 2)).toUpperCase()}
               </div>
-            ) : null}
-            <div
-              onClick={() => setActiveSpace(space.id)}
-              onContextMenu={(e) => handleContextMenu(e, space.id)}
-              className={`w-10 h-10 rounded-full cursor-pointer transition-all flex items-center justify-center text-xs font-medium font-sans ${
-                activeSpaceId === space.id ? "ring-2 ring-white/50 text-white/90" : "hover:brightness-125 text-white/70"
-              }`}
-              style={{
-                backgroundColor: space.color
-                  ? `${space.color}${activeSpaceId === space.id ? '40' : '25'}`
-                  : activeSpaceId === space.id ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)',
-                ...(space.color && activeSpaceId === space.id ? { borderColor: space.color, ringColor: space.color } : {}),
-              }}
-              title={space.name}
-            >
-              {(space.abbreviation || space.name.slice(0, 2)).toUpperCase()}
             </div>
-          </div>
+          </DroppableSpace>
         ))}
         <div
           onClick={handleAddSpace}
@@ -195,7 +198,7 @@ export function ProfilePanel() {
       {showGlobalSettings && <GlobalSettingsModal onClose={() => setShowGlobalSettings(false)} />}
 
       {/* Space context menu */}
-      {contextMenu && (
+      {contextMenu && !renaming && (
         <div
           ref={contextMenuRef}
           className="fixed bg-black-800 border border-black-700 rounded-lg shadow-xl py-1 z-50 w-36"
@@ -207,6 +210,30 @@ export function ProfilePanel() {
           >
             Rename
           </button>
+          {(() => {
+            const sortedSpaces = [...savedSpaces].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+            const idx = sortedSpaces.findIndex(s => s.id === contextMenu.spaceId);
+            return (
+              <>
+                {idx > 0 && (
+                  <button
+                    onClick={() => { reorderSpaces(idx, idx - 1); setContextMenu(null); }}
+                    className="w-full text-left px-3 py-1.5 text-white/70 hover:text-white/90 hover:bg-white/5 text-xs transition-colors"
+                  >
+                    Move Up
+                  </button>
+                )}
+                {idx < sortedSpaces.length - 1 && (
+                  <button
+                    onClick={() => { reorderSpaces(idx, idx + 1); setContextMenu(null); }}
+                    className="w-full text-left px-3 py-1.5 text-white/70 hover:text-white/90 hover:bg-white/5 text-xs transition-colors"
+                  >
+                    Move Down
+                  </button>
+                )}
+              </>
+            );
+          })()}
           {savedSpaces.length > 1 && (
             <button
               onClick={() => handleDeleteSpace(contextMenu.spaceId)}
@@ -219,4 +246,16 @@ export function ProfilePanel() {
       )}
     </div>
   )
+}
+
+function DroppableSpace({ spaceId, children }: { spaceId: string; children: React.ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `space-drop:${spaceId}`,
+  });
+
+  return (
+    <div ref={setNodeRef} className={`rounded-full transition-all ${isOver ? 'ring-2 ring-white/40 scale-110' : ''}`}>
+      {children}
+    </div>
+  );
 }

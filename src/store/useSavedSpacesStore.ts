@@ -20,11 +20,13 @@ interface SavedSpacesState {
   activeSpaceId: string | null;
   activeProjectId: string | null;
   activeCategoryId: string | null;
+  expandedProjectIds: string[];
   lastModified: number;
 
   setActiveSpace: (id: string | null) => void;
   setActiveProject: (id: string | null) => void;
   setActiveCategory: (id: string | null) => void;
+  toggleExpandedProject: (projectId: string) => void;
 
   addSavedSpace: (space: SavedSpace) => void;
   removeSavedSpace: (space: SavedSpace) => void;
@@ -52,6 +54,12 @@ interface SavedSpacesState {
   updateSavedTab: (spaceId: string, projectId: string, categoryId: string, groupId: string, tab: SavedTab) => void;
   reorderTabsInGroup: (spaceId: string, projectId: string, categoryId: string, groupId: string, fromIndex: number, toIndex: number) => void;
   moveTabBetweenGroups: (spaceId: string, projectId: string, categoryId: string, sourceGroupId: string, targetGroupId: string, tabId: string, insertIndex?: number) => void;
+
+  // Cross-boundary moves
+  moveGroupToCategory: (srcSpaceId: string, srcProjectId: string, srcCategoryId: string, groupId: string, tgtSpaceId: string, tgtProjectId: string, tgtCategoryId: string) => void;
+  moveTabCrossBoundary: (srcSpaceId: string, srcProjectId: string, srcCategoryId: string, srcGroupId: string, tabId: string, tgtSpaceId: string, tgtProjectId: string, tgtCategoryId: string, tgtGroupId: string, insertIndex?: number) => void;
+  moveCategoryToProject: (srcSpaceId: string, srcProjectId: string, categoryId: string, tgtSpaceId: string, tgtProjectId: string) => void;
+  moveProjectToSpace: (srcSpaceId: string, projectId: string, tgtSpaceId: string) => void;
 }
 
 // --- Derived selectors ---
@@ -126,6 +134,7 @@ export const useSavedSpacesStore = create<SavedSpacesState>()(
       activeSpaceId: null,
       activeProjectId: null,
       activeCategoryId: null,
+      expandedProjectIds: [],
       lastModified: Date.now(),
 
       // --- Active selections (UI state, no Yjs) ---
@@ -150,6 +159,14 @@ export const useSavedSpacesStore = create<SavedSpacesState>()(
         };
       }),
       setActiveCategory: (id) => set({ activeCategoryId: id }),
+      toggleExpandedProject: (projectId) => set((state) => {
+        const ids = state.expandedProjectIds;
+        return {
+          expandedProjectIds: ids.includes(projectId)
+            ? ids.filter(id => id !== projectId)
+            : [...ids, projectId],
+        };
+      }),
 
       // --- Space CRUD (Yjs mutations) ---
       addSavedSpace: (space) => {
@@ -261,6 +278,20 @@ export const useSavedSpacesStore = create<SavedSpacesState>()(
       moveTabBetweenGroups: (spaceId, projectId, categoryId, sourceGroupId, targetGroupId, tabId, insertIndex) => {
         yjs.moveTabBetweenGroups(spaceId, projectId, categoryId, sourceGroupId, targetGroupId, tabId, insertIndex);
       },
+
+      // Cross-boundary moves
+      moveGroupToCategory: (srcSpaceId, srcProjectId, srcCategoryId, groupId, tgtSpaceId, tgtProjectId, tgtCategoryId) => {
+        yjs.moveGroupToCategory(srcSpaceId, srcProjectId, srcCategoryId, groupId, tgtSpaceId, tgtProjectId, tgtCategoryId);
+      },
+      moveTabCrossBoundary: (srcSpaceId, srcProjectId, srcCategoryId, srcGroupId, tabId, tgtSpaceId, tgtProjectId, tgtCategoryId, tgtGroupId, insertIndex) => {
+        yjs.moveTabCrossBoundary(srcSpaceId, srcProjectId, srcCategoryId, srcGroupId, tabId, tgtSpaceId, tgtProjectId, tgtCategoryId, tgtGroupId, insertIndex);
+      },
+      moveCategoryToProject: (srcSpaceId, srcProjectId, categoryId, tgtSpaceId, tgtProjectId) => {
+        yjs.moveCategoryToProject(srcSpaceId, srcProjectId, categoryId, tgtSpaceId, tgtProjectId);
+      },
+      moveProjectToSpace: (srcSpaceId, projectId, tgtSpaceId) => {
+        yjs.moveProjectToSpace(srcSpaceId, projectId, tgtSpaceId);
+      },
     }),
     {
       name: 'spaces',
@@ -271,6 +302,7 @@ export const useSavedSpacesStore = create<SavedSpacesState>()(
         activeSpaceId: state.activeSpaceId,
         activeProjectId: state.activeProjectId,
         activeCategoryId: state.activeCategoryId,
+        expandedProjectIds: state.expandedProjectIds,
         lastModified: state.lastModified,
       }),
       merge: (persisted, current) => {
@@ -280,6 +312,7 @@ export const useSavedSpacesStore = create<SavedSpacesState>()(
           activeSpaceId: data?.activeSpaceId ?? current.activeSpaceId,
           activeProjectId: data?.activeProjectId ?? current.activeProjectId,
           activeCategoryId: data?.activeCategoryId ?? current.activeCategoryId,
+          expandedProjectIds: data?.expandedProjectIds ?? current.expandedProjectIds,
           lastModified: data?.lastModified ?? current.lastModified,
         };
       },

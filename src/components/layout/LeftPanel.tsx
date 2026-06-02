@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useDroppable } from "@dnd-kit/core";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { v7 as uuidv7 } from "uuid";
 import config from '../../../package.json';
@@ -93,15 +94,12 @@ function SpaceSettings({ onClose }: { onClose: () => void }) {
 export function LeftPanel() {
   const {
     savedSpaces, activeSpaceId, activeProjectId, activeCategoryId,
+    expandedProjectIds, toggleExpandedProject,
     setActiveProject, setActiveCategory,
     addSavedProject, removeSavedProject,
     addSavedCategory, removeSavedCategory,
     updateSavedProject, updateSavedCategory,
   } = useSavedSpacesStore();
-
-  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(() =>
-    activeProjectId ? new Set([activeProjectId]) : new Set()
-  );
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
@@ -128,10 +126,7 @@ export function LeftPanel() {
   }, [renamingId]);
 
   const toggleProject = (projectId: string) => {
-    const next = new Set(expandedProjects);
-    if (next.has(projectId)) next.delete(projectId);
-    else next.add(projectId);
-    setExpandedProjects(next);
+    toggleExpandedProject(projectId);
     setActiveProject(projectId);
   };
 
@@ -159,7 +154,7 @@ export function LeftPanel() {
     if (!currentSpace) return;
     const id = uuidv7();
     addSavedProject(currentSpace.id, { id, name: "New Project", categories: [] });
-    setExpandedProjects(new Set([...expandedProjects, id]));
+    if (!expandedProjectIds.includes(id)) toggleExpandedProject(id);
     setTimeout(() => startRename(id, "New Project"), 50);
   };
 
@@ -221,46 +216,51 @@ export function LeftPanel() {
         {currentSpace ? (
           <>
             {currentSpace.projects.map((project) => {
-              const isExpanded = expandedProjects.has(project.id);
+              const isExpanded = expandedProjectIds.includes(project.id);
 
               return (
                 <div key={project.id} className="mb-1">
                   {/* Project — section label style */}
-                  <div
-                    className="group/proj flex items-center gap-1 px-4 py-1.5 cursor-pointer"
-                    onClick={() => toggleProject(project.id)}
-                    onContextMenu={e => {
-                      e.preventDefault();
-                      setContextMenu({ type: 'project', id: project.id, spaceId: currentSpace.id, x: e.clientX, y: e.clientY });
-                    }}
+                  <DroppableProjectItem
+                    spaceId={currentSpace.id}
+                    projectId={project.id}
                   >
-                    <svg className={`w-3 h-3 text-white/20 transition-transform shrink-0 ${isExpanded ? 'rotate-90' : ''}`}
-                      fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                    </svg>
-
-                    {renamingId === project.id ? (
-                      <input ref={renameRef} type="text" value={renameValue}
-                        onChange={e => setRenameValue(e.target.value)} onBlur={submitRename}
-                        onKeyDown={e => { if (e.key === "Enter") submitRename(); if (e.key === "Escape") setRenamingId(null); }}
-                        onClick={e => e.stopPropagation()}
-                        className="flex-1 bg-white/10 text-white/90 px-2 py-0.5 rounded outline-none focus:ring-1 focus:ring-blue-500 font-sans text-xs min-w-0" />
-                    ) : (
-                      <span className="flex-1 text-white/40 font-sans text-[11px] font-semibold uppercase tracking-wider truncate">
-                        {project.name}
-                      </span>
-                    )}
-
-                    <button
-                      onClick={e => { e.stopPropagation(); handleAddCategory(project.id); }}
-                      className="opacity-0 group-hover/proj:opacity-100 text-white/20 hover:text-white/50 transition-all shrink-0"
-                      title="Add category"
+                    <div
+                      className="group/proj flex items-center gap-1 px-4 py-1.5 cursor-pointer"
+                      onClick={() => toggleProject(project.id)}
+                      onContextMenu={e => {
+                        e.preventDefault();
+                        setContextMenu({ type: 'project', id: project.id, spaceId: currentSpace.id, x: e.clientX, y: e.clientY });
+                      }}
                     >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                      <svg className={`w-3 h-3 text-white/20 transition-transform shrink-0 ${isExpanded ? 'rotate-90' : ''}`}
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                       </svg>
-                    </button>
-                  </div>
+
+                      {renamingId === project.id ? (
+                        <input ref={renameRef} type="text" value={renameValue}
+                          onChange={e => setRenameValue(e.target.value)} onBlur={submitRename}
+                          onKeyDown={e => { if (e.key === "Enter") submitRename(); if (e.key === "Escape") setRenamingId(null); }}
+                          onClick={e => e.stopPropagation()}
+                          className="flex-1 bg-white/10 text-white/90 px-2 py-0.5 rounded outline-none focus:ring-1 focus:ring-[var(--accent)] font-sans text-xs min-w-0" />
+                      ) : (
+                        <span className="flex-1 text-white/40 font-sans text-[11px] font-semibold uppercase tracking-wider truncate">
+                          {project.name}
+                        </span>
+                      )}
+
+                      <button
+                        onClick={e => { e.stopPropagation(); handleAddCategory(project.id); }}
+                        className="opacity-0 group-hover/proj:opacity-100 text-white/20 hover:text-white/50 transition-all shrink-0"
+                        title="Add category"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                        </svg>
+                      </button>
+                    </div>
+                  </DroppableProjectItem>
 
                   {/* Categories */}
                   {isExpanded && (
@@ -268,35 +268,45 @@ export function LeftPanel() {
                       {project.categories.map((category) => {
                         const isActive = activeCategoryId === category.id;
                         return (
-                          <div
+                          <DroppableCategoryItem
                             key={category.id}
-                            className={`flex items-center gap-2 mx-2 px-4 py-[7px] rounded-md cursor-pointer transition-colors ${
-                              isActive
-                                ? 'bg-white/[0.08] text-white/80'
-                                : 'text-white/45 hover:text-white/65 hover:bg-white/[0.03]'
-                            }`}
-                            onClick={() => setActiveCategory(category.id)}
-                            onContextMenu={e => {
-                              e.preventDefault();
-                              setContextMenu({ type: 'category', id: category.id, spaceId: currentSpace.id, projectId: project.id, x: e.clientX, y: e.clientY });
-                            }}
+                            spaceId={currentSpace.id}
+                            projectId={project.id}
+                            categoryId={category.id}
                           >
-                            <span className={`w-1 h-1 rounded-full shrink-0 ${isActive ? 'bg-white/60' : 'bg-white/20'}`} />
-                            {renamingId === category.id ? (
-                              <input ref={renameRef} type="text" value={renameValue}
-                                onChange={e => setRenameValue(e.target.value)} onBlur={submitRename}
-                                onKeyDown={e => { if (e.key === "Enter") submitRename(); if (e.key === "Escape") setRenamingId(null); }}
-                                onClick={e => e.stopPropagation()}
-                                className="flex-1 bg-white/10 text-white/90 px-2 py-0.5 rounded outline-none focus:ring-1 focus:ring-blue-500 font-sans text-xs min-w-0" />
-                            ) : (
-                              <span className="flex-1 font-sans text-[13px] truncate">{category.name}</span>
-                            )}
-                            {category.groups.length > 0 && (
-                              <span className={`text-[10px] font-sans shrink-0 ${isActive ? 'text-white/30' : 'text-white/15'}`}>
-                                {category.groups.length}
-                              </span>
-                            )}
-                          </div>
+                            <div
+                              className={`flex items-center gap-2 mx-2 px-4 py-[7px] rounded-md cursor-pointer transition-colors ${
+                                isActive
+                                  ? 'text-white/80'
+                                  : 'text-white/45 hover:text-white/65 hover:bg-white/[0.03]'
+                              }`}
+                              style={isActive ? { backgroundColor: 'var(--accent-subtle)' } : undefined}
+                              onClick={() => {
+                                if (activeProjectId !== project.id) setActiveProject(project.id);
+                                setActiveCategory(category.id);
+                              }}
+                              onContextMenu={e => {
+                                e.preventDefault();
+                                setContextMenu({ type: 'category', id: category.id, spaceId: currentSpace.id, projectId: project.id, x: e.clientX, y: e.clientY });
+                              }}
+                            >
+                              <span className={`w-1 h-1 rounded-full shrink-0 ${isActive ? '' : 'bg-white/20'}`} style={isActive ? { backgroundColor: 'var(--accent)' } : undefined} />
+                              {renamingId === category.id ? (
+                                <input ref={renameRef} type="text" value={renameValue}
+                                  onChange={e => setRenameValue(e.target.value)} onBlur={submitRename}
+                                  onKeyDown={e => { if (e.key === "Enter") submitRename(); if (e.key === "Escape") setRenamingId(null); }}
+                                  onClick={e => e.stopPropagation()}
+                                  className="flex-1 bg-white/10 text-white/90 px-2 py-0.5 rounded outline-none focus:ring-1 focus:ring-[var(--accent)] font-sans text-xs min-w-0" />
+                              ) : (
+                                <span className="flex-1 font-sans text-[13px] truncate">{category.name}</span>
+                              )}
+                              {category.groups.length > 0 && (
+                                <span className={`text-[10px] font-sans shrink-0 ${isActive ? 'text-white/30' : 'text-white/15'}`}>
+                                  {category.groups.length}
+                                </span>
+                              )}
+                            </div>
+                          </DroppableCategoryItem>
                         );
                       })}
 
@@ -339,7 +349,7 @@ export function LeftPanel() {
         </div>
       </div>
 
-      {/* Context menu */}
+      {/* Context menu - rendered at end */}
       {contextMenu && (
         <div ref={contextMenuRef} className="fixed bg-black-800 border border-black-700 rounded-lg shadow-xl py-1 z-50 w-36" style={{ left: contextMenu.x, top: contextMenu.y }}>
           <button onClick={() => {
@@ -351,6 +361,38 @@ export function LeftPanel() {
           <button onClick={handleDelete} className="w-full text-left px-3 py-1.5 text-red-400/70 hover:text-red-400 hover:bg-white/5 text-xs transition-colors">Delete</button>
         </div>
       )}
+    </div>
+  );
+}
+
+function DroppableProjectItem({ spaceId, projectId, children }: {
+  spaceId: string; projectId: string; children: React.ReactNode;
+}) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `proj-drop:${spaceId}:${projectId}`,
+  });
+
+  return (
+    <div ref={setNodeRef} className={`transition-colors rounded ${isOver ? 'ring-1' : ''}`}
+      style={isOver ? { backgroundColor: 'var(--accent-subtle)', ringColor: 'var(--accent)' } : undefined}
+    >
+      {children}
+    </div>
+  );
+}
+
+function DroppableCategoryItem({ spaceId, projectId, categoryId, children }: {
+  spaceId: string; projectId: string; categoryId: string; children: React.ReactNode;
+}) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `cat-drop:${spaceId}:${projectId}:${categoryId}`,
+  });
+
+  return (
+    <div ref={setNodeRef} className={`transition-colors rounded-md ${isOver ? 'ring-1' : ''}`}
+      style={isOver ? { backgroundColor: 'var(--accent-subtle)', ringColor: 'var(--accent)' } : undefined}
+    >
+      {children}
     </div>
   );
 }

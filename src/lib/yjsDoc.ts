@@ -233,9 +233,26 @@ export function updateSpace(space: SavedSpace) {
 export function reorderInArray(arr: Y.Array<Y.Map<unknown>>, oldIndex: number, newIndex: number) {
   doc.transact(() => {
     const item = arr.get(oldIndex);
-    const clone = item.clone() as Y.Map<unknown>;
+    // Serialize to plain JSON before deleting to avoid clone issues with nested Y types
+    const json = item.toJSON();
     arr.delete(oldIndex, 1);
-    arr.insert(newIndex, [clone]);
+
+    // Reconstruct the Y.Map from JSON (handles nested arrays/maps)
+    const rebuild = (obj: Record<string, unknown>): Y.Map<unknown> => {
+      const m = new Y.Map<unknown>();
+      for (const [key, val] of Object.entries(obj)) {
+        if (Array.isArray(val)) {
+          const yArr = new Y.Array<Y.Map<unknown>>();
+          yArr.push(val.map((v: unknown) => rebuild(v as Record<string, unknown>)));
+          m.set(key, yArr);
+        } else {
+          m.set(key, val);
+        }
+      }
+      return m;
+    };
+
+    arr.insert(newIndex, [rebuild(json as Record<string, unknown>)]);
     // Reassign order values
     for (let i = 0; i < arr.length; i++) {
       arr.get(i).set("order", i);
@@ -397,7 +414,8 @@ export function moveTabBetweenGroups(
     const found = findInArray(srcTabs, tabId);
     if (!found) return;
 
-    const clone = found.map.clone() as Y.Map<unknown>;
+    // Serialize before deleting to avoid clone issues
+    const tabData = yMapToTab(found.map);
     srcTabs.delete(found.index, 1);
 
     // Reorder source tabs
@@ -405,7 +423,7 @@ export function moveTabBetweenGroups(
 
     // Insert into target
     const idx = insertIndex ?? tgtTabs.length;
-    tgtTabs.insert(idx, [clone]);
+    tgtTabs.insert(idx, [tabToYMap(tabData)]);
     for (let i = 0; i < tgtTabs.length; i++) tgtTabs.get(i).set("order", i);
   });
 }
@@ -424,6 +442,94 @@ export function applyUpdate(update: Uint8Array) {
 
 export function mergeRemoteState(remoteState: Uint8Array) {
   Y.applyUpdate(doc, remoteState);
+}
+
+/** Move a group from one category to another (cross-boundary). */
+export function moveGroupToCategory(
+  srcSpaceId: string, srcProjectId: string, srcCategoryId: string, groupId: string,
+  tgtSpaceId: string, tgtProjectId: string, tgtCategoryId: string,
+) {
+  doc.transact(() => {
+    const srcCat = findCategory(srcSpaceId, srcProjectId, srcCategoryId);
+    const tgtCat = findCategory(tgtSpaceId, tgtProjectId, tgtCategoryId);
+    if (!srcCat || !tgtCat) return;
+    const srcGroups = srcCat.map.get("groups") as Y.Array<Y.Map<unknown>>;
+    const tgtGroups = tgtCat.map.get("groups") as Y.Array<Y.Map<unknown>>;
+    const found = findInArray(srcGroups, groupId);
+    if (!found) return;
+    // Serialize before deleting to avoid clone issues with nested types
+    const groupData = yMapToGroup(found.map);
+    srcGroups.delete(found.index, 1);
+    // Reorder source
+    for (let i = 0; i < srcGroups.length; i++) srcGroups.get(i).set("order", i);
+    // Reconstruct and insert at end of target
+    groupData.order = tgtGroups.length;
+    tgtGroups.push([groupToYMap(groupData)]);
+  });
+}
+
+/** Move a tab across any boundary (different group, category, project, or space). */
+export function moveTabCrossBoundary(
+  srcSpaceId: string, srcProjectId: string, srcCategoryId: string, srcGroupId: string, tabId: string,
+  tgtSpaceId: string, tgtProjectId: string, tgtCategoryId: string, tgtGroupId: string, insertIndex?: number,
+) {
+  doc.transact(() => {
+    const srcGroup = findGroup(srcSpaceId, srcProjectId, srcCategoryId, srcGroupId);
+    const tgtGroup = findGroup(tgtSpaceId, tgtProjectId, tgtCategoryId, tgtGroupId);
+    if (!srcGroup || !tgtGroup) return;
+    const srcTabs = srcGroup.map.get("tabs") as Y.Array<Y.Map<unknown>>;
+    const tgtTabs = tgtGroup.map.get("tabs") as Y.Array<Y.Map<unknown>>;
+    const found = findInArray(srcTabs, tabId);
+    if (!found) return;
+    // Serialize before deleting to avoid clone issues with nested types
+    const tabData = yMapToTab(found.map);
+    srcTabs.delete(found.index, 1);
+    for (let i = 0; i < srcTabs.length; i++) srcTabs.get(i).set("order", i);
+    const idx = insertIndex ?? tgtTabs.length;
+    tgtTabs.insert(idx, [tabToYMap(tabData)]);
+    for (let i = 0; i < tgtTabs.length; i++) tgtTabs.get(i).set("order", i);
+  });
+}
+
+/** Move a category from one project to another. */
+export function moveCategoryToProject(
+  srcSpaceId: string, srcProjectId: string, categoryId: string,
+  tgtSpaceId: string, tgtProjectId: string,
+) {
+  doc.transact(() => {
+    const srcProj = findProject(srcSpaceId, srcProjectId);
+    const tgtProj = findProject(tgtSpaceId, tgtProjectId);
+    if (!srcProj || !tgtProj) return;
+    const srcCats = srcProj.map.get("categories") as Y.Array<Y.Map<unknown>>;
+    const tgtCats = tgtProj.map.get("categories") as Y.Array<Y.Map<unknown>>;
+    const found = findInArray(srcCats, categoryId);
+    if (!found) return;
+    // Serialize before deleting to avoid clone issues with nested types
+    const catData = yMapToCategory(found.map);
+    srcCats.delete(found.index, 1);
+    for (let i = 0; i < srcCats.length; i++) srcCats.get(i).set("order", i);
+    catData.order = tgtCats.length;
+    tgtCats.push([categoryToYMap(catData)]);
+  });
+}
+
+/** Move a project from one space to another. */
+export function moveProjectToSpace(srcSpaceId: string, projectId: string, tgtSpaceId: string) {
+  doc.transact(() => {
+    const srcSpace = findSpace(srcSpaceId);
+    const tgtSpace = findSpace(tgtSpaceId);
+    if (!srcSpace || !tgtSpace) return;
+    const srcProjects = srcSpace.map.get("projects") as Y.Array<Y.Map<unknown>>;
+    const tgtProjects = tgtSpace.map.get("projects") as Y.Array<Y.Map<unknown>>;
+    const found = findInArray(srcProjects, projectId);
+    if (!found) return;
+    // Serialize before deleting to avoid clone issues with nested types
+    const projData = yMapToProject(found.map);
+    srcProjects.delete(found.index, 1);
+    for (let i = 0; i < srcProjects.length; i++) srcProjects.get(i).set("order", i);
+    projData.order = tgtProjects.length;
+    tgtProjects.push([projectToYMap(projData)]);
+  });
 }
 
 /** Clear all Yjs state and persisted storage. Used on logout / account switch. */
