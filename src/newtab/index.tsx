@@ -7,6 +7,7 @@ import "../../style.css"
 
 import { DndContext, DragOverlay } from "@dnd-kit/core"
 import { useDragAndDrop } from "~src/hooks/useDragAndDrop"
+import { useKeyboardShortcuts } from "~src/hooks/useKeyboardShortcuts"
 import { useTheme } from "~src/hooks/useTheme"
 import { useHydrated } from "~src/store/useSavedSpacesStore"
 import { useAuthStore } from "~src/store/useAuthStore"
@@ -224,6 +225,7 @@ function OnboardingScreen() {
 
 function NewTabPageContent() {
   useTheme();
+  useKeyboardShortcuts();
   const {
     handleDragStart,
     handleDragEnd,

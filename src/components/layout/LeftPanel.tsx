@@ -195,7 +195,6 @@ export function LeftPanel() {
       {/* Space header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-black-800">
         <div className="flex items-center gap-2.5 min-w-0">
-          {currentSpace?.color && <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: currentSpace.color }} />}
           <h2 className="text-white/70 font-sans text-sm font-medium truncate">{currentSpace?.name || 'No Space'}</h2>
         </div>
         {currentSpace && (
