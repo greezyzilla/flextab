@@ -16,8 +16,10 @@ interface SearchResult {
 export function SearchBar() {
   const [query, setQuery] = useState("");
   const [isFocused, setIsFocused] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const { savedSpaces } = useSavedSpacesStore();
   const { windows } = useWindows({ populate: true });
 
@@ -94,6 +96,30 @@ export function SearchBar() {
     inputRef.current?.blur();
   };
 
+  // Reset selection when results change
+  useEffect(() => { setSelectedIndex(-1); }, [results]);
+
+  // Scroll selected item into view
+  useEffect(() => {
+    if (selectedIndex < 0 || !listRef.current) return;
+    const item = listRef.current.children[selectedIndex] as HTMLElement | undefined;
+    item?.scrollIntoView({ block: 'nearest' });
+  }, [selectedIndex]);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!results.length) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex(i => (i + 1) % results.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex(i => (i <= 0 ? results.length - 1 : i - 1));
+    } else if (e.key === 'Enter' && selectedIndex >= 0) {
+      e.preventDefault();
+      handleResultClick(results[selectedIndex]);
+    }
+  };
+
   const showDropdown = isFocused && query.trim().length > 0;
 
   return (
@@ -107,6 +133,7 @@ export function SearchBar() {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={handleKeyDown}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setTimeout(() => setIsFocused(false), 150)}
           placeholder="Search tabs... (Cmd+K)"
@@ -120,13 +147,14 @@ export function SearchBar() {
       </div>
 
       {showDropdown && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-black-800 border border-white/10 rounded-md shadow-lg max-h-80 overflow-y-auto z-50">
+        <div ref={listRef} className="absolute top-full left-0 right-0 mt-1 bg-black-800 border border-white/10 rounded-md shadow-lg max-h-80 overflow-y-auto z-50">
           {results.length > 0 ? (
             results.map((result, i) => (
               <button
                 key={`${result.type}-${result.url}-${i}`}
                 onClick={() => handleResultClick(result)}
-                className="w-full flex items-center gap-3 px-3 py-2 hover:bg-white/5 transition-colors text-left"
+                onMouseEnter={() => setSelectedIndex(i)}
+                className={`w-full flex items-center gap-3 px-3 py-2 transition-colors text-left ${i === selectedIndex ? 'bg-white/10' : 'hover:bg-white/5'}`}
               >
                 <FaviconImg src={result.favicon} alt={result.title} className="w-4 h-4 shrink-0" />
                 <div className="flex-1 overflow-hidden">
