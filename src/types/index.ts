@@ -5,7 +5,6 @@ export interface SavedTab {
   url: string;
   title: string;
   favicon: string;
-  description?: string;
   order?: number;
 }
 

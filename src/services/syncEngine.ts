@@ -10,7 +10,7 @@ const WS_RECONNECT_MAX_MS = 60000;
 
 // --- BE types ---
 
-interface BeTab { id: string; url: string; title: string; favicon: string; description: string; order: number; }
+interface BeTab { id: string; url: string; title: string; favicon: string; order: number; }
 interface BeGroup { id: string; name: string; order: number; tabs: BeTab[]; }
 interface BeCategory { id: string; name: string; order: number; groups: BeGroup[]; }
 interface BeProject { id: string; name: string; order: number; categories: BeCategory[]; }
@@ -26,8 +26,7 @@ function mapBeToLocal(spaces: BeSpace[]): SavedSpace[] {
         groups: (c.groups || []).map(g => ({
           id: g.id, name: g.name, order: g.order,
           tabs: (g.tabs || []).map(t => ({
-            id: t.id, url: t.url, title: t.title, favicon: t.favicon,
-            description: t.description || undefined, order: t.order,
+            id: t.id, url: t.url, title: t.title, favicon: t.favicon, order: t.order,
           })),
         })),
       })),

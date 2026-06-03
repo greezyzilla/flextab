@@ -232,8 +232,7 @@ export function useDragAndDrop() {
           const tgtGroup = freshCategory?.groups.find(g => g.id === target.groupId);
           const savedTab: SavedTab = {
             id: uuidv7(), url: tab.url || '', title: tab.title || 'Untitled',
-            favicon, description: tab.url || '',
-            order: tgtGroup?.tabs.length ?? 0,
+            favicon, order: tgtGroup?.tabs.length ?? 0,
           };
           freshStore.addSavedTab(tgtSpaceId, target.projectId, target.categoryId, target.groupId, savedTab);
         } catch (_) { /* Tab closed */ }
@@ -284,7 +283,7 @@ export function useDragAndDrop() {
         const favicon = await faviconToDataUrl(tab.favIconUrl || '');
         const savedTab: SavedTab = {
           id: uuidv7(), url: tab.url || '', title: tab.title || 'Untitled',
-          favicon, description: tab.url || '', order: nextOrder,
+          favicon, order: nextOrder,
         };
         addSavedTab(spaceId, projectId, categoryId, groupId, savedTab);
       } catch (_) { /* Tab closed */ }

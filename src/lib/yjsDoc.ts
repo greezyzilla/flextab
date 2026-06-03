@@ -35,7 +35,6 @@ function yMapToTab(m: Y.Map<unknown>): SavedTab {
     url: m.get("url") as string,
     title: m.get("title") as string,
     favicon: m.get("favicon") as string,
-    description: (m.get("description") as string) || undefined,
     order: m.get("order") as number,
   };
 }
@@ -100,7 +99,6 @@ function tabToYMap(t: SavedTab): Y.Map<unknown> {
   m.set("url", t.url);
   m.set("title", t.title);
   m.set("favicon", t.favicon);
-  m.set("description", t.description || "");
   m.set("order", t.order ?? 0);
   return m;
 }
@@ -391,7 +389,6 @@ export function updateTab(spaceId: string, projectId: string, categoryId: string
     found.map.set("url", tab.url);
     found.map.set("title", tab.title);
     found.map.set("favicon", tab.favicon);
-    found.map.set("description", tab.description || "");
     if (tab.order !== undefined) found.map.set("order", tab.order);
   });
 }

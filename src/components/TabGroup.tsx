@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { SortableContext, useSortable } from "@dnd-kit/sortable";
 import { useDroppable } from "@dnd-kit/core";
 import { DragHandleIcon } from "./icons/DragHandleIcon";
@@ -25,19 +25,10 @@ function SavedTabItem({ tab, groupId, isDuplicate }: { tab: SavedTab; groupId: s
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const { removeSavedTab, addSavedTab, updateSavedTab } = useSavedSpacesStore();
+  const { removeSavedTab, addSavedTab } = useSavedSpacesStore();
   const activeSpace = useActiveSpace();
   const activeProject = useActiveProject();
   const activeCategory = useActiveCategory();
-  const [editingNote, setEditingNote] = useState(false);
-  const [noteValue, setNoteValue] = useState(tab.description || '');
-  const noteRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (editingNote && noteRef.current) {
-      noteRef.current.focus();
-    }
-  }, [editingNote]);
 
   const onClick = () => {
     chrome.tabs.create({ url: tab.url });
@@ -51,17 +42,6 @@ function SavedTabItem({ tab, groupId, isDuplicate }: { tab: SavedTab; groupId: s
       addSavedTab(activeSpace.id, activeProject.id, activeCategory.id, groupId, tab);
     });
   };
-
-  const handleNoteSave = () => {
-    if (!activeSpace || !activeProject || !activeCategory) return;
-    const trimmed = noteValue.trim();
-    if (trimmed !== (tab.description || '')) {
-      updateSavedTab(activeSpace.id, activeProject.id, activeCategory.id, groupId, { ...tab, description: trimmed || undefined });
-    }
-    setEditingNote(false);
-  };
-
-  const hasNote = tab.description && tab.description !== tab.url && tab.description.trim() !== '';
 
   return (
     <div
@@ -94,16 +74,6 @@ function SavedTabItem({ tab, groupId, isDuplicate }: { tab: SavedTab; groupId: s
         </div>
 
         <button
-          onClick={(e) => { e.stopPropagation(); setNoteValue(tab.description || ''); setEditingNote(!editingNote); }}
-          className={`p-1.5 rounded-md transition-all shrink-0 ${hasNote ? 'text-white/30 opacity-100' : 'text-white/20 opacity-0 group-hover:opacity-100'} hover:text-white/60`}
-          title={hasNote ? 'Edit note' : 'Add note'}
-        >
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Z" />
-          </svg>
-        </button>
-
-        <button
           onClick={handleDelete}
           className="opacity-0 group-hover:opacity-100 p-1.5 rounded-md text-white/30 hover:text-red-400 hover:bg-red-400/10 transition-all shrink-0"
           title="Remove tab"
@@ -114,24 +84,6 @@ function SavedTabItem({ tab, groupId, isDuplicate }: { tab: SavedTab; groupId: s
         </button>
       </div>
 
-      {editingNote && (
-        <input
-          ref={noteRef}
-          type="text"
-          value={noteValue}
-          onChange={e => setNoteValue(e.target.value)}
-          onBlur={handleNoteSave}
-          onKeyDown={e => { if (e.key === 'Enter') handleNoteSave(); if (e.key === 'Escape') setEditingNote(false); }}
-          placeholder="Add a note..."
-          className="ml-8 bg-white/[0.04] border border-white/10 rounded px-2 py-1 text-white/70 text-[11px] font-sans outline-none focus:border-white/20 placeholder:text-white/20"
-        />
-      )}
-
-      {!editingNote && hasNote && (
-        <div className="ml-8 text-white/25 text-[11px] font-sans truncate cursor-pointer hover:text-white/40" onClick={() => { setNoteValue(tab.description || ''); setEditingNote(true); }}>
-          {tab.description}
-        </div>
-      )}
     </div>
   )
 }
