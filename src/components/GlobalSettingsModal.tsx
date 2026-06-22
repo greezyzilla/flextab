@@ -410,8 +410,8 @@ function SyncTab() {
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
   const { autoSync, setAutoSync } = useSettingsStore();
   const status = useSyncStore(s => s.status);
-  const lastSyncedAt = useSyncStore(s => s.lastSyncedAt);
   const [syncing, setSyncing] = useState(false);
+  const [devicesNonce, setDevicesNonce] = useState(0);
 
   if (!isAuthenticated) {
     return (
@@ -431,6 +431,7 @@ function SyncTab() {
     setSyncing(true);
     await syncNow();
     setSyncing(false);
+    setDevicesNonce(n => n + 1); // refresh the device list after a manual sync
   };
 
   return (
@@ -461,16 +462,15 @@ function SyncTab() {
         <Switch checked={autoSync} onChange={setAutoSync} label={autoSync ? 'On' : 'Off'} />
       </SettingRow>
 
-      <DevicesSection />
+      <DevicesSection refresh={devicesNonce} />
     </div>
   );
 }
 
-function DevicesSection() {
+function DevicesSection({ refresh }: { refresh: number }) {
   const [devices, setDevices] = useState<DeviceInfo[] | null>(null);
   const [thisDeviceId, setThisDeviceId] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
-  const lastSyncedAt = useSyncStore(s => s.lastSyncedAt); // refetch after a sync
 
   useEffect(() => {
     let active = true;
@@ -479,7 +479,7 @@ function DevicesSection() {
       .then(d => { if (active) { setDevices(d); setFailed(false); } })
       .catch(() => { if (active) setFailed(true); });
     return () => { active = false; };
-  }, [lastSyncedAt]);
+  }, [refresh]);
 
   const lastSyncedDevice = useMemo(() => {
     if (!devices) return null;

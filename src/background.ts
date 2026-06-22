@@ -1,10 +1,16 @@
 import * as Y from "yjs";
-import { loadTokens, apiFetch } from "~src/services/api";
+import { loadTokens, apiFetch, getDeviceId } from "~src/services/api";
 
 const API_BASE_URL = process.env.PLASMO_PUBLIC_API_URL || "http://localhost:3000";
 const AUTH_SUCCESS_PATH = "/auth/success";
 const PERSIST_KEY = "flextab_yjs_state";
 const SYNC_DEBOUNCE_MS = 5000;
+
+// Establish the stable device id from the single background context at install
+// and on every worker start, so new-tab pages read it instead of racing to
+// generate one (which could register duplicate devices on a fresh install).
+chrome.runtime.onInstalled.addListener(() => { void getDeviceId(); });
+void getDeviceId();
 
 // =====================================================================
 // Auth callback — capture tokens from the auth success page
