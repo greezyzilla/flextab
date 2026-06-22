@@ -110,8 +110,30 @@ function clearHydrated() {
 let pendingServer: SavedSpace[] | null = null;
 let pendingLocal: SavedSpace[] | null = null;
 
+/** Canonical structural signature — used to skip no-op writes (avoids a
+ *  push → broadcast → re-pull → push loop once the data has converged). */
+function signature(spaces: SavedSpace[]): string {
+  return JSON.stringify(spaces.map(s => ({
+    i: s.id, n: s.name,
+    p: (s.projects || []).map(p => ({
+      i: p.id, n: p.name,
+      c: (p.categories || []).map(c => ({
+        i: c.id, n: c.name,
+        g: (c.groups || []).map(g => ({
+          i: g.id, n: g.name,
+          t: (g.tabs || []).map(t => ({ i: t.id, u: t.url })),
+        })),
+      })),
+    })),
+  })));
+}
+
 function applyResolution(spaces: SavedSpace[]) {
-  setSpaces(spaces);
+  // Only rewrite the doc when the data actually changed; otherwise the rewrite
+  // would persist → push → broadcast → re-pull → push, looping forever.
+  if (signature(spaces) !== signature(getSpaces())) {
+    setSpaces(spaces);
+  }
   if (getSpaces().length === 0) ensureDefaultData();
   markSynced();
   markHydrated();      // enable the structured push → uploads the resolved state (OCC)
