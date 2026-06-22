@@ -198,10 +198,10 @@ export async function pushSync(spaces: unknown[], baseRevision: number | null): 
   return { status: "ok", revision: typeof body.revision === "number" ? body.revision : (baseRevision ?? 0) + 1 };
 }
 
-/** Fetch the server's current sync revision (ignores the spaces payload). */
+/** Fetch the server's current sync revision (lightweight — no data payload). */
 export async function fetchSyncRevision(): Promise<number | null> {
   try {
-    const data = await apiFetch<{ revision: number }>("/api/sync");
+    const data = await apiFetch<{ revision: number }>("/api/sync/revision");
     return typeof data.revision === "number" ? data.revision : null;
   } catch (_) {
     return null;
