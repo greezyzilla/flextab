@@ -1,9 +1,10 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect, useMemo } from "react";
 import { useSettingsStore, ACCENT_COLORS, type GroupLayout, type Density, type AccentColor } from "~src/store/useSettingsStore";
 import { useAuthStore } from "~src/store/useAuthStore";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { useSyncStore, type SyncStatus } from "~src/store/useSyncStore";
-import { apiChangePassword } from "~src/services/api";
+import { apiChangePassword, getDeviceId } from "~src/services/api";
+import { apiGetDevices, type DeviceInfo } from "~src/services/device";
 import { syncNow } from "~src/services/syncEngine";
 import * as yjs from "~src/lib/yjsDoc";
 
@@ -459,7 +460,62 @@ function SyncTab() {
       <SettingRow label="Auto-sync" description="Keep changes in sync across devices automatically. When off, use “Sync now”.">
         <Switch checked={autoSync} onChange={setAutoSync} label={autoSync ? 'On' : 'Off'} />
       </SettingRow>
+
+      <DevicesSection />
     </div>
+  );
+}
+
+function DevicesSection() {
+  const [devices, setDevices] = useState<DeviceInfo[] | null>(null);
+  const [thisDeviceId, setThisDeviceId] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  const lastSyncedAt = useSyncStore(s => s.lastSyncedAt); // refetch after a sync
+
+  useEffect(() => {
+    let active = true;
+    getDeviceId().then(id => { if (active) setThisDeviceId(id); });
+    apiGetDevices()
+      .then(d => { if (active) { setDevices(d); setFailed(false); } })
+      .catch(() => { if (active) setFailed(true); });
+    return () => { active = false; };
+  }, [lastSyncedAt]);
+
+  const lastSyncedDevice = useMemo(() => {
+    if (!devices) return null;
+    return devices
+      .filter(d => d.last_synced_at)
+      .sort((a, b) => new Date(b.last_synced_at!).getTime() - new Date(a.last_synced_at!).getTime())[0] ?? null;
+  }, [devices]);
+
+  return (
+    <SettingRow label="Devices" description="Devices that have used this account.">
+      {lastSyncedDevice && (
+        <div className="text-white/40 text-[11px] font-sans -mt-1">
+          Last synced from <span className="text-white/60">{lastSyncedDevice.label}</span> · {formatRelativeTime(new Date(lastSyncedDevice.last_synced_at!).getTime())}
+        </div>
+      )}
+      <div className="flex flex-col gap-1.5">
+        {failed && <div className="text-white/30 text-[11px] font-sans">Couldn't load devices.</div>}
+        {!failed && devices === null && <div className="text-white/30 text-[11px] font-sans">Loading…</div>}
+        {!failed && devices?.length === 0 && <div className="text-white/30 text-[11px] font-sans">No devices recorded yet.</div>}
+        {devices?.map(d => (
+          <div key={d.id} className="flex items-center justify-between rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-white/70 text-xs font-sans truncate">{d.label}</span>
+              {d.id === thisDeviceId && (
+                <span className="text-[10px] font-sans px-1.5 py-0.5 rounded shrink-0" style={{ backgroundColor: 'var(--accent-subtle)', color: 'var(--accent)' }}>
+                  This device
+                </span>
+              )}
+            </div>
+            <span className="text-white/25 text-[10px] font-sans shrink-0">
+              {formatRelativeTime(new Date(d.last_seen_at).getTime())}
+            </span>
+          </div>
+        ))}
+      </div>
+    </SettingRow>
   );
 }
 

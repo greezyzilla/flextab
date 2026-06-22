@@ -22,6 +22,9 @@ FlexTab only collects what is needed to provide the product:
   titles and URLs of tabs in your browser using the `tabs` permission. This is
   read on-device and is **not** transmitted anywhere unless you explicitly save
   a tab.
+- **Device information** — when signed in, we record a per-install identifier and
+  your browser's User-Agent string so you can see which devices have used your
+  account and when each last synced. We do not use it for tracking or advertising.
 
 We do **not** collect browsing history, keystrokes, form data, or the content of
 pages you visit. We do not use analytics or advertising trackers.

@@ -2,7 +2,7 @@ import * as Y from "yjs";
 import { doc, encodeState, getSpaces, setSpaces, persistState } from "~src/lib/yjsDoc";
 import { useAuthStore } from "~src/store/useAuthStore";
 import { useSyncStore } from "~src/store/useSyncStore";
-import { loadTokens, apiFetch, API_BASE_URL } from "./api";
+import { loadTokens, apiFetch, getDeviceId, API_BASE_URL } from "./api";
 // Structured sync (PUT /api/sync) is handled by background service worker
 import type { SavedSpace } from "~src/types";
 import type { SyncStatus } from "~src/store/useSyncStore";
@@ -57,10 +57,11 @@ function connectWebSocket() {
   if (!useAuthStore.getState().isAuthenticated) return;
 
   setStatus("connecting");
-  loadTokens().then(tokens => {
+  Promise.all([loadTokens(), getDeviceId()]).then(([tokens, did]) => {
     if (!tokens) { setStatus("offline"); return; }
 
-    const wsUrl = API_BASE_URL.replace(/^http/, "ws") + "/api/ws?token=" + tokens.access_token;
+    const wsUrl = API_BASE_URL.replace(/^http/, "ws") +
+      "/api/ws?token=" + tokens.access_token + "&device_id=" + encodeURIComponent(did);
     ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {

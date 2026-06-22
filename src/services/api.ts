@@ -1,3 +1,5 @@
+import { v7 as uuidv7 } from "uuid";
+
 const API_BASE_URL = process.env.PLASMO_PUBLIC_API_URL || "http://localhost:3000";
 
 interface TokenData {
@@ -8,6 +10,27 @@ interface TokenData {
 
 let tokenData: TokenData | null = null;
 let refreshPromise: Promise<TokenData | null> | null = null;
+
+// Stable per-install device id, sent as X-Client-ID so the backend can keep a
+// passive registry of devices that have used the account.
+const DEVICE_ID_KEY = "flextab_device_id";
+let deviceId: string | null = null;
+
+export async function getDeviceId(): Promise<string> {
+  if (deviceId) return deviceId;
+  try {
+    const result = await chrome.storage.local.get(DEVICE_ID_KEY);
+    if (typeof result[DEVICE_ID_KEY] === "string" && result[DEVICE_ID_KEY]) {
+      deviceId = result[DEVICE_ID_KEY];
+      return deviceId;
+    }
+  } catch (_) { /* no extension context */ }
+
+  const id = uuidv7();
+  deviceId = id;
+  try { await chrome.storage.local.set({ [DEVICE_ID_KEY]: id }); } catch (_) { /* ok */ }
+  return id;
+}
 
 export async function loadTokens(): Promise<TokenData | null> {
   try {
@@ -87,6 +110,7 @@ export async function apiFetch<T = unknown>(
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
+    "X-Client-ID": await getDeviceId(),
     ...(options.headers as Record<string, string>),
   };
 
