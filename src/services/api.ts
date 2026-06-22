@@ -15,21 +15,29 @@ let refreshPromise: Promise<TokenData | null> | null = null;
 // passive registry of devices that have used the account.
 const DEVICE_ID_KEY = "flextab_device_id";
 let deviceId: string | null = null;
+let deviceIdPromise: Promise<string> | null = null;
 
 export async function getDeviceId(): Promise<string> {
   if (deviceId) return deviceId;
-  try {
-    const result = await chrome.storage.local.get(DEVICE_ID_KEY);
-    if (typeof result[DEVICE_ID_KEY] === "string" && result[DEVICE_ID_KEY]) {
-      deviceId = result[DEVICE_ID_KEY];
-      return deviceId;
-    }
-  } catch (_) { /* no extension context */ }
+  // Deduplicate concurrent first-run calls so a single install resolves to one
+  // id (otherwise parallel requests each generate one → duplicate device rows).
+  if (!deviceIdPromise) {
+    deviceIdPromise = (async () => {
+      try {
+        const result = await chrome.storage.local.get(DEVICE_ID_KEY);
+        if (typeof result[DEVICE_ID_KEY] === "string" && result[DEVICE_ID_KEY]) {
+          deviceId = result[DEVICE_ID_KEY];
+          return deviceId;
+        }
+      } catch (_) { /* no extension context */ }
 
-  const id = uuidv7();
-  deviceId = id;
-  try { await chrome.storage.local.set({ [DEVICE_ID_KEY]: id }); } catch (_) { /* ok */ }
-  return id;
+      const id = uuidv7();
+      try { await chrome.storage.local.set({ [DEVICE_ID_KEY]: id }); } catch (_) { /* ok */ }
+      deviceId = id;
+      return id;
+    })().finally(() => { deviceIdPromise = null; });
+  }
+  return deviceIdPromise;
 }
 
 export async function loadTokens(): Promise<TokenData | null> {
