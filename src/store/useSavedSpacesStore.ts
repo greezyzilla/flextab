@@ -87,7 +87,7 @@ const defaultSpaceId = uuidv7();
 const defaultProjectId = uuidv7();
 const defaultCategoryId = uuidv7();
 
-function ensureDefaultData() {
+export function ensureDefaultData() {
   if (yjs.spacesArray.length === 0) {
     yjs.setSpaces([{
       id: defaultSpaceId, name: "Personal", order: 0,

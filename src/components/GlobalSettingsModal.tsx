@@ -410,6 +410,7 @@ function SyncTab() {
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
   const { autoSync, setAutoSync } = useSettingsStore();
   const status = useSyncStore(s => s.status);
+  const lastSyncedAt = useSyncStore(s => s.lastSyncedAt);
   const [syncing, setSyncing] = useState(false);
   const [devicesNonce, setDevicesNonce] = useState(0);
 

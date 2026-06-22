@@ -22,6 +22,12 @@ export async function setStoredRevision(revision: number): Promise<void> {
   try { await chrome.storage.local.set({ [REVISION_KEY]: revision }); } catch (_) { /* ok */ }
 }
 
+/** Forget the revision (on sign-in/out — it's per-account). */
+export async function clearStoredRevision(): Promise<void> {
+  cached = null;
+  try { await chrome.storage.local.remove(REVISION_KEY); } catch (_) { /* ok */ }
+}
+
 // Keep the in-memory cache in sync when another context updates the revision.
 if (chrome.storage?.onChanged) {
   chrome.storage.onChanged.addListener((changes, area) => {

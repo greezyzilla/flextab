@@ -38,4 +38,12 @@ describe('useAuthStore — guest mode', () => {
     expect(useAuthStore.getState().guestMode).toBe(false);
     expect(chrome.storage.local.remove).toHaveBeenCalledWith(GUEST_KEY);
   });
+
+  it('logout clears the sync hydration flag and stored revision', async () => {
+    await useAuthStore.getState().logout();
+
+    // Per-session/per-account sync state must not leak to the next user.
+    expect(chrome.storage.local.remove).toHaveBeenCalledWith(['spaces', 'flextab_sync_hydrated']);
+    expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_sync_revision');
+  });
 });

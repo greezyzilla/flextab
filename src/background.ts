@@ -88,6 +88,12 @@ async function readLatestSpaces(): Promise<unknown[]> {
 async function pushStructuredData(state: number[]) {
   const tokens = await loadTokens();
   if (!tokens) return;
+  // Don't push until the page has hydrated from the server this session — else
+  // we could overwrite the server with pre-hydration (empty/guest) data.
+  try {
+    const f = await chrome.storage.local.get("flextab_sync_hydrated");
+    if (f["flextab_sync_hydrated"] !== true) return;
+  } catch (_) { return; }
   // Optimistic-concurrency push with 409 reconcile lives in structuredSync; we
   // pass a re-derive callback so a conflict re-reads the latest merged Yjs state.
   await syncStructuredSnapshot(extractSpaces(state), readLatestSpaces);

@@ -2,7 +2,10 @@ import { create } from "zustand";
 import { loadTokens, saveTokens, clearTokens, apiFetch, getAuthUrl, apiRegister, apiLogin } from "~src/services/api";
 import { clearState } from "~src/lib/yjsDoc";
 import { resetYjsHydration } from "~src/store/useSavedSpacesStore";
+import { clearStoredRevision } from "~src/services/revision";
 import type { TokenData } from "~src/services/api";
+
+const SYNC_HYDRATED_KEY = "flextab_sync_hydrated";
 
 export interface User {
   id: string;
@@ -97,6 +100,14 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   handleAuthCallback: async (tokens: TokenData) => {
     await saveTokens(tokens);
     await persistGuestMode(false);
+    // Sign-in: the server account is authoritative. Reset the local doc so the
+    // server's data hydrates cleanly rather than merging with guest/default data
+    // (which produced duplicate "Personal" spaces) — and so stale local can't be
+    // uploaded over the account's real data.
+    await clearState();
+    resetYjsHydration();
+    await clearStoredRevision();
+    try { await chrome.storage.local.remove(SYNC_HYDRATED_KEY); } catch (_) { /* ok */ }
     set({ isAuthenticated: true, guestMode: false });
     await get().fetchUser();
   },
@@ -106,7 +117,8 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     await clearState();
     resetYjsHydration();
     await persistGuestMode(false);
-    try { await chrome.storage.local.remove("spaces"); } catch (_) { /* ok */ }
+    await clearStoredRevision();
+    try { await chrome.storage.local.remove(["spaces", SYNC_HYDRATED_KEY]); } catch (_) { /* ok */ }
     set({ user: null, isAuthenticated: false, guestMode: false });
   },
 

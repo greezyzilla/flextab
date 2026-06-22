@@ -4,6 +4,7 @@ import { useAuthStore } from "~src/store/useAuthStore";
 import { useSyncStore } from "~src/store/useSyncStore";
 import { loadTokens, getDeviceId, fetchSyncRevision, API_BASE_URL } from "./api";
 import { setStoredRevision } from "./revision";
+import { ensureDefaultData } from "~src/store/useSavedSpacesStore";
 // Structured sync (PUT /api/sync) is handled by the background service worker.
 // Hydration is Yjs-only (the WS channel sends the server's stored state), so the
 // Yjs doc is the single source of truth and there's no REST/Yjs double-merge.
@@ -18,6 +19,33 @@ function markSynced() {
 
 const WS_RECONNECT_BASE_MS = 3000;
 const WS_RECONNECT_MAX_MS = 60000;
+
+// --- Hydration gate ---
+// We must NOT upload local state until we've received the server's stored state
+// this session. Uploading first would overwrite the server with our pre-merge
+// (possibly empty/guest) state — the cause of the multi-device data loss. The
+// flag is also read by the background worker before its structured push.
+const SYNC_HYDRATED_KEY = "flextab_sync_hydrated";
+const HYDRATION_FALLBACK_MS = 2500;
+let sessionHydrated = false;
+let hydrationTimer: ReturnType<typeof setTimeout> | null = null;
+
+function markHydrated() {
+  if (sessionHydrated) return;
+  sessionHydrated = true;
+  if (hydrationTimer) { clearTimeout(hydrationTimer); hydrationTimer = null; }
+  try { void chrome.storage.local.set({ [SYNC_HYDRATED_KEY]: true }); } catch (_) { /* ok */ }
+  // Fresh account with no server state → give the user a default workspace.
+  ensureDefaultData();
+  // Now safe to upload the merged (union) state.
+  pushFullState();
+}
+
+function clearHydrated() {
+  sessionHydrated = false;
+  if (hydrationTimer) { clearTimeout(hydrationTimer); hydrationTimer = null; }
+  try { void chrome.storage.local.remove(SYNC_HYDRATED_KEY); } catch (_) { /* ok */ }
+}
 
 // --- WebSocket for Yjs sync ---
 
@@ -44,8 +72,12 @@ function connectWebSocket() {
       setStatus("online");
       markSynced();
 
-      // Send our full state so the server has the latest
-      pushFullState();
+      // Do NOT upload yet — wait for the server's stored state to arrive and
+      // merge first. If none arrives (empty account), this fallback hydrates so
+      // we can still upload our local/default state.
+      if (!sessionHydrated && !hydrationTimer) {
+        hydrationTimer = setTimeout(markHydrated, HYDRATION_FALLBACK_MS);
+      }
     };
 
     ws.onmessage = (event) => {
@@ -57,6 +89,8 @@ function connectWebSocket() {
           sendingUpdate = false;
           // Local persistence is handled by the always-on persistence listener.
           markSynced();
+          // First server state received → safe to upload the union now.
+          if (!sessionHydrated) markHydrated();
         } else if (msg.type === "sync" && msg.entity_type === "full") {
           // Another device pushed a structured snapshot — adopt the new server
           // revision so our next push isn't stale.
@@ -91,6 +125,7 @@ function disconnectWebSocket() {
 
 // Send Yjs update to other clients via WS
 function broadcastUpdate(update: Uint8Array) {
+  if (!sessionHydrated) return; // don't push local changes before hydrating
   if (!ws || ws.readyState !== WebSocket.OPEN) return;
   ws.send(JSON.stringify({
     type: "yjs_update",
@@ -147,6 +182,7 @@ function setupBroadcastListener() {
 export async function startSyncEngine() {
   // Clean up any previous listener before setting up a new one
   if (unsubDoc) { unsubDoc(); unsubDoc = null; }
+  clearHydrated(); // new session — gate uploads until we hydrate from the server
   setupBroadcastListener();
 
   // Seed the revision, then connect — the WS channel hydrates the Yjs doc.
@@ -160,6 +196,7 @@ export async function startSyncEngine() {
 export function stopSyncEngine() {
   if (unsubDoc) { unsubDoc(); unsubDoc = null; }
   disconnectWebSocket();
+  clearHydrated();
   setStatus("paused");
 }
 
@@ -172,10 +209,10 @@ export async function syncNow(): Promise<boolean> {
   setStatus("syncing");
   const ok = await seedServerRevision();
   if (ws && ws.readyState === WebSocket.OPEN) {
-    pushFullState();
+    if (sessionHydrated) pushFullState(); // only upload once hydrated
     setStatus("online");
   } else {
-    connectWebSocket(); // sets its own status
+    connectWebSocket(); // sets its own status (and hydrates)
   }
   if (!ok) setStatus(ws && ws.readyState === WebSocket.OPEN ? "online" : "error");
   return ok;
