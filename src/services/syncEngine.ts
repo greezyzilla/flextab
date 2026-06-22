@@ -4,7 +4,7 @@ import { useSyncStore } from "~src/store/useSyncStore";
 import { useSyncConflict } from "~src/store/useSyncConflict";
 import { apiFetch, loadTokens, getDeviceId, API_BASE_URL } from "./api";
 import { setStoredRevision } from "./revision";
-import { ensureDefaultData } from "~src/store/useSavedSpacesStore";
+import { ensureDefaultData, syncActiveSelection } from "~src/store/useSavedSpacesStore";
 import type { SavedSpace } from "~src/types";
 import type { SyncStatus } from "~src/store/useSyncStore";
 
@@ -128,13 +128,14 @@ function signature(spaces: SavedSpace[]): string {
   })));
 }
 
-function applyResolution(spaces: SavedSpace[]) {
+function applyResolution(spaces: SavedSpace[], selectFirst = false) {
   // Only rewrite the doc when the data actually changed; otherwise the rewrite
   // would persist → push → broadcast → re-pull → push, looping forever.
-  if (signature(spaces) !== signature(getSpaces())) {
-    setSpaces(spaces);
-  }
+  const changed = signature(spaces) !== signature(getSpaces());
+  if (changed) setSpaces(spaces);
   if (getSpaces().length === 0) ensureDefaultData();
+  // After login, jump to the first space/group; otherwise keep a valid selection.
+  if (selectFirst || changed) syncActiveSelection(selectFirst);
   markSynced();
   markHydrated();      // enable the structured push → uploads the resolved state (OCC)
   connectWebSocket();  // realtime change-notifier
@@ -172,7 +173,7 @@ async function reconcile(freshLogin: boolean): Promise<void> {
   else if (!serverReal && localReal) result = local;        // server empty → keep local
   else if (serverReal && localReal) result = mergeSpaces(server, local); // returning user
   else result = local.length ? local : server;              // both empty-ish
-  applyResolution(result);
+  applyResolution(result, freshLogin);
 }
 
 /** Resolve a guest↔account conflict with the user's choice. */
@@ -182,7 +183,7 @@ export function resolveConflict(choice: "merge" | "server" | "local") {
   useSyncConflict.getState().close();
   if (!s || !l) return;
   const result = choice === "merge" ? mergeSpaces(s, l) : choice === "server" ? s : l;
-  applyResolution(result);
+  applyResolution(result, true); // jump to the first space/group after resolving
 }
 
 // --- WebSocket (realtime change-notifier) ---

@@ -102,29 +102,36 @@ export function ensureDefaultData() {
   }
 }
 
+/**
+ * Sync the Yjs spaces into the store and ensure a valid active space → project →
+ * category selection (so the first group shows). With forceFirst=true the
+ * current selection is ignored and the first available is selected (used right
+ * after login); otherwise a still-valid selection is kept.
+ */
+export function syncActiveSelection(forceFirst = false): void {
+  const spaces = yjs.getSpaces();
+  const state = useSavedSpacesStore.getState();
+  const keep = !forceFirst;
+
+  const activeSpaceId = keep && state.activeSpaceId && spaces.some(s => s.id === state.activeSpaceId)
+    ? state.activeSpaceId : spaces[0]?.id ?? null;
+  const activeSpace = spaces.find(s => s.id === activeSpaceId);
+  const activeProjectId = keep && state.activeProjectId && activeSpace?.projects.some(p => p.id === state.activeProjectId)
+    ? state.activeProjectId : activeSpace?.projects[0]?.id ?? null;
+  const activeProject = activeSpace?.projects.find(p => p.id === activeProjectId);
+  const activeCategoryId = keep && state.activeCategoryId && activeProject?.categories.some(c => c.id === state.activeCategoryId)
+    ? state.activeCategoryId : activeProject?.categories[0]?.id ?? null;
+
+  useSavedSpacesStore.setState({ savedSpaces: spaces, activeSpaceId, activeProjectId, activeCategoryId });
+}
+
 /** Load persisted Yjs state, then initialize defaults if still empty. */
 export async function hydrateYjs(): Promise<void> {
   if (yjsHydrated) return;
   await yjs.loadPersistedState();
   ensureDefaultData();
   yjsHydrated = true;
-  // Sync Yjs → Zustand after hydration
-  const spaces = yjs.getSpaces();
-  const state = useSavedSpacesStore.getState();
-  const activeSpaceId = state.activeSpaceId && spaces.some(s => s.id === state.activeSpaceId)
-    ? state.activeSpaceId : spaces[0]?.id ?? null;
-  const activeSpace = spaces.find(s => s.id === activeSpaceId);
-  const activeProjectId = state.activeProjectId && activeSpace?.projects.some(p => p.id === state.activeProjectId)
-    ? state.activeProjectId : activeSpace?.projects[0]?.id ?? null;
-  const activeProject = activeSpace?.projects.find(p => p.id === activeProjectId);
-  const activeCategoryId = state.activeCategoryId && activeProject?.categories.some(c => c.id === state.activeCategoryId)
-    ? state.activeCategoryId : activeProject?.categories[0]?.id ?? null;
-  useSavedSpacesStore.setState({
-    savedSpaces: spaces,
-    activeSpaceId,
-    activeProjectId,
-    activeCategoryId,
-  });
+  syncActiveSelection(false);
 }
 
 export const useSavedSpacesStore = create<SavedSpacesState>()(
