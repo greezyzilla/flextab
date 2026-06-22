@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { ContentPanel, LeftPanel, ProfilePanel, RightPanel, DragOverlayContent } from "~src/components"
+import { ContentPanel, LeftPanel, ProfilePanel, RightPanel, Drawer, DragOverlayContent } from "~src/components"
 import { SearchBar } from "~src/components/SearchBar"
 import { UndoToastContainer } from "~src/components/UndoToast"
 import { ErrorBoundary } from "~src/components/ErrorBoundary"
@@ -9,6 +9,8 @@ import { DndContext, DragOverlay } from "@dnd-kit/core"
 import { useDragAndDrop } from "~src/hooks/useDragAndDrop"
 import { useKeyboardShortcuts } from "~src/hooks/useKeyboardShortcuts"
 import { useTheme } from "~src/hooks/useTheme"
+import { useShellLayout } from "~src/hooks/useMediaQuery"
+import { useUIStore } from "~src/store/useUIStore"
 import { useHydrated } from "~src/store/useSavedSpacesStore"
 import { useAuthStore } from "~src/store/useAuthStore"
 import { startSyncEngine, stopSyncEngine } from "~src/services/syncEngine"
@@ -48,9 +50,9 @@ function OnboardingScreen() {
   }
 
   return (
-    <div className="flex h-screen w-screen bg-black-900 font-sans overflow-hidden">
+    <div className="flex flex-col lg:flex-row min-h-screen w-screen bg-black-900 font-sans overflow-x-hidden overflow-y-auto lg:overflow-hidden">
       {/* Left — hero */}
-      <div className="flex-1 flex flex-col justify-between p-10 min-w-0 relative">
+      <div className="flex-1 flex flex-col justify-between p-6 sm:p-10 min-w-0 relative">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600/[0.07] via-transparent to-purple-600/[0.05]" />
         <div className="absolute top-0 left-0 w-[600px] h-[600px] bg-blue-500/[0.04] rounded-full blur-[120px] -translate-x-1/3 -translate-y-1/3" />
         <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-indigo-500/[0.03] rounded-full blur-[100px] translate-x-1/4 translate-y-1/4" />
@@ -65,15 +67,15 @@ function OnboardingScreen() {
         </div>
 
         <div className="flex flex-col gap-6 max-w-lg">
-          <h1 className="text-white/90 text-4xl font-semibold tracking-tight leading-[1.15]">
+          <h1 className="text-white/90 text-3xl sm:text-4xl font-semibold tracking-tight leading-[1.15]">
             Stop losing tabs.<br />Start organizing them.
           </h1>
-          <p className="text-white/40 text-base leading-relaxed max-w-md">
+          <p className="text-white/40 text-sm sm:text-base leading-relaxed max-w-md">
             FlexTab replaces your new tab page with a workspace that saves, groups, and syncs your browsing sessions across every device.
           </p>
         </div>
 
-        <div className="rounded-xl border border-black-800 overflow-hidden max-w-2xl" style={{ backgroundColor: 'color-mix(in srgb, var(--color-black-950) 80%, transparent)' }}>
+        <div className="hidden lg:block rounded-xl border border-black-800 overflow-hidden max-w-2xl" style={{ backgroundColor: 'color-mix(in srgb, var(--color-black-950) 80%, transparent)' }}>
           <div className="flex border-b border-black-800">
             <div className="w-10 border-r border-black-800 p-2 flex flex-col items-center gap-2">
               <div className="w-6 h-6 rounded-full bg-white/15" />
@@ -130,7 +132,7 @@ function OnboardingScreen() {
       </div>
 
       {/* Right — sign in */}
-      <div className="w-[420px] flex flex-col justify-center border-l border-black-800 p-10" style={{ backgroundColor: 'color-mix(in srgb, var(--color-black-950) 50%, transparent)' }}>
+      <div className="w-full lg:w-[420px] shrink-0 flex flex-col justify-center border-t lg:border-t-0 lg:border-l border-black-800 p-6 sm:p-10" style={{ backgroundColor: 'color-mix(in srgb, var(--color-black-950) 50%, transparent)' }}>
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-2">
             <h2 className="text-white/85 text-xl font-medium">
@@ -223,6 +225,22 @@ function OnboardingScreen() {
   )
 }
 
+function MenuIcon() {
+  return (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5" />
+    </svg>
+  )
+}
+
+function OpenedTabsIcon() {
+  return (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 4.5v15m-3.75 0h13.5A2.25 2.25 0 0 0 21 17.25V6.75A2.25 2.25 0 0 0 18.75 4.5H5.25A2.25 2.25 0 0 0 3 6.75v10.5A2.25 2.25 0 0 0 5.25 19.5Z" />
+    </svg>
+  )
+}
+
 function NewTabPageContent() {
   useTheme();
   useKeyboardShortcuts();
@@ -236,22 +254,56 @@ function NewTabPageContent() {
     draggedGroup
   } = useDragAndDrop();
 
+  const { leftInline, rightInline } = useShellLayout();
+  const {
+    leftDrawerOpen, rightDrawerOpen,
+    setLeftDrawerOpen, setRightDrawerOpen,
+    toggleLeftDrawer, toggleRightDrawer,
+  } = useUIStore();
+
+  const iconBtn = "shrink-0 w-9 h-9 flex items-center justify-center rounded-md text-white/40 hover:text-white/80 hover:bg-white/[0.06] transition-colors"
+
   return (
     <DndContext
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       collisionDetection={collisionDetectionStrategy}
     >
-      <div className="flex h-screen w-screen bg-black-900">
+      <div className="flex h-screen w-screen bg-black-900 overflow-hidden">
         <ProfilePanel />
-        <LeftPanel />
+
+        {leftInline ? (
+          <LeftPanel />
+        ) : (
+          <Drawer side="left" open={leftDrawerOpen} onClose={() => setLeftDrawerOpen(false)}>
+            <LeftPanel />
+          </Drawer>
+        )}
+
         <div className="border-x border-black-800 flex-1 flex flex-col min-w-0">
-          <div className="px-5 py-3 flex items-center gap-2 border-b border-black-800 shrink-0">
+          <div className="px-3 sm:px-5 py-3 flex items-center gap-2 border-b border-black-800 shrink-0">
+            {!leftInline && (
+              <button onClick={toggleLeftDrawer} className={iconBtn} title="Spaces & navigation" aria-label="Toggle navigation">
+                <MenuIcon />
+              </button>
+            )}
             <SearchBar />
+            {!rightInline && (
+              <button onClick={toggleRightDrawer} className={iconBtn} title="Opened tabs" aria-label="Toggle opened tabs">
+                <OpenedTabsIcon />
+              </button>
+            )}
           </div>
           <ContentPanel />
         </div>
-        <RightPanel />
+
+        {rightInline ? (
+          <RightPanel />
+        ) : (
+          <Drawer side="right" open={rightDrawerOpen} onClose={() => setRightDrawerOpen(false)}>
+            <RightPanel />
+          </Drawer>
+        )}
       </div>
 
       <DragOverlay style={{ zIndex: 1000, pointerEvents: 'none' }}>

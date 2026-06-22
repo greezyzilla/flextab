@@ -209,7 +209,13 @@ export function TabGroup({ group, layout = 'list', gridColumns = 2 }: TabGroupPr
               style={{
                 padding: 'var(--density-p-group)',
                 gap: 'var(--density-gap-group)',
-                ...(layout === 'grid' ? { gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))` } : {}),
+                // Fluid grid: render up to `gridColumns` columns, but collapse to
+                // fewer when the container gets too narrow to keep cells >= 150px.
+                ...(layout === 'grid'
+                  ? {
+                      gridTemplateColumns: `repeat(auto-fill, minmax(max(150px, calc((100% - ${gridColumns - 1} * var(--density-gap-group)) / ${gridColumns})), 1fr))`,
+                    }
+                  : {}),
                 ...(isOver ? { borderColor: 'var(--accent)', backgroundColor: 'var(--accent-subtle)' } : {}),
               }}
             >

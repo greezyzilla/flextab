@@ -3,6 +3,7 @@ export { LeftPanel } from "./layout/LeftPanel"
 export { RightPanel } from "./layout/RightPanel"
 export { ContentPanel } from "./layout/ContentPanel"
 export { ProfilePanel } from "./layout/ProfilePanel"
+export { Drawer } from "./layout/Drawer"
 
 // Domain components
 export * from './TabGroup';
