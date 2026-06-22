@@ -43,7 +43,7 @@ describe('useAuthStore — guest mode', () => {
     await useAuthStore.getState().logout();
 
     // Per-session/per-account sync state must not leak to the next user.
-    expect(chrome.storage.local.remove).toHaveBeenCalledWith(['spaces', 'flextab_sync_hydrated']);
+    expect(chrome.storage.local.remove).toHaveBeenCalledWith(['spaces', 'flextab_sync_hydrated', 'flextab_fresh_login']);
     expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_sync_revision');
   });
 });

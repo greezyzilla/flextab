@@ -6,6 +6,7 @@ import { clearStoredRevision } from "~src/services/revision";
 import type { TokenData } from "~src/services/api";
 
 const SYNC_HYDRATED_KEY = "flextab_sync_hydrated";
+const FRESH_LOGIN_KEY = "flextab_fresh_login";
 
 export interface User {
   id: string;
@@ -100,13 +101,12 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   handleAuthCallback: async (tokens: TokenData) => {
     await saveTokens(tokens);
     await persistGuestMode(false);
-    // Sign-in: the server account is authoritative. Reset the local doc so the
-    // server's data hydrates cleanly rather than merging with guest/default data
-    // (which produced duplicate "Personal" spaces) — and so stale local can't be
-    // uploaded over the account's real data.
-    await clearState();
-    resetYjsHydration();
+    // Keep local data (it may be guest work to reconcile). Mark this as an
+    // explicit login so the sync engine pulls the account and, if BOTH local and
+    // the account have real tabs, asks the user how to resolve instead of
+    // overwriting. Clear per-account sync state so it re-seeds for this account.
     await clearStoredRevision();
+    try { await chrome.storage.local.set({ [FRESH_LOGIN_KEY]: true }); } catch (_) { /* ok */ }
     try { await chrome.storage.local.remove(SYNC_HYDRATED_KEY); } catch (_) { /* ok */ }
     set({ isAuthenticated: true, guestMode: false });
     await get().fetchUser();
@@ -118,7 +118,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     resetYjsHydration();
     await persistGuestMode(false);
     await clearStoredRevision();
-    try { await chrome.storage.local.remove(["spaces", SYNC_HYDRATED_KEY]); } catch (_) { /* ok */ }
+    try { await chrome.storage.local.remove(["spaces", SYNC_HYDRATED_KEY, FRESH_LOGIN_KEY]); } catch (_) { /* ok */ }
     set({ user: null, isAuthenticated: false, guestMode: false });
   },
 

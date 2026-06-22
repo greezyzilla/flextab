@@ -1,14 +1,20 @@
-import * as Y from "yjs";
-import { doc, encodeState, persistState } from "~src/lib/yjsDoc";
+import { doc, getSpaces, setSpaces, persistState } from "~src/lib/yjsDoc";
 import { useAuthStore } from "~src/store/useAuthStore";
 import { useSyncStore } from "~src/store/useSyncStore";
-import { loadTokens, getDeviceId, fetchSyncRevision, API_BASE_URL } from "./api";
+import { useSyncConflict } from "~src/store/useSyncConflict";
+import { apiFetch, loadTokens, getDeviceId, API_BASE_URL } from "./api";
 import { setStoredRevision } from "./revision";
 import { ensureDefaultData } from "~src/store/useSavedSpacesStore";
-// Structured sync (PUT /api/sync) is handled by the background service worker.
-// Hydration is Yjs-only (the WS channel sends the server's stored state), so the
-// Yjs doc is the single source of truth and there's no REST/Yjs double-merge.
+import type { SavedSpace } from "~src/types";
 import type { SyncStatus } from "~src/store/useSyncStore";
+
+// Model: the server's structured data (SQL) is the source of truth; the Yjs doc
+// is the local store. Hydration pulls the server state and reconciles it with
+// local. On an explicit login where BOTH local (guest) and the account have
+// real data, we ask the user how to resolve (merge / keep account / keep local)
+// instead of silently overwriting. The WS channel is a "data changed" notifier
+// that triggers a re-pull. Structured upload (PUT /api/sync, OCC) is done by the
+// background worker, gated on the hydration flag below.
 
 function setStatus(status: SyncStatus) {
   useSyncStore.getState().setStatus(status);
@@ -19,40 +25,149 @@ function markSynced() {
 
 const WS_RECONNECT_BASE_MS = 3000;
 const WS_RECONNECT_MAX_MS = 60000;
-
-// --- Hydration gate ---
-// We must NOT upload local state until we've received the server's stored state
-// this session. Uploading first would overwrite the server with our pre-merge
-// (possibly empty/guest) state — the cause of the multi-device data loss. The
-// flag is also read by the background worker before its structured push.
 const SYNC_HYDRATED_KEY = "flextab_sync_hydrated";
-const HYDRATION_FALLBACK_MS = 2500;
+const FRESH_LOGIN_KEY = "flextab_fresh_login";
+
+// --- BE → local mapping ---
+
+interface BeTab { id: string; url: string; title: string; favicon: string; order: number; }
+interface BeGroup { id: string; name: string; order: number; tabs: BeTab[]; }
+interface BeCategory { id: string; name: string; order: number; groups: BeGroup[]; }
+interface BeProject { id: string; name: string; order: number; categories: BeCategory[]; }
+interface BeSpace { id: string; name: string; icon: string; order: number; projects: BeProject[]; }
+
+function mapBeToLocal(spaces: BeSpace[]): SavedSpace[] {
+  return (spaces || []).map(s => ({
+    id: s.id, name: s.name, icon: s.icon || undefined, order: s.order,
+    projects: (s.projects || []).map(p => ({
+      id: p.id, name: p.name, order: p.order,
+      categories: (p.categories || []).map(c => ({
+        id: c.id, name: c.name, order: c.order,
+        groups: (c.groups || []).map(g => ({
+          id: g.id, name: g.name, order: g.order,
+          tabs: (g.tabs || []).map(t => ({
+            id: t.id, url: t.url, title: t.title, favicon: t.favicon, order: t.order,
+          })),
+        })),
+      })),
+    })),
+  }));
+}
+
+// --- reconcile helpers ---
+
+function spaceTabCount(s: SavedSpace): number {
+  let n = 0;
+  for (const p of s.projects || []) {
+    for (const c of p.categories || []) {
+      for (const g of c.groups || []) n += g.tabs?.length || 0;
+    }
+  }
+  return n;
+}
+
+function totalTabs(spaces: SavedSpace[]): number {
+  return spaces.reduce((sum, s) => sum + spaceTabCount(s), 0);
+}
+
+function hasRealData(spaces: SavedSpace[]): boolean {
+  return totalTabs(spaces) > 0;
+}
+
+/**
+ * Lossless union: server wins on an id collision (already-synced spaces), all
+ * local-only spaces are kept, except the guest's empty default "Personal" which
+ * is dropped when the account already has data (it's just placeholder).
+ */
+export function mergeSpaces(server: SavedSpace[], local: SavedSpace[]): SavedSpace[] {
+  const byId = new Map<string, SavedSpace>();
+  for (const s of server) byId.set(s.id, s);
+  for (const s of local) {
+    if (byId.has(s.id)) continue;
+    const emptyDefault = s.name === "Personal" && spaceTabCount(s) === 0;
+    if (emptyDefault && server.length > 0) continue;
+    byId.set(s.id, s);
+  }
+  return [...byId.values()].map((s, i) => ({ ...s, order: i }));
+}
+
+// --- hydration gate (read by the background worker before its structured push) ---
+
 let sessionHydrated = false;
-let hydrationTimer: ReturnType<typeof setTimeout> | null = null;
 
 function markHydrated() {
-  if (sessionHydrated) return;
   sessionHydrated = true;
-  if (hydrationTimer) { clearTimeout(hydrationTimer); hydrationTimer = null; }
   try { void chrome.storage.local.set({ [SYNC_HYDRATED_KEY]: true }); } catch (_) { /* ok */ }
-  // Fresh account with no server state → give the user a default workspace.
-  ensureDefaultData();
-  // Now safe to upload the merged (union) state.
-  pushFullState();
 }
 
 function clearHydrated() {
   sessionHydrated = false;
-  if (hydrationTimer) { clearTimeout(hydrationTimer); hydrationTimer = null; }
   try { void chrome.storage.local.remove(SYNC_HYDRATED_KEY); } catch (_) { /* ok */ }
 }
 
-// --- WebSocket for Yjs sync ---
+// --- reconcile ---
+
+let pendingServer: SavedSpace[] | null = null;
+let pendingLocal: SavedSpace[] | null = null;
+
+function applyResolution(spaces: SavedSpace[]) {
+  setSpaces(spaces);
+  if (getSpaces().length === 0) ensureDefaultData();
+  markSynced();
+  markHydrated();      // enable the structured push → uploads the resolved state (OCC)
+  connectWebSocket();  // realtime change-notifier
+}
+
+async function reconcile(freshLogin: boolean): Promise<void> {
+  let server: SavedSpace[];
+  try {
+    const data = await apiFetch<{ spaces: BeSpace[]; revision: number }>("/api/sync");
+    server = mapBeToLocal(data.spaces);
+    await setStoredRevision(data.revision);
+  } catch (_) {
+    // Offline — can't reconcile. Keep local; don't upload (would risk a blind
+    // overwrite). Connect so we retry when back online.
+    setStatus("offline");
+    connectWebSocket();
+    return;
+  }
+
+  const local = getSpaces();
+  const serverReal = hasRealData(server);
+  const localReal = hasRealData(local);
+
+  // Genuine conflict only on an explicit login where both sides have real data.
+  if (freshLogin && serverReal && localReal) {
+    pendingServer = server;
+    pendingLocal = local;
+    useSyncConflict.getState().open(totalTabs(server), totalTabs(local));
+    setStatus("online");
+    return; // wait for resolveConflict()
+  }
+
+  let result: SavedSpace[];
+  if (serverReal && !localReal) result = server;            // local was empty/default
+  else if (!serverReal && localReal) result = local;        // server empty → keep local
+  else if (serverReal && localReal) result = mergeSpaces(server, local); // returning user
+  else result = local.length ? local : server;              // both empty-ish
+  applyResolution(result);
+}
+
+/** Resolve a guest↔account conflict with the user's choice. */
+export function resolveConflict(choice: "merge" | "server" | "local") {
+  const s = pendingServer, l = pendingLocal;
+  pendingServer = pendingLocal = null;
+  useSyncConflict.getState().close();
+  if (!s || !l) return;
+  const result = choice === "merge" ? mergeSpaces(s, l) : choice === "server" ? s : l;
+  applyResolution(result);
+}
+
+// --- WebSocket (realtime change-notifier) ---
 
 let ws: WebSocket | null = null;
 let wsReconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let wsReconnectDelay = WS_RECONNECT_BASE_MS;
-let sendingUpdate = false;
 
 function connectWebSocket() {
   if (ws) return;
@@ -67,34 +182,20 @@ function connectWebSocket() {
     ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
-      // Reset backoff on successful connection
       wsReconnectDelay = WS_RECONNECT_BASE_MS;
       setStatus("online");
       markSynced();
-
-      // Do NOT upload yet — wait for the server's stored state to arrive and
-      // merge first. If none arrives (empty account), this fallback hydrates so
-      // we can still upload our local/default state.
-      if (!sessionHydrated && !hydrationTimer) {
-        hydrationTimer = setTimeout(markHydrated, HYDRATION_FALLBACK_MS);
-      }
+      // If we connected before hydrating (e.g. the initial pull failed offline),
+      // reconcile now. Skip while a conflict prompt is pending resolution.
+      if (!sessionHydrated && !pendingServer) void reconcile(false);
     };
 
     ws.onmessage = (event) => {
       try {
         const msg = JSON.parse(event.data);
-        if ((msg.type === "yjs_update" || msg.type === "yjs_state") && msg.data) {
-          sendingUpdate = true;
-          Y.applyUpdate(doc, new Uint8Array(msg.data));
-          sendingUpdate = false;
-          // Local persistence is handled by the always-on persistence listener.
-          markSynced();
-          // First server state received → safe to upload the union now.
-          if (!sessionHydrated) markHydrated();
-        } else if (msg.type === "sync" && msg.entity_type === "full") {
-          // Another device pushed a structured snapshot — adopt the new server
-          // revision so our next push isn't stale.
-          void seedServerRevision();
+        if (msg.type === "sync" && msg.entity_type === "full") {
+          // Another device changed data — re-pull and merge (no conflict prompt).
+          void reconcile(false);
         }
       } catch (_) { /* ignore parse errors */ }
     };
@@ -112,43 +213,13 @@ function connectWebSocket() {
   });
 }
 
-function pushFullState() {
-  if (!ws || ws.readyState !== WebSocket.OPEN) return;
-  ws.send(JSON.stringify({ type: "yjs_state", data: Array.from(encodeState()) }));
-}
-
 function disconnectWebSocket() {
   if (wsReconnectTimer) { clearTimeout(wsReconnectTimer); wsReconnectTimer = null; }
   wsReconnectDelay = WS_RECONNECT_BASE_MS;
   if (ws) { ws.onclose = null; ws.close(); ws = null; }
 }
 
-// Send Yjs update to other clients via WS
-function broadcastUpdate(update: Uint8Array) {
-  if (!sessionHydrated) return; // don't push local changes before hydrating
-  if (!ws || ws.readyState !== WebSocket.OPEN) return;
-  ws.send(JSON.stringify({
-    type: "yjs_update",
-    data: Array.from(update),
-  }));
-}
-
-// --- Seed the server revision ---
-// Hydration happens over the WS Yjs channel (the server sends its stored state
-// on connect and merges ours). Here we only fetch the current server revision so
-// the background's structured push can use optimistic concurrency (base_revision).
-
-async function seedServerRevision(): Promise<boolean> {
-  const rev = await fetchSyncRevision();
-  if (rev === null) return false;
-  await setStoredRevision(rev);
-  markSynced();
-  return true;
-}
-
 // --- Local persistence (always-on, independent of auth/sync) ---
-// Guests and auto-sync-off users still need every Yjs mutation written to
-// chrome.storage, so this listener is decoupled from the realtime engine.
 
 let unsubPersist: (() => void) | null = null;
 
@@ -163,57 +234,36 @@ export function stopLocalPersistence() {
   if (unsubPersist) { unsubPersist(); unsubPersist = null; }
 }
 
-// --- Broadcast listener (only while the realtime engine is running) ---
-
-let unsubDoc: (() => void) | null = null;
-
-function setupBroadcastListener() {
-  const handler = (update: Uint8Array, _origin: unknown) => {
-    // Broadcast to other devices (skip if the update came from remote).
-    if (!sendingUpdate) broadcastUpdate(update);
-  };
-
-  doc.on("update", handler);
-  unsubDoc = () => doc.off("update", handler);
-}
-
 // --- Public API ---
 
 export async function startSyncEngine() {
-  // Clean up any previous listener before setting up a new one
-  if (unsubDoc) { unsubDoc(); unsubDoc = null; }
-  clearHydrated(); // new session — gate uploads until we hydrate from the server
-  setupBroadcastListener();
+  clearHydrated();
+  if (!useAuthStore.getState().isAuthenticated) return;
 
-  // Seed the revision, then connect — the WS channel hydrates the Yjs doc.
-  if (useAuthStore.getState().isAuthenticated) {
-    setStatus("connecting");
-    await seedServerRevision();
-    connectWebSocket();
-  }
+  setStatus("connecting");
+  // Was this triggered by an explicit login (vs a returning-session restore)?
+  let fresh = false;
+  try {
+    const f = await chrome.storage.local.get(FRESH_LOGIN_KEY);
+    fresh = f[FRESH_LOGIN_KEY] === true;
+    if (fresh) await chrome.storage.local.remove(FRESH_LOGIN_KEY);
+  } catch (_) { /* ok */ }
+
+  await reconcile(fresh);
 }
 
 export function stopSyncEngine() {
-  if (unsubDoc) { unsubDoc(); unsubDoc = null; }
   disconnectWebSocket();
   clearHydrated();
+  pendingServer = pendingLocal = null;
+  useSyncConflict.getState().close();
   setStatus("paused");
 }
 
-/**
- * Manual "Sync now": force a pull + push reconcile regardless of auto-sync.
- * Returns false if not signed in or the sync failed.
- */
+/** Manual "Sync now": re-pull + reconcile (auto-merge, no prompt). */
 export async function syncNow(): Promise<boolean> {
   if (!useAuthStore.getState().isAuthenticated) return false;
   setStatus("syncing");
-  const ok = await seedServerRevision();
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    if (sessionHydrated) pushFullState(); // only upload once hydrated
-    setStatus("online");
-  } else {
-    connectWebSocket(); // sets its own status (and hydrates)
-  }
-  if (!ok) setStatus(ws && ws.readyState === WebSocket.OPEN ? "online" : "error");
-  return ok;
+  await reconcile(false);
+  return true;
 }
