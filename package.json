@@ -1,12 +1,14 @@
 {
   "name": "flextab",
   "displayName": "Flextab",
-  "version": "0.0.1",
-  "description": "A flexible tab manager",
+  "version": "0.1.0",
+  "description": "Organize your tabs into spaces, projects, and groups. A beautiful new tab page that keeps your browsing life in order.",
   "author": "GreezyZilla",
   "scripts": {
     "dev": "plasmo dev",
-    "build": "plasmo build",
+    "check-env": "node scripts/check-env.mjs",
+    "build": "npm run check-env && plasmo build",
+    "build:zip": "npm run check-env && plasmo build --zip",
     "package": "plasmo package",
     "test": "vitest",
     "test:ui": "vitest --ui",
@@ -62,8 +64,7 @@
       "unlimitedStorage"
     ],
     "host_permissions": [
-      "https://*/*",
-      "http://localhost/*"
+      "$PLASMO_PUBLIC_API_HOST"
     ]
   },
   "overrides": {
