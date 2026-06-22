@@ -216,8 +216,9 @@ function connectWebSocket() {
     ws.onmessage = (event) => {
       try {
         const msg = JSON.parse(event.data);
-        if (msg.type === "sync" && msg.entity_type === "full") {
+        if (msg.type === "sync" && msg.entity_type === "full" && !pendingServer) {
           // Another device changed data — re-pull and merge (no conflict prompt).
+          // Skip while a conflict prompt is awaiting the user's choice.
           void reconcile(false);
         }
       } catch (_) { /* ignore parse errors */ }
