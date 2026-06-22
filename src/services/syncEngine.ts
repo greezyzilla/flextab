@@ -163,7 +163,7 @@ async function reconcile(freshLogin: boolean): Promise<void> {
   if (freshLogin && serverReal && localReal) {
     pendingServer = server;
     pendingLocal = local;
-    useSyncConflict.getState().open(totalTabs(server), totalTabs(local));
+    useSyncConflict.getState().open(server, local);
     setStatus("online");
     return; // wait for resolveConflict()
   }
