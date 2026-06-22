@@ -13,12 +13,37 @@ export interface User {
   has_password: boolean;
 }
 
+// Guest mode lets users try the app fully (local-only) before signing in.
+// Persisted to chrome.storage.local so it survives reloads and syncs across tabs
+// via the onChanged listener below. Auth always wins: signing in clears it.
+const GUEST_MODE_KEY = "flextab_guest_mode";
+
+async function loadGuestMode(): Promise<boolean> {
+  try {
+    const res = await chrome.storage.local.get(GUEST_MODE_KEY);
+    return res[GUEST_MODE_KEY] === true;
+  } catch (_) {
+    return false;
+  }
+}
+
+async function persistGuestMode(value: boolean): Promise<void> {
+  try {
+    if (value) await chrome.storage.local.set({ [GUEST_MODE_KEY]: true });
+    else await chrome.storage.local.remove(GUEST_MODE_KEY);
+  } catch (_) {
+    /* ok */
+  }
+}
+
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  guestMode: boolean;
 
   initialize: () => Promise<void>;
+  continueAsGuest: () => Promise<void>;
   loginWithGoogle: () => void;
   loginWithEmail: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
@@ -31,18 +56,28 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   user: null,
   isAuthenticated: false,
   isLoading: true,
+  guestMode: false,
 
   initialize: async () => {
     const tokens = await loadTokens();
     if (tokens) {
-      set({ isAuthenticated: true });
+      // A real session always supersedes any stale guest flag.
+      set({ isAuthenticated: true, guestMode: false });
+      void persistGuestMode(false);
       try {
         await get().fetchUser();
       } catch (_) {
         set({ isAuthenticated: false, user: null });
       }
+    } else {
+      set({ guestMode: await loadGuestMode() });
     }
     set({ isLoading: false });
+  },
+
+  continueAsGuest: async () => {
+    await persistGuestMode(true);
+    set({ guestMode: true });
   },
 
   loginWithGoogle: () => {
@@ -61,7 +96,8 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
 
   handleAuthCallback: async (tokens: TokenData) => {
     await saveTokens(tokens);
-    set({ isAuthenticated: true });
+    await persistGuestMode(false);
+    set({ isAuthenticated: true, guestMode: false });
     await get().fetchUser();
   },
 
@@ -69,8 +105,9 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     await clearTokens();
     await clearState();
     resetYjsHydration();
+    await persistGuestMode(false);
     try { await chrome.storage.local.remove("spaces"); } catch (_) { /* ok */ }
-    set({ user: null, isAuthenticated: false });
+    set({ user: null, isAuthenticated: false, guestMode: false });
   },
 
   fetchUser: async () => {
@@ -82,13 +119,17 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
 // Listen for token changes in chrome.storage (set by background script or callback tab)
 if (chrome.storage?.onChanged) {
   chrome.storage.onChanged.addListener((changes, areaName) => {
-    if (areaName === "local" && changes.auth_tokens) {
+    if (areaName !== "local") return;
+    if (changes.auth_tokens) {
       const { isAuthenticated } = useAuthStore.getState();
       if (changes.auth_tokens.newValue && !isAuthenticated) {
         useAuthStore.getState().handleAuthCallback(changes.auth_tokens.newValue);
       } else if (!changes.auth_tokens.newValue && isAuthenticated) {
         useAuthStore.setState({ user: null, isAuthenticated: false });
       }
+    }
+    if (changes[GUEST_MODE_KEY]) {
+      useAuthStore.setState({ guestMode: changes[GUEST_MODE_KEY].newValue === true });
     }
   });
 }

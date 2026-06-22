@@ -24,7 +24,7 @@ function LoadingScreen() {
 }
 
 function OnboardingScreen() {
-  const { loginWithGoogle, loginWithEmail, register } = useAuthStore()
+  const { loginWithGoogle, loginWithEmail, register, continueAsGuest } = useAuthStore()
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -216,6 +216,17 @@ function OnboardingScreen() {
             </button>
           </div>
 
+          {/* Try without an account — local-only until you sign in */}
+          <div className="flex flex-col items-center gap-1.5 pt-1">
+            <button
+              onClick={() => continueAsGuest()}
+              className="text-white/55 hover:text-white/80 text-sm font-medium transition-colors"
+            >
+              Continue without an account →
+            </button>
+            <span className="text-white/25 text-[11px]">Saved locally on this device. Sign in anytime to sync.</span>
+          </div>
+
           <p className="text-white/15 text-[11px] leading-relaxed">
             By continuing, you agree to FlexTab's terms of service and privacy policy.
           </p>
@@ -322,13 +333,14 @@ function NewTabPageContent() {
 
 function NewTabPage() {
   const hydrated = useHydrated();
-  const { initialize, isAuthenticated, isLoading: authLoading } = useAuthStore();
+  const { initialize, isAuthenticated, isLoading: authLoading, guestMode } = useAuthStore();
 
   useEffect(() => {
     initialize();
   }, []);
 
-  // Start sync engine (Yjs persistence + remote sync if authenticated)
+  // Start sync engine (Yjs persistence + remote sync if authenticated).
+  // Guests run fully local — the engine only starts once signed in.
   useEffect(() => {
     if (!hydrated || !isAuthenticated) return;
     startSyncEngine();
@@ -336,7 +348,7 @@ function NewTabPage() {
   }, [hydrated, isAuthenticated]);
 
   if (authLoading) return <LoadingScreen />;
-  if (!isAuthenticated) return <OnboardingScreen />;
+  if (!isAuthenticated && !guestMode) return <OnboardingScreen />;
   if (!hydrated) return <LoadingScreen />;
 
   return (
