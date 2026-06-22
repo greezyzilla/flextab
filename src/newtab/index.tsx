@@ -13,7 +13,8 @@ import { useShellLayout } from "~src/hooks/useMediaQuery"
 import { useUIStore } from "~src/store/useUIStore"
 import { useHydrated } from "~src/store/useSavedSpacesStore"
 import { useAuthStore } from "~src/store/useAuthStore"
-import { startSyncEngine, stopSyncEngine } from "~src/services/syncEngine"
+import { startSyncEngine, stopSyncEngine, startLocalPersistence, stopLocalPersistence } from "~src/services/syncEngine"
+import { useSettingsStore } from "~src/store/useSettingsStore"
 
 function LoadingScreen() {
   return (
@@ -334,18 +335,26 @@ function NewTabPageContent() {
 function NewTabPage() {
   const hydrated = useHydrated();
   const { initialize, isAuthenticated, isLoading: authLoading, guestMode } = useAuthStore();
+  const autoSync = useSettingsStore((s) => s.autoSync);
 
   useEffect(() => {
     initialize();
   }, []);
 
-  // Start sync engine (Yjs persistence + remote sync if authenticated).
-  // Guests run fully local — the engine only starts once signed in.
+  // Local persistence is always on once hydrated — guests and auto-sync-off
+  // users still get every change written to chrome.storage.
   useEffect(() => {
-    if (!hydrated || !isAuthenticated) return;
+    if (!hydrated) return;
+    startLocalPersistence();
+    return () => stopLocalPersistence();
+  }, [hydrated]);
+
+  // Realtime sync engine: only when signed in AND auto-sync is enabled.
+  useEffect(() => {
+    if (!hydrated || !isAuthenticated || !autoSync) return;
     startSyncEngine();
     return () => stopSyncEngine();
-  }, [hydrated, isAuthenticated]);
+  }, [hydrated, isAuthenticated, autoSync]);
 
   if (authLoading) return <LoadingScreen />;
   if (!isAuthenticated && !guestMode) return <OnboardingScreen />;

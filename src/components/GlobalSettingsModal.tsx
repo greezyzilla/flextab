@@ -2,10 +2,12 @@ import { useRef, useState } from "react";
 import { useSettingsStore, ACCENT_COLORS, type GroupLayout, type Density, type AccentColor } from "~src/store/useSettingsStore";
 import { useAuthStore } from "~src/store/useAuthStore";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
+import { useSyncStore, type SyncStatus } from "~src/store/useSyncStore";
 import { apiChangePassword } from "~src/services/api";
+import { syncNow } from "~src/services/syncEngine";
 import * as yjs from "~src/lib/yjsDoc";
 
-type SettingsTab = 'appearance' | 'layout' | 'account' | 'data';
+type SettingsTab = 'appearance' | 'layout' | 'sync' | 'account' | 'data';
 
 export function GlobalSettingsModal({ onClose }: { onClose: () => void }) {
   const [activeTab, setActiveTab] = useState<SettingsTab>('appearance');
@@ -21,6 +23,7 @@ export function GlobalSettingsModal({ onClose }: { onClose: () => void }) {
           <div className="text-white/50 font-sans text-[11px] font-medium px-2.5 py-1.5 mb-1">Settings</div>
           <SidebarItem active={activeTab === 'appearance'} onClick={() => setActiveTab('appearance')} icon={<PaletteIcon />} label="Appearance" />
           <SidebarItem active={activeTab === 'layout'} onClick={() => setActiveTab('layout')} icon={<LayoutIcon />} label="Layout" />
+          <SidebarItem active={activeTab === 'sync'} onClick={() => setActiveTab('sync')} icon={<SyncIcon />} label="Sync" />
           <SidebarItem active={activeTab === 'account'} onClick={() => setActiveTab('account')} icon={<UserIcon />} label="Account" />
           <SidebarItem active={activeTab === 'data'} onClick={() => setActiveTab('data')} icon={<DataIcon />} label="Data" />
         </div>
@@ -29,6 +32,7 @@ export function GlobalSettingsModal({ onClose }: { onClose: () => void }) {
         <div className="flex-1 p-5 overflow-y-auto">
           {activeTab === 'appearance' && <AppearanceTab />}
           {activeTab === 'layout' && <LayoutTab />}
+          {activeTab === 'sync' && <SyncTab />}
           {activeTab === 'account' && <AccountTab />}
           {activeTab === 'data' && <DataTab />}
         </div>
@@ -380,6 +384,106 @@ function DataTab() {
   );
 }
 
+// --- Sync Tab ---
+
+const SYNC_STATUS_META: Record<SyncStatus, { label: string; color: string; pulse?: boolean }> = {
+  online:     { label: 'Connected',    color: '#22c55e' },
+  connecting: { label: 'Connecting…',  color: '#eab308', pulse: true },
+  syncing:    { label: 'Syncing…',     color: '#eab308', pulse: true },
+  offline:    { label: 'Offline',      color: '#a3a3a3' },
+  paused:     { label: 'Auto-sync off', color: '#a3a3a3' },
+  error:      { label: 'Sync error',   color: '#ef4444' },
+};
+
+function formatRelativeTime(ts: number | null): string {
+  if (!ts) return 'Not synced yet';
+  const diff = Date.now() - ts;
+  if (diff < 5_000) return 'Just now';
+  if (diff < 60_000) return `${Math.floor(diff / 1000)}s ago`;
+  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
+  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
+  return `${Math.floor(diff / 86_400_000)}d ago`;
+}
+
+function SyncTab() {
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated);
+  const { autoSync, setAutoSync } = useSettingsStore();
+  const status = useSyncStore(s => s.status);
+  const lastSyncedAt = useSyncStore(s => s.lastSyncedAt);
+  const [syncing, setSyncing] = useState(false);
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex flex-col gap-5">
+        <SettingRow label="Sync" description="Sync your spaces, groups, and tabs across every device.">
+          <div className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3 text-white/50 text-xs font-sans leading-relaxed">
+            You're using FlexTab locally on this device. Sign in to back up and sync your tabs across devices.
+          </div>
+        </SettingRow>
+      </div>
+    );
+  }
+
+  const meta = SYNC_STATUS_META[status];
+
+  const handleSyncNow = async () => {
+    setSyncing(true);
+    await syncNow();
+    setSyncing(false);
+  };
+
+  return (
+    <div className="flex flex-col gap-5">
+      <SettingRow label="Status" description="Realtime connection with your account.">
+        <div className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3">
+          <div className="flex items-center gap-2.5">
+            <span
+              className={`w-2 h-2 rounded-full ${meta.pulse ? 'animate-pulse' : ''}`}
+              style={{ backgroundColor: meta.color }}
+            />
+            <div className="flex flex-col">
+              <span className="text-white/80 text-xs font-sans font-medium">{meta.label}</span>
+              <span className="text-white/30 text-[11px] font-sans">Last synced {formatRelativeTime(lastSyncedAt)}</span>
+            </div>
+          </div>
+          <button
+            onClick={handleSyncNow}
+            disabled={syncing || status === 'syncing'}
+            className="text-white/60 hover:text-white/90 text-[11px] font-sans px-3 py-1.5 rounded-md border border-white/10 hover:border-white/25 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {syncing || status === 'syncing' ? 'Syncing…' : 'Sync now'}
+          </button>
+        </div>
+      </SettingRow>
+
+      <SettingRow label="Auto-sync" description="Keep changes in sync across devices automatically. When off, use “Sync now”.">
+        <Switch checked={autoSync} onChange={setAutoSync} label={autoSync ? 'On' : 'Off'} />
+      </SettingRow>
+    </div>
+  );
+}
+
+function Switch({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label?: string }) {
+  return (
+    <button
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className="flex items-center gap-2.5"
+    >
+      <span
+        className={`relative w-9 h-5 rounded-full transition-colors ${checked ? '' : 'bg-white/10'}`}
+        style={checked ? { backgroundColor: 'var(--accent)' } : undefined}
+      >
+        <span
+          className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${checked ? 'translate-x-4' : ''}`}
+        />
+      </span>
+      {label && <span className="text-white/50 text-[11px] font-sans">{label}</span>}
+    </button>
+  );
+}
+
 // --- Shared Components ---
 
 function SettingRow({ label, description, children }: { label: string; description: string; children: React.ReactNode }) {
@@ -442,6 +546,14 @@ function UserIcon() {
   return (
     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+    </svg>
+  );
+}
+
+function SyncIcon() {
+  return (
+    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M3.985 14.652H8.977v4.992M4.582 9.348a7.5 7.5 0 0 1 12.548-2.852l3.286 3.075M3.584 14.652l3.286 3.075a7.5 7.5 0 0 0 12.548-2.852" />
     </svg>
   );
 }

@@ -22,6 +22,7 @@ interface SettingsState {
   accentColor: AccentColor;
   customAccent: string | null; // hex, overrides accentColor preset if set
   bgTint: number; // 0-15, background tint intensity (hue derived from accent)
+  autoSync: boolean; // when signed in, keep the realtime sync engine connected
 
   setGroupLayout: (layout: GroupLayout) => void;
   setGridColumns: (columns: number) => void;
@@ -29,6 +30,7 @@ interface SettingsState {
   setAccentColor: (color: AccentColor) => void;
   setCustomAccent: (color: string | null) => void;
   setBgTint: (tint: number) => void;
+  setAutoSync: (autoSync: boolean) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -40,6 +42,7 @@ export const useSettingsStore = create<SettingsState>()(
       accentColor: 'blue',
       customAccent: null,
       bgTint: 0,
+      autoSync: true,
 
       setGroupLayout: (groupLayout) => set({ groupLayout }),
       setGridColumns: (gridColumns) => set({ gridColumns }),
@@ -47,6 +50,7 @@ export const useSettingsStore = create<SettingsState>()(
       setAccentColor: (accentColor) => set({ accentColor, customAccent: null }),
       setCustomAccent: (customAccent) => set({ customAccent }),
       setBgTint: (bgTint) => set({ bgTint }),
+      setAutoSync: (autoSync) => set({ autoSync }),
     }),
     {
       name: 'flextab-settings',
