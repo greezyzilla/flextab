@@ -159,6 +159,55 @@ export function getAuthUrl(): string {
   return `${API_BASE_URL}/api/auth/google`;
 }
 
+export type SyncPushResult =
+  | { status: "ok"; revision: number }
+  | { status: "conflict"; revision: number }
+  | { status: "error" };
+
+/**
+ * Push the full structured snapshot with optimistic concurrency. The server
+ * applies it only if base_revision matches its current revision; otherwise it
+ * returns 409 with the up-to-date revision so the caller can reconcile + retry.
+ */
+export async function pushSync(spaces: unknown[], baseRevision: number | null): Promise<SyncPushResult> {
+  const token = await getValidToken();
+  if (!token) return { status: "error" };
+
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE_URL}/api/sync`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Client-ID": await getDeviceId(),
+        "Authorization": `Bearer ${token}`,
+      },
+      body: JSON.stringify({ spaces, base_revision: baseRevision }),
+    });
+  } catch (_) {
+    return { status: "error" };
+  }
+
+  if (res.status === 409) {
+    const body = await res.json().catch(() => ({}));
+    return { status: "conflict", revision: typeof body.revision === "number" ? body.revision : (baseRevision ?? 0) };
+  }
+  if (!res.ok) return { status: "error" };
+
+  const body = await res.json().catch(() => ({}));
+  return { status: "ok", revision: typeof body.revision === "number" ? body.revision : (baseRevision ?? 0) + 1 };
+}
+
+/** Fetch the server's current sync revision (ignores the spaces payload). */
+export async function fetchSyncRevision(): Promise<number | null> {
+  try {
+    const data = await apiFetch<{ revision: number }>("/api/sync");
+    return typeof data.revision === "number" ? data.revision : null;
+  } catch (_) {
+    return null;
+  }
+}
+
 export async function apiRegister(email: string, password: string, name: string): Promise<TokenData> {
   const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
     method: "POST",

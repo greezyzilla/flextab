@@ -1,5 +1,6 @@
 import * as Y from "yjs";
-import { loadTokens, apiFetch, getDeviceId } from "~src/services/api";
+import { loadTokens, getDeviceId } from "~src/services/api";
+import { syncStructuredSnapshot } from "~src/services/structuredSync";
 
 const API_BASE_URL = process.env.PLASMO_PUBLIC_API_URL || "http://localhost:3000";
 const AUTH_SUCCESS_PATH = "/auth/success";
@@ -75,21 +76,21 @@ function readYMap(m: Y.Map<unknown>): Record<string, unknown> {
   return obj;
 }
 
-async function pushStructuredData(state: number[]) {
+async function readLatestSpaces(): Promise<unknown[]> {
   try {
-    const tokens = await loadTokens();
-    if (!tokens) return;
+    const result = await chrome.storage.local.get(PERSIST_KEY);
+    const state = result[PERSIST_KEY];
+    if (Array.isArray(state)) return extractSpaces(state);
+  } catch (_) { /* ignore */ }
+  return [];
+}
 
-    const spaces = extractSpaces(state);
-    if (spaces.length === 0) return;
-
-    await apiFetch("/api/sync", {
-      method: "PUT",
-      body: JSON.stringify({ spaces }),
-    });
-  } catch (_) {
-    // Best-effort — will retry on next change
-  }
+async function pushStructuredData(state: number[]) {
+  const tokens = await loadTokens();
+  if (!tokens) return;
+  // Optimistic-concurrency push with 409 reconcile lives in structuredSync; we
+  // pass a re-derive callback so a conflict re-reads the latest merged Yjs state.
+  await syncStructuredSnapshot(extractSpaces(state), readLatestSpaces);
 }
 
 chrome.storage.onChanged.addListener((changes, area) => {

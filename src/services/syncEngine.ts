@@ -1,10 +1,12 @@
 import * as Y from "yjs";
-import { doc, encodeState, getSpaces, setSpaces, persistState } from "~src/lib/yjsDoc";
+import { doc, encodeState, persistState } from "~src/lib/yjsDoc";
 import { useAuthStore } from "~src/store/useAuthStore";
 import { useSyncStore } from "~src/store/useSyncStore";
-import { loadTokens, apiFetch, getDeviceId, API_BASE_URL } from "./api";
-// Structured sync (PUT /api/sync) is handled by background service worker
-import type { SavedSpace } from "~src/types";
+import { loadTokens, getDeviceId, fetchSyncRevision, API_BASE_URL } from "./api";
+import { setStoredRevision } from "./revision";
+// Structured sync (PUT /api/sync) is handled by the background service worker.
+// Hydration is Yjs-only (the WS channel sends the server's stored state), so the
+// Yjs doc is the single source of truth and there's no REST/Yjs double-merge.
 import type { SyncStatus } from "~src/store/useSyncStore";
 
 function setStatus(status: SyncStatus) {
@@ -16,34 +18,6 @@ function markSynced() {
 
 const WS_RECONNECT_BASE_MS = 3000;
 const WS_RECONNECT_MAX_MS = 60000;
-
-// --- BE types ---
-
-interface BeTab { id: string; url: string; title: string; favicon: string; order: number; }
-interface BeGroup { id: string; name: string; order: number; tabs: BeTab[]; }
-interface BeCategory { id: string; name: string; order: number; groups: BeGroup[]; }
-interface BeProject { id: string; name: string; order: number; categories: BeCategory[]; }
-interface BeSpace { id: string; name: string; icon: string; order: number; projects: BeProject[]; }
-
-function mapBeToLocal(spaces: BeSpace[]): SavedSpace[] {
-  return (spaces || []).map(s => ({
-    id: s.id, name: s.name, icon: s.icon || undefined, order: s.order,
-    projects: (s.projects || []).map(p => ({
-      id: p.id, name: p.name, order: p.order,
-      categories: (p.categories || []).map(c => ({
-        id: c.id, name: c.name, order: c.order,
-        groups: (c.groups || []).map(g => ({
-          id: g.id, name: g.name, order: g.order,
-          tabs: (g.tabs || []).map(t => ({
-            id: t.id, url: t.url, title: t.title, favicon: t.favicon, order: t.order,
-          })),
-        })),
-      })),
-    })),
-  }));
-}
-
-// Yjs persistence delegated to yjsDoc.persistState()
 
 // --- WebSocket for Yjs sync ---
 
@@ -84,7 +58,9 @@ function connectWebSocket() {
           // Local persistence is handled by the always-on persistence listener.
           markSynced();
         } else if (msg.type === "sync" && msg.entity_type === "full") {
-          pullStructuredAndMerge();
+          // Another device pushed a structured snapshot — adopt the new server
+          // revision so our next push isn't stale.
+          void seedServerRevision();
         }
       } catch (_) { /* ignore parse errors */ }
     };
@@ -122,27 +98,17 @@ function broadcastUpdate(update: Uint8Array) {
   }));
 }
 
-// --- Initial pull from BE structured data → merge into Yjs ---
+// --- Seed the server revision ---
+// Hydration happens over the WS Yjs channel (the server sends its stored state
+// on connect and merges ours). Here we only fetch the current server revision so
+// the background's structured push can use optimistic concurrency (base_revision).
 
-async function pullStructuredAndMerge(): Promise<boolean> {
-  try {
-    const data = await apiFetch<{ spaces: BeSpace[]; revision: number }>("/api/sync");
-    const beSpaces = mapBeToLocal(data.spaces);
-    if (beSpaces.length > 0) {
-      const localSpaces = getSpaces();
-      // If local is default/empty, replace with BE data
-      if (localSpaces.length === 0 || (localSpaces.length === 1 && localSpaces[0]?.name === "Personal" && localSpaces[0]?.projects[0]?.categories[0]?.groups[0]?.tabs.length === 0)) {
-        setSpaces(beSpaces);
-      }
-      // If local has real data, local Yjs is authoritative
-      // (Yjs merge happens via WS updates between devices)
-    }
-    markSynced();
-    return true;
-  } catch (_) {
-    // Offline or error — use local data
-    return false;
-  }
+async function seedServerRevision(): Promise<boolean> {
+  const rev = await fetchSyncRevision();
+  if (rev === null) return false;
+  await setStoredRevision(rev);
+  markSynced();
+  return true;
 }
 
 // --- Local persistence (always-on, independent of auth/sync) ---
@@ -183,10 +149,10 @@ export async function startSyncEngine() {
   if (unsubDoc) { unsubDoc(); unsubDoc = null; }
   setupBroadcastListener();
 
-  // Pull BE data and merge if needed
+  // Seed the revision, then connect — the WS channel hydrates the Yjs doc.
   if (useAuthStore.getState().isAuthenticated) {
     setStatus("connecting");
-    await pullStructuredAndMerge();
+    await seedServerRevision();
     connectWebSocket();
   }
 }
@@ -204,7 +170,7 @@ export function stopSyncEngine() {
 export async function syncNow(): Promise<boolean> {
   if (!useAuthStore.getState().isAuthenticated) return false;
   setStatus("syncing");
-  const ok = await pullStructuredAndMerge();
+  const ok = await seedServerRevision();
   if (ws && ws.readyState === WebSocket.OPEN) {
     pushFullState();
     setStatus("online");
