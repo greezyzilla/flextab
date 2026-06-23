@@ -1,45 +1,47 @@
-import { describe, it, expect, vi } from 'vitest';
-
-// syncEngine pulls in stores/WS at import; we only need the pure mergeSpaces.
-vi.mock('~src/store/useSavedSpacesStore', () => ({ ensureDefaultData: vi.fn(), syncActiveSelection: vi.fn() }));
-vi.mock('~src/store/useSyncConflict', () => ({ useSyncConflict: { getState: () => ({ open: vi.fn(), close: vi.fn() }) } }));
-
-import { mergeSpaces } from './syncEngine';
+import { describe, it, expect } from 'vitest';
+import { mergeSpaces } from './spacesMerge';
 import type { SavedSpace } from '~src/types';
 
-const tab = (id: string) => ({ id, url: 'u', title: 't', favicon: '', order: 0 });
+const tab = (id: string) => ({ id, url: 'u' + id, title: 't', favicon: '', order: 0 });
 const space = (id: string, name: string, tabs: ReturnType<typeof tab>[] = []): SavedSpace => ({
   id, name, order: 0,
   projects: [{ id: id + 'p', name: 'P', order: 0, categories: [{ id: id + 'c', name: 'C', order: 0, groups: [{ id: id + 'g', name: 'G', order: 0, tabs }] }] }],
 });
 
+function allTabIds(spaces: SavedSpace[]): string[] {
+  const ids: string[] = [];
+  for (const s of spaces) for (const p of s.projects) for (const c of p.categories) for (const g of c.groups) for (const t of g.tabs) ids.push(t.id);
+  return ids.sort();
+}
+
 describe('mergeSpaces', () => {
-  it('keeps server + local-only spaces (lossless union)', () => {
-    const server = [space('s1', 'Work', [tab('t1')])];
-    const local = [space('l1', 'Research', [tab('t2')])];
-    const out = mergeSpaces(server, local);
+  it('keeps server + local-only spaces (union)', () => {
+    const out = mergeSpaces([space('s1', 'Work', [tab('t1')])], [space('l1', 'Research', [tab('t2')])]);
     expect(out.map(s => s.id).sort()).toEqual(['l1', 's1']);
   });
 
-  it('server wins on an id collision (no duplicate)', () => {
-    const server = [space('x', 'Work-server', [tab('t1')])];
-    const local = [space('x', 'Work-local', [tab('t2')])];
+  it('deep-merges tabs of a same-id space — never drops a local tab', () => {
+    // Same space id 'x', but local added tab t2 inside it (not yet on server).
+    const server = [space('x', 'Work', [tab('t1')])];
+    const local = [space('x', 'Work', [tab('t1'), tab('t2')])];
     const out = mergeSpaces(server, local);
     expect(out).toHaveLength(1);
-    expect(out[0].name).toBe('Work-server');
+    expect(allTabIds(out)).toEqual(['t1', 't2']); // <-- t2 preserved (was lost with shallow merge)
+  });
+
+  it('unions disjoint tabs of a same-id space (concurrent adds from two devices)', () => {
+    const server = [space('x', 'Work', [tab('a')])];
+    const local = [space('x', 'Work', [tab('b')])];
+    expect(allTabIds(mergeSpaces(server, local))).toEqual(['a', 'b']);
   });
 
   it('drops the guest empty default "Personal" when the account has data', () => {
-    const server = [space('s1', 'Work', [tab('t1')])];
-    const local = [space('def', 'Personal', [])]; // empty default
-    const out = mergeSpaces(server, local);
+    const out = mergeSpaces([space('s1', 'Work', [tab('t1')])], [space('def', 'Personal', [])]);
     expect(out.map(s => s.name)).toEqual(['Work']);
   });
 
   it('keeps a non-empty "Personal" from local', () => {
-    const server = [space('s1', 'Work', [tab('t1')])];
-    const local = [space('p', 'Personal', [tab('t2')])];
-    const out = mergeSpaces(server, local);
+    const out = mergeSpaces([space('s1', 'Work', [tab('t1')])], [space('p', 'Personal', [tab('t2')])]);
     expect(out.map(s => s.name).sort()).toEqual(['Personal', 'Work']);
   });
 });

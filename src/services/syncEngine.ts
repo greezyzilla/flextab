@@ -5,8 +5,11 @@ import { useSyncConflict } from "~src/store/useSyncConflict";
 import { apiFetch, loadTokens, getDeviceId, API_BASE_URL } from "./api";
 import { setStoredRevision } from "./revision";
 import { ensureDefaultData, syncActiveSelection } from "~src/store/useSavedSpacesStore";
+import { mergeSpaces, spaceTabCount } from "./spacesMerge";
 import type { SavedSpace } from "~src/types";
 import type { SyncStatus } from "~src/store/useSyncStore";
+
+export { mergeSpaces } from "./spacesMerge";
 
 // Model: the server's structured data (SQL) is the source of truth; the Yjs doc
 // is the local store. Hydration pulls the server state and reconciles it with
@@ -56,39 +59,12 @@ function mapBeToLocal(spaces: BeSpace[]): SavedSpace[] {
 
 // --- reconcile helpers ---
 
-function spaceTabCount(s: SavedSpace): number {
-  let n = 0;
-  for (const p of s.projects || []) {
-    for (const c of p.categories || []) {
-      for (const g of c.groups || []) n += g.tabs?.length || 0;
-    }
-  }
-  return n;
-}
-
 function totalTabs(spaces: SavedSpace[]): number {
   return spaces.reduce((sum, s) => sum + spaceTabCount(s), 0);
 }
 
 function hasRealData(spaces: SavedSpace[]): boolean {
   return totalTabs(spaces) > 0;
-}
-
-/**
- * Lossless union: server wins on an id collision (already-synced spaces), all
- * local-only spaces are kept, except the guest's empty default "Personal" which
- * is dropped when the account already has data (it's just placeholder).
- */
-export function mergeSpaces(server: SavedSpace[], local: SavedSpace[]): SavedSpace[] {
-  const byId = new Map<string, SavedSpace>();
-  for (const s of server) byId.set(s.id, s);
-  for (const s of local) {
-    if (byId.has(s.id)) continue;
-    const emptyDefault = s.name === "Personal" && spaceTabCount(s) === 0;
-    if (emptyDefault && server.length > 0) continue;
-    byId.set(s.id, s);
-  }
-  return [...byId.values()].map((s, i) => ({ ...s, order: i }));
 }
 
 // --- hydration gate (read by the background worker before its structured push) ---

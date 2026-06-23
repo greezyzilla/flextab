@@ -60,7 +60,7 @@ describe('syncStructuredSnapshot', () => {
     const merged = [{ id: 's1', merged: true }];
     const reRead = vi.fn().mockResolvedValue(merged);
     (pushSync as any)
-      .mockResolvedValueOnce({ status: 'conflict', revision: 9 })
+      .mockResolvedValueOnce({ status: 'conflict', revision: 9, spaces: [] })
       .mockResolvedValueOnce({ status: 'ok', revision: 10 });
 
     const result = await syncStructuredSnapshot(SPACES, reRead);
@@ -74,9 +74,26 @@ describe('syncStructuredSnapshot', () => {
     expect(setStoredRevision).toHaveBeenLastCalledWith(10);
   });
 
+  it('on conflict, merges the server payload with local before retrying (no lost update)', async () => {
+    (getStoredRevision as any).mockResolvedValue(5);
+    const serverState = [{ id: 'server-change' }];
+    const localState = [{ id: 'local-change' }];
+    const mergeOnConflict = vi.fn((s: unknown[], l: unknown[]) => [...s, ...l]);
+    (pushSync as any)
+      .mockResolvedValueOnce({ status: 'conflict', revision: 9, spaces: serverState })
+      .mockResolvedValueOnce({ status: 'ok', revision: 10 });
+
+    const result = await syncStructuredSnapshot(localState, async () => localState, mergeOnConflict);
+
+    expect(result).toBe('ok');
+    // The retry pushed the MERGED state (server's change + local's), not stale local.
+    expect(mergeOnConflict).toHaveBeenCalledWith(serverState, localState);
+    expect(pushSync).toHaveBeenNthCalledWith(2, [...serverState, ...localState], 9);
+  });
+
   it('gives up after bounded retries under sustained contention', async () => {
     (getStoredRevision as any).mockResolvedValue(1);
-    (pushSync as any).mockResolvedValue({ status: 'conflict', revision: 2 });
+    (pushSync as any).mockResolvedValue({ status: 'conflict', revision: 2, spaces: [] });
 
     const result = await syncStructuredSnapshot(SPACES, async () => SPACES);
 

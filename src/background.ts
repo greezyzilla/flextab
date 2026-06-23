@@ -1,6 +1,8 @@
 import * as Y from "yjs";
 import { loadTokens, getDeviceId } from "~src/services/api";
 import { syncStructuredSnapshot } from "~src/services/structuredSync";
+import { mergeSpaces } from "~src/services/spacesMerge";
+import type { SavedSpace } from "~src/types";
 
 const API_BASE_URL = process.env.PLASMO_PUBLIC_API_URL || "http://localhost:3000";
 const AUTH_SUCCESS_PATH = "/auth/success";
@@ -94,9 +96,14 @@ async function pushStructuredData(state: number[]) {
     const f = await chrome.storage.local.get("flextab_sync_hydrated");
     if (f["flextab_sync_hydrated"] !== true) return;
   } catch (_) { return; }
-  // Optimistic-concurrency push with 409 reconcile lives in structuredSync; we
-  // pass a re-derive callback so a conflict re-reads the latest merged Yjs state.
-  await syncStructuredSnapshot(extractSpaces(state), readLatestSpaces);
+  // Optimistic-concurrency push with 409 reconcile lives in structuredSync; on a
+  // conflict it merges the server's returned state with our latest local one so
+  // a concurrent change is never clobbered.
+  await syncStructuredSnapshot(
+    extractSpaces(state),
+    readLatestSpaces,
+    (server, local) => mergeSpaces(server as SavedSpace[], local as SavedSpace[]),
+  );
 }
 
 chrome.storage.onChanged.addListener((changes, area) => {

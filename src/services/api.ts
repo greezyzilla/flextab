@@ -161,7 +161,7 @@ export function getAuthUrl(): string {
 
 export type SyncPushResult =
   | { status: "ok"; revision: number }
-  | { status: "conflict"; revision: number }
+  | { status: "conflict"; revision: number; spaces: unknown[] }
   | { status: "error" };
 
 /**
@@ -190,7 +190,11 @@ export async function pushSync(spaces: unknown[], baseRevision: number | null): 
 
   if (res.status === 409) {
     const body = await res.json().catch(() => ({}));
-    return { status: "conflict", revision: typeof body.revision === "number" ? body.revision : (baseRevision ?? 0) };
+    return {
+      status: "conflict",
+      revision: typeof body.revision === "number" ? body.revision : (baseRevision ?? 0),
+      spaces: Array.isArray(body.spaces) ? body.spaces : [],
+    };
   }
   if (!res.ok) return { status: "error" };
 

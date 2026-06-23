@@ -6,20 +6,22 @@ const MAX_ATTEMPTS = 4;
 export type StructuredSyncResult = "ok" | "skipped" | "error";
 
 /**
- * Push the structured snapshot to the server with optimistic concurrency.
- *
- * The Yjs doc is the source of truth; this keeps the queryable SQL projection in
- * step without silently overwriting another device's data:
+ * Push the structured snapshot to the server with optimistic concurrency, never
+ * silently overwriting another device's data:
  *  - seed base_revision (fetch the server's current one if unknown) — never push
  *    unconditionally,
- *  - on a 409 conflict, adopt the server revision, re-derive the snapshot from
- *    the (CRDT-merged) Yjs doc via reReadSpaces, and retry (bounded).
+ *  - on a 409 conflict, adopt the server revision and **merge the server's
+ *    current state** (returned in the 409) with our latest local snapshot, then
+ *    retry (bounded). Merging the conflict payload is what prevents a lost
+ *    update — re-pushing our stale snapshot alone would clobber the other change.
  *
- * reReadSpaces returns the latest snapshot derived from local Yjs state.
+ * reReadSpaces returns the latest local snapshot; mergeOnConflict losslessly
+ * unions the server's conflict state with it.
  */
 export async function syncStructuredSnapshot(
   initialSpaces: unknown[],
   reReadSpaces: () => Promise<unknown[]>,
+  mergeOnConflict?: (server: unknown[], local: unknown[]) => unknown[],
 ): Promise<StructuredSyncResult> {
   if (initialSpaces.length === 0) return "skipped";
 
@@ -40,7 +42,8 @@ export async function syncStructuredSnapshot(
     if (result.status === "conflict") {
       base = result.revision;
       await setStoredRevision(base);
-      spaces = await reReadSpaces();
+      const local = await reReadSpaces();
+      spaces = mergeOnConflict ? mergeOnConflict(result.spaces, local) : local;
       if (spaces.length === 0) return "skipped";
       continue;
     }
