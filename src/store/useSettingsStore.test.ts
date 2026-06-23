@@ -27,6 +27,14 @@ describe('useSettingsStore', () => {
     expect(st.autoSync).toBe(false);
   });
 
+  it('persists changes through the storage adapter', async () => {
+    (chrome.storage.local.set as any).mockClear();
+    useSettingsStore.getState().setGroupLayout('grid');
+    await useSettingsStore.persist.rehydrate(); // exercises getItem
+    await new Promise(r => setTimeout(r, 0));    // let the debounced setItem flush
+    expect(chrome.storage.local.set).toHaveBeenCalled();
+  });
+
   it('setAccentColor clears a custom accent', () => {
     useSettingsStore.getState().setCustomAccent('#123456');
     expect(useSettingsStore.getState().customAccent).toBe('#123456');

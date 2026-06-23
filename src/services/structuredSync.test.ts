@@ -91,6 +91,18 @@ describe('syncStructuredSnapshot', () => {
     expect(pushSync).toHaveBeenNthCalledWith(2, [...serverState, ...localState], 9);
   });
 
+  it('returns error when the push errors mid-loop', async () => {
+    (getStoredRevision as any).mockResolvedValue(5);
+    (pushSync as any).mockResolvedValue({ status: 'error' });
+    expect(await syncStructuredSnapshot(SPACES, async () => SPACES)).toBe('error');
+  });
+
+  it('returns skipped when a conflict re-read yields nothing', async () => {
+    (getStoredRevision as any).mockResolvedValue(5);
+    (pushSync as any).mockResolvedValue({ status: 'conflict', revision: 6, spaces: [] });
+    expect(await syncStructuredSnapshot(SPACES, async () => [])).toBe('skipped');
+  });
+
   it('gives up after bounded retries under sustained contention', async () => {
     (getStoredRevision as any).mockResolvedValue(1);
     (pushSync as any).mockResolvedValue({ status: 'conflict', revision: 2, spaces: [] });

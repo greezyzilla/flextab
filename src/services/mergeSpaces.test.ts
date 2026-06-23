@@ -45,6 +45,38 @@ describe('mergeSpaces', () => {
     expect(out.map(s => s.name).sort()).toEqual(['Personal', 'Work']);
   });
 
+  it('counts tabs defensively (spaceTabCount || [] at every depth)', () => {
+    // emptyDefault check calls spaceTabCount on local-only "Personal" spaces;
+    // these are sparse at each level, so every `|| []` fallback is exercised.
+    const realServer = [space('s1', 'Work', [tab('t1')])];
+    const personalNoProjects = { id: 'a', name: 'Personal', order: 0 } as unknown as SavedSpace;
+    const personalNoCategories = { id: 'b', name: 'Personal', order: 0, projects: [{ id: 'bp', name: 'P', order: 0 }] } as unknown as SavedSpace;
+    const personalNoGroups = { id: 'c', name: 'Personal', order: 0, projects: [{ id: 'cp', name: 'P', order: 0, categories: [{ id: 'cc', name: 'C', order: 0 }] }] } as unknown as SavedSpace;
+    // all dropped as empty default placeholders → only Work survives
+    expect(mergeSpaces(realServer, [personalNoProjects, personalNoCategories, personalNoGroups]).map(s => s.name)).toEqual(['Work']);
+  });
+
+  it('deep-merges a same-id collision where the SERVER side lacks nested arrays', () => {
+    // Full local trees with explicit ids so they collide with the sparse server.
+    const full = (sid: string, t: string): SavedSpace => ({ id: sid, name: sid, order: 0, projects: [{ id: 'p', name: 'P', order: 0, categories: [{ id: 'c', name: 'C', order: 0, groups: [{ id: 'g', name: 'G', order: 0, tabs: [tab(t)] }] }] }] });
+    const serverProjNoCats = [{ id: 'x', name: 'X', order: 0, projects: [{ id: 'p', name: 'P', order: 0 }] } as unknown as SavedSpace]; // mergeProject a.categories||[]
+    const serverCatNoGroups = [{ id: 'y', name: 'Y', order: 0, projects: [{ id: 'p', name: 'P', order: 0, categories: [{ id: 'c', name: 'C', order: 0 }] }] } as unknown as SavedSpace]; // mergeCategory a.groups||[]
+    expect(allTabIds(mergeSpaces(serverProjNoCats, [full('x', 'tx')]))).toEqual(['tx']);
+    expect(allTabIds(mergeSpaces(serverCatNoGroups, [full('y', 'ty')]))).toEqual(['ty']);
+  });
+
+  it('deep-merges a same-id collision where the LOCAL side lacks nested arrays', () => {
+    const serverFull = (sid: string): SavedSpace => ({ id: sid, name: sid, order: 0, projects: [{ id: 'p', name: 'P', order: 0, categories: [{ id: 'c', name: 'C', order: 0, groups: [{ id: 'g', name: 'G', order: 0, tabs: [tab('keep')] }] }] }] });
+    const localNoProjects = { id: 'x', name: 'x', order: 0 } as unknown as SavedSpace;                                                   // mergeSpace b.projects||[]
+    const localNoCats = { id: 'y', name: 'y', order: 0, projects: [{ id: 'p', name: 'P', order: 0 }] } as unknown as SavedSpace;          // mergeProject b.categories||[]
+    const localNoGroups = { id: 'z', name: 'z', order: 0, projects: [{ id: 'p', name: 'P', order: 0, categories: [{ id: 'c', name: 'C', order: 0 }] }] } as unknown as SavedSpace; // mergeCategory b.groups||[]
+    const localNoTabs = { id: 'w', name: 'w', order: 0, projects: [{ id: 'p', name: 'P', order: 0, categories: [{ id: 'c', name: 'C', order: 0, groups: [{ id: 'g', name: 'G', order: 0 }] }] }] } as unknown as SavedSpace; // mergeGroup b.tabs||[]
+    expect(allTabIds(mergeSpaces([serverFull('x')], [localNoProjects]))).toEqual(['keep']);
+    expect(allTabIds(mergeSpaces([serverFull('y')], [localNoCats]))).toEqual(['keep']);
+    expect(allTabIds(mergeSpaces([serverFull('z')], [localNoGroups]))).toEqual(['keep']);
+    expect(allTabIds(mergeSpaces([serverFull('w')], [localNoTabs]))).toEqual(['keep']);
+  });
+
   it('tolerates spaces with missing nested arrays', () => {
     const sparse = { id: 'sp', name: 'Sparse', order: 0 } as unknown as SavedSpace; // no projects
     const out = mergeSpaces([], [sparse]);

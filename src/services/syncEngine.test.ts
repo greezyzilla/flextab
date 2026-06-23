@@ -177,6 +177,13 @@ describe('realtime + lifecycle', () => {
     expect(useSyncStore.getState().status).toBe('offline');
   });
 
+  it('does not reconnect after close when signed out', async () => {
+    await connect();
+    (useAuthStore.getState as any).mockReturnValue({ isAuthenticated: false });
+    FakeWS.instances[0].fireClose();
+    expect(FakeWS.instances).toHaveLength(1); // no new socket scheduled
+  });
+
   it('onerror closes the socket', async () => {
     await connect();
     expect(() => FakeWS.instances[0].onerror?.()).not.toThrow();
