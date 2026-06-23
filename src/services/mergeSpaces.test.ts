@@ -44,4 +44,14 @@ describe('mergeSpaces', () => {
     const out = mergeSpaces([space('s1', 'Work', [tab('t1')])], [space('p', 'Personal', [tab('t2')])]);
     expect(out.map(s => s.name).sort()).toEqual(['Personal', 'Work']);
   });
+
+  it('tolerates spaces with missing nested arrays', () => {
+    const sparse = { id: 'sp', name: 'Sparse', order: 0 } as unknown as SavedSpace; // no projects
+    const out = mergeSpaces([], [sparse]);
+    expect(out.map(s => s.id)).toEqual(['sp']);
+    // a same-id collision with a sparse side must not throw
+    const out2 = mergeSpaces([sparse], [space('sp', 'Sparse', [tab('t')])]);
+    expect(out2).toHaveLength(1);
+    expect(allTabIds(out2)).toEqual(['t']);
+  });
 });

@@ -12,12 +12,18 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
+      // Logic layers only — UI components, hooks, and entry shells are covered
+      // by behavior/integration/E2E tests, not unit line-coverage.
+      include: [
+        'src/services/**/*.ts',
+        'src/store/**/*.ts',
+        'src/lib/**/*.ts',
+        'src/utils/**/*.ts',
+      ],
       exclude: [
-        'node_modules/',
-        'src/test/',
         '**/*.d.ts',
-        '**/*.config.*',
-        '**/mockData',
+        '**/*.test.*',
+        'src/types/**',
       ],
     },
   },

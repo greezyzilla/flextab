@@ -15,6 +15,11 @@ global.chrome = {
     remove: vi.fn(),
     move: vi.fn(),
     duplicate: vi.fn(),
+    onUpdated: { addListener: vi.fn(), removeListener: vi.fn() },
+    onCreated: { addListener: vi.fn(), removeListener: vi.fn() },
+    onRemoved: { addListener: vi.fn(), removeListener: vi.fn() },
+    onActivated: { addListener: vi.fn(), removeListener: vi.fn() },
+    onMoved: { addListener: vi.fn(), removeListener: vi.fn() },
   },
   windows: {
     get: vi.fn(),
@@ -23,6 +28,9 @@ global.chrome = {
     create: vi.fn(),
     update: vi.fn(),
     remove: vi.fn(),
+    onCreated: { addListener: vi.fn(), removeListener: vi.fn() },
+    onRemoved: { addListener: vi.fn(), removeListener: vi.fn() },
+    onFocusChanged: { addListener: vi.fn(), removeListener: vi.fn() },
   },
   storage: {
     local: {
