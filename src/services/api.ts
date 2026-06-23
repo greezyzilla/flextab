@@ -138,7 +138,7 @@ export async function apiFetch<T = unknown>(
   }
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
+    const body = (await res.json().catch(() => ({}))) ?? {};
     throw new ApiError(res.status, body.error || res.statusText);
   }
 
@@ -189,7 +189,7 @@ export async function pushSync(spaces: unknown[], baseRevision: number | null): 
   }
 
   if (res.status === 409) {
-    const body = await res.json().catch(() => ({}));
+    const body = (await res.json().catch(() => ({}))) ?? {};
     return {
       status: "conflict",
       revision: typeof body.revision === "number" ? body.revision : (baseRevision ?? 0),
@@ -198,7 +198,7 @@ export async function pushSync(spaces: unknown[], baseRevision: number | null): 
   }
   if (!res.ok) return { status: "error" };
 
-  const body = await res.json().catch(() => ({}));
+  const body = (await res.json().catch(() => ({}))) ?? {};
   return { status: "ok", revision: typeof body.revision === "number" ? body.revision : (baseRevision ?? 0) + 1 };
 }
 
@@ -219,7 +219,7 @@ export async function apiRegister(email: string, password: string, name: string)
     body: JSON.stringify({ email, password, name }),
   });
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
+    const body = (await res.json().catch(() => ({}))) ?? {};
     throw new ApiError(res.status, body.error || res.statusText);
   }
   return res.json();
@@ -232,7 +232,7 @@ export async function apiLogin(email: string, password: string): Promise<TokenDa
     body: JSON.stringify({ email, password }),
   });
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
+    const body = (await res.json().catch(() => ({}))) ?? {};
     throw new ApiError(res.status, body.error || res.statusText);
   }
   return res.json();
