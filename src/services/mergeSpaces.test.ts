@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 
 // syncEngine pulls in stores/WS at import; we only need the pure mergeSpaces.
-vi.mock('~src/store/useSavedSpacesStore', () => ({ ensureDefaultData: vi.fn() }));
+vi.mock('~src/store/useSavedSpacesStore', () => ({ ensureDefaultData: vi.fn(), syncActiveSelection: vi.fn() }));
 vi.mock('~src/store/useSyncConflict', () => ({ useSyncConflict: { getState: () => ({ open: vi.fn(), close: vi.fn() }) } }));
 
 import { mergeSpaces } from './syncEngine';

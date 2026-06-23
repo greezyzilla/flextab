@@ -112,7 +112,7 @@ let pendingLocal: SavedSpace[] | null = null;
 
 /** Canonical structural signature — used to skip no-op writes (avoids a
  *  push → broadcast → re-pull → push loop once the data has converged). */
-function signature(spaces: SavedSpace[]): string {
+export function spacesSignature(spaces: SavedSpace[]): string {
   return JSON.stringify(spaces.map(s => ({
     i: s.id, n: s.name,
     p: (s.projects || []).map(p => ({
@@ -128,10 +128,38 @@ function signature(spaces: SavedSpace[]): string {
   })));
 }
 
+export type Reconciliation =
+  | { kind: "conflict" }
+  | { kind: "apply"; spaces: SavedSpace[] };
+
+/**
+ * Pure decision for reconciling pulled server data with local data.
+ * - explicit login + BOTH sides have real tabs → conflict (ask the user)
+ * - server only → take server; local only → keep local; both → lossless merge
+ */
+export function decideReconciliation(server: SavedSpace[], local: SavedSpace[], freshLogin: boolean): Reconciliation {
+  const serverReal = hasRealData(server);
+  const localReal = hasRealData(local);
+
+  if (freshLogin && serverReal && localReal) return { kind: "conflict" };
+
+  let spaces: SavedSpace[];
+  if (serverReal && !localReal) spaces = server;
+  else if (!serverReal && localReal) spaces = local;
+  else if (serverReal && localReal) spaces = mergeSpaces(server, local);
+  else spaces = local.length ? local : server;
+  return { kind: "apply", spaces };
+}
+
+/** Pure: the resulting spaces for a user's conflict choice. */
+export function resolveChoice(choice: "merge" | "server" | "local", server: SavedSpace[], local: SavedSpace[]): SavedSpace[] {
+  return choice === "merge" ? mergeSpaces(server, local) : choice === "server" ? server : local;
+}
+
 function applyResolution(spaces: SavedSpace[], selectFirst = false) {
   // Only rewrite the doc when the data actually changed; otherwise the rewrite
   // would persist → push → broadcast → re-pull → push, looping forever.
-  const changed = signature(spaces) !== signature(getSpaces());
+  const changed = spacesSignature(spaces) !== spacesSignature(getSpaces());
   if (changed) setSpaces(spaces);
   if (getSpaces().length === 0) ensureDefaultData();
   // After login, jump to the first space/group; otherwise keep a valid selection.
@@ -156,11 +184,9 @@ async function reconcile(freshLogin: boolean): Promise<void> {
   }
 
   const local = getSpaces();
-  const serverReal = hasRealData(server);
-  const localReal = hasRealData(local);
+  const decision = decideReconciliation(server, local, freshLogin);
 
-  // Genuine conflict only on an explicit login where both sides have real data.
-  if (freshLogin && serverReal && localReal) {
+  if (decision.kind === "conflict") {
     pendingServer = server;
     pendingLocal = local;
     useSyncConflict.getState().open(server, local);
@@ -168,12 +194,7 @@ async function reconcile(freshLogin: boolean): Promise<void> {
     return; // wait for resolveConflict()
   }
 
-  let result: SavedSpace[];
-  if (serverReal && !localReal) result = server;            // local was empty/default
-  else if (!serverReal && localReal) result = local;        // server empty → keep local
-  else if (serverReal && localReal) result = mergeSpaces(server, local); // returning user
-  else result = local.length ? local : server;              // both empty-ish
-  applyResolution(result, freshLogin);
+  applyResolution(decision.spaces, freshLogin);
 }
 
 /** Resolve a guest↔account conflict with the user's choice. */
@@ -182,8 +203,7 @@ export function resolveConflict(choice: "merge" | "server" | "local") {
   pendingServer = pendingLocal = null;
   useSyncConflict.getState().close();
   if (!s || !l) return;
-  const result = choice === "merge" ? mergeSpaces(s, l) : choice === "server" ? s : l;
-  applyResolution(result, true); // jump to the first space/group after resolving
+  applyResolution(resolveChoice(choice, s, l), true); // jump to the first space/group after resolving
 }
 
 // --- WebSocket (realtime change-notifier) ---
