@@ -25,6 +25,15 @@ export default defineConfig({
         '**/*.test.*',
         'src/types/**',
       ],
+      // Lock in the coverage built up for the logic layers. `npm run test:coverage`
+      // (and CI) fails if it regresses below these. Slightly under current actuals
+      // (99.6% lines / 91% branch) so a legit refactor isn't blocked by noise.
+      thresholds: {
+        statements: 99,
+        lines: 99,
+        functions: 99,
+        branches: 90,
+      },
     },
   },
   resolve: {
