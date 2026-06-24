@@ -212,10 +212,16 @@ function connectWebSocket() {
     ws.onmessage = (event) => {
       try {
         const msg = JSON.parse(event.data);
-        if (msg.type === "sync" && msg.entity_type === "full" && !pendingServer) {
-          // Another device changed data — re-pull and merge (no conflict prompt).
+        if (msg.type === "sync" && !pendingServer) {
           // Skip while a conflict prompt is awaiting the user's choice.
-          void reconcile(false);
+          if (msg.entity_type === "restore") {
+            // Another device restored a version — the server is authoritative;
+            // overwrite local so a merge can't resurrect the discarded tree.
+            void pullAndOverwrite();
+          } else if (msg.entity_type === "full") {
+            // Another device changed data — re-pull and merge (no conflict prompt).
+            void reconcile(false);
+          }
         }
       } catch (_) { /* ignore parse errors */ }
     };

@@ -162,6 +162,16 @@ describe('realtime + lifecycle', () => {
     expect(apiFetch).toHaveBeenCalledWith('/api/sync');
   });
 
+  it('hard-overwrites local on a sync-restore notification', async () => {
+    await connect();
+    addSpace({ id: 'localOnly', name: 'L', order: 0, projects: [] });
+    (apiFetch as any).mockResolvedValue({ spaces: [beSpace('restored', [{ id: 't1' }])], revision: 9 });
+    FakeWS.instances[0].message({ type: 'sync', entity_type: 'restore' });
+    await flush();
+    // server fully replaced local (not merged) — 'localOnly' is gone
+    expect(getSpaces().map(s => s.id)).toEqual(['restored']);
+  });
+
   it('ignores unrelated WS messages', async () => {
     await connect();
     (apiFetch as any).mockClear();
