@@ -33,3 +33,6 @@ dist/
 
 # typescript
 *.tsbuildinfo
+
+# internal working notes — local only
+DECISIONS.md
