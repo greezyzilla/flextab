@@ -5,10 +5,12 @@ import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { useSyncStore, type SyncStatus } from "~src/store/useSyncStore";
 import { apiChangePassword, getDeviceId } from "~src/services/api";
 import { apiGetDevices, type DeviceInfo } from "~src/services/device";
-import { syncNow } from "~src/services/syncEngine";
+import { apiListSnapshots, apiGetSnapshot, apiRestoreSnapshot, type SnapshotInfo } from "~src/services/snapshots";
+import { syncNow, pullAndOverwrite } from "~src/services/syncEngine";
+import type { SavedSpace } from "~src/types";
 import * as yjs from "~src/lib/yjsDoc";
 
-type SettingsTab = 'appearance' | 'layout' | 'sync' | 'account' | 'data';
+type SettingsTab = 'appearance' | 'layout' | 'sync' | 'history' | 'account' | 'data';
 
 export function GlobalSettingsModal({ onClose }: { onClose: () => void }) {
   const [activeTab, setActiveTab] = useState<SettingsTab>('appearance');
@@ -25,6 +27,7 @@ export function GlobalSettingsModal({ onClose }: { onClose: () => void }) {
           <SidebarItem active={activeTab === 'appearance'} onClick={() => setActiveTab('appearance')} icon={<PaletteIcon />} label="Appearance" />
           <SidebarItem active={activeTab === 'layout'} onClick={() => setActiveTab('layout')} icon={<LayoutIcon />} label="Layout" />
           <SidebarItem active={activeTab === 'sync'} onClick={() => setActiveTab('sync')} icon={<SyncIcon />} label="Sync" />
+          <SidebarItem active={activeTab === 'history'} onClick={() => setActiveTab('history')} icon={<HistoryIcon />} label="History" />
           <SidebarItem active={activeTab === 'account'} onClick={() => setActiveTab('account')} icon={<UserIcon />} label="Account" />
           <SidebarItem active={activeTab === 'data'} onClick={() => setActiveTab('data')} icon={<DataIcon />} label="Data" />
         </div>
@@ -34,6 +37,7 @@ export function GlobalSettingsModal({ onClose }: { onClose: () => void }) {
           {activeTab === 'appearance' && <AppearanceTab />}
           {activeTab === 'layout' && <LayoutTab />}
           {activeTab === 'sync' && <SyncTab />}
+          {activeTab === 'history' && <HistoryTab />}
           {activeTab === 'account' && <AccountTab />}
           {activeTab === 'data' && <DataTab />}
         </div>
@@ -517,6 +521,170 @@ function DevicesSection({ refresh }: { refresh: number }) {
         ))}
       </div>
     </SettingRow>
+  );
+}
+
+// --- History Tab (version snapshots) ---
+
+function HistoryTab() {
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated);
+  const [snapshots, setSnapshots] = useState<SnapshotInfo[] | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [expanded, setExpanded] = useState<number | null>(null);
+  const [confirming, setConfirming] = useState<number | null>(null);
+  const [restoring, setRestoring] = useState(false);
+  const [done, setDone] = useState(false);
+
+  const load = () => {
+    setSnapshots(null);
+    setFailed(false);
+    apiListSnapshots()
+      .then(setSnapshots)
+      .catch(() => setFailed(true));
+  };
+
+  useEffect(() => { if (isAuthenticated) load(); }, [isAuthenticated]);
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex flex-col gap-5">
+        <SettingRow label="Version history" description="Snapshots of your tabs you can restore.">
+          <div className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3 text-white/50 text-xs font-sans leading-relaxed">
+            Sign in to keep a version history of your spaces and restore earlier states.
+          </div>
+        </SettingRow>
+      </div>
+    );
+  }
+
+  const handleRestore = async (revision: number) => {
+    setRestoring(true);
+    try {
+      await apiRestoreSnapshot(revision);
+      await pullAndOverwrite(); // server is authoritative after a restore
+      setDone(true);
+      setConfirming(null);
+      setExpanded(null);
+      load();
+      setTimeout(() => setDone(false), 2500);
+    } finally {
+      setRestoring(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-5">
+      <SettingRow label="Version history" description="Each sync saves a snapshot. Restore one to roll your tabs back — the current state is saved first, so a restore is undoable.">
+        <div className="flex flex-col gap-1.5">
+          {failed && <div className="text-white/30 text-[11px] font-sans">Couldn't load history.</div>}
+          {!failed && snapshots === null && <div className="text-white/30 text-[11px] font-sans">Loading…</div>}
+          {!failed && snapshots?.length === 0 && <div className="text-white/30 text-[11px] font-sans">No snapshots yet — they appear after your tabs sync.</div>}
+          {done && <div className="text-[11px] font-sans" style={{ color: 'var(--accent)' }}>Restored.</div>}
+          {snapshots?.map(s => (
+            <SnapshotRow
+              key={s.revision}
+              snapshot={s}
+              expanded={expanded === s.revision}
+              confirming={confirming === s.revision}
+              restoring={restoring}
+              onToggle={() => setExpanded(expanded === s.revision ? null : s.revision)}
+              onConfirm={() => setConfirming(s.revision)}
+              onCancel={() => setConfirming(null)}
+              onRestore={() => handleRestore(s.revision)}
+            />
+          ))}
+        </div>
+      </SettingRow>
+    </div>
+  );
+}
+
+function SnapshotRow({ snapshot, expanded, confirming, restoring, onToggle, onConfirm, onCancel, onRestore }: {
+  snapshot: SnapshotInfo;
+  expanded: boolean;
+  confirming: boolean;
+  restoring: boolean;
+  onToggle: () => void;
+  onConfirm: () => void;
+  onCancel: () => void;
+  onRestore: () => void;
+}) {
+  const [preview, setPreview] = useState<SavedSpace[] | null>(null);
+  const [previewFailed, setPreviewFailed] = useState(false);
+
+  useEffect(() => {
+    if (!expanded) return;
+    setPreview(null);
+    setPreviewFailed(false);
+    apiGetSnapshot(snapshot.revision)
+      .then(setPreview)
+      .catch(() => setPreviewFailed(true));
+  }, [expanded, snapshot.revision]);
+
+  return (
+    <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+      <div className="flex items-center justify-between px-3 py-2">
+        <button onClick={onToggle} className="flex items-center gap-2 min-w-0 text-left">
+          <span className="text-white/25 text-[10px] font-mono shrink-0">v{snapshot.revision}</span>
+          <span className="text-white/70 text-xs font-sans truncate">
+            {formatRelativeTime(new Date(snapshot.created_at).getTime())}
+          </span>
+          <span className="text-white/30 text-[11px] font-sans shrink-0">
+            · {snapshot.space_count} space{snapshot.space_count !== 1 ? 's' : ''} · {snapshot.tab_count} tab{snapshot.tab_count !== 1 ? 's' : ''}
+          </span>
+        </button>
+        {confirming ? (
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button onClick={onRestore} disabled={restoring}
+              className="text-[11px] font-sans px-2.5 py-1 rounded-md transition-colors disabled:opacity-40"
+              style={{ backgroundColor: 'var(--accent-subtle)', color: 'var(--accent)' }}>
+              {restoring ? 'Restoring…' : 'Confirm'}
+            </button>
+            <button onClick={onCancel} disabled={restoring}
+              className="text-white/40 hover:text-white/70 text-[11px] font-sans px-2 py-1 transition-colors">
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button onClick={onConfirm}
+            className="text-white/50 hover:text-white/90 text-[11px] font-sans px-3 py-1 rounded-md border border-white/10 hover:border-white/25 transition-colors shrink-0">
+            Restore
+          </button>
+        )}
+      </div>
+      {expanded && (
+        <div className="border-t border-white/[0.06] px-3 py-2 flex flex-col gap-1">
+          {previewFailed && <div className="text-white/30 text-[11px] font-sans">Couldn't load preview.</div>}
+          {!previewFailed && preview === null && <div className="text-white/30 text-[11px] font-sans">Loading preview…</div>}
+          {preview?.map(sp => (
+            <div key={sp.id} className="flex items-center justify-between text-[11px] font-sans">
+              <span className="text-white/60 truncate">{sp.name || 'Untitled space'}</span>
+              <span className="text-white/30 shrink-0">{countTabs(sp)} tab{countTabs(sp) !== 1 ? 's' : ''}</span>
+            </div>
+          ))}
+          {preview?.length === 0 && <div className="text-white/30 text-[11px] font-sans">Empty snapshot.</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function countTabs(space: SavedSpace): number {
+  let n = 0;
+  for (const p of space.projects ?? [])
+    for (const c of p.categories ?? [])
+      for (const g of c.groups ?? [])
+        n += (g.tabs ?? []).length;
+  return n;
+}
+
+function HistoryIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 3v5h5" />
+      <path d="M3.05 13A9 9 0 1 0 6 5.3L3 8" />
+      <path d="M12 7v5l4 2" />
+    </svg>
   );
 }
 

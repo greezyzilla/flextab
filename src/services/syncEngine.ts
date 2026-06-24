@@ -287,3 +287,20 @@ export async function syncNow(): Promise<boolean> {
   await reconcile(false);
   return true;
 }
+
+/** Force-pull the server state and overwrite local — used after a snapshot
+ *  restore, where the server is authoritative and a merge would undo the restore. */
+export async function pullAndOverwrite(): Promise<boolean> {
+  if (!useAuthStore.getState().isAuthenticated) return false;
+  setStatus("syncing");
+  try {
+    const data = await apiFetch<{ spaces: BeSpace[]; revision: number }>("/api/sync");
+    await setStoredRevision(data.revision);
+    applyResolution(mapBeToLocal(data.spaces), true);
+    return true;
+  } catch (_) {
+    setStatus("offline");
+    connectWebSocket();
+    return false;
+  }
+}

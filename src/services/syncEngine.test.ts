@@ -11,7 +11,7 @@ vi.mock('~src/store/useAuthStore', () => ({ useAuthStore: { getState: vi.fn(() =
 vi.mock('~src/store/useSavedSpacesStore', () => ({ ensureDefaultData: vi.fn(), syncActiveSelection: vi.fn() }));
 
 import {
-  startSyncEngine, stopSyncEngine, syncNow, resolveConflict,
+  startSyncEngine, stopSyncEngine, syncNow, pullAndOverwrite, resolveConflict,
   startLocalPersistence, stopLocalPersistence,
 } from './syncEngine';
 import { apiFetch, loadTokens } from './api';
@@ -208,6 +208,28 @@ describe('syncNow', () => {
     expect(await syncNow()).toBe(true);
     await flush();
     expect(apiFetch).toHaveBeenCalledWith('/api/sync');
+  });
+});
+
+describe('pullAndOverwrite (post-restore)', () => {
+  it('returns false when unauthenticated', async () => {
+    (useAuthStore.getState as any).mockReturnValue({ isAuthenticated: false });
+    expect(await pullAndOverwrite()).toBe(false);
+  });
+
+  it('overwrites local with the server state (no merge)', async () => {
+    setSpaces([]);
+    addSpace({ id: 'localOnly', name: 'L', order: 0, projects: [] });
+    (apiFetch as any).mockResolvedValue({ spaces: [beSpace('restored', [{ id: 't1' }])], revision: 9 });
+    expect(await pullAndOverwrite()).toBe(true);
+    await flush();
+    // local 'localOnly' is gone — server fully replaced it (not merged)
+    expect(getSpaces().map(s => s.id)).toEqual(['restored']);
+  });
+
+  it('goes offline when the pull fails', async () => {
+    (apiFetch as any).mockRejectedValue(new Error('net'));
+    expect(await pullAndOverwrite()).toBe(false);
   });
 });
 
