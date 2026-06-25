@@ -275,8 +275,7 @@ function AccountTab() {
           <button
             type="submit"
             disabled={pwLoading}
-            className="self-start px-3.5 py-1.5 rounded-lg text-xs font-sans font-medium text-white transition-colors disabled:opacity-50"
-            style={{ backgroundColor: 'var(--accent)' }}
+            className="btn-accent self-start px-3.5 py-1.5 rounded-lg text-xs font-sans font-medium disabled:opacity-50"
           >
             {pwLoading ? 'Saving...' : user?.has_password ? 'Update password' : 'Set password'}
           </button>

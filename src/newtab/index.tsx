@@ -4,6 +4,7 @@ import { SearchBar } from "~src/components/SearchBar"
 import { UndoToastContainer } from "~src/components/UndoToast"
 import { SyncConflictModal } from "~src/components/SyncConflictModal"
 import { ErrorBoundary } from "~src/components/ErrorBoundary"
+import "@fontsource-variable/inter"
 import "../../style.css"
 
 import { DndContext, DragOverlay } from "@dnd-kit/core"
@@ -180,8 +181,7 @@ function OnboardingScreen() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full px-5 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 text-white"
-              style={{ backgroundColor: 'var(--accent)' }}
+              className="btn-accent w-full px-5 py-2.5 rounded-lg text-sm font-medium disabled:opacity-50"
             >
               {loading ? 'Please wait...' : mode === 'login' ? 'Sign in' : 'Create account'}
             </button>

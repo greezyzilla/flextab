@@ -2,6 +2,65 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  html,
+  body {
+    font-family: "Inter Variable", Inter, system-ui, -apple-system, sans-serif;
+  }
+}
+
+@layer components {
+  /* Gradient primary button — derived from the live --accent so it still
+     follows the user's chosen accent. Matches the landing's button. */
+  .btn-accent {
+    background-image: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--accent) 74%, #ffffff),
+      var(--accent) 52%,
+      var(--accent-hover)
+    );
+    color: #fff;
+    box-shadow:
+      0 1px 0 0 rgba(255, 255, 255, 0.22) inset,
+      0 8px 24px -10px color-mix(in srgb, var(--accent) 55%, transparent);
+    transition: filter 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  }
+  .btn-accent:hover {
+    filter: brightness(1.07);
+    box-shadow:
+      0 1px 0 0 rgba(255, 255, 255, 0.28) inset,
+      0 12px 30px -12px color-mix(in srgb, var(--accent) 70%, transparent);
+    transform: translateY(-1px);
+  }
+  .btn-accent:active {
+    transform: translateY(0);
+    filter: brightness(0.98);
+  }
+
+  /* Accent gradient text (for emphasis words / headings). */
+  .gradient-accent-text {
+    background-image: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--accent) 55%, #ffffff),
+      var(--accent)
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Glass card surface (subtle hairline + hover), matches the landing cards. */
+  .card-surface {
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    background: rgba(255, 255, 255, 0.02);
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+  }
+  .card-surface:hover {
+    border-color: rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.035);
+  }
+}
+
 @layer theme {
   :root {
     --color-black-50: #fafafa;
@@ -9,12 +68,14 @@
     --color-black-200: #e5e5e5;
     --color-black-300: #d4d4d4;
     --color-black-400: #a3a3a3;
-    --color-black-500: #737373;
-    --color-black-600: #525252;
-    --color-black-700: #404040;
-    --color-black-800: #262626;
-    --color-black-900: #171717;
-    --color-black-950: #0a0a0a;
+    /* Cool, slightly blue-tinted dark scale (matches the landing's ink),
+       same lightness per step so contrast/borders are unchanged. */
+    --color-black-500: #6E7480;
+    --color-black-600: #4C515E;
+    --color-black-700: #3A3F4A;
+    --color-black-800: #22262E;
+    --color-black-900: #14161B;
+    --color-black-950: #08090C;
     --color-black: #000;
 
     --accent: #2274F0;

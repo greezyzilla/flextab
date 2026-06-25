@@ -48,8 +48,7 @@ function EmptyState({ onSaveAllTabs, onNewGroup }: { onSaveAllTabs: () => void; 
         <div className="flex items-center gap-2">
           <button
             onClick={onNewGroup}
-            className="px-5 py-2.5 text-white text-xs font-sans rounded-lg transition-colors"
-            style={{ backgroundColor: 'var(--accent)' }}
+            className="btn-accent px-5 py-2.5 text-xs font-sans rounded-lg"
           >
             New Group
           </button>

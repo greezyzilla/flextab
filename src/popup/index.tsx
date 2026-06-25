@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import "@fontsource-variable/inter"
 import "../../style.css"
 import { useSavedSpacesStore, useHydrated } from "~src/store/useSavedSpacesStore"
 import { useAuthStore } from "~src/store/useAuthStore"
