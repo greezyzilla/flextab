@@ -6,7 +6,7 @@ import config from '../../../package.json';
 import { showUndoToast } from "~src/components/UndoToast";
 
 const SPACE_COLORS = [
-  "", "#3b82f6", "#8b5cf6", "#ec4899", "#ef4444",
+  "", "#2274F0", "#8b5cf6", "#ec4899", "#ef4444",
   "#f97316", "#eab308", "#22c55e", "#06b6d4",
 ];
 

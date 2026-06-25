@@ -9,7 +9,7 @@ beforeEach(() => useSettingsStore.setState({
 describe('useSettingsStore', () => {
   it('exposes the accent palette', () => {
     expect(Object.keys(ACCENT_COLORS)).toContain('blue');
-    expect(ACCENT_COLORS.blue.value).toBe('#3b82f6');
+    expect(ACCENT_COLORS.blue.value).toBe('#2274F0'); // brand blue (matches logo + landing)
   });
 
   it('updates each setting', () => {

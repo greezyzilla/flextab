@@ -7,7 +7,7 @@ export type Density = 'compact' | 'comfortable';
 export type AccentColor = 'blue' | 'purple' | 'green' | 'orange' | 'pink' | 'cyan';
 
 export const ACCENT_COLORS: Record<AccentColor, { label: string; value: string; hover: string; subtle: string }> = {
-  blue:   { label: 'Blue',   value: '#3b82f6', hover: '#2563eb', subtle: '#3b82f620' },
+  blue:   { label: 'Blue',   value: '#2274F0', hover: '#1A5FD6', subtle: '#2274F020' },
   purple: { label: 'Purple', value: '#8b5cf6', hover: '#7c3aed', subtle: '#8b5cf620' },
   green:  { label: 'Green',  value: '#22c55e', hover: '#16a34a', subtle: '#22c55e20' },
   orange: { label: 'Orange', value: '#f97316', hover: '#ea580c', subtle: '#f9731620' },
