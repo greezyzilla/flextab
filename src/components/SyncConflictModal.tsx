@@ -50,8 +50,8 @@ export function SyncConflictModal() {
   ]
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 font-sans p-6">
-      <div className="bg-black-900 border border-black-700 rounded-xl w-[560px] max-h-[85vh] flex flex-col shadow-2xl">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[rgba(0,0,0,0.66)] backdrop-blur-[8px] font-sans p-6">
+      <div className="bg-black-900 border border-white/10 rounded-xl w-[560px] max-h-[85vh] flex flex-col shadow-[0_18px_50px_-16px_rgba(0,0,0,0.6)]">
         <div className="p-6 pb-4 flex flex-col gap-1.5 shrink-0">
           <h2 className="text-white/90 text-base font-medium">Choose what to keep</h2>
           <p className="text-white/45 text-sm leading-relaxed">

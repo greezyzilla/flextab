@@ -6,6 +6,7 @@ import { useWindows } from "~src/hooks/useWindows"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import { v7 as uuidv7 } from "uuid"
 import { faviconToDataUrl } from "~src/utils/favicon"
+import { Modal } from "~src/components/Modal"
 
 const OpenedTab = ({ tab, windowId }: { tab: chrome.tabs.Tab, windowId: number }) => {
   const onTabClick = (tab: chrome.tabs.Tab, windowId: number) => {
@@ -120,11 +121,13 @@ function SaveSessionModal({
   const canSave = spaceId && projectId && categoryId && name.trim()
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
-      <div
-        className="bg-black-900 border border-black-700 rounded-lg w-96 p-5 flex flex-col gap-4"
-        onClick={e => e.stopPropagation()}
-      >
+    <Modal
+      open
+      onOpenChange={(o) => { if (!o) onClose(); }}
+      title="Save Session"
+      showClose={false}
+      className="w-96 rounded-lg p-5 flex flex-col gap-4"
+    >
         <h3 className="text-white/90 font-sans text-base font-medium">Save Session</h3>
 
         <div className="flex flex-col gap-1">
@@ -166,8 +169,7 @@ function SaveSessionModal({
             {saving ? 'Saving...' : 'Save'}
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }
 

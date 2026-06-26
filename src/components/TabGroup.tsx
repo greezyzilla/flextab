@@ -7,6 +7,7 @@ import { CSS } from "@dnd-kit/utilities";
 import type { SavedGroup, SavedTab } from "~src/types";
 import { useSavedSpacesStore, useActiveSpace, useActiveProject, useActiveCategory } from "~src/store/useSavedSpacesStore";
 import { showUndoToast } from "./UndoToast";
+import { ConfirmDialog } from "./ConfirmDialog";
 import type { GroupLayout } from "~src/store/useSettingsStore";
 
 function SavedTabItem({ tab, groupId, isDuplicate }: { tab: SavedTab; groupId: string; isDuplicate?: boolean }) {
@@ -47,7 +48,7 @@ function SavedTabItem({ tab, groupId, isDuplicate }: { tab: SavedTab; groupId: s
     <div
       ref={setNodeRef}
       style={{ ...style, padding: `var(--density-py-tab) var(--density-px-tab)` }}
-      className={`flex flex-col gap-1 rounded-lg transition-colors group ${isDuplicate ? 'bg-yellow-500/[0.06] ring-1 ring-yellow-500/20' : 'bg-white/[0.02] ring-1 ring-inset ring-white/[0.05] hover:bg-white/[0.05] hover:ring-white/[0.1]'}`}
+      className={`flex flex-col gap-1 rounded-lg transition-colors group ${isDuplicate ? 'bg-yellow-500/[0.06] ring-1 ring-yellow-500/20' : 'bg-white/[0.03] hover:bg-white/[0.06]'}`}
     >
       <div className="flex items-center gap-2.5">
         <div
@@ -105,6 +106,7 @@ export function TabGroup({ group, layout = 'list', gridColumns = 2 }: TabGroupPr
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(group.name);
   const renameRef = useRef<HTMLInputElement>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (isRenaming && renameRef.current) {
@@ -151,7 +153,7 @@ export function TabGroup({ group, layout = 'list', gridColumns = 2 }: TabGroupPr
   };
 
   return (
-    <div className="flex flex-col gap-2 rounded-xl bg-white/[0.012] ring-1 ring-inset ring-white/[0.06] transition-colors hover:ring-white/[0.1]" style={{ padding: 'var(--density-p-section)' }}>
+    <div className="flex flex-col gap-2" style={{ padding: 'var(--density-p-section)' }}>
       <div className="flex items-center justify-between pl-7 group/header">
         {isRenaming ? (
           <input
@@ -178,23 +180,25 @@ export function TabGroup({ group, layout = 'list', gridColumns = 2 }: TabGroupPr
             <span className="text-white/20 text-xs font-sans shrink-0">{sortedTabs.length} tab{sortedTabs.length !== 1 ? 's' : ''}</span>
           </div>
         )}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-0.5">
           {sortedTabs.length > 0 && (
             <button
               onClick={handleOpenAll}
-              className="text-white/30 hover:text-white/60 font-sans text-xs transition-colors opacity-0 group-hover/header:opacity-100"
-              title="Open all tabs in new window"
+              className="p-1.5 rounded-md text-white/30 hover:text-white/70 hover:bg-white/10 transition-all opacity-0 group-hover/header:opacity-100"
+              title="Open all tabs in a new window"
             >
-              Open All
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 5h6v6M19 5l-8 8M11 5H6a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1v-5" />
+              </svg>
             </button>
           )}
           <button
-            onClick={handleDeleteGroup}
-            className="text-white/20 hover:text-red-400 transition-colors opacity-0 group-hover/header:opacity-100"
+            onClick={() => setShowDeleteConfirm(true)}
+            className="p-1.5 rounded-md text-white/30 hover:text-red-400 hover:bg-red-400/10 transition-all opacity-0 group-hover/header:opacity-100"
             title="Delete group"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m-1 0v11m-4-11v11M7 7l1 12a1 1 0 001 1h6a1 1 0 001-1l1-12" />
             </svg>
           </button>
         </div>
@@ -203,7 +207,7 @@ export function TabGroup({ group, layout = 'list', gridColumns = 2 }: TabGroupPr
         {sortedTabs.length > 0 ? (
           <SortableContext items={sortedTabs.map((tab) => tab.id)}>
             <div
-              className={`rounded-xl border transition-colors ${isOver ? '' : 'border-black-800'} ${
+              className={`rounded-xl border transition-colors ${isOver ? '' : 'border-white/[0.07] bg-white/[0.012]'} ${
                 layout === 'grid' ? 'grid' : 'flex flex-col'
               }`}
               style={{
@@ -233,6 +237,20 @@ export function TabGroup({ group, layout = 'list', gridColumns = 2 }: TabGroupPr
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        title="Delete group?"
+        message={
+          <>
+            This permanently removes <span className="text-white/80">{group.name}</span> and its{" "}
+            {sortedTabs.length} saved tab{sortedTabs.length !== 1 ? "s" : ""}.
+          </>
+        }
+        confirmLabel="Delete group"
+        onConfirm={handleDeleteGroup}
+      />
     </div>
   )
 }

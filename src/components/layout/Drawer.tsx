@@ -40,7 +40,7 @@ export function Drawer({ side, open, onClose, children }: DrawerProps) {
       <div
         onClick={onClose}
         aria-hidden
-        className={`fixed inset-0 z-40 bg-black/50 transition-opacity duration-200 ${
+        className={`fixed inset-0 z-40 bg-[rgba(0,0,0,0.55)] backdrop-blur-[2px] transition-opacity duration-200 ${
           open ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
       />

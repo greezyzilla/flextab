@@ -4,6 +4,8 @@ import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { v7 as uuidv7 } from "uuid";
 import config from '../../../package.json';
 import { showUndoToast } from "~src/components/UndoToast";
+import { ConfirmDialog } from "~src/components/ConfirmDialog";
+import { Modal } from "~src/components/Modal";
 
 const SPACE_COLORS = [
   "", "#2274F0", "#8b5cf6", "#ec4899", "#ef4444",
@@ -22,19 +24,11 @@ interface ContextMenuState {
 function SpaceSettings({ onClose }: { onClose: () => void }) {
   const { savedSpaces, activeSpaceId, updateSavedSpace } = useSavedSpacesStore();
   const currentSpace = savedSpaces.find(s => s.id === activeSpaceId);
-  const ref = useRef<HTMLDivElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState(currentSpace?.name ?? "");
   const [abbreviation, setAbbreviation] = useState(currentSpace?.abbreviation ?? "");
   const [color, setColor] = useState(currentSpace?.color ?? "");
 
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
   useEffect(() => { nameRef.current?.focus(); }, []);
 
   if (!currentSpace) return null;
@@ -50,12 +44,13 @@ function SpaceSettings({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
-      <div
-        ref={ref}
-        className="bg-black-900 border border-black-700 rounded-xl w-80 p-5 flex flex-col gap-4 shadow-2xl"
-        onClick={e => e.stopPropagation()}
-      >
+    <Modal
+      open
+      onOpenChange={(o) => { if (!o) onClose(); }}
+      title="Space Settings"
+      showClose={false}
+      className="w-80 rounded-xl p-5 flex flex-col gap-4"
+    >
         <div className="flex items-center justify-between">
           <h3 className="text-white/80 font-sans text-sm font-medium">Space Settings</h3>
           <button onClick={onClose} className="text-white/40 hover:text-white/70 transition-colors">
@@ -86,8 +81,7 @@ function SpaceSettings({ onClose }: { onClose: () => void }) {
           </div>
         </div>
         <button onClick={handleSave} className="w-full px-3 py-2 bg-white/10 hover:bg-white/15 text-white/80 text-sm font-sans rounded-md transition-colors mt-1">Save</button>
-      </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -165,20 +159,34 @@ export function LeftPanel() {
     setTimeout(() => startRename(id, "New Category"), 50);
   };
 
+  const [confirmDelete, setConfirmDelete] = useState<{ kind: string; name: string; run: () => void } | null>(null);
+
   const handleDelete = () => {
     if (!contextMenu || !currentSpace) return;
     if (contextMenu.type === 'project') {
       const project = currentSpace.projects.find(p => p.id === contextMenu.id);
       if (project) {
-        removeSavedProject(currentSpace.id, project);
-        showUndoToast(`Deleted "${project.name}"`, () => addSavedProject(currentSpace.id, project));
+        setConfirmDelete({
+          kind: "project",
+          name: project.name,
+          run: () => {
+            removeSavedProject(currentSpace.id, project);
+            showUndoToast(`Deleted "${project.name}"`, () => addSavedProject(currentSpace.id, project));
+          },
+        });
       }
     } else {
       const project = currentSpace.projects.find(p => p.id === contextMenu.projectId);
       const category = project?.categories.find(c => c.id === contextMenu.id);
       if (category && project) {
-        removeSavedCategory(currentSpace.id, project.id, category);
-        showUndoToast(`Deleted "${category.name}"`, () => addSavedCategory(currentSpace.id, project.id, category));
+        setConfirmDelete({
+          kind: "category",
+          name: category.name,
+          run: () => {
+            removeSavedCategory(currentSpace.id, project.id, category);
+            showUndoToast(`Deleted "${category.name}"`, () => addSavedCategory(currentSpace.id, project.id, category));
+          },
+        });
       }
     }
     setContextMenu(null);
@@ -186,6 +194,18 @@ export function LeftPanel() {
 
   return (
     <div className="w-64 h-full flex flex-col bg-black-900 relative">
+      <ConfirmDialog
+        open={!!confirmDelete}
+        onOpenChange={(o) => { if (!o) setConfirmDelete(null); }}
+        title={`Delete ${confirmDelete?.kind ?? ""}?`}
+        message={
+          <>
+            This permanently removes <span className="text-white/80">{confirmDelete?.name}</span> and everything inside it.
+          </>
+        }
+        confirmLabel="Delete"
+        onConfirm={() => confirmDelete?.run()}
+      />
       {/* Header */}
       <div className="h-16 p-4 flex items-end gap-2 border-b border-black-800">
         <h1 className="text-white/90 font-sans text-2xl">FlexTab</h1>

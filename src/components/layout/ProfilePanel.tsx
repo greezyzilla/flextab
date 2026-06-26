@@ -5,6 +5,7 @@ import { useAuthStore } from "~src/store/useAuthStore";
 import { v7 as uuidv7 } from "uuid";
 import { showUndoToast } from "~src/components/UndoToast";
 import { GlobalSettingsModal } from "~src/components/GlobalSettingsModal";
+import { ConfirmDialog } from "~src/components/ConfirmDialog";
 
 export function ProfilePanel() {
   const { savedSpaces, activeSpaceId, setActiveSpace, addSavedSpace, updateSavedSpace, removeSavedSpace, reorderSpaces } = useSavedSpacesStore();
@@ -79,19 +80,35 @@ export function ProfilePanel() {
     setRenaming(null);
   };
 
+  const [confirmDeleteSpace, setConfirmDeleteSpace] = useState<(typeof savedSpaces)[number] | null>(null);
+
   const handleDeleteSpace = (spaceId: string) => {
     const space = savedSpaces.find(s => s.id === spaceId);
     if (!space) return;
     if (savedSpaces.length <= 1) return; // Don't delete the last space
     setContextMenu(null);
-    removeSavedSpace(space);
-    showUndoToast(`Deleted space "${space.name}"`, () => {
-      addSavedSpace(space);
-    });
+    setConfirmDeleteSpace(space);
   };
 
   return (
     <div className="w-16 h-full flex flex-col border-r border-black-800">
+      <ConfirmDialog
+        open={!!confirmDeleteSpace}
+        onOpenChange={(o) => { if (!o) setConfirmDeleteSpace(null); }}
+        title="Delete space?"
+        message={
+          <>
+            This permanently removes <span className="text-white/80">{confirmDeleteSpace?.name}</span> and all its projects, groups, and tabs.
+          </>
+        }
+        confirmLabel="Delete space"
+        onConfirm={() => {
+          const space = confirmDeleteSpace;
+          if (!space) return;
+          removeSavedSpace(space);
+          showUndoToast(`Deleted space "${space.name}"`, () => addSavedSpace(space));
+        }}
+      />
       <div className="flex flex-col gap-3 py-4 items-center flex-1">
         {savedSpaces.map((space) => (
           <DroppableSpace key={space.id} spaceId={space.id}>
@@ -195,7 +212,7 @@ export function ProfilePanel() {
         )}
       </div>
 
-      {showGlobalSettings && <GlobalSettingsModal onClose={() => setShowGlobalSettings(false)} />}
+      <GlobalSettingsModal open={showGlobalSettings} onOpenChange={setShowGlobalSettings} />
 
       {/* Space context menu */}
       {contextMenu && !renaming && (

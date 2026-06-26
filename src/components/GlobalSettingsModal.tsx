@@ -9,18 +9,16 @@ import { apiListSnapshots, apiGetSnapshot, apiRestoreSnapshot, type SnapshotInfo
 import { syncNow, pullAndOverwrite } from "~src/services/syncEngine";
 import type { SavedSpace } from "~src/types";
 import * as yjs from "~src/lib/yjsDoc";
+import { Modal } from "~src/components/Modal";
+import { ConfirmDialog } from "~src/components/ConfirmDialog";
 
 type SettingsTab = 'appearance' | 'layout' | 'sync' | 'history' | 'account' | 'data';
 
-export function GlobalSettingsModal({ onClose }: { onClose: () => void }) {
+export function GlobalSettingsModal({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const [activeTab, setActiveTab] = useState<SettingsTab>('appearance');
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
-      <div
-        className="bg-black-900 border border-black-700 rounded-xl w-[560px] h-[420px] flex shadow-2xl overflow-hidden"
-        onClick={e => e.stopPropagation()}
-      >
+    <Modal open={open} onOpenChange={onOpenChange} title="Settings" className="flex h-[420px] w-[560px] overflow-hidden rounded-xl">
         {/* Sidebar */}
         <div className="w-44 border-r border-black-800 p-3 flex flex-col gap-1 shrink-0">
           <div className="text-white/50 font-sans text-[11px] font-medium px-2.5 py-1.5 mb-1">Settings</div>
@@ -41,8 +39,7 @@ export function GlobalSettingsModal({ onClose }: { onClose: () => void }) {
           {activeTab === 'account' && <AccountTab />}
           {activeTab === 'data' && <DataTab />}
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -301,6 +298,7 @@ function DataTab() {
   const { savedSpaces } = useSavedSpacesStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importStatus, setImportStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [pendingImport, setPendingImport] = useState<SavedSpace[] | null>(null);
 
   const totalTabs = savedSpaces.reduce((sum, s) =>
     sum + s.projects.reduce((pSum, p) =>
@@ -341,8 +339,8 @@ function DataTab() {
             throw new Error('Invalid space format');
           }
         }
-        yjs.setSpaces(data);
-        setImportStatus({ type: 'success', message: `Imported ${data.length} space${data.length !== 1 ? 's' : ''}` });
+        // Validated — defer the destructive replace until the user confirms.
+        setPendingImport(data);
       } catch (err) {
         setImportStatus({ type: 'error', message: err instanceof Error ? err.message : 'Failed to import' });
       }
@@ -354,6 +352,24 @@ function DataTab() {
 
   return (
     <div className="flex flex-col gap-5">
+      <ConfirmDialog
+        open={!!pendingImport}
+        onOpenChange={(o) => { if (!o) setPendingImport(null); }}
+        title="Replace your workspace?"
+        message={
+          <>
+            Importing replaces your current workspace with{" "}
+            <span className="text-white/80">{pendingImport?.length ?? 0} space{(pendingImport?.length ?? 0) !== 1 ? "s" : ""}</span>.
+            This can&apos;t be undone.
+          </>
+        }
+        confirmLabel="Import & replace"
+        onConfirm={() => {
+          if (!pendingImport) return;
+          yjs.setSpaces(pendingImport);
+          setImportStatus({ type: 'success', message: `Imported ${pendingImport.length} space${pendingImport.length !== 1 ? 's' : ''}` });
+        }}
+      />
       <SettingRow label="Export" description="Download all your data as a JSON file.">
         <div className="flex items-center gap-3">
           <button
