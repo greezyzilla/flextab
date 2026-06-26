@@ -37,11 +37,12 @@ interface BeTab { id: string; url: string; title: string; favicon: string; order
 interface BeGroup { id: string; name: string; order: number; tabs: BeTab[]; }
 interface BeCategory { id: string; name: string; order: number; groups: BeGroup[]; }
 interface BeProject { id: string; name: string; order: number; categories: BeCategory[]; }
-interface BeSpace { id: string; name: string; icon: string; order: number; projects: BeProject[]; }
+interface BeSpace { id: string; name: string; icon: string; color?: string; abbreviation?: string; order: number; projects: BeProject[]; }
 
 function mapBeToLocal(spaces: BeSpace[]): SavedSpace[] {
   return (spaces || []).map(s => ({
-    id: s.id, name: s.name, icon: s.icon || undefined, order: s.order,
+    id: s.id, name: s.name, icon: s.icon || undefined,
+    color: s.color || undefined, abbreviation: s.abbreviation || undefined, order: s.order,
     projects: (s.projects || []).map(p => ({
       id: p.id, name: p.name, order: p.order,
       categories: (p.categories || []).map(c => ({
