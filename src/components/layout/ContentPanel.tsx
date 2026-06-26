@@ -139,18 +139,8 @@ export function ContentPanel() {
           )}
           {activeCategory && (
             <>
-              <button
-                onClick={handleNewGroup}
-                className="text-white/60 hover:text-white/90 font-sans text-xs px-3 py-1.5 rounded-md border border-white/10 hover:border-white/25 transition-colors"
-              >
-                + New Group
-              </button>
-              <button
-                onClick={handleSaveAllTabs}
-                className="text-white/40 hover:text-white/70 font-sans text-xs px-3 py-1.5 rounded-md border border-white/10 hover:border-white/25 transition-colors"
-              >
-                Save All Tabs
-              </button>
+              <Button variant="ghost" size="sm" onClick={handleNewGroup}>+ New Group</Button>
+              <Button variant="ghost" size="sm" onClick={handleSaveAllTabs}>Save All Tabs</Button>
             </>
           )}
         </div>

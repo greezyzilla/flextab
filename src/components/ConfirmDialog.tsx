@@ -1,4 +1,5 @@
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
+import { Button } from "./ui/Button";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -42,19 +43,12 @@ export function ConfirmDialog({
           </AlertDialog.Description>
           <div className="mt-5 flex justify-end gap-2">
             <AlertDialog.Cancel asChild>
-              <button className="rounded-lg px-3.5 py-1.5 text-[13px] text-white/70 transition-colors hover:bg-white/[0.06] hover:text-white">
-                {cancelLabel}
-              </button>
+              <Button variant="ghost" size="sm">{cancelLabel}</Button>
             </AlertDialog.Cancel>
             <AlertDialog.Action asChild>
-              <button
-                onClick={onConfirm}
-                className={`rounded-lg px-3.5 py-1.5 text-[13px] font-medium text-white transition-colors ${
-                  destructive ? "bg-red-500/90 hover:bg-red-500" : "btn-accent"
-                }`}
-              >
+              <Button variant={destructive ? "danger" : "primary"} size="sm" onClick={onConfirm}>
                 {confirmLabel}
-              </button>
+              </Button>
             </AlertDialog.Action>
           </div>
         </AlertDialog.Content>

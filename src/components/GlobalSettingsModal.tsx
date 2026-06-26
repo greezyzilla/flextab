@@ -633,21 +633,15 @@ function SnapshotRow({ snapshot, expanded, confirming, restoring, onToggle, onCo
         </button>
         {confirming ? (
           <div className="flex items-center gap-1.5 shrink-0">
-            <button onClick={onRestore} disabled={restoring}
-              className="text-[11px] font-sans px-2.5 py-1 rounded-md transition-colors disabled:opacity-40"
-              style={{ backgroundColor: 'var(--accent-subtle)', color: 'var(--accent)' }}>
+            <Button variant="primary" size="sm" onClick={onRestore} disabled={restoring}>
               {restoring ? 'Restoring…' : 'Confirm'}
-            </button>
-            <button onClick={onCancel} disabled={restoring}
-              className="text-white/40 hover:text-white/70 text-[11px] font-sans px-2 py-1 transition-colors">
+            </Button>
+            <Button variant="link" onClick={onCancel} disabled={restoring} className="!text-[11px]">
               Cancel
-            </button>
+            </Button>
           </div>
         ) : (
-          <button onClick={onConfirm}
-            className="text-white/50 hover:text-white/90 text-[11px] font-sans px-3 py-1 rounded-md border border-white/10 hover:border-white/25 transition-colors shrink-0">
-            Restore
-          </button>
+          <Button variant="ghost" size="sm" onClick={onConfirm} className="shrink-0">Restore</Button>
         )}
       </div>
       {expanded && (
