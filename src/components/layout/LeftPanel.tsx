@@ -7,20 +7,13 @@ import { showUndoToast } from "~src/components/UndoToast";
 import { ConfirmDialog } from "~src/components/ConfirmDialog";
 import { Modal } from "~src/components/Modal";
 import { Tooltip } from "~src/components/ui/Tooltip";
+import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from "~src/components/ui/ContextMenu";
+import type { SavedProject, SavedCategory } from "~src/types";
 
 const SPACE_COLORS = [
   "", "#2274F0", "#8b5cf6", "#ec4899", "#ef4444",
   "#f97316", "#eab308", "#22c55e", "#06b6d4",
 ];
-
-interface ContextMenuState {
-  type: 'project' | 'category';
-  id: string;
-  spaceId: string;
-  projectId?: string;
-  x: number;
-  y: number;
-}
 
 function SpaceSettings({ onClose }: { onClose: () => void }) {
   const { savedSpaces, activeSpaceId, updateSavedSpace } = useSavedSpacesStore();
@@ -95,23 +88,12 @@ export function LeftPanel() {
     addSavedCategory, removeSavedCategory,
     updateSavedProject, updateSavedCategory,
   } = useSavedSpacesStore();
-  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [showSettings, setShowSettings] = useState(false);
-  const contextMenuRef = useRef<HTMLDivElement>(null);
   const renameRef = useRef<HTMLInputElement>(null);
 
   const currentSpace = savedSpaces.find(s => s.id === activeSpaceId);
-
-  useEffect(() => {
-    if (!contextMenu) return;
-    const handler = (e: MouseEvent) => {
-      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) setContextMenu(null);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [contextMenu]);
 
   useEffect(() => {
     if (renamingId && renameRef.current) {
@@ -128,7 +110,6 @@ export function LeftPanel() {
   const startRename = (id: string, currentName: string) => {
     setRenameValue(currentName);
     setRenamingId(id);
-    setContextMenu(null);
   };
 
   const submitRename = () => {
@@ -162,35 +143,28 @@ export function LeftPanel() {
 
   const [confirmDelete, setConfirmDelete] = useState<{ kind: string; name: string; run: () => void } | null>(null);
 
-  const handleDelete = () => {
-    if (!contextMenu || !currentSpace) return;
-    if (contextMenu.type === 'project') {
-      const project = currentSpace.projects.find(p => p.id === contextMenu.id);
-      if (project) {
-        setConfirmDelete({
-          kind: "project",
-          name: project.name,
-          run: () => {
-            removeSavedProject(currentSpace.id, project);
-            showUndoToast(`Deleted "${project.name}"`, () => addSavedProject(currentSpace.id, project));
-          },
-        });
-      }
-    } else {
-      const project = currentSpace.projects.find(p => p.id === contextMenu.projectId);
-      const category = project?.categories.find(c => c.id === contextMenu.id);
-      if (category && project) {
-        setConfirmDelete({
-          kind: "category",
-          name: category.name,
-          run: () => {
-            removeSavedCategory(currentSpace.id, project.id, category);
-            showUndoToast(`Deleted "${category.name}"`, () => addSavedCategory(currentSpace.id, project.id, category));
-          },
-        });
-      }
-    }
-    setContextMenu(null);
+  const requestDeleteProject = (project: SavedProject) => {
+    if (!currentSpace) return;
+    setConfirmDelete({
+      kind: "project",
+      name: project.name,
+      run: () => {
+        removeSavedProject(currentSpace.id, project);
+        showUndoToast(`Deleted "${project.name}"`, () => addSavedProject(currentSpace.id, project));
+      },
+    });
+  };
+
+  const requestDeleteCategory = (project: SavedProject, category: SavedCategory) => {
+    if (!currentSpace) return;
+    setConfirmDelete({
+      kind: "category",
+      name: category.name,
+      run: () => {
+        removeSavedCategory(currentSpace.id, project.id, category);
+        showUndoToast(`Deleted "${category.name}"`, () => addSavedCategory(currentSpace.id, project.id, category));
+      },
+    });
   };
 
   return (
@@ -247,13 +221,11 @@ export function LeftPanel() {
                     spaceId={currentSpace.id}
                     projectId={project.id}
                   >
+                    <ContextMenu>
+                    <ContextMenuTrigger asChild>
                     <div
                       className="group/proj flex items-center gap-1 px-4 py-1.5 cursor-pointer"
                       onClick={() => toggleProject(project.id)}
-                      onContextMenu={e => {
-                        e.preventDefault();
-                        setContextMenu({ type: 'project', id: project.id, spaceId: currentSpace.id, x: e.clientX, y: e.clientY });
-                      }}
                     >
                       <svg className={`w-3 h-3 text-white/20 transition-transform shrink-0 ${isExpanded ? 'rotate-90' : ''}`}
                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -283,6 +255,12 @@ export function LeftPanel() {
                         </button>
                       </Tooltip>
                     </div>
+                    </ContextMenuTrigger>
+                    <ContextMenuContent>
+                      <ContextMenuItem onSelect={() => startRename(project.id, project.name)}>Rename</ContextMenuItem>
+                      <ContextMenuItem destructive onSelect={() => requestDeleteProject(project)}>Delete</ContextMenuItem>
+                    </ContextMenuContent>
+                    </ContextMenu>
                   </DroppableProjectItem>
 
                   {/* Categories */}
@@ -297,6 +275,8 @@ export function LeftPanel() {
                             projectId={project.id}
                             categoryId={category.id}
                           >
+                            <ContextMenu>
+                            <ContextMenuTrigger asChild>
                             <div
                               className={`flex items-center gap-2 mx-2 px-4 py-[7px] rounded-md cursor-pointer transition-colors ${
                                 isActive
@@ -307,10 +287,6 @@ export function LeftPanel() {
                               onClick={() => {
                                 if (activeProjectId !== project.id) setActiveProject(project.id);
                                 setActiveCategory(category.id);
-                              }}
-                              onContextMenu={e => {
-                                e.preventDefault();
-                                setContextMenu({ type: 'category', id: category.id, spaceId: currentSpace.id, projectId: project.id, x: e.clientX, y: e.clientY });
                               }}
                             >
                               <span className={`w-1 h-1 rounded-full shrink-0 ${isActive ? '' : 'bg-white/20'}`} style={isActive ? { backgroundColor: 'var(--accent)' } : undefined} />
@@ -329,6 +305,12 @@ export function LeftPanel() {
                                 </span>
                               )}
                             </div>
+                            </ContextMenuTrigger>
+                            <ContextMenuContent>
+                              <ContextMenuItem onSelect={() => startRename(category.id, category.name)}>Rename</ContextMenuItem>
+                              <ContextMenuItem destructive onSelect={() => requestDeleteCategory(project, category)}>Delete</ContextMenuItem>
+                            </ContextMenuContent>
+                            </ContextMenu>
                           </DroppableCategoryItem>
                         );
                       })}
@@ -372,18 +354,6 @@ export function LeftPanel() {
         </div>
       </div>
 
-      {/* Context menu - rendered at end */}
-      {contextMenu && (
-        <div ref={contextMenuRef} className="fixed bg-black-800 border border-black-700 rounded-lg shadow-xl py-1 z-50 w-36" style={{ left: contextMenu.x, top: contextMenu.y }}>
-          <button onClick={() => {
-            const name = contextMenu.type === 'project'
-              ? currentSpace?.projects.find(p => p.id === contextMenu.id)?.name
-              : currentSpace?.projects.find(p => p.id === contextMenu.projectId)?.categories.find(c => c.id === contextMenu.id)?.name;
-            if (name) startRename(contextMenu.id, name);
-          }} className="w-full text-left px-3 py-1.5 text-white/70 hover:text-white/90 hover:bg-white/5 text-xs transition-colors">Rename</button>
-          <button onClick={handleDelete} className="w-full text-left px-3 py-1.5 text-red-400/70 hover:text-red-400 hover:bg-white/5 text-xs transition-colors">Delete</button>
-        </div>
-      )}
     </div>
   );
 }

@@ -8,27 +8,15 @@ import { GlobalSettingsModal } from "~src/components/GlobalSettingsModal";
 import { ConfirmDialog } from "~src/components/ConfirmDialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "~src/components/ui/DropdownMenu";
 import { Tooltip } from "~src/components/ui/Tooltip";
+import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from "~src/components/ui/ContextMenu";
 
 export function ProfilePanel() {
   const { savedSpaces, activeSpaceId, setActiveSpace, addSavedSpace, updateSavedSpace, removeSavedSpace, reorderSpaces } = useSavedSpacesStore();
   const { user, isAuthenticated, loginWithGoogle, logout } = useAuthStore();
-  const [contextMenu, setContextMenu] = useState<{ spaceId: string; x: number; y: number } | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [showGlobalSettings, setShowGlobalSettings] = useState(false);
-  const contextMenuRef = useRef<HTMLDivElement>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (!contextMenu) return;
-    const handler = (e: MouseEvent) => {
-      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
-        setContextMenu(null);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [contextMenu]);
 
   useEffect(() => {
     if (renaming && renameInputRef.current) {
@@ -47,17 +35,12 @@ export function ProfilePanel() {
     setActiveSpace(id);
   };
 
-  const handleContextMenu = (e: React.MouseEvent, spaceId: string) => {
-    e.preventDefault();
-    setContextMenu({ spaceId, x: e.clientX, y: e.clientY });
-  };
 
   const handleRenameStart = (spaceId: string) => {
     const space = savedSpaces.find(s => s.id === spaceId);
     if (!space) return;
     setRenameValue(space.name);
     setRenaming(spaceId);
-    setContextMenu(null);
   };
 
   const handleRenameSubmit = () => {
@@ -75,7 +58,6 @@ export function ProfilePanel() {
     const space = savedSpaces.find(s => s.id === spaceId);
     if (!space) return;
     if (savedSpaces.length <= 1) return; // Don't delete the last space
-    setContextMenu(null);
     setConfirmDeleteSpace(space);
   };
 
@@ -118,9 +100,10 @@ export function ProfilePanel() {
                   />
                 </div>
               ) : null}
+              <ContextMenu>
+              <ContextMenuTrigger asChild>
               <div
                 onClick={() => setActiveSpace(space.id)}
-                onContextMenu={(e) => handleContextMenu(e, space.id)}
                 className={`w-10 h-10 rounded-full cursor-pointer transition-all flex items-center justify-center text-xs font-medium font-sans ${
                   activeSpaceId === space.id ? "ring-2 ring-white/50 text-white/90" : "hover:brightness-125 text-white/70"
                 }`}
@@ -134,6 +117,24 @@ export function ProfilePanel() {
               >
                 {(space.abbreviation || space.name.slice(0, 2)).toUpperCase()}
               </div>
+              </ContextMenuTrigger>
+              <ContextMenuContent side="right">
+                <ContextMenuItem onSelect={() => handleRenameStart(space.id)}>Rename</ContextMenuItem>
+                {(() => {
+                  const sorted = [...savedSpaces].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+                  const idx = sorted.findIndex(s => s.id === space.id);
+                  return (
+                    <>
+                      {idx > 0 && <ContextMenuItem onSelect={() => reorderSpaces(idx, idx - 1)}>Move up</ContextMenuItem>}
+                      {idx < sorted.length - 1 && <ContextMenuItem onSelect={() => reorderSpaces(idx, idx + 1)}>Move down</ContextMenuItem>}
+                    </>
+                  );
+                })()}
+                {savedSpaces.length > 1 && (
+                  <ContextMenuItem destructive onSelect={() => handleDeleteSpace(space.id)}>Delete</ContextMenuItem>
+                )}
+              </ContextMenuContent>
+              </ContextMenu>
             </div>
           </DroppableSpace>
         ))}
@@ -196,54 +197,6 @@ export function ProfilePanel() {
       </div>
 
       <GlobalSettingsModal open={showGlobalSettings} onOpenChange={setShowGlobalSettings} />
-
-      {/* Space context menu */}
-      {contextMenu && !renaming && (
-        <div
-          ref={contextMenuRef}
-          className="fixed bg-black-800 border border-black-700 rounded-lg shadow-xl py-1 z-50 w-36"
-          style={{ left: contextMenu.x, top: contextMenu.y }}
-        >
-          <button
-            onClick={() => handleRenameStart(contextMenu.spaceId)}
-            className="w-full text-left px-3 py-1.5 text-white/70 hover:text-white/90 hover:bg-white/5 text-xs transition-colors"
-          >
-            Rename
-          </button>
-          {(() => {
-            const sortedSpaces = [...savedSpaces].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-            const idx = sortedSpaces.findIndex(s => s.id === contextMenu.spaceId);
-            return (
-              <>
-                {idx > 0 && (
-                  <button
-                    onClick={() => { reorderSpaces(idx, idx - 1); setContextMenu(null); }}
-                    className="w-full text-left px-3 py-1.5 text-white/70 hover:text-white/90 hover:bg-white/5 text-xs transition-colors"
-                  >
-                    Move Up
-                  </button>
-                )}
-                {idx < sortedSpaces.length - 1 && (
-                  <button
-                    onClick={() => { reorderSpaces(idx, idx + 1); setContextMenu(null); }}
-                    className="w-full text-left px-3 py-1.5 text-white/70 hover:text-white/90 hover:bg-white/5 text-xs transition-colors"
-                  >
-                    Move Down
-                  </button>
-                )}
-              </>
-            );
-          })()}
-          {savedSpaces.length > 1 && (
-            <button
-              onClick={() => handleDeleteSpace(contextMenu.spaceId)}
-              className="w-full text-left px-3 py-1.5 text-red-400/70 hover:text-red-400 hover:bg-white/5 text-xs transition-colors"
-            >
-              Delete
-            </button>
-          )}
-        </div>
-      )}
     </div>
   )
 }
