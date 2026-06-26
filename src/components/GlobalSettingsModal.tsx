@@ -13,6 +13,7 @@ import { Modal } from "~src/components/Modal";
 import { ConfirmDialog } from "~src/components/ConfirmDialog";
 import { Switch } from "~src/components/ui/Switch";
 import { Slider } from "~src/components/ui/Slider";
+import * as Tabs from "@radix-ui/react-tabs";
 
 type SettingsTab = 'appearance' | 'layout' | 'sync' | 'history' | 'account' | 'data';
 
@@ -21,42 +22,46 @@ export function GlobalSettingsModal({ open, onOpenChange }: { open: boolean; onO
 
   return (
     <Modal open={open} onOpenChange={onOpenChange} title="Settings" className="flex h-[420px] w-[560px] overflow-hidden rounded-xl">
+      <Tabs.Root
+        value={activeTab}
+        onValueChange={(v) => setActiveTab(v as SettingsTab)}
+        orientation="vertical"
+        className="flex w-full"
+      >
         {/* Sidebar */}
-        <div className="w-44 border-r border-black-800 p-3 flex flex-col gap-1 shrink-0">
+        <Tabs.List className="w-44 border-r border-black-800 p-3 flex flex-col gap-1 shrink-0" aria-label="Settings">
           <div className="text-white/50 font-sans text-[11px] font-medium px-2.5 py-1.5 mb-1">Settings</div>
-          <SidebarItem active={activeTab === 'appearance'} onClick={() => setActiveTab('appearance')} icon={<PaletteIcon />} label="Appearance" />
-          <SidebarItem active={activeTab === 'layout'} onClick={() => setActiveTab('layout')} icon={<LayoutIcon />} label="Layout" />
-          <SidebarItem active={activeTab === 'sync'} onClick={() => setActiveTab('sync')} icon={<SyncIcon />} label="Sync" />
-          <SidebarItem active={activeTab === 'history'} onClick={() => setActiveTab('history')} icon={<HistoryIcon />} label="History" />
-          <SidebarItem active={activeTab === 'account'} onClick={() => setActiveTab('account')} icon={<UserIcon />} label="Account" />
-          <SidebarItem active={activeTab === 'data'} onClick={() => setActiveTab('data')} icon={<DataIcon />} label="Data" />
-        </div>
+          <SidebarItem value="appearance" icon={<PaletteIcon />} label="Appearance" />
+          <SidebarItem value="layout" icon={<LayoutIcon />} label="Layout" />
+          <SidebarItem value="sync" icon={<SyncIcon />} label="Sync" />
+          <SidebarItem value="history" icon={<HistoryIcon />} label="History" />
+          <SidebarItem value="account" icon={<UserIcon />} label="Account" />
+          <SidebarItem value="data" icon={<DataIcon />} label="Data" />
+        </Tabs.List>
 
         {/* Content */}
         <div className="flex-1 p-5 overflow-y-auto">
-          {activeTab === 'appearance' && <AppearanceTab />}
-          {activeTab === 'layout' && <LayoutTab />}
-          {activeTab === 'sync' && <SyncTab />}
-          {activeTab === 'history' && <HistoryTab />}
-          {activeTab === 'account' && <AccountTab />}
-          {activeTab === 'data' && <DataTab />}
+          <Tabs.Content value="appearance" className="outline-none"><AppearanceTab /></Tabs.Content>
+          <Tabs.Content value="layout" className="outline-none"><LayoutTab /></Tabs.Content>
+          <Tabs.Content value="sync" className="outline-none"><SyncTab /></Tabs.Content>
+          <Tabs.Content value="history" className="outline-none"><HistoryTab /></Tabs.Content>
+          <Tabs.Content value="account" className="outline-none"><AccountTab /></Tabs.Content>
+          <Tabs.Content value="data" className="outline-none"><DataTab /></Tabs.Content>
         </div>
+      </Tabs.Root>
     </Modal>
   );
 }
 
-function SidebarItem({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string }) {
+function SidebarItem({ value, icon, label }: { value: SettingsTab; icon: React.ReactNode; label: string }) {
   return (
-    <button
-      onClick={onClick}
-      className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-sans transition-colors w-full text-left ${
-        active ? 'text-white/80' : 'text-white/40 hover:text-white/60 hover:bg-white/[0.03]'
-      }`}
-      style={active ? { backgroundColor: 'var(--accent-subtle)', color: 'var(--accent)' } : undefined}
+    <Tabs.Trigger
+      value={value}
+      className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left font-sans text-xs text-white/40 outline-none transition-colors hover:bg-white/[0.03] hover:text-white/60 data-[state=active]:bg-[var(--accent-subtle)] data-[state=active]:text-[var(--accent)]"
     >
       {icon}
       {label}
-    </button>
+    </Tabs.Trigger>
   );
 }
 
