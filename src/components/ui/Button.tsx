@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import type { ButtonHTMLAttributes } from "react";
 
 type Variant = "primary" | "secondary" | "ghost" | "danger" | "link";
@@ -21,31 +22,55 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: Size;
 }
 
-export function Button({ variant = "secondary", size = "md", className = "", ...props }: ButtonProps) {
-  const layout =
-    variant === "link"
-      ? "text-[13px] gap-1.5"
-      : `rounded-lg ${sizeClass[size]}`;
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
+  { variant = "secondary", size = "md", className = "", ...props },
+  ref,
+) {
+  const layout = variant === "link" ? "text-[13px] gap-1.5" : `rounded-lg ${sizeClass[size]}`;
   return (
     <button
+      ref={ref}
       className={`inline-flex items-center justify-center font-sans font-medium outline-none transition-all disabled:pointer-events-none disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-[var(--accent-subtle)] ${layout} ${variantClass[variant]} ${className}`}
       {...props}
     />
   );
+});
+
+/**
+ * Square icon button. Forms are flexible (icon-only here; pair with Button for
+ * icon+text), but the styling always comes from one of these variants — never
+ * ad-hoc classes.
+ *   default — hover background (prominent actions)
+ *   subtle  — hover color only, no background (disclosure / inline affordances)
+ */
+type IconVariant = "default" | "subtle";
+
+interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: IconVariant;
+  danger?: boolean;
 }
 
-/** Square icon button (the action-icon pattern). */
-export function IconButton({
-  danger = false,
-  className = "",
-  ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { danger?: boolean }) {
+const iconClass: Record<IconVariant, { base: string; danger: string }> = {
+  default: {
+    base: "text-white/40 hover:bg-white/10 hover:text-white/80",
+    danger: "text-white/40 hover:bg-red-400/10 hover:text-red-400",
+  },
+  subtle: {
+    base: "text-white/40 hover:text-white/75",
+    danger: "text-white/40 hover:text-red-400",
+  },
+};
+
+export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(function IconButton(
+  { variant = "default", danger = false, className = "", ...props },
+  ref,
+) {
+  const tone = iconClass[variant][danger ? "danger" : "base"];
   return (
     <button
-      className={`inline-flex items-center justify-center rounded-md p-1.5 text-white/40 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[var(--accent-subtle)] ${
-        danger ? "hover:bg-red-400/10 hover:text-red-400" : "hover:bg-white/10 hover:text-white/80"
-      } ${className}`}
+      ref={ref}
+      className={`inline-flex items-center justify-center rounded-md p-1.5 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[var(--accent-subtle)] ${tone} ${className}`}
       {...props}
     />
   );
-}
+});

@@ -7,7 +7,8 @@ import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import { v7 as uuidv7 } from "uuid"
 import { faviconToDataUrl } from "~src/utils/favicon"
 import { Modal } from "~src/components/Modal"
-import { Button } from "~src/components/ui/Button"
+import { Button, IconButton } from "~src/components/ui/Button"
+import { Tooltip } from "~src/components/ui/Tooltip"
 import { Select, SelectItem } from "~src/components/ui/Select"
 
 const OpenedTab = ({ tab, windowId }: { tab: chrome.tabs.Tab, windowId: number }) => {
@@ -212,30 +213,25 @@ export function RightPanel() {
             <div key={windowId}>
               {/* Window header */}
               <div className="sticky top-0 z-10 bg-black-900 border-b border-black-800 px-4 py-2 flex items-center gap-2">
-                <button
-                  onClick={() => toggleWindow(windowId)}
-                  className="text-white/40 hover:text-white/60 transition-colors"
-                >
+                <IconButton variant="subtle" onClick={() => toggleWindow(windowId)}>
                   <svg
                     className={`w-3.5 h-3.5 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
                     fill="none" stroke="currentColor" viewBox="0 0 24 24"
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
-                </button>
+                </IconButton>
                 <span className="text-xs text-white/50 font-sans flex-1">
                   Window {index + 1}
                   <span className="text-white/25 ml-1.5">{tabs.length} tabs</span>
                 </span>
-                <button
-                  onClick={() => handleSaveSession(tabs)}
-                  className="text-white/25 hover:text-white/60 transition-colors"
-                  title="Save this window as a group"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                  </svg>
-                </button>
+                <Tooltip content="Save this window as a group">
+                  <IconButton variant="subtle" onClick={() => handleSaveSession(tabs)}>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                    </svg>
+                  </IconButton>
+                </Tooltip>
               </div>
 
               {/* Tabs */}
