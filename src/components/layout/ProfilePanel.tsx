@@ -6,29 +6,17 @@ import { v7 as uuidv7 } from "uuid";
 import { showUndoToast } from "~src/components/UndoToast";
 import { GlobalSettingsModal } from "~src/components/GlobalSettingsModal";
 import { ConfirmDialog } from "~src/components/ConfirmDialog";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "~src/components/ui/DropdownMenu";
 
 export function ProfilePanel() {
   const { savedSpaces, activeSpaceId, setActiveSpace, addSavedSpace, updateSavedSpace, removeSavedSpace, reorderSpaces } = useSavedSpacesStore();
   const { user, isAuthenticated, loginWithGoogle, logout } = useAuthStore();
-  const [showUserMenu, setShowUserMenu] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ spaceId: string; x: number; y: number } | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [showGlobalSettings, setShowGlobalSettings] = useState(false);
-  const userMenuRef = useRef<HTMLDivElement>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (!showUserMenu) return;
-    const handler = (e: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
-        setShowUserMenu(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [showUserMenu]);
 
   useEffect(() => {
     if (!contextMenu) return;
@@ -170,35 +158,27 @@ export function ProfilePanel() {
           </svg>
         </div>
         {isAuthenticated && user ? (
-          <div className="relative" ref={userMenuRef}>
-            <div
-              onClick={() => setShowUserMenu(!showUserMenu)}
-              className="w-10 h-10 rounded-full cursor-pointer overflow-hidden"
-              title={user.name}
-            >
-              {user.avatar ? (
-                <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-              ) : (
-                <div className="w-full h-full bg-blue-600 flex items-center justify-center text-white text-sm font-medium">
-                  {user.name.slice(0, 1).toUpperCase()}
-                </div>
-              )}
-            </div>
-            {showUserMenu && (
-              <div className="absolute bottom-12 left-0 w-48 bg-black-800 border border-black-700 rounded-lg shadow-xl py-1 z-50">
-                <div className="px-3 py-2 border-b border-black-700">
-                  <div className="text-white/80 text-xs font-medium truncate">{user.name}</div>
-                  <div className="text-white/40 text-[11px] truncate">{user.email}</div>
-                </div>
-                <button
-                  onClick={() => { setShowUserMenu(false); logout(); }}
-                  className="w-full text-left px-3 py-2 text-white/60 hover:text-white/90 hover:bg-white/5 text-xs transition-colors"
-                >
-                  Sign out
-                </button>
-              </div>
-            )}
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="w-10 h-10 rounded-full cursor-pointer overflow-hidden outline-none" aria-label={user.name}>
+                {user.avatar ? (
+                  <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                ) : (
+                  <div className="w-full h-full bg-blue-600 flex items-center justify-center text-white text-sm font-medium">
+                    {user.name.slice(0, 1).toUpperCase()}
+                  </div>
+                )}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="top" align="start">
+              <DropdownMenuLabel>
+                <div className="text-white/80 text-xs font-medium truncate max-w-[10rem]">{user.name}</div>
+                <div className="text-white/40 text-[11px] truncate max-w-[10rem]">{user.email}</div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => logout()}>Sign out</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         ) : (
           <div
             onClick={loginWithGoogle}
