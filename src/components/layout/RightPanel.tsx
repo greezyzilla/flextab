@@ -7,6 +7,7 @@ import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import { v7 as uuidv7 } from "uuid"
 import { faviconToDataUrl } from "~src/utils/favicon"
 import { Modal } from "~src/components/Modal"
+import { Select, SelectItem } from "~src/components/ui/Select"
 
 const OpenedTab = ({ tab, windowId }: { tab: chrome.tabs.Tab, windowId: number }) => {
   const onTabClick = (tab: chrome.tabs.Tab, windowId: number) => {
@@ -145,17 +146,15 @@ function SaveSessionModal({
         <div className="flex flex-col gap-1">
           <label className="text-white/50 text-xs font-sans">Save to</label>
           <div className="flex gap-2">
-            <select value={spaceId} onChange={e => handleSpaceChange(e.target.value)} className="flex-1 bg-black-800 border border-black-700 rounded-md px-2 py-2 text-white/90 text-xs font-sans outline-none focus:border-white/30">
-              {savedSpaces.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
-            <select value={projectId} onChange={e => handleProjectChange(e.target.value)} className="flex-1 bg-black-800 border border-black-700 rounded-md px-2 py-2 text-white/90 text-xs font-sans outline-none focus:border-white/30">
-              {projects.length === 0 && <option value="">No projects</option>}
-              {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-            <select value={categoryId} onChange={e => setCategoryId(e.target.value)} className="flex-1 bg-black-800 border border-black-700 rounded-md px-2 py-2 text-white/90 text-xs font-sans outline-none focus:border-white/30">
-              {categories.length === 0 && <option value="">No categories</option>}
-              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+            <Select value={spaceId} onValueChange={handleSpaceChange} placeholder="Space" className="flex-1">
+              {savedSpaces.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+            </Select>
+            <Select value={projectId} onValueChange={handleProjectChange} placeholder="No projects" disabled={projects.length === 0} className="flex-1">
+              {projects.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+            </Select>
+            <Select value={categoryId} onValueChange={setCategoryId} placeholder="No categories" disabled={categories.length === 0} className="flex-1">
+              {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+            </Select>
           </div>
         </div>
 

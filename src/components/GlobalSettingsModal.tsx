@@ -11,6 +11,8 @@ import type { SavedSpace } from "~src/types";
 import * as yjs from "~src/lib/yjsDoc";
 import { Modal } from "~src/components/Modal";
 import { ConfirmDialog } from "~src/components/ConfirmDialog";
+import { Switch } from "~src/components/ui/Switch";
+import { Slider } from "~src/components/ui/Slider";
 
 type SettingsTab = 'appearance' | 'layout' | 'sync' | 'history' | 'account' | 'data';
 
@@ -109,11 +111,7 @@ function AppearanceTab() {
 
       <SettingRow label="Background Tint" description="Tints the background with the accent hue.">
         <div className="flex items-center gap-3">
-          <input
-            type="range" min={0} max={15} value={bgTint}
-            onChange={e => setBgTint(Number(e.target.value))}
-            className="slider-custom flex-1"
-          />
+          <Slider min={0} max={15} value={bgTint} onValueChange={setBgTint} className="flex-1" />
           <span className="text-white/30 text-[11px] font-sans w-8 text-right shrink-0">{bgTint}%</span>
         </div>
       </SettingRow>
@@ -479,7 +477,7 @@ function SyncTab() {
       </SettingRow>
 
       <SettingRow label="Auto-sync" description="Keep changes in sync across devices automatically. When off, use “Sync now”.">
-        <Switch checked={autoSync} onChange={setAutoSync} label={autoSync ? 'On' : 'Off'} />
+        <Switch checked={autoSync} onCheckedChange={setAutoSync} label={autoSync ? 'On' : 'Off'} />
       </SettingRow>
 
       <DevicesSection refresh={devicesNonce} />
@@ -700,27 +698,6 @@ function HistoryIcon() {
       <path d="M3.05 13A9 9 0 1 0 6 5.3L3 8" />
       <path d="M12 7v5l4 2" />
     </svg>
-  );
-}
-
-function Switch({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label?: string }) {
-  return (
-    <button
-      role="switch"
-      aria-checked={checked}
-      onClick={() => onChange(!checked)}
-      className="flex items-center gap-2.5"
-    >
-      <span
-        className={`relative w-9 h-5 rounded-full transition-colors ${checked ? '' : 'bg-white/10'}`}
-        style={checked ? { backgroundColor: 'var(--accent)' } : undefined}
-      >
-        <span
-          className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${checked ? 'translate-x-4' : ''}`}
-        />
-      </span>
-      {label && <span className="text-white/50 text-[11px] font-sans">{label}</span>}
-    </button>
   );
 }
 
