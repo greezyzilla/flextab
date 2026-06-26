@@ -4,6 +4,7 @@ import { SearchBar } from "~src/components/SearchBar"
 import { UndoToastContainer } from "~src/components/UndoToast"
 import { SyncConflictModal } from "~src/components/SyncConflictModal"
 import { ErrorBoundary } from "~src/components/ErrorBoundary"
+import { TooltipProvider } from "~src/components/ui/Tooltip"
 import "@fontsource-variable/inter"
 import "../../style.css"
 
@@ -362,10 +363,12 @@ function NewTabPage() {
   if (!hydrated) return <LoadingScreen />;
 
   return (
-    <ErrorBoundary>
-      <NewTabPageContent />
-      <SyncConflictModal />
-    </ErrorBoundary>
+    <TooltipProvider>
+      <ErrorBoundary>
+        <NewTabPageContent />
+        <SyncConflictModal />
+      </ErrorBoundary>
+    </TooltipProvider>
   )
 }
 
