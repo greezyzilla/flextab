@@ -281,12 +281,9 @@ function AccountTab() {
 
       {/* Sign out */}
       <div className="pt-2 border-t border-white/5">
-        <button
-          onClick={logout}
-          className="text-red-400/70 hover:text-red-400 text-xs font-sans transition-colors"
-        >
+        <Button variant="link" onClick={logout} className="!text-xs !text-red-400/70 hover:!text-red-400">
           Sign out
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -372,12 +369,7 @@ function DataTab() {
       />
       <SettingRow label="Export" description="Download all your data as a JSON file.">
         <div className="flex items-center gap-3">
-          <button
-            onClick={handleExport}
-            className="px-3.5 py-1.5 rounded-lg text-xs font-sans font-medium text-white/80 bg-white/[0.08] hover:bg-white/[0.12] transition-colors"
-          >
-            Export JSON
-          </button>
+          <Button variant="secondary" size="sm" onClick={handleExport}>Export JSON</Button>
           <span className="text-white/25 text-[11px] font-sans">
             {savedSpaces.length} space{savedSpaces.length !== 1 ? 's' : ''} · {totalTabs} tab{totalTabs !== 1 ? 's' : ''} · {formatSize(dataSize)}
           </span>
@@ -386,12 +378,7 @@ function DataTab() {
 
       <SettingRow label="Import" description="Replace all data from a JSON backup. This overwrites existing data.">
         <div className="flex flex-col gap-2">
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="self-start px-3.5 py-1.5 rounded-lg text-xs font-sans font-medium text-white/80 bg-white/[0.08] hover:bg-white/[0.12] transition-colors"
-          >
-            Import JSON
-          </button>
+          <Button variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()} className="self-start">Import JSON</Button>
           <input ref={fileInputRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
           {importStatus && (
             <div className={`text-[11px] font-sans ${importStatus.type === 'success' ? 'text-green-400' : 'text-red-400'}`}>
@@ -468,13 +455,9 @@ function SyncTab() {
               <span className="text-white/30 text-[11px] font-sans">Last synced {formatRelativeTime(lastSyncedAt)}</span>
             </div>
           </div>
-          <button
-            onClick={handleSyncNow}
-            disabled={syncing || status === 'syncing'}
-            className="text-white/60 hover:text-white/90 text-[11px] font-sans px-3 py-1.5 rounded-md border border-white/10 hover:border-white/25 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          >
+          <Button variant="ghost" size="sm" onClick={handleSyncNow} disabled={syncing || status === 'syncing'}>
             {syncing || status === 'syncing' ? 'Syncing…' : 'Sync now'}
-          </button>
+          </Button>
         </div>
       </SettingRow>
 

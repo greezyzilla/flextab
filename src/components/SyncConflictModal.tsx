@@ -2,6 +2,7 @@ import { useMemo, useState } from "react"
 import { useSyncConflict } from "~src/store/useSyncConflict"
 import { resolveConflict, mergeSpaces } from "~src/services/syncEngine"
 import type { SavedSpace } from "~src/types"
+import { Button } from "~src/components/ui/Button"
 
 type Choice = "merge" | "server" | "local"
 
@@ -119,13 +120,7 @@ export function SyncConflictModal() {
         </div>
 
         <div className="p-6 pt-4 flex items-center justify-end gap-2 shrink-0 border-t border-black-800">
-          <button
-            onClick={() => resolveConflict(choice)}
-            className="px-5 py-2.5 rounded-lg text-sm font-medium text-white transition-colors"
-            style={{ backgroundColor: "var(--accent)" }}
-          >
-            Apply
-          </button>
+          <Button variant="primary" onClick={() => resolveConflict(choice)}>Apply</Button>
         </div>
       </div>
     </div>

@@ -49,12 +49,7 @@ function EmptyState({ onSaveAllTabs, onNewGroup }: { onSaveAllTabs: () => void; 
         </div>
         <div className="flex items-center gap-2">
           <Button variant="primary" size="sm" onClick={onNewGroup}>New Group</Button>
-          <button
-            onClick={onSaveAllTabs}
-            className="px-5 py-2.5 bg-white/[0.08] hover:bg-white/[0.12] text-white/60 hover:text-white/80 text-xs font-sans rounded-lg transition-colors"
-          >
-            Save All Open Tabs
-          </button>
+          <Button variant="secondary" size="sm" onClick={onSaveAllTabs}>Save All Open Tabs</Button>
         </div>
       </div>
     </div>

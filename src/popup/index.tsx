@@ -6,6 +6,7 @@ import { useAuthStore } from "~src/store/useAuthStore"
 import { v7 as uuidv7 } from "uuid"
 import type { SavedTab } from "~src/types"
 import { faviconToDataUrl } from "~src/utils/favicon"
+import { Button } from "~src/components/ui/Button"
 
 function IndexPopup() {
   const hydrated = useHydrated();
@@ -95,12 +96,7 @@ function IndexPopup() {
       <div className="w-72 bg-black-900 p-4 font-sans flex flex-col items-center gap-3">
         <h2 className="text-white/90 text-base font-medium">FlexTab</h2>
         <p className="text-white/40 text-xs text-center">Sign in to save and sync your tabs.</p>
-        <button
-          onClick={loginWithGoogle}
-          className="w-full px-3 py-2 bg-white/10 text-white/80 rounded-md hover:bg-white/20 transition-colors text-sm"
-        >
-          Sign in
-        </button>
+        <Button variant="secondary" onClick={loginWithGoogle} className="w-full">Sign in</Button>
       </div>
     );
   }
@@ -127,28 +123,17 @@ function IndexPopup() {
       )}
 
       <div className="flex flex-col gap-2 mb-3">
-        <button
-          onClick={handleSaveCurrentTab}
-          disabled={!hasActiveCategory || saving}
-          className="w-full px-3 py-2 bg-white/10 text-white/80 rounded-md hover:bg-white/20 transition-colors text-sm disabled:opacity-30 disabled:cursor-not-allowed"
-        >
+        <Button variant="secondary" onClick={handleSaveCurrentTab} disabled={!hasActiveCategory || saving} className="w-full">
           Save Current Tab
-        </button>
-        <button
-          onClick={handleSaveAllTabs}
-          disabled={!hasActiveCategory || saving}
-          className="w-full px-3 py-2 bg-white/10 text-white/80 rounded-md hover:bg-white/20 transition-colors text-sm disabled:opacity-30 disabled:cursor-not-allowed"
-        >
-          {saving ? 'Saving...' : 'Save All Tabs'}
-        </button>
+        </Button>
+        <Button variant="secondary" onClick={handleSaveAllTabs} disabled={!hasActiveCategory || saving} className="w-full">
+          {saving ? 'Saving…' : 'Save All Tabs'}
+        </Button>
       </div>
 
-      <button
-        onClick={() => chrome.tabs.create({ url: "chrome://newtab" })}
-        className="w-full px-3 py-2 bg-white/5 text-white/60 rounded-md hover:bg-white/10 transition-colors text-xs"
-      >
+      <Button variant="ghost" size="sm" onClick={() => chrome.tabs.create({ url: "chrome://newtab" })} className="w-full">
         Open FlexTab Dashboard
-      </button>
+      </Button>
 
       {!hasActiveCategory && (
         <p className="text-white/30 text-xs mt-2 text-center">
