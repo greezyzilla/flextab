@@ -47,7 +47,7 @@ function SavedTabItem({ tab, groupId, isDuplicate }: { tab: SavedTab; groupId: s
     <div
       ref={setNodeRef}
       style={{ ...style, padding: `var(--density-py-tab) var(--density-px-tab)` }}
-      className={`flex flex-col gap-1 rounded-lg transition-colors group ${isDuplicate ? 'bg-yellow-500/[0.06] ring-1 ring-yellow-500/20' : 'bg-white/[0.03] hover:bg-white/[0.06]'}`}
+      className={`flex flex-col gap-1 rounded-lg transition-colors group ${isDuplicate ? 'bg-yellow-500/[0.06] ring-1 ring-yellow-500/20' : 'bg-white/[0.02] ring-1 ring-inset ring-white/[0.05] hover:bg-white/[0.05] hover:ring-white/[0.1]'}`}
     >
       <div className="flex items-center gap-2.5">
         <div
@@ -151,7 +151,7 @@ export function TabGroup({ group, layout = 'list', gridColumns = 2 }: TabGroupPr
   };
 
   return (
-    <div className="flex flex-col gap-2" style={{ padding: 'var(--density-p-section)' }}>
+    <div className="flex flex-col gap-2 rounded-xl bg-white/[0.012] ring-1 ring-inset ring-white/[0.06] transition-colors hover:ring-white/[0.1]" style={{ padding: 'var(--density-p-section)' }}>
       <div className="flex items-center justify-between pl-7 group/header">
         {isRenaming ? (
           <input
