@@ -37,6 +37,23 @@
     filter: brightness(0.98);
   }
 
+  /* Primary button fill — gradient derived from the live --accent (no layout,
+     so the Button component owns padding/size). */
+  .accent-fill {
+    color: #fff;
+    background-image: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--accent) 74%, #ffffff),
+      var(--accent) 52%,
+      var(--accent-hover)
+    );
+    box-shadow:
+      0 1px 0 0 rgba(255, 255, 255, 0.22) inset,
+      0 8px 24px -12px color-mix(in srgb, var(--accent) 55%, transparent);
+  }
+  .accent-fill:hover { filter: brightness(1.07); }
+  .accent-fill:active { filter: brightness(0.98); }
+
   /* Accent gradient text (for emphasis words / headings). */
   .gradient-accent-text {
     background-image: linear-gradient(

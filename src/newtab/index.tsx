@@ -5,6 +5,7 @@ import { UndoToastContainer } from "~src/components/UndoToast"
 import { SyncConflictModal } from "~src/components/SyncConflictModal"
 import { ErrorBoundary } from "~src/components/ErrorBoundary"
 import { TooltipProvider } from "~src/components/ui/Tooltip"
+import { Button } from "~src/components/ui/Button"
 import "@fontsource-variable/inter"
 import "../../style.css"
 
@@ -179,13 +180,9 @@ function OnboardingScreen() {
               minLength={8}
             />
             {error && <div className="text-red-400 text-xs">{error}</div>}
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn-accent w-full px-5 py-2.5 rounded-lg text-sm font-medium disabled:opacity-50"
-            >
-              {loading ? 'Please wait...' : mode === 'login' ? 'Sign in' : 'Create account'}
-            </button>
+            <Button variant="primary" type="submit" disabled={loading} className="w-full">
+              {loading ? 'Please wait…' : mode === 'login' ? 'Sign in' : 'Create account'}
+            </Button>
           </form>
 
           {/* Divider */}

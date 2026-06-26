@@ -7,6 +7,7 @@ import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import { v7 as uuidv7 } from "uuid"
 import { faviconToDataUrl } from "~src/utils/favicon"
 import { Modal } from "~src/components/Modal"
+import { Button } from "~src/components/ui/Button"
 import { Select, SelectItem } from "~src/components/ui/Select"
 
 const OpenedTab = ({ tab, windowId }: { tab: chrome.tabs.Tab, windowId: number }) => {
@@ -163,10 +164,10 @@ function SaveSessionModal({
         </div>
 
         <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 text-white/50 hover:text-white/70 text-sm font-sans rounded-md transition-colors">Cancel</button>
-          <button onClick={handleSave} disabled={!canSave || saving} className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white/90 text-sm font-sans rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
-            {saving ? 'Saving...' : 'Save'}
-          </button>
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant="primary" onClick={handleSave} disabled={!canSave || saving}>
+            {saving ? 'Saving…' : 'Save'}
+          </Button>
         </div>
     </Modal>
   )

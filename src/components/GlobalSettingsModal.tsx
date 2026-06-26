@@ -13,6 +13,7 @@ import { Modal } from "~src/components/Modal";
 import { ConfirmDialog } from "~src/components/ConfirmDialog";
 import { Switch } from "~src/components/ui/Switch";
 import { Slider } from "~src/components/ui/Slider";
+import { Button } from "~src/components/ui/Button";
 import * as Tabs from "@radix-ui/react-tabs";
 
 type SettingsTab = 'appearance' | 'layout' | 'sync' | 'history' | 'account' | 'data';
@@ -272,13 +273,9 @@ function AccountTab() {
           />
           {pwError && <div className="text-red-400 text-[11px]">{pwError}</div>}
           {pwSuccess && <div className="text-green-400 text-[11px]">{pwSuccess}</div>}
-          <button
-            type="submit"
-            disabled={pwLoading}
-            className="btn-accent self-start px-3.5 py-1.5 rounded-lg text-xs font-sans font-medium disabled:opacity-50"
-          >
-            {pwLoading ? 'Saving...' : user?.has_password ? 'Update password' : 'Set password'}
-          </button>
+          <Button variant="primary" size="sm" type="submit" disabled={pwLoading} className="self-start">
+            {pwLoading ? 'Saving…' : user?.has_password ? 'Update password' : 'Set password'}
+          </Button>
         </form>
       </SettingRow>
 

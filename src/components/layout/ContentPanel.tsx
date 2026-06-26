@@ -2,6 +2,7 @@ import { useActiveCategory, useActiveGroups, useActiveSpace, useActiveProject, u
 import type { SavedTab, SavedGroup } from "~src/types";
 import { TabGroup } from "../TabGroup";
 import { Tooltip } from "~src/components/ui/Tooltip";
+import { Button } from "~src/components/ui/Button";
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { DragHandleIcon } from "../icons/DragHandleIcon";
@@ -47,12 +48,7 @@ function EmptyState({ onSaveAllTabs, onNewGroup }: { onSaveAllTabs: () => void; 
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={onNewGroup}
-            className="btn-accent px-5 py-2.5 text-xs font-sans rounded-lg"
-          >
-            New Group
-          </button>
+          <Button variant="primary" size="sm" onClick={onNewGroup}>New Group</Button>
           <button
             onClick={onSaveAllTabs}
             className="px-5 py-2.5 bg-white/[0.08] hover:bg-white/[0.12] text-white/60 hover:text-white/80 text-xs font-sans rounded-lg transition-colors"

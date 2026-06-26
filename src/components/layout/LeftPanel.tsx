@@ -8,6 +8,7 @@ import { ConfirmDialog } from "~src/components/ConfirmDialog";
 import { Modal } from "~src/components/Modal";
 import { Tooltip } from "~src/components/ui/Tooltip";
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from "~src/components/ui/ContextMenu";
+import { Button } from "~src/components/ui/Button";
 import type { SavedProject, SavedCategory } from "~src/types";
 
 const SPACE_COLORS = [
@@ -74,7 +75,7 @@ function SpaceSettings({ onClose }: { onClose: () => void }) {
             ))}
           </div>
         </div>
-        <button onClick={handleSave} className="w-full px-3 py-2 bg-white/10 hover:bg-white/15 text-white/80 text-sm font-sans rounded-md transition-colors mt-1">Save</button>
+        <Button variant="primary" onClick={handleSave} className="mt-1 w-full">Save</Button>
     </Modal>
   );
 }
