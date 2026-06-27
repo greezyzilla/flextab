@@ -6,10 +6,10 @@ import { v7 as uuidv7 } from "uuid";
 import { showUndoToast } from "~src/components/UndoToast";
 import { GlobalSettingsModal } from "~src/components/GlobalSettingsModal";
 import { ConfirmDialog } from "~src/components/ConfirmDialog";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "~src/components/ui/DropdownMenu";
-import { Tooltip } from "~src/components/ui/Tooltip";
-import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from "~src/components/ui/ContextMenu";
-import { Input } from "~src/components/ui/Input";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "~src/components/ui/dropdown-menu";
+import { Tooltip } from "~src/components/ui/tooltip";
+import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from "~src/components/ui/context-menu";
+import { Input } from "~src/components/ui/input";
 
 export function ProfilePanel() {
   const { savedSpaces, activeSpaceId, setActiveSpace, addSavedSpace, updateSavedSpace, removeSavedSpace, reorderSpaces } = useSavedSpacesStore();

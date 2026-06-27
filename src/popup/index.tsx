@@ -6,7 +6,7 @@ import { useAuthStore } from "~src/store/useAuthStore"
 import { v7 as uuidv7 } from "uuid"
 import type { SavedTab } from "~src/types"
 import { faviconToDataUrl } from "~src/utils/favicon"
-import { Button } from "~src/components/ui/Button"
+import { Button } from "~src/components/ui/button"
 
 function IndexPopup() {
   const hydrated = useHydrated();

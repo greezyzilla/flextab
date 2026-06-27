@@ -8,9 +8,9 @@ import type { SavedGroup, SavedTab } from "~src/types";
 import { useSavedSpacesStore, useActiveSpace, useActiveProject, useActiveCategory } from "~src/store/useSavedSpacesStore";
 import { showUndoToast } from "./UndoToast";
 import { ConfirmDialog } from "./ConfirmDialog";
-import { Tooltip } from "./ui/Tooltip";
-import { IconButton } from "./ui/Button";
-import { Input } from "./ui/Input";
+import { Tooltip } from "./ui/tooltip";
+import { IconButton } from "./ui/button";
+import { Input } from "./ui/input";
 import type { GroupLayout } from "~src/store/useSettingsStore";
 
 function SavedTabItem({ tab, groupId, isDuplicate }: { tab: SavedTab; groupId: string; isDuplicate?: boolean }) {

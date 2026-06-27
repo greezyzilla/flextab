@@ -11,10 +11,10 @@ import type { SavedSpace } from "~src/types";
 import * as yjs from "~src/lib/yjsDoc";
 import { Modal } from "~src/components/Modal";
 import { ConfirmDialog } from "~src/components/ConfirmDialog";
-import { Switch } from "~src/components/ui/Switch";
-import { Slider } from "~src/components/ui/Slider";
-import { Button } from "~src/components/ui/Button";
-import { Input } from "~src/components/ui/Input";
+import { Switch } from "~src/components/ui/switch";
+import { Slider } from "~src/components/ui/slider";
+import { Button } from "~src/components/ui/button";
+import { Input } from "~src/components/ui/input";
 import * as Tabs from "@radix-ui/react-tabs";
 
 type SettingsTab = 'appearance' | 'layout' | 'sync' | 'history' | 'account' | 'data';

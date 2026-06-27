@@ -2,7 +2,7 @@ import { useMemo, useState } from "react"
 import { useSyncConflict } from "~src/store/useSyncConflict"
 import { resolveConflict, mergeSpaces } from "~src/services/syncEngine"
 import type { SavedSpace } from "~src/types"
-import { Button } from "~src/components/ui/Button"
+import { Button } from "~src/components/ui/button"
 
 type Choice = "merge" | "server" | "local"
 

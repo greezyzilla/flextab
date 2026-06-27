@@ -1,8 +1,8 @@
 import { useActiveCategory, useActiveGroups, useActiveSpace, useActiveProject, useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import type { SavedTab, SavedGroup } from "~src/types";
 import { TabGroup } from "../TabGroup";
-import { Tooltip } from "~src/components/ui/Tooltip";
-import { Button } from "~src/components/ui/Button";
+import { Tooltip } from "~src/components/ui/tooltip";
+import { Button } from "~src/components/ui/button";
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { DragHandleIcon } from "../icons/DragHandleIcon";

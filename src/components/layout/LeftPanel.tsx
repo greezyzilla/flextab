@@ -6,10 +6,10 @@ import config from '../../../package.json';
 import { showUndoToast } from "~src/components/UndoToast";
 import { ConfirmDialog } from "~src/components/ConfirmDialog";
 import { Modal } from "~src/components/Modal";
-import { Tooltip } from "~src/components/ui/Tooltip";
-import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from "~src/components/ui/ContextMenu";
-import { Button, IconButton } from "~src/components/ui/Button";
-import { Input, Label } from "~src/components/ui/Input";
+import { Tooltip } from "~src/components/ui/tooltip";
+import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from "~src/components/ui/context-menu";
+import { Button, IconButton } from "~src/components/ui/button";
+import { Input, Label } from "~src/components/ui/input";
 import type { SavedProject, SavedCategory } from "~src/types";
 
 const SPACE_COLORS = [

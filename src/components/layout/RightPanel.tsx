@@ -7,10 +7,10 @@ import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import { v7 as uuidv7 } from "uuid"
 import { faviconToDataUrl } from "~src/utils/favicon"
 import { Modal } from "~src/components/Modal"
-import { Button, IconButton } from "~src/components/ui/Button"
-import { Tooltip } from "~src/components/ui/Tooltip"
-import { Select, SelectItem } from "~src/components/ui/Select"
-import { Input, Label } from "~src/components/ui/Input"
+import { Button, IconButton } from "~src/components/ui/button"
+import { Tooltip } from "~src/components/ui/tooltip"
+import { Select, SelectItem } from "~src/components/ui/select"
+import { Input, Label } from "~src/components/ui/input"
 
 const OpenedTab = ({ tab, windowId }: { tab: chrome.tabs.Tab, windowId: number }) => {
   const onTabClick = (tab: chrome.tabs.Tab, windowId: number) => {
