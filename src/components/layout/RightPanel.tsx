@@ -9,7 +9,7 @@ import { faviconToDataUrl } from "~src/utils/favicon"
 import { Modal } from "~src/components/ui/modal"
 import { Button, IconButton } from "~src/components/ui/button"
 import { Tooltip, TooltipTrigger, TooltipContent } from "~src/components/ui/tooltip"
-import { Select, SelectItem } from "~src/components/ui/select"
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "~src/components/ui/select"
 import { Input } from "~src/components/ui/input"
 import { Label } from "~src/components/ui/label"
 
@@ -150,14 +150,23 @@ function SaveSessionModal({
         <div className="flex flex-col gap-1">
           <Label>Save to</Label>
           <div className="flex gap-2">
-            <Select value={spaceId} onValueChange={handleSpaceChange} placeholder="Space" className="flex-1">
-              {savedSpaces.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+            <Select value={spaceId} onValueChange={handleSpaceChange}>
+              <SelectTrigger className="flex-1"><SelectValue placeholder="Space" /></SelectTrigger>
+              <SelectContent>
+                {savedSpaces.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+              </SelectContent>
             </Select>
-            <Select value={projectId} onValueChange={handleProjectChange} placeholder="No projects" disabled={projects.length === 0} className="flex-1">
-              {projects.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+            <Select value={projectId} onValueChange={handleProjectChange}>
+              <SelectTrigger className="flex-1" disabled={projects.length === 0}><SelectValue placeholder="No projects" /></SelectTrigger>
+              <SelectContent>
+                {projects.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+              </SelectContent>
             </Select>
-            <Select value={categoryId} onValueChange={setCategoryId} placeholder="No categories" disabled={categories.length === 0} className="flex-1">
-              {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+            <Select value={categoryId} onValueChange={setCategoryId}>
+              <SelectTrigger className="flex-1" disabled={categories.length === 0}><SelectValue placeholder="No categories" /></SelectTrigger>
+              <SelectContent>
+                {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              </SelectContent>
             </Select>
           </div>
         </div>
