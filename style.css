@@ -119,6 +119,33 @@
   }
 }
 
+/* shadcn semantic tokens — HSL channels mapped to our palette. Prefixed --sc-
+   so they never collide with our brand --accent or --color-black-* scale. The
+   tailwind config exposes them as bg-background / text-foreground / bg-primary /
+   bg-accent / border-border etc., so `npx shadcn add` components render on-theme. */
+:root {
+  --sc-background: 222 16% 9%;
+  --sc-foreground: 210 16% 92%;
+  --sc-card: 222 16% 9%;
+  --sc-card-foreground: 210 16% 92%;
+  --sc-popover: 223 20% 7%;
+  --sc-popover-foreground: 210 16% 92%;
+  --sc-primary: 216 87% 54%;
+  --sc-primary-foreground: 0 0% 100%;
+  --sc-secondary: 222 13% 18%;
+  --sc-secondary-foreground: 210 16% 90%;
+  --sc-muted: 222 13% 18%;
+  --sc-muted-foreground: 215 9% 62%;
+  --sc-accent: 222 13% 20%;
+  --sc-accent-foreground: 210 16% 92%;
+  --sc-destructive: 0 72% 51%;
+  --sc-destructive-foreground: 0 0% 100%;
+  --sc-border: 220 9% 24%;
+  --sc-input: 220 9% 24%;
+  --sc-ring: 216 87% 54%;
+  --radius: 0.5rem;
+}
+
 /* Density: comfortable (default) */
 :root.density-comfortable {
   --density-py-tab: 0.5rem;    /* py-2 */
