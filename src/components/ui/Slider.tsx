@@ -1,4 +1,5 @@
 import * as RSlider from "@radix-ui/react-slider";
+import { cn } from "~src/lib/utils";
 
 export function Slider({
   value,
@@ -6,7 +7,7 @@ export function Slider({
   min = 0,
   max = 100,
   step = 1,
-  className = "",
+  className,
 }: {
   value: number;
   onValueChange: (v: number) => void;
@@ -22,7 +23,7 @@ export function Slider({
       min={min}
       max={max}
       step={step}
-      className={`relative flex h-5 touch-none select-none items-center ${className}`}
+      className={cn("relative flex h-5 touch-none select-none items-center", className)}
     >
       <RSlider.Track className="relative h-1.5 grow rounded-full bg-white/10">
         <RSlider.Range className="absolute h-full rounded-full bg-[var(--accent)]" />

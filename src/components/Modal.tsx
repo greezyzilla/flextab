@@ -1,4 +1,5 @@
 import * as Dialog from "@radix-ui/react-dialog";
+import { cn } from "~src/lib/utils";
 
 interface ModalProps {
   open: boolean;
@@ -25,7 +26,7 @@ export function Modal({
   title,
   hideTitle = true,
   showClose = true,
-  className = "",
+  className,
   children,
 }: ModalProps) {
   return (
@@ -33,7 +34,10 @@ export function Modal({
       <Dialog.Portal>
         <Dialog.Overlay className="dlg-overlay fixed inset-0 z-[90] bg-[rgba(0,0,0,0.66)] backdrop-blur-[8px]" />
         <Dialog.Content
-          className={`dlg-content fixed left-1/2 top-1/2 z-[90] -translate-x-1/2 -translate-y-1/2 border border-white/10 bg-black-900 shadow-[0_18px_50px_-16px_rgba(0,0,0,0.6)] outline-none ${className}`}
+          className={cn(
+            "dlg-content fixed left-1/2 top-1/2 z-[90] -translate-x-1/2 -translate-y-1/2 border border-white/10 bg-black-900 shadow-[0_18px_50px_-16px_rgba(0,0,0,0.6)] outline-none",
+            className,
+          )}
         >
           <Dialog.Title className={hideTitle ? "sr-only" : undefined}>{title}</Dialog.Title>
           {children}
