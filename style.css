@@ -28,12 +28,36 @@
   .accent-fill:active { filter: brightness(0.98); }
 }
 
-/* react-colorful sizing/rounding — UNLAYERED on purpose: react-colorful injects
-   its own unlayered styles, which would beat anything inside @layer. */
-.picker-pop .react-colorful { width: 188px; height: 152px; gap: 8px; }
-.picker-pop .react-colorful__saturation { border-radius: 8px; border-bottom: none; }
-.picker-pop .react-colorful__hue { height: 12px; border-radius: 999px; }
-.picker-pop .react-colorful__pointer { width: 14px; height: 14px; }
+/* react-colorful theming — UNLAYERED on purpose: react-colorful injects its own
+   unlayered styles, which would beat anything inside @layer. Higher specificity
+   (.picker-pop ...) wins. Separates saturation + hue into two rounded controls,
+   shrinks the default 28px white handle to a crisp 15px dot. */
+.picker-pop .react-colorful {
+  width: 204px;
+  height: 164px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.picker-pop .react-colorful__saturation {
+  flex: 1;
+  border-radius: 10px;
+  border-bottom: none;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+.picker-pop .react-colorful__hue,
+.picker-pop .react-colorful__alpha,
+.picker-pop .react-colorful__last-control {
+  height: 10px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+.picker-pop .react-colorful__pointer {
+  width: 15px;
+  height: 15px;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35), 0 1px 3px rgba(0, 0, 0, 0.5);
+}
 
 @layer theme {
   :root {
