@@ -119,7 +119,7 @@ function AppearanceTab() {
 
       <SettingRow label="Background Tint" description="Tints the background with the accent hue.">
         <div className="flex items-center gap-3">
-          <Slider min={0} max={15} value={bgTint} onValueChange={setBgTint} className="flex-1" />
+          <Slider min={0} max={15} value={[bgTint]} onValueChange={(v) => setBgTint(v[0])} className="flex-1" />
           <span className="text-white/30 text-[11px] font-sans w-8 text-right shrink-0">{bgTint}%</span>
         </div>
       </SettingRow>
@@ -464,7 +464,10 @@ function SyncTab() {
       </SettingRow>
 
       <SettingRow label="Auto-sync" description="Keep changes in sync across devices automatically. When off, use “Sync now”.">
-        <Switch checked={autoSync} onCheckedChange={setAutoSync} label={autoSync ? 'On' : 'Off'} />
+        <div className="flex items-center gap-2">
+          <Switch checked={autoSync} onCheckedChange={setAutoSync} />
+          <span className="text-white/60 text-xs font-sans">{autoSync ? 'On' : 'Off'}</span>
+        </div>
       </SettingRow>
 
       <DevicesSection refresh={devicesNonce} />
