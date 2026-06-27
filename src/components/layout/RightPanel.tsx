@@ -10,7 +10,8 @@ import { Modal } from "~src/components/ui/modal"
 import { Button, IconButton } from "~src/components/ui/button"
 import { Tooltip } from "~src/components/ui/tooltip"
 import { Select, SelectItem } from "~src/components/ui/select"
-import { Input, Label } from "~src/components/ui/input"
+import { Input } from "~src/components/ui/input"
+import { Label } from "~src/components/ui/label"
 
 const OpenedTab = ({ tab, windowId }: { tab: chrome.tabs.Tab, windowId: number }) => {
   const onTabClick = (tab: chrome.tabs.Tab, windowId: number) => {

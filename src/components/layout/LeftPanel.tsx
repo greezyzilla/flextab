@@ -9,7 +9,8 @@ import { Modal } from "~src/components/ui/modal";
 import { Tooltip } from "~src/components/ui/tooltip";
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from "~src/components/ui/context-menu";
 import { Button, IconButton } from "~src/components/ui/button";
-import { Input, Label } from "~src/components/ui/input";
+import { Input } from "~src/components/ui/input"
+import { Label } from "~src/components/ui/label";
 import type { SavedProject, SavedCategory } from "~src/types";
 
 const SPACE_COLORS = [

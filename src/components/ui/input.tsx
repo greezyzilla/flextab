@@ -1,33 +1,31 @@
-import { forwardRef } from "react";
-import type { InputHTMLAttributes, LabelHTMLAttributes } from "react";
-import { cva, type VariantProps } from "class-variance-authority";
-import { cn } from "~src/lib/utils";
+import * as React from "react"
+import { cva, type VariantProps } from "class-variance-authority"
 
-const inputVariants = cva("font-sans outline-none", {
+import { cn } from "~src/lib/utils"
+
+const inputVariants = cva("flex w-full font-sans outline-none disabled:cursor-not-allowed disabled:opacity-50", {
   variants: {
     variant: {
-      // Form field — bordered, used in modals/settings/auth.
+      // form field
       default:
-        "bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2 text-sm text-white/90 transition-colors placeholder:text-white/30 focus:border-white/25 disabled:opacity-50",
-      // Inline rename — sits in place of a label, ring focus.
+        "h-9 rounded-lg border border-input bg-white/[0.06] px-3 py-1 text-sm text-white/90 shadow-sm transition-colors placeholder:text-white/30 focus-visible:border-white/25",
+      // inline rename
       inline:
-        "bg-white/10 rounded px-2 py-0.5 text-sm text-white/90 min-w-0 focus:ring-1 focus:ring-[var(--accent)]",
+        "rounded bg-white/10 px-2 py-0.5 text-sm text-white/90 min-w-0 focus:ring-1 focus:ring-[var(--accent)]",
     },
   },
   defaultVariants: { variant: "default" },
-});
+})
 
 export interface InputProps
-  extends InputHTMLAttributes<HTMLInputElement>,
+  extends React.ComponentProps<"input">,
     VariantProps<typeof inputVariants> {}
 
-export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
-  { variant, className, ...props },
-  ref,
-) {
-  return <input ref={ref} className={cn(inputVariants({ variant }), className)} {...props} />;
-});
+const Input = React.forwardRef<HTMLInputElement, InputProps>(
+  ({ className, variant, type, ...props }, ref) => (
+    <input type={type} ref={ref} className={cn(inputVariants({ variant }), className)} {...props} />
+  ),
+)
+Input.displayName = "Input"
 
-export function Label({ className, ...props }: LabelHTMLAttributes<HTMLLabelElement>) {
-  return <label className={cn("font-sans text-[11px] text-white/45", className)} {...props} />;
-}
+export { Input }
