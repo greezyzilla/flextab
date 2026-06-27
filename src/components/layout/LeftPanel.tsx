@@ -6,7 +6,7 @@ import config from '../../../package.json';
 import { showUndoToast } from "~src/components/ui/undo-toast";
 import { ConfirmDialog } from "~src/components/ui/confirm-dialog";
 import { Modal } from "~src/components/ui/modal";
-import { Tooltip } from "~src/components/ui/tooltip";
+import { Tooltip, TooltipTrigger, TooltipContent } from "~src/components/ui/tooltip";
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from "~src/components/ui/context-menu";
 import { Button, IconButton } from "~src/components/ui/button";
 import { Input } from "~src/components/ui/input"
@@ -196,7 +196,8 @@ export function LeftPanel() {
           <h2 className="text-white/70 font-sans text-sm font-medium truncate">{currentSpace?.name || 'No Space'}</h2>
         </div>
         {currentSpace && (
-          <Tooltip content="Space settings">
+          <Tooltip>
+          <TooltipTrigger asChild>
           <IconButton variant="subtle" onClick={() => setShowSettings(!showSettings)}
             className={`shrink-0 ${showSettings ? '!text-white/70' : ''}`}>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
@@ -204,6 +205,8 @@ export function LeftPanel() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
             </svg>
           </IconButton>
+          </TooltipTrigger>
+          <TooltipContent>Space settings</TooltipContent>
           </Tooltip>
         )}
       </div>
@@ -247,16 +250,19 @@ export function LeftPanel() {
                         </span>
                       )}
 
-                      <Tooltip content="Add category">
-                        <IconButton
-                          variant="subtle"
-                          onClick={e => { e.stopPropagation(); handleAddCategory(project.id); }}
-                          className="shrink-0 opacity-0 group-hover/proj:opacity-100"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                          </svg>
-                        </IconButton>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <IconButton
+                            variant="subtle"
+                            onClick={e => { e.stopPropagation(); handleAddCategory(project.id); }}
+                            className="shrink-0 opacity-0 group-hover/proj:opacity-100"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                            </svg>
+                          </IconButton>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">Add category</TooltipContent>
                       </Tooltip>
                     </div>
                     </ContextMenuTrigger>

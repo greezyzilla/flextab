@@ -7,7 +7,7 @@ import { showUndoToast } from "~src/components/ui/undo-toast";
 import { GlobalSettingsModal } from "~src/components/GlobalSettingsModal";
 import { ConfirmDialog } from "~src/components/ui/confirm-dialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "~src/components/ui/dropdown-menu";
-import { Tooltip } from "~src/components/ui/tooltip";
+import { Tooltip, TooltipTrigger, TooltipContent } from "~src/components/ui/tooltip";
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from "~src/components/ui/context-menu";
 import { Input } from "~src/components/ui/input";
 
@@ -140,19 +140,23 @@ export function ProfilePanel() {
             </div>
           </DroppableSpace>
         ))}
-        <Tooltip content="Add space" side="right">
-          <div
-            onClick={handleAddSpace}
-            className="w-10 h-10 rounded-full border border-white/30 border-dashed text-white/50 flex items-center justify-center cursor-pointer hover:border-white/50 hover:text-white/70 transition-colors"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-          </div>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div
+              onClick={handleAddSpace}
+              className="w-10 h-10 rounded-full border border-white/30 border-dashed text-white/50 flex items-center justify-center cursor-pointer hover:border-white/50 hover:text-white/70 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="right">Add space</TooltipContent>
         </Tooltip>
       </div>
       <div className="flex flex-col gap-2 py-4 items-center">
-        <Tooltip content="Settings" side="right">
+        <Tooltip>
+        <TooltipTrigger asChild>
         <div
           onClick={() => setShowGlobalSettings(true)}
           className="w-10 h-10 rounded-full bg-black-800 hover:bg-black-700 cursor-pointer flex items-center justify-center transition-colors"
@@ -162,6 +166,8 @@ export function ProfilePanel() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
           </svg>
         </div>
+        </TooltipTrigger>
+        <TooltipContent side="right">Settings</TooltipContent>
         </Tooltip>
         {isAuthenticated && user ? (
           <DropdownMenu>

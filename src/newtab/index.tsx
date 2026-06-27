@@ -350,7 +350,7 @@ function NewTabPage() {
   if (!hydrated) return <LoadingScreen />;
 
   return (
-    <TooltipProvider>
+    <TooltipProvider delayDuration={300}>
       <ErrorBoundary>
         <NewTabPageContent />
         <SyncConflictModal />

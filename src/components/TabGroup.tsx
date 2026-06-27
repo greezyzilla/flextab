@@ -8,7 +8,7 @@ import type { SavedGroup, SavedTab } from "~src/types";
 import { useSavedSpacesStore, useActiveSpace, useActiveProject, useActiveCategory } from "~src/store/useSavedSpacesStore";
 import { showUndoToast } from "./ui/undo-toast";
 import { ConfirmDialog } from "./ui/confirm-dialog";
-import { Tooltip } from "./ui/tooltip";
+import { Tooltip, TooltipTrigger, TooltipContent } from "./ui/tooltip";
 import { IconButton } from "./ui/button";
 import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
@@ -78,12 +78,15 @@ function SavedTabItem({ tab, groupId, isDuplicate }: { tab: SavedTab; groupId: s
           )}
         </div>
 
-        <Tooltip content="Remove tab">
-          <IconButton danger onClick={handleDelete} className="shrink-0 opacity-0 group-hover:opacity-100">
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </IconButton>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <IconButton danger onClick={handleDelete} className="shrink-0 opacity-0 group-hover:opacity-100">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </IconButton>
+          </TooltipTrigger>
+          <TooltipContent>Remove tab</TooltipContent>
         </Tooltip>
       </div>
 
@@ -184,20 +187,26 @@ export function TabGroup({ group, layout = 'list', gridColumns = 2 }: TabGroupPr
         )}
         <div className="flex items-center gap-0.5">
           {sortedTabs.length > 0 && (
-            <Tooltip content="Open all in a new window">
-              <IconButton onClick={handleOpenAll} className="opacity-0 group-hover/header:opacity-100">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 5h6v6M19 5l-8 8M11 5H6a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1v-5" />
-                </svg>
-              </IconButton>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <IconButton onClick={handleOpenAll} className="opacity-0 group-hover/header:opacity-100">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 5h6v6M19 5l-8 8M11 5H6a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1v-5" />
+                  </svg>
+                </IconButton>
+              </TooltipTrigger>
+              <TooltipContent>Open all in a new window</TooltipContent>
             </Tooltip>
           )}
-          <Tooltip content="Delete group">
-            <IconButton danger onClick={() => setShowDeleteConfirm(true)} className="opacity-0 group-hover/header:opacity-100">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m-1 0v11m-4-11v11M7 7l1 12a1 1 0 001 1h6a1 1 0 001-1l1-12" />
-              </svg>
-            </IconButton>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <IconButton danger onClick={() => setShowDeleteConfirm(true)} className="opacity-0 group-hover/header:opacity-100">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m-1 0v11m-4-11v11M7 7l1 12a1 1 0 001 1h6a1 1 0 001-1l1-12" />
+                </svg>
+              </IconButton>
+            </TooltipTrigger>
+            <TooltipContent>Delete group</TooltipContent>
           </Tooltip>
         </div>
       </div>

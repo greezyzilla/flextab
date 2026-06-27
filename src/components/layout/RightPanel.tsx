@@ -8,7 +8,7 @@ import { v7 as uuidv7 } from "uuid"
 import { faviconToDataUrl } from "~src/utils/favicon"
 import { Modal } from "~src/components/ui/modal"
 import { Button, IconButton } from "~src/components/ui/button"
-import { Tooltip } from "~src/components/ui/tooltip"
+import { Tooltip, TooltipTrigger, TooltipContent } from "~src/components/ui/tooltip"
 import { Select, SelectItem } from "~src/components/ui/select"
 import { Input } from "~src/components/ui/input"
 import { Label } from "~src/components/ui/label"
@@ -227,12 +227,15 @@ export function RightPanel() {
                   Window {index + 1}
                   <span className="text-white/25 ml-1.5">{tabs.length} tabs</span>
                 </span>
-                <Tooltip content="Save this window as a group">
-                  <IconButton variant="subtle" onClick={() => handleSaveSession(tabs)}>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                    </svg>
-                  </IconButton>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <IconButton variant="subtle" onClick={() => handleSaveSession(tabs)}>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                      </svg>
+                    </IconButton>
+                  </TooltipTrigger>
+                  <TooltipContent>Save this window as a group</TooltipContent>
                 </Tooltip>
               </div>
 
