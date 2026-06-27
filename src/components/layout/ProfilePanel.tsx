@@ -9,6 +9,7 @@ import { ConfirmDialog } from "~src/components/ConfirmDialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "~src/components/ui/DropdownMenu";
 import { Tooltip } from "~src/components/ui/Tooltip";
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from "~src/components/ui/ContextMenu";
+import { Input } from "~src/components/ui/Input";
 
 export function ProfilePanel() {
   const { savedSpaces, activeSpaceId, setActiveSpace, addSavedSpace, updateSavedSpace, removeSavedSpace, reorderSpaces } = useSavedSpacesStore();
@@ -86,7 +87,8 @@ export function ProfilePanel() {
             <div className="relative">
               {renaming === space.id ? (
                 <div className="absolute left-14 top-0 z-50 bg-black-800 border border-black-700 rounded-lg shadow-xl p-2 w-40">
-                  <input
+                  <Input
+                    variant="inline"
                     ref={renameInputRef}
                     type="text"
                     value={renameValue}
@@ -96,7 +98,7 @@ export function ProfilePanel() {
                       if (e.key === "Enter") handleRenameSubmit();
                       if (e.key === "Escape") setRenaming(null);
                     }}
-                    className="w-full bg-black-900 border border-black-700 rounded px-2 py-1 text-white/90 text-xs font-sans outline-none focus:border-white/30"
+                    className="w-full text-xs"
                   />
                 </div>
               ) : null}

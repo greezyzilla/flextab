@@ -10,6 +10,7 @@ import { showUndoToast } from "./UndoToast";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { Tooltip } from "./ui/Tooltip";
 import { IconButton } from "./ui/Button";
+import { Input } from "./ui/Input";
 import type { GroupLayout } from "~src/store/useSettingsStore";
 
 function SavedTabItem({ tab, groupId, isDuplicate }: { tab: SavedTab; groupId: string; isDuplicate?: boolean }) {
@@ -156,7 +157,8 @@ export function TabGroup({ group, layout = 'list', gridColumns = 2 }: TabGroupPr
     <div className="flex flex-col gap-2" style={{ padding: 'var(--density-p-section)' }}>
       <div className="flex items-center justify-between pl-7 group/header">
         {isRenaming ? (
-          <input
+          <Input
+            variant="inline"
             ref={renameRef}
             type="text"
             value={renameValue}
@@ -166,7 +168,6 @@ export function TabGroup({ group, layout = 'list', gridColumns = 2 }: TabGroupPr
               if (e.key === "Enter") handleRenameSubmit();
               if (e.key === "Escape") { setRenameValue(group.name); setIsRenaming(false); }
             }}
-            className="bg-white/10 text-white/90 px-2 py-0.5 rounded outline-none focus:ring-1 focus:ring-[var(--accent)] font-sans text-sm"
           />
         ) : (
           <div className="flex items-center gap-2.5 min-w-0">

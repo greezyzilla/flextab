@@ -9,6 +9,7 @@ import { Modal } from "~src/components/Modal";
 import { Tooltip } from "~src/components/ui/Tooltip";
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from "~src/components/ui/ContextMenu";
 import { Button, IconButton } from "~src/components/ui/Button";
+import { Input, Label } from "~src/components/ui/Input";
 import type { SavedProject, SavedCategory } from "~src/types";
 
 const SPACE_COLORS = [
@@ -53,20 +54,20 @@ function SpaceSettings({ onClose }: { onClose: () => void }) {
           </IconButton>
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-white/40 text-[11px] font-sans">Name</label>
-          <input ref={nameRef} type="text" value={name} onChange={e => setName(e.target.value)}
+          <Label>Name</Label>
+          <Input ref={nameRef} type="text" value={name} onChange={e => setName(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") onClose(); }}
-            className="bg-black-800 border border-black-700 rounded-md px-2.5 py-1.5 text-white/90 text-sm font-sans outline-none focus:border-white/30" />
+            className="w-full" />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-white/40 text-[11px] font-sans">Abbreviation (max 2)</label>
-          <input type="text" value={abbreviation} onChange={e => setAbbreviation(e.target.value.slice(0, 2))}
+          <Label>Abbreviation (max 2)</Label>
+          <Input type="text" value={abbreviation} onChange={e => setAbbreviation(e.target.value.slice(0, 2))}
             placeholder={currentSpace.name.slice(0, 2).toUpperCase()}
             onKeyDown={e => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") onClose(); }}
-            className="bg-black-800 border border-black-700 rounded-md px-2.5 py-1.5 text-white/90 text-sm font-sans outline-none focus:border-white/30 w-20" />
+            className="w-20" />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className="text-white/40 text-[11px] font-sans">Color</label>
+          <Label>Color</Label>
           <div className="flex gap-2 flex-wrap">
             {SPACE_COLORS.map(c => (
               <button key={c || "default"} onClick={() => setColor(c)}
@@ -234,11 +235,11 @@ export function LeftPanel() {
                       </svg>
 
                       {renamingId === project.id ? (
-                        <input ref={renameRef} type="text" value={renameValue}
+                        <Input variant="inline" ref={renameRef} type="text" value={renameValue}
                           onChange={e => setRenameValue(e.target.value)} onBlur={submitRename}
                           onKeyDown={e => { if (e.key === "Enter") submitRename(); if (e.key === "Escape") setRenamingId(null); }}
                           onClick={e => e.stopPropagation()}
-                          className="flex-1 bg-white/10 text-white/90 px-2 py-0.5 rounded outline-none focus:ring-1 focus:ring-[var(--accent)] font-sans text-xs min-w-0" />
+                          className="flex-1 text-xs min-w-0" />
                       ) : (
                         <span className="flex-1 text-white/40 font-sans text-[11px] font-semibold uppercase tracking-wider truncate">
                           {project.name}
@@ -293,11 +294,11 @@ export function LeftPanel() {
                             >
                               <span className={`w-1 h-1 rounded-full shrink-0 ${isActive ? '' : 'bg-white/20'}`} style={isActive ? { backgroundColor: 'var(--accent)' } : undefined} />
                               {renamingId === category.id ? (
-                                <input ref={renameRef} type="text" value={renameValue}
+                                <Input variant="inline" ref={renameRef} type="text" value={renameValue}
                                   onChange={e => setRenameValue(e.target.value)} onBlur={submitRename}
                                   onKeyDown={e => { if (e.key === "Enter") submitRename(); if (e.key === "Escape") setRenamingId(null); }}
                                   onClick={e => e.stopPropagation()}
-                                  className="flex-1 bg-white/10 text-white/90 px-2 py-0.5 rounded outline-none focus:ring-1 focus:ring-[var(--accent)] font-sans text-xs min-w-0" />
+                                  className="flex-1 text-xs min-w-0" />
                               ) : (
                                 <span className="flex-1 font-sans text-[13px] truncate">{category.name}</span>
                               )}

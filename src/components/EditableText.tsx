@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Input } from './ui/Input';
 
 export interface EditableTextProps {
   value: string;
@@ -40,13 +41,14 @@ export function EditableText({ value, onSave, className, isEditing, canEdit, onE
 
   if (isEditing) {
     return (
-      <input
+      <Input
+        variant="inline"
         type="text"
         value={editValue}
         onChange={(e) => setEditValue(e.target.value)}
         onBlur={handleSave}
         onKeyDown={handleKeyDown}
-        className={`bg-white/10 text-white px-2 py-1 rounded-md outline-none focus:ring-1 focus:ring-blue-500 font-sans ${className}`}
+        className={className}
         autoFocus
       />
     );

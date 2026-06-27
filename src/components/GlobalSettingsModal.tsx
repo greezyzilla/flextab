@@ -14,6 +14,7 @@ import { ConfirmDialog } from "~src/components/ConfirmDialog";
 import { Switch } from "~src/components/ui/Switch";
 import { Slider } from "~src/components/ui/Slider";
 import { Button } from "~src/components/ui/Button";
+import { Input } from "~src/components/ui/Input";
 import * as Tabs from "@radix-ui/react-tabs";
 
 type SettingsTab = 'appearance' | 'layout' | 'sync' | 'history' | 'account' | 'data';
@@ -245,29 +246,29 @@ function AccountTab() {
       >
         <form onSubmit={handleChangePassword} className="flex flex-col gap-2.5">
           {user?.has_password && (
-            <input
+            <Input
               type="password"
               placeholder="Current password"
               value={currentPw}
               onChange={e => setCurrentPw(e.target.value)}
-              className="w-full px-3 py-2 bg-white/[0.06] border border-white/10 rounded-lg text-white/90 text-xs placeholder:text-white/25 outline-none focus:border-white/25 transition-colors"
+              className="w-full"
             />
           )}
-          <input
+          <Input
             type="password"
             placeholder="New password"
             value={newPw}
             onChange={e => setNewPw(e.target.value)}
-            className="w-full px-3 py-2 bg-white/[0.06] border border-white/10 rounded-lg text-white/90 text-xs placeholder:text-white/25 outline-none focus:border-white/25 transition-colors"
+            className="w-full"
             minLength={8}
             required
           />
-          <input
+          <Input
             type="password"
             placeholder="Confirm new password"
             value={confirmPw}
             onChange={e => setConfirmPw(e.target.value)}
-            className="w-full px-3 py-2 bg-white/[0.06] border border-white/10 rounded-lg text-white/90 text-xs placeholder:text-white/25 outline-none focus:border-white/25 transition-colors"
+            className="w-full"
             minLength={8}
             required
           />

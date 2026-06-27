@@ -6,6 +6,7 @@ import { SyncConflictModal } from "~src/components/SyncConflictModal"
 import { ErrorBoundary } from "~src/components/ErrorBoundary"
 import { TooltipProvider } from "~src/components/ui/Tooltip"
 import { Button, IconButton } from "~src/components/ui/Button"
+import { Input } from "~src/components/ui/Input"
 import "@fontsource-variable/inter"
 import "../../style.css"
 
@@ -153,29 +154,29 @@ function OnboardingScreen() {
           {/* Email/Password form */}
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
             {mode === 'register' && (
-              <input
+              <Input
                 type="text"
                 placeholder="Name"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                className="w-full px-4 py-2.5 bg-white/[0.06] border border-white/10 rounded-lg text-white/90 text-sm placeholder:text-white/25 outline-none focus:border-white/25 transition-colors"
+                className="w-full"
                 required
               />
             )}
-            <input
+            <Input
               type="email"
               placeholder="Email"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              className="w-full px-4 py-2.5 bg-white/[0.06] border border-white/10 rounded-lg text-white/90 text-sm placeholder:text-white/25 outline-none focus:border-white/25 transition-colors"
+              className="w-full"
               required
             />
-            <input
+            <Input
               type="password"
               placeholder="Password"
               value={password}
               onChange={e => setPassword(e.target.value)}
-              className="w-full px-4 py-2.5 bg-white/[0.06] border border-white/10 rounded-lg text-white/90 text-sm placeholder:text-white/25 outline-none focus:border-white/25 transition-colors"
+              className="w-full"
               required
               minLength={8}
             />

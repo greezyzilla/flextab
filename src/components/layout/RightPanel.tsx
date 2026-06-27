@@ -10,6 +10,7 @@ import { Modal } from "~src/components/Modal"
 import { Button, IconButton } from "~src/components/ui/Button"
 import { Tooltip } from "~src/components/ui/Tooltip"
 import { Select, SelectItem } from "~src/components/ui/Select"
+import { Input, Label } from "~src/components/ui/Input"
 
 const OpenedTab = ({ tab, windowId }: { tab: chrome.tabs.Tab, windowId: number }) => {
   const onTabClick = (tab: chrome.tabs.Tab, windowId: number) => {
@@ -134,19 +135,19 @@ function SaveSessionModal({
         <h3 className="text-white/90 font-sans text-base font-medium">Save Session</h3>
 
         <div className="flex flex-col gap-1">
-          <label className="text-white/50 text-xs font-sans">Name</label>
-          <input
+          <Label>Name</Label>
+          <Input
             type="text"
             value={name}
             onChange={e => setName(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && canSave) handleSave() }}
             autoFocus
-            className="bg-black-800 border border-black-700 rounded-md px-3 py-2 text-white/90 text-sm font-sans outline-none focus:border-white/30"
+            className="w-full"
           />
         </div>
 
         <div className="flex flex-col gap-1">
-          <label className="text-white/50 text-xs font-sans">Save to</label>
+          <Label>Save to</Label>
           <div className="flex gap-2">
             <Select value={spaceId} onValueChange={handleSpaceChange} placeholder="Space" className="flex-1">
               {savedSpaces.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
