@@ -7,7 +7,6 @@ export { Drawer } from "./layout/Drawer"
 
 // Domain components
 export * from './TabGroup';
-export { EditableText } from './EditableText';
 export { FaviconImg } from './FaviconImg';
 
 // Drag and drop
