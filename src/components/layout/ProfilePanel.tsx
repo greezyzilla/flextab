@@ -133,7 +133,7 @@ export function ProfilePanel() {
                   );
                 })()}
                 {savedSpaces.length > 1 && (
-                  <ContextMenuItem destructive onSelect={() => handleDeleteSpace(space.id)}>Delete</ContextMenuItem>
+                  <ContextMenuItem className="text-red-400 focus:bg-red-400/10 focus:text-red-400" onSelect={() => handleDeleteSpace(space.id)}>Delete</ContextMenuItem>
                 )}
               </ContextMenuContent>
               </ContextMenu>

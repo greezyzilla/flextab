@@ -262,7 +262,7 @@ export function LeftPanel() {
                     </ContextMenuTrigger>
                     <ContextMenuContent>
                       <ContextMenuItem onSelect={() => startRename(project.id, project.name)}>Rename</ContextMenuItem>
-                      <ContextMenuItem destructive onSelect={() => requestDeleteProject(project)}>Delete</ContextMenuItem>
+                      <ContextMenuItem className="text-red-400 focus:bg-red-400/10 focus:text-red-400" onSelect={() => requestDeleteProject(project)}>Delete</ContextMenuItem>
                     </ContextMenuContent>
                     </ContextMenu>
                   </DroppableProjectItem>
@@ -312,7 +312,7 @@ export function LeftPanel() {
                             </ContextMenuTrigger>
                             <ContextMenuContent>
                               <ContextMenuItem onSelect={() => startRename(category.id, category.name)}>Rename</ContextMenuItem>
-                              <ContextMenuItem destructive onSelect={() => requestDeleteCategory(project, category)}>Delete</ContextMenuItem>
+                              <ContextMenuItem className="text-red-400 focus:bg-red-400/10 focus:text-red-400" onSelect={() => requestDeleteCategory(project, category)}>Delete</ContextMenuItem>
                             </ContextMenuContent>
                             </ContextMenu>
                           </DroppableCategoryItem>
