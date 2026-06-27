@@ -16,6 +16,8 @@ import { Slider } from "~src/components/ui/slider";
 import { Button } from "~src/components/ui/button";
 import { Input } from "~src/components/ui/input";
 import { Badge } from "~src/components/ui/badge";
+import { Popover, PopoverTrigger, PopoverContent } from "~src/components/ui/popover";
+import { HexColorPicker, HexColorInput } from "react-colorful";
 import * as Tabs from "@radix-ui/react-tabs";
 
 type SettingsTab = 'appearance' | 'layout' | 'sync' | 'history' | 'account' | 'data';
@@ -79,7 +81,6 @@ function AppearanceTab() {
     customAccent, setCustomAccent,
     bgTint, setBgTint,
   } = useSettingsStore();
-  const pickerRef = useRef<HTMLInputElement>(null);
 
   return (
     <div className="flex flex-col gap-5">
@@ -96,27 +97,39 @@ function AppearanceTab() {
               title={ACCENT_COLORS[key].label}
             />
           ))}
-          <button
-            onClick={() => pickerRef.current?.click()}
-            className={`w-6 h-6 rounded-full border-2 transition-all flex items-center justify-center ${
-              customAccent ? 'border-white/70 scale-110' : 'border-white/20 hover:border-white/40'
-            }`}
-            style={{ backgroundColor: customAccent || 'transparent' }}
-            title="Custom color"
-          >
-            {!customAccent && (
-              <svg className="w-3 h-3 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-              </svg>
-            )}
-          </button>
-          <input
-            ref={pickerRef}
-            type="color"
-            value={customAccent || ACCENT_COLORS[accentColor].value}
-            onChange={e => setCustomAccent(e.target.value)}
-            className="sr-only"
-          />
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                className={`w-6 h-6 rounded-full border-2 transition-all flex items-center justify-center ${
+                  customAccent ? 'border-white/70 scale-110' : 'border-white/20 hover:border-white/40'
+                }`}
+                style={{ backgroundColor: customAccent || 'transparent' }}
+                title="Custom color"
+              >
+                {!customAccent && (
+                  <svg className="w-3 h-3 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                  </svg>
+                )}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="z-[110] w-auto p-3 picker-pop">
+              <div className="flex flex-col gap-3">
+                <HexColorPicker
+                  color={customAccent || ACCENT_COLORS[accentColor].value}
+                  onChange={setCustomAccent}
+                />
+                <div className="flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.06] px-2.5 py-1.5">
+                  <span className="text-white/30 text-xs font-sans">#</span>
+                  <HexColorInput
+                    color={customAccent || ACCENT_COLORS[accentColor].value}
+                    onChange={setCustomAccent}
+                    className="w-full bg-transparent font-sans text-sm uppercase text-white/90 outline-none"
+                  />
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       </SettingRow>
 

@@ -28,6 +28,13 @@
   .accent-fill:active { filter: brightness(0.98); }
 }
 
+/* react-colorful sizing/rounding — UNLAYERED on purpose: react-colorful injects
+   its own unlayered styles, which would beat anything inside @layer. */
+.picker-pop .react-colorful { width: 188px; height: 152px; gap: 8px; }
+.picker-pop .react-colorful__saturation { border-radius: 8px; border-bottom: none; }
+.picker-pop .react-colorful__hue { height: 12px; border-radius: 999px; }
+.picker-pop .react-colorful__pointer { width: 14px; height: 14px; }
+
 @layer theme {
   :root {
     --color-black-50: #fafafa;
