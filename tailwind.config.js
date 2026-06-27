@@ -17,7 +17,7 @@ module.exports = {
         // shadcn semantic tokens (mapped to --sc-* in style.css)
         border: "hsl(var(--sc-border))",
         input: "hsl(var(--sc-input))",
-        ring: "hsl(var(--sc-ring))",
+        ring: "var(--accent)",
         background: "hsl(var(--sc-background))",
         foreground: "hsl(var(--sc-foreground))",
         primary: { DEFAULT: "hsl(var(--sc-primary))", foreground: "hsl(var(--sc-primary-foreground))" },
