@@ -6,7 +6,7 @@ import { FaviconImg } from "./FaviconImg";
 import { CSS } from "@dnd-kit/utilities";
 import type { SavedGroup, SavedTab } from "~src/types";
 import { useSavedSpacesStore, useActiveSpace, useActiveProject, useActiveCategory } from "~src/store/useSavedSpacesStore";
-import { showUndoToast } from "./ui/undo-toast";
+import { showUndoToast } from "./ui/sonner";
 import { ConfirmDialog } from "./ui/confirm-dialog";
 import { Tooltip, TooltipTrigger, TooltipContent } from "./ui/tooltip";
 import { IconButton } from "./ui/button";

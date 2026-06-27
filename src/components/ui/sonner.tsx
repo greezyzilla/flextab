@@ -1,6 +1,6 @@
-import { Toaster, toast } from "sonner";
+import { Toaster as SonnerToaster, toast } from "sonner";
 
-/** Fire a toast with an Undo action. Same signature as before — callers unchanged. */
+/** Fire a toast with an Undo action. */
 export function showUndoToast(message: string, onUndo: () => void, timeout = 5000) {
   toast(message, {
     duration: timeout,
@@ -9,9 +9,9 @@ export function showUndoToast(message: string, onUndo: () => void, timeout = 500
 }
 
 /** Mount once at the app root. */
-export function UndoToastContainer() {
+export function Toaster() {
   return (
-    <Toaster
+    <SonnerToaster
       theme="dark"
       position="bottom-center"
       gap={8}

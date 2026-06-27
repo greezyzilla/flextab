@@ -3,7 +3,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { v7 as uuidv7 } from "uuid";
 import config from '../../../package.json';
-import { showUndoToast } from "~src/components/ui/undo-toast";
+import { showUndoToast } from "~src/components/ui/sonner";
 import { ConfirmDialog } from "~src/components/ui/confirm-dialog";
 import { Dialog, DialogContent, DialogTitle } from "~src/components/ui/dialog";
 import { Tooltip, TooltipTrigger, TooltipContent } from "~src/components/ui/tooltip";

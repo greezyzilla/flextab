@@ -3,7 +3,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { useAuthStore } from "~src/store/useAuthStore";
 import { v7 as uuidv7 } from "uuid";
-import { showUndoToast } from "~src/components/ui/undo-toast";
+import { showUndoToast } from "~src/components/ui/sonner";
 import { GlobalSettingsModal } from "~src/components/GlobalSettingsModal";
 import { ConfirmDialog } from "~src/components/ui/confirm-dialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "~src/components/ui/dropdown-menu";
