@@ -9,7 +9,7 @@ import { apiListSnapshots, apiGetSnapshot, apiRestoreSnapshot, type SnapshotInfo
 import { syncNow, pullAndOverwrite } from "~src/services/syncEngine";
 import type { SavedSpace } from "~src/types";
 import * as yjs from "~src/lib/yjsDoc";
-import { Modal } from "~src/components/ui/modal";
+import { Dialog, DialogContent, DialogTitle } from "~src/components/ui/dialog";
 import { ConfirmDialog } from "~src/components/ui/confirm-dialog";
 import { Switch } from "~src/components/ui/switch";
 import { Slider } from "~src/components/ui/slider";
@@ -24,7 +24,9 @@ export function GlobalSettingsModal({ open, onOpenChange }: { open: boolean; onO
   const [activeTab, setActiveTab] = useState<SettingsTab>('appearance');
 
   return (
-    <Modal open={open} onOpenChange={onOpenChange} title="Settings" className="flex h-[420px] w-[560px] overflow-hidden rounded-xl">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="flex h-[420px] w-[560px] overflow-hidden p-0">
+        <DialogTitle className="sr-only">Settings</DialogTitle>
       <Tabs.Root
         value={activeTab}
         onValueChange={(v) => setActiveTab(v as SettingsTab)}
@@ -52,7 +54,8 @@ export function GlobalSettingsModal({ open, onOpenChange }: { open: boolean; onO
           <Tabs.Content value="data" className="outline-none"><DataTab /></Tabs.Content>
         </div>
       </Tabs.Root>
-    </Modal>
+      </DialogContent>
+    </Dialog>
   );
 }
 

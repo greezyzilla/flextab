@@ -6,7 +6,7 @@ import { useWindows } from "~src/hooks/useWindows"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import { v7 as uuidv7 } from "uuid"
 import { faviconToDataUrl } from "~src/utils/favicon"
-import { Modal } from "~src/components/ui/modal"
+import { Dialog, DialogContent, DialogTitle } from "~src/components/ui/dialog"
 import { Button, IconButton } from "~src/components/ui/button"
 import { Tooltip, TooltipTrigger, TooltipContent } from "~src/components/ui/tooltip"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "~src/components/ui/select"
@@ -126,14 +126,9 @@ function SaveSessionModal({
   const canSave = spaceId && projectId && categoryId && name.trim()
 
   return (
-    <Modal
-      open
-      onOpenChange={(o) => { if (!o) onClose(); }}
-      title="Save Session"
-      showClose={false}
-      className="w-96 rounded-lg p-5 flex flex-col gap-4"
-    >
-        <h3 className="text-white/90 font-sans text-base font-medium">Save Session</h3>
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="w-96 p-5 flex flex-col gap-4">
+        <DialogTitle className="text-white/90 font-sans text-base font-medium">Save Session</DialogTitle>
 
         <div className="flex flex-col gap-1">
           <Label>Name</Label>
@@ -181,7 +176,8 @@ function SaveSessionModal({
             {saving ? 'Saving…' : 'Save'}
           </Button>
         </div>
-    </Modal>
+      </DialogContent>
+    </Dialog>
   )
 }
 

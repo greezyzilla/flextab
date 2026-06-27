@@ -5,7 +5,7 @@ import { v7 as uuidv7 } from "uuid";
 import config from '../../../package.json';
 import { showUndoToast } from "~src/components/ui/undo-toast";
 import { ConfirmDialog } from "~src/components/ui/confirm-dialog";
-import { Modal } from "~src/components/ui/modal";
+import { Dialog, DialogContent, DialogTitle } from "~src/components/ui/dialog";
 import { Tooltip, TooltipTrigger, TooltipContent } from "~src/components/ui/tooltip";
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from "~src/components/ui/context-menu";
 import { Button, IconButton } from "~src/components/ui/button";
@@ -41,19 +41,9 @@ function SpaceSettings({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <Modal
-      open
-      onOpenChange={(o) => { if (!o) onClose(); }}
-      title="Space Settings"
-      showClose={false}
-      className="w-80 rounded-xl p-5 flex flex-col gap-4"
-    >
-        <div className="flex items-center justify-between">
-          <h3 className="text-white/80 font-sans text-sm font-medium">Space Settings</h3>
-          <IconButton variant="subtle" onClick={onClose}>
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-          </IconButton>
-        </div>
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="w-80 p-5 flex flex-col gap-4">
+        <DialogTitle className="text-white/80 font-sans text-sm font-medium">Space Settings</DialogTitle>
         <div className="flex flex-col gap-1">
           <Label>Name</Label>
           <Input ref={nameRef} type="text" value={name} onChange={e => setName(e.target.value)}
@@ -78,7 +68,8 @@ function SpaceSettings({ onClose }: { onClose: () => void }) {
           </div>
         </div>
         <Button variant="default" onClick={handleSave} className="mt-1 w-full">Save</Button>
-    </Modal>
+      </DialogContent>
+    </Dialog>
   );
 }
 
