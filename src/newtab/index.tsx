@@ -5,7 +5,7 @@ import { UndoToastContainer } from "~src/components/UndoToast"
 import { SyncConflictModal } from "~src/components/SyncConflictModal"
 import { ErrorBoundary } from "~src/components/ErrorBoundary"
 import { TooltipProvider } from "~src/components/ui/Tooltip"
-import { Button } from "~src/components/ui/Button"
+import { Button, IconButton } from "~src/components/ui/Button"
 import "@fontsource-variable/inter"
 import "../../style.css"
 
@@ -263,8 +263,6 @@ function NewTabPageContent() {
     toggleLeftDrawer, toggleRightDrawer,
   } = useUIStore();
 
-  const iconBtn = "shrink-0 w-9 h-9 flex items-center justify-center rounded-md text-white/40 hover:text-white/80 hover:bg-white/[0.06] transition-colors"
-
   return (
     <DndContext
       onDragStart={handleDragStart}
@@ -285,15 +283,15 @@ function NewTabPageContent() {
         <div className="border-x border-black-800 flex-1 flex flex-col min-w-0">
           <div className="px-3 sm:px-5 py-3 flex items-center gap-2 border-b border-black-800 shrink-0">
             {!leftInline && (
-              <button onClick={toggleLeftDrawer} className={iconBtn} title="Spaces & navigation" aria-label="Toggle navigation">
+              <IconButton onClick={toggleLeftDrawer} className="h-9 w-9 shrink-0" title="Spaces & navigation" aria-label="Toggle navigation">
                 <MenuIcon />
-              </button>
+              </IconButton>
             )}
             <SearchBar />
             {!rightInline && (
-              <button onClick={toggleRightDrawer} className={iconBtn} title="Opened tabs" aria-label="Toggle opened tabs">
+              <IconButton onClick={toggleRightDrawer} className="h-9 w-9 shrink-0" title="Opened tabs" aria-label="Toggle opened tabs">
                 <OpenedTabsIcon />
-              </button>
+              </IconButton>
             )}
           </div>
           <ContentPanel />
