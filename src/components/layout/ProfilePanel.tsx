@@ -170,7 +170,7 @@ export function ProfilePanel() {
                 {user.avatar ? (
                   <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                 ) : (
-                  <div className="w-full h-full bg-blue-600 flex items-center justify-center text-white text-sm font-medium">
+                  <div className="w-full h-full bg-[var(--accent)] flex items-center justify-center text-white text-sm font-medium">
                     {user.name.slice(0, 1).toUpperCase()}
                   </div>
                 )}

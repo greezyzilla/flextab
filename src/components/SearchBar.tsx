@@ -165,7 +165,7 @@ export function SearchBar() {
                   )}
                 </div>
                 <span className={`text-xs px-1.5 py-0.5 rounded shrink-0 ${
-                  result.type === 'saved' ? 'bg-blue-500/20 text-blue-400' : 'bg-green-500/20 text-green-400'
+                  result.type === 'saved' ? 'bg-[var(--accent-subtle)] text-[var(--accent)]' : 'bg-green-500/20 text-green-400'
                 }`}>
                   {result.type === 'saved' ? 'saved' : 'open'}
                 </span>

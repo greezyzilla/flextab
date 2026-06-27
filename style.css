@@ -10,33 +10,6 @@
 }
 
 @layer components {
-  /* Gradient primary button — derived from the live --accent so it still
-     follows the user's chosen accent. Matches the landing's button. */
-  .btn-accent {
-    background-image: linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--accent) 74%, #ffffff),
-      var(--accent) 52%,
-      var(--accent-hover)
-    );
-    color: #fff;
-    box-shadow:
-      0 1px 0 0 rgba(255, 255, 255, 0.22) inset,
-      0 8px 24px -10px color-mix(in srgb, var(--accent) 55%, transparent);
-    transition: filter 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
-  }
-  .btn-accent:hover {
-    filter: brightness(1.07);
-    box-shadow:
-      0 1px 0 0 rgba(255, 255, 255, 0.28) inset,
-      0 12px 30px -12px color-mix(in srgb, var(--accent) 70%, transparent);
-    transform: translateY(-1px);
-  }
-  .btn-accent:active {
-    transform: translateY(0);
-    filter: brightness(0.98);
-  }
-
   /* Primary button fill — gradient derived from the live --accent (no layout,
      so the Button component owns padding/size). */
   .accent-fill {
@@ -153,51 +126,6 @@
   --density-gap-group: 0.375rem; /* gap-1.5 */
   --density-p-group: 0.75rem;  /* p-3 */
   --density-p-section: 1.25rem; /* p-5 */
-}
-
-/* Custom range slider */
-input[type="range"].slider-custom {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 6px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  outline: none;
-  cursor: pointer;
-}
-
-input[type="range"].slider-custom::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--accent);
-  border: 2px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-input[type="range"].slider-custom::-webkit-slider-thumb:hover {
-  transform: scale(1.15);
-  box-shadow: 0 0 0 4px var(--accent-subtle), 0 1px 4px rgba(0, 0, 0, 0.4);
-}
-
-input[type="range"].slider-custom::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--accent);
-  border: 2px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
-  cursor: pointer;
-}
-
-input[type="range"].slider-custom::-moz-range-track {
-  height: 6px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
 }
 
 /* Density: compact */

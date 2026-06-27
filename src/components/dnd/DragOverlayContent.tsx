@@ -17,7 +17,7 @@ export function DragOverlayContent({ activeId, draggedGroup, draggedTab, dragged
 
   if (activeId && (draggedTab || draggedSavedTab)) {
     return (
-      <div className="flex gap-3 items-center w-full rounded-md bg-black-800 hover:bg-black-700 px-3 py-2 text-left shadow-lg border border-blue-500">
+      <div className="flex gap-3 items-center w-full rounded-md bg-black-800 hover:bg-black-700 px-3 py-2 text-left shadow-lg border border-[var(--accent)]">
         <div className="opacity-100 cursor-grabbing p-1 rounded">
           <DragHandleIcon />
         </div>
