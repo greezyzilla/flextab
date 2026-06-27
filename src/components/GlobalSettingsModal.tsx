@@ -15,6 +15,7 @@ import { Switch } from "~src/components/ui/switch";
 import { Slider } from "~src/components/ui/slider";
 import { Button } from "~src/components/ui/button";
 import { Input } from "~src/components/ui/input";
+import { Badge } from "~src/components/ui/badge";
 import * as Tabs from "@radix-ui/react-tabs";
 
 type SettingsTab = 'appearance' | 'layout' | 'sync' | 'history' | 'account' | 'data';
@@ -232,9 +233,9 @@ function AccountTab() {
               <span className="text-white/80 text-xs font-sans truncate">{user.name}</span>
               <span className="text-white/30 text-[11px] font-sans truncate">{user.email}</span>
             </div>
-            <span className="text-white/20 text-[10px] font-sans border border-white/10 rounded px-1.5 py-0.5 ml-auto shrink-0">
+            <Badge variant="outline" size="sm" className="ml-auto shrink-0 font-normal">
               {user.provider}
-            </span>
+            </Badge>
           </div>
         )}
       </SettingRow>
@@ -508,9 +509,7 @@ function DevicesSection({ refresh }: { refresh: number }) {
             <div className="flex items-center gap-2 min-w-0">
               <span className="text-white/70 text-xs font-sans truncate">{d.label}</span>
               {d.id === thisDeviceId && (
-                <span className="text-[10px] font-sans px-1.5 py-0.5 rounded shrink-0" style={{ backgroundColor: 'var(--accent-subtle)', color: 'var(--accent)' }}>
-                  This device
-                </span>
+                <Badge variant="accent" size="sm" className="shrink-0 font-normal">This device</Badge>
               )}
             </div>
             <span className="text-white/25 text-[10px] font-sans shrink-0">

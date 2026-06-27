@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { useWindows } from "~src/hooks/useWindows";
 import { FaviconImg } from "./FaviconImg";
+import { Badge } from "./ui/badge";
 
 interface SearchResult {
   type: 'saved' | 'opened';
@@ -164,11 +165,9 @@ export function SearchBar() {
                     <div className="text-white/30 text-xs truncate">{result.breadcrumb}</div>
                   )}
                 </div>
-                <span className={`text-xs px-1.5 py-0.5 rounded shrink-0 ${
-                  result.type === 'saved' ? 'bg-[var(--accent-subtle)] text-[var(--accent)]' : 'bg-green-500/20 text-green-400'
-                }`}>
+                <Badge variant={result.type === 'saved' ? 'accent' : 'success'} className="shrink-0 font-normal">
                   {result.type === 'saved' ? 'saved' : 'open'}
-                </span>
+                </Badge>
               </button>
             ))
           ) : (

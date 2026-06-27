@@ -11,6 +11,7 @@ import { ConfirmDialog } from "./ui/confirm-dialog";
 import { Tooltip } from "./ui/tooltip";
 import { IconButton } from "./ui/button";
 import { Input } from "./ui/input";
+import { Badge } from "./ui/badge";
 import type { GroupLayout } from "~src/store/useSettingsStore";
 
 function SavedTabItem({ tab, groupId, isDuplicate }: { tab: SavedTab; groupId: string; isDuplicate?: boolean }) {
@@ -73,7 +74,7 @@ function SavedTabItem({ tab, groupId, isDuplicate }: { tab: SavedTab; groupId: s
             <span className="text-white/30 text-[10px] font-sans truncate">{tab.url?.replace(/^https?:\/\//, '')}</span>
           </div>
           {isDuplicate && (
-            <span className="text-yellow-500/70 text-[10px] font-sans shrink-0" title="Duplicate URL in this group">dup</span>
+            <Badge variant="warning" size="sm" className="shrink-0 font-normal" title="Duplicate URL in this group">dup</Badge>
           )}
         </div>
 
