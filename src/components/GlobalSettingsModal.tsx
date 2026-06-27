@@ -9,8 +9,8 @@ import { apiListSnapshots, apiGetSnapshot, apiRestoreSnapshot, type SnapshotInfo
 import { syncNow, pullAndOverwrite } from "~src/services/syncEngine";
 import type { SavedSpace } from "~src/types";
 import * as yjs from "~src/lib/yjsDoc";
-import { Modal } from "~src/components/Modal";
-import { ConfirmDialog } from "~src/components/ConfirmDialog";
+import { Modal } from "~src/components/ui/modal";
+import { ConfirmDialog } from "~src/components/ui/confirm-dialog";
 import { Switch } from "~src/components/ui/switch";
 import { Slider } from "~src/components/ui/slider";
 import { Button } from "~src/components/ui/button";

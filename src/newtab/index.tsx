@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { ContentPanel, LeftPanel, ProfilePanel, RightPanel, Drawer, DragOverlayContent } from "~src/components"
 import { SearchBar } from "~src/components/SearchBar"
-import { UndoToastContainer } from "~src/components/UndoToast"
+import { UndoToastContainer } from "~src/components/ui/undo-toast"
 import { SyncConflictModal } from "~src/components/SyncConflictModal"
 import { ErrorBoundary } from "~src/components/ErrorBoundary"
 import { TooltipProvider } from "~src/components/ui/tooltip"
