@@ -46,7 +46,7 @@ export function ConfirmDialog({
               <Button variant="ghost" size="sm">{cancelLabel}</Button>
             </AlertDialog.Cancel>
             <AlertDialog.Action asChild>
-              <Button variant={destructive ? "danger" : "primary"} size="sm" onClick={onConfirm}>
+              <Button variant={destructive ? "destructive" : "default"} size="sm" onClick={onConfirm}>
                 {confirmLabel}
               </Button>
             </AlertDialog.Action>

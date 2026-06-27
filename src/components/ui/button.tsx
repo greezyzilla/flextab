@@ -1,61 +1,69 @@
-import { forwardRef } from "react";
-import type { ButtonHTMLAttributes } from "react";
-import { cva, type VariantProps } from "class-variance-authority";
-import { cn } from "~src/lib/utils";
+import * as React from "react"
+import { Slot } from "@radix-ui/react-slot"
+import { cva, type VariantProps } from "class-variance-authority"
+
+import { cn } from "~src/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center rounded-lg font-sans font-medium outline-none transition-all disabled:pointer-events-none disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-[var(--accent-subtle)]",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        primary: "accent-fill",
+        // brand primary — gradient derived from --accent (see .accent-fill)
+        default: "accent-fill",
+        destructive:
+          "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
+        outline:
+          "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
         secondary: "bg-white/[0.08] text-white/85 hover:bg-white/[0.13]",
-        ghost: "border border-white/10 text-white/70 hover:border-white/25 hover:bg-white/[0.04] hover:text-white",
-        danger: "bg-red-500/90 text-white hover:bg-red-500",
-        link: "rounded-none text-white/55 hover:text-white",
+        ghost:
+          "border border-white/10 text-white/70 hover:border-white/25 hover:bg-white/[0.04] hover:text-white",
+        link: "text-white/55 underline-offset-4 hover:text-white hover:underline",
       },
       size: {
-        sm: "px-3 py-1.5 text-xs gap-1.5",
-        md: "px-3.5 py-2 text-[13px] gap-2",
+        default: "h-9 px-3.5 py-2",
+        sm: "h-8 rounded-md px-3 text-xs",
+        lg: "h-10 rounded-md px-8",
+        icon: "h-9 w-9",
       },
     },
-    compoundVariants: [
-      { variant: "link", size: "sm", class: "px-0 py-0" },
-      { variant: "link", size: "md", class: "px-0 py-0" },
-    ],
-    defaultVariants: { variant: "secondary", size: "md" },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
   },
-);
+)
 
 export interface ButtonProps
-  extends ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {}
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
+  asChild?: boolean
+}
 
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { variant, size, className, ...props },
-  ref,
-) {
-  return <button ref={ref} className={cn(buttonVariants({ variant, size }), className)} {...props} />;
-});
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant, size, asChild = false, ...props }, ref) => {
+    const Comp = asChild ? Slot : "button"
+    return (
+      <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />
+    )
+  },
+)
+Button.displayName = "Button"
 
 /**
- * Square icon button. Forms are flexible (icon-only here; pair with Button for
- * icon+text), but styling always comes from a defined variant — never ad-hoc.
- *   default — hover background (prominent actions)
- *   subtle  — hover color only, no background (disclosure / inline affordances)
+ * Square icon button — project helper (shadcn has no IconButton; canonical uses
+ * <Button size="icon">, but we want hover-only "subtle" + danger tones too).
+ *   default — hover background; subtle — hover color only, no background.
  */
 const iconButtonVariants = cva(
-  "inline-flex items-center justify-center rounded-md p-1.5 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[var(--accent-subtle)]",
+  "inline-flex items-center justify-center rounded-md p-1.5 outline-none transition-colors focus-visible:ring-1 focus-visible:ring-ring",
   {
     variants: {
       variant: {
         default: "text-white/40 hover:bg-white/10 hover:text-white/80",
         subtle: "text-white/40 hover:text-white/75",
       },
-      danger: {
-        true: "",
-        false: "",
-      },
+      danger: { true: "", false: "" },
     },
     compoundVariants: [
       { variant: "default", danger: true, class: "text-white/40 hover:bg-red-400/10 hover:text-red-400" },
@@ -63,15 +71,22 @@ const iconButtonVariants = cva(
     ],
     defaultVariants: { variant: "default", danger: false },
   },
-);
+)
 
 export interface IconButtonProps
-  extends ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof iconButtonVariants> {}
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof iconButtonVariants> {
+  asChild?: boolean
+}
 
-export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(function IconButton(
-  { variant, danger, className, ...props },
-  ref,
-) {
-  return <button ref={ref} className={cn(iconButtonVariants({ variant, danger }), className)} {...props} />;
-});
+const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
+  ({ className, variant, danger, asChild = false, ...props }, ref) => {
+    const Comp = asChild ? Slot : "button"
+    return (
+      <Comp className={cn(iconButtonVariants({ variant, danger }), className)} ref={ref} {...props} />
+    )
+  },
+)
+IconButton.displayName = "IconButton"
+
+export { Button, IconButton, buttonVariants }

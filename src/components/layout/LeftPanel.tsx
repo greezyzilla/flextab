@@ -76,7 +76,7 @@ function SpaceSettings({ onClose }: { onClose: () => void }) {
             ))}
           </div>
         </div>
-        <Button variant="primary" onClick={handleSave} className="mt-1 w-full">Save</Button>
+        <Button variant="default" onClick={handleSave} className="mt-1 w-full">Save</Button>
     </Modal>
   );
 }

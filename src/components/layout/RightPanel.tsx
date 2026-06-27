@@ -167,7 +167,7 @@ function SaveSessionModal({
 
         <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button variant="primary" onClick={handleSave} disabled={!canSave || saving}>
+          <Button variant="default" onClick={handleSave} disabled={!canSave || saving}>
             {saving ? 'Saving…' : 'Save'}
           </Button>
         </div>

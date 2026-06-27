@@ -181,7 +181,7 @@ function OnboardingScreen() {
               minLength={8}
             />
             {error && <div className="text-red-400 text-xs">{error}</div>}
-            <Button variant="primary" type="submit" disabled={loading} className="w-full">
+            <Button variant="default" type="submit" disabled={loading} className="w-full">
               {loading ? 'Please wait…' : mode === 'login' ? 'Sign in' : 'Create account'}
             </Button>
           </form>

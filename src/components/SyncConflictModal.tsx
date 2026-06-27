@@ -120,7 +120,7 @@ export function SyncConflictModal() {
         </div>
 
         <div className="p-6 pt-4 flex items-center justify-end gap-2 shrink-0 border-t border-black-800">
-          <Button variant="primary" onClick={() => resolveConflict(choice)}>Apply</Button>
+          <Button variant="default" onClick={() => resolveConflict(choice)}>Apply</Button>
         </div>
       </div>
     </div>

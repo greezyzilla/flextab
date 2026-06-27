@@ -275,7 +275,7 @@ function AccountTab() {
           />
           {pwError && <div className="text-red-400 text-[11px]">{pwError}</div>}
           {pwSuccess && <div className="text-green-400 text-[11px]">{pwSuccess}</div>}
-          <Button variant="primary" size="sm" type="submit" disabled={pwLoading} className="self-start">
+          <Button variant="default" size="sm" type="submit" disabled={pwLoading} className="self-start">
             {pwLoading ? 'Saving…' : user?.has_password ? 'Update password' : 'Set password'}
           </Button>
         </form>
@@ -633,7 +633,7 @@ function SnapshotRow({ snapshot, expanded, confirming, restoring, onToggle, onCo
         </button>
         {confirming ? (
           <div className="flex items-center gap-1.5 shrink-0">
-            <Button variant="primary" size="sm" onClick={onRestore} disabled={restoring}>
+            <Button variant="default" size="sm" onClick={onRestore} disabled={restoring}>
               {restoring ? 'Restoring…' : 'Confirm'}
             </Button>
             <Button variant="link" onClick={onCancel} disabled={restoring} className="!text-[11px]">
