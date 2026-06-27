@@ -4,31 +4,44 @@ import { storage } from './syncStorage';
 
 export type GroupLayout = 'list' | 'grid';
 export type Density = 'compact' | 'comfortable';
-export type AccentColor = 'blue' | 'purple' | 'green' | 'orange' | 'pink' | 'cyan';
 
-export const ACCENT_COLORS: Record<AccentColor, { label: string; value: string; hover: string; subtle: string }> = {
-  blue:   { label: 'Blue',   value: '#2274F0', hover: '#1A5FD6', subtle: '#2274F020' },
-  purple: { label: 'Purple', value: '#8b5cf6', hover: '#7c3aed', subtle: '#8b5cf620' },
-  green:  { label: 'Green',  value: '#22c55e', hover: '#16a34a', subtle: '#22c55e20' },
-  orange: { label: 'Orange', value: '#f97316', hover: '#ea580c', subtle: '#f9731620' },
-  pink:   { label: 'Pink',   value: '#ec4899', hover: '#db2777', subtle: '#ec489920' },
-  cyan:   { label: 'Cyan',   value: '#06b6d4', hover: '#0891b2', subtle: '#06b6d420' },
-};
+/** Quick-pick hues (0–360) for the accent slider. */
+export const HUE_PRESETS: { label: string; hue: number }[] = [
+  { label: 'Blue', hue: 214 },
+  { label: 'Purple', hue: 262 },
+  { label: 'Pink', hue: 330 },
+  { label: 'Orange', hue: 28 },
+  { label: 'Green', hue: 145 },
+  { label: 'Cyan', hue: 190 },
+];
+
+// hex -> hue (0-360), for migrating old custom accents
+function hexToHue(hex: string): number {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return 214;
+  const n = parseInt(m[1], 16);
+  const r = ((n >> 16) & 255) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+  if (d === 0) return 214;
+  let h = 0;
+  if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+  else if (max === g) h = ((b - r) / d + 2) / 6;
+  else h = ((r - g) / d + 4) / 6;
+  return Math.round(h * 360);
+}
 
 interface SettingsState {
   groupLayout: GroupLayout;
   gridColumns: number;
   density: Density;
-  accentColor: AccentColor;
-  customAccent: string | null; // hex, overrides accentColor preset if set
-  bgTint: number; // 0-15, background tint intensity (hue derived from accent)
-  autoSync: boolean; // when signed in, keep the realtime sync engine connected
+  hue: number;   // 0-360, accent hue (drives accent + background tint)
+  bgTint: number; // 0-15, how strongly the hue tints the dark UI
+  autoSync: boolean;
 
   setGroupLayout: (layout: GroupLayout) => void;
   setGridColumns: (columns: number) => void;
   setDensity: (density: Density) => void;
-  setAccentColor: (color: AccentColor) => void;
-  setCustomAccent: (color: string | null) => void;
+  setHue: (hue: number) => void;
   setBgTint: (tint: number) => void;
   setAutoSync: (autoSync: boolean) => void;
 }
@@ -39,21 +52,32 @@ export const useSettingsStore = create<SettingsState>()(
       groupLayout: 'list',
       gridColumns: 2,
       density: 'comfortable',
-      accentColor: 'blue',
-      customAccent: null,
-      bgTint: 0,
+      hue: 214,
+      bgTint: 6,
       autoSync: true,
 
       setGroupLayout: (groupLayout) => set({ groupLayout }),
       setGridColumns: (gridColumns) => set({ gridColumns }),
       setDensity: (density) => set({ density }),
-      setAccentColor: (accentColor) => set({ accentColor, customAccent: null }),
-      setCustomAccent: (customAccent) => set({ customAccent }),
+      setHue: (hue) => set({ hue }),
       setBgTint: (bgTint) => set({ bgTint }),
       setAutoSync: (autoSync) => set({ autoSync }),
     }),
     {
       name: 'flextab-settings',
+      version: 1,
+      migrate: (persisted: unknown, version) => {
+        const s = persisted as Record<string, unknown> | null;
+        if (s && version < 1) {
+          // old shape: accentColor preset / customAccent hex -> hue
+          const presetHue: Record<string, number> = { blue: 214, purple: 262, green: 145, orange: 28, pink: 330, cyan: 190 };
+          if (typeof s.customAccent === 'string') s.hue = hexToHue(s.customAccent);
+          else if (typeof s.accentColor === 'string') s.hue = presetHue[s.accentColor] ?? 214;
+          delete s.accentColor;
+          delete s.customAccent;
+        }
+        return s as SettingsState;
+      },
       storage: {
         getItem: async (name) => {
           const value = await storage.getItem(name);

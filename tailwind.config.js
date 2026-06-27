@@ -14,19 +14,21 @@ module.exports = {
         sm: "calc(var(--radius) - 4px)",
       },
       colors: {
-        // shadcn semantic tokens (mapped to --sc-* in style.css)
-        border: "hsl(var(--sc-border))",
-        input: "hsl(var(--sc-input))",
+        // shadcn semantic tokens — all derive from the live --hue / --color-black-*
+        // (one source of truth; see style.css). primary/destructive keep an
+        // <alpha-value> form so bg-primary/90 etc. still work.
+        border: "var(--color-black-700)",
+        input: "var(--color-black-700)",
         ring: "var(--accent)",
-        background: "hsl(var(--sc-background))",
-        foreground: "hsl(var(--sc-foreground))",
-        primary: { DEFAULT: "hsl(var(--sc-primary))", foreground: "hsl(var(--sc-primary-foreground))" },
-        secondary: { DEFAULT: "hsl(var(--sc-secondary))", foreground: "hsl(var(--sc-secondary-foreground))" },
-        destructive: { DEFAULT: "hsl(var(--sc-destructive))", foreground: "hsl(var(--sc-destructive-foreground))" },
-        muted: { DEFAULT: "hsl(var(--sc-muted))", foreground: "hsl(var(--sc-muted-foreground))" },
-        accent: { DEFAULT: "hsl(var(--sc-accent))", foreground: "hsl(var(--sc-accent-foreground))" },
-        popover: { DEFAULT: "hsl(var(--sc-popover))", foreground: "hsl(var(--sc-popover-foreground))" },
-        card: { DEFAULT: "hsl(var(--sc-card))", foreground: "hsl(var(--sc-card-foreground))" },
+        background: "var(--color-black-900)",
+        foreground: "hsl(0 0% 100% / 0.92)",
+        primary: { DEFAULT: "hsl(var(--hue) 85% 56% / <alpha-value>)", foreground: "hsl(0 0% 100%)" },
+        secondary: { DEFAULT: "var(--color-black-800)", foreground: "hsl(0 0% 100% / 0.88)" },
+        destructive: { DEFAULT: "hsl(0 72% 51% / <alpha-value>)", foreground: "hsl(0 0% 100%)" },
+        muted: { DEFAULT: "var(--color-black-800)", foreground: "hsl(0 0% 100% / 0.5)" },
+        accent: { DEFAULT: "var(--color-black-800)", foreground: "hsl(0 0% 100% / 0.9)" },
+        popover: { DEFAULT: "var(--color-black-950)", foreground: "hsl(0 0% 100% / 0.92)" },
+        card: { DEFAULT: "var(--color-black-900)", foreground: "hsl(0 0% 100% / 0.92)" },
         'black-50': 'var(--color-black-50)',
         'black-100': 'var(--color-black-100)',
         'black-200': 'var(--color-black-200)',

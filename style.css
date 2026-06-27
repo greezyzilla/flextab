@@ -28,85 +28,36 @@
   .accent-fill:active { filter: brightness(0.98); }
 }
 
-/* react-colorful theming — UNLAYERED on purpose: react-colorful injects its own
-   unlayered styles, which would beat anything inside @layer. Higher specificity
-   (.picker-pop ...) wins. Separates saturation + hue into two rounded controls,
-   shrinks the default 28px white handle to a crisp 15px dot. */
-.picker-pop .react-colorful {
-  width: 204px;
-  height: 164px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.picker-pop .react-colorful__saturation {
-  flex: 1;
-  border-radius: 10px;
-  border-bottom: none;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-}
-.picker-pop .react-colorful__hue,
-.picker-pop .react-colorful__alpha,
-.picker-pop .react-colorful__last-control {
-  height: 10px;
-  border-radius: 999px;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-}
-.picker-pop .react-colorful__pointer {
-  width: 15px;
-  height: 15px;
-  border: 2px solid #fff;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35), 0 1px 3px rgba(0, 0, 0, 0.5);
-}
-
 @layer theme {
   :root {
+    /* Light neutral grays (rarely used) */
     --color-black-50: #fafafa;
     --color-black-100: #f5f5f5;
     --color-black-200: #e5e5e5;
     --color-black-300: #d4d4d4;
     --color-black-400: #a3a3a3;
-    /* Cool, slightly blue-tinted dark scale (matches the landing's ink),
-       same lightness per step so contrast/borders are unchanged. */
-    --color-black-500: #6E7480;
-    --color-black-600: #4C515E;
-    --color-black-700: #3A3F4A;
-    --color-black-800: #22262E;
-    --color-black-900: #14161B;
-    --color-black-950: #08090C;
     --color-black: #000;
 
-    --accent: #2274F0;
-    --accent-hover: #1A5FD6;
-    --accent-subtle: #2274F020;
-  }
-}
+    /* THE theme knobs — the only two values that drive the whole UI.
+       useTheme writes these at runtime from the user's hue + intensity sliders. */
+    --hue: 214;   /* 0-360 */
+    --tint: 6;    /* 0-15, how strongly the hue tints the dark surfaces */
 
-/* shadcn semantic tokens — HSL channels mapped to our palette. Prefixed --sc-
-   so they never collide with our brand --accent or --color-black-* scale. The
-   tailwind config exposes them as bg-background / text-foreground / bg-primary /
-   bg-accent / border-border etc., so `npx shadcn add` components render on-theme. */
-:root {
-  --sc-background: 222 16% 9%;
-  --sc-foreground: 210 16% 92%;
-  --sc-card: 222 16% 9%;
-  --sc-card-foreground: 210 16% 92%;
-  --sc-popover: 223 20% 7%;
-  --sc-popover-foreground: 210 16% 92%;
-  --sc-primary: 216 87% 54%;
-  --sc-primary-foreground: 0 0% 100%;
-  --sc-secondary: 222 13% 18%;
-  --sc-secondary-foreground: 210 16% 90%;
-  --sc-muted: 222 13% 18%;
-  --sc-muted-foreground: 215 9% 62%;
-  --sc-accent: 222 13% 20%;
-  --sc-accent-foreground: 210 16% 92%;
-  --sc-destructive: 0 72% 51%;
-  --sc-destructive-foreground: 0 0% 100%;
-  --sc-border: 220 9% 24%;
-  --sc-input: 220 9% 24%;
-  --sc-ring: 216 87% 54%;
-  --radius: 0.5rem;
+    /* Dark surface scale — tinted by --hue, strength = --tint. tint 0 = neutral gray. */
+    --color-black-950: hsl(var(--hue) calc(var(--tint) * 1%) 4%);
+    --color-black-900: hsl(var(--hue) calc(var(--tint) * 1%) 9%);
+    --color-black-800: hsl(var(--hue) calc(var(--tint) * 1%) 15%);
+    --color-black-700: hsl(var(--hue) calc(var(--tint) * 1%) 25%);
+    --color-black-600: hsl(var(--hue) calc(var(--tint) * 1%) 32%);
+    --color-black-500: hsl(var(--hue) calc(var(--tint) * 1%) 45%);
+
+    /* Accent — always vivid (S/L locked so every hue stays good). */
+    --accent: hsl(var(--hue) 85% 56%);
+    --accent-hover: hsl(var(--hue) 85% 48%);
+    --accent-subtle: hsl(var(--hue) 85% 56% / 0.16);
+
+    --radius: 0.5rem;
+  }
 }
 
 /* Density: comfortable (default) */

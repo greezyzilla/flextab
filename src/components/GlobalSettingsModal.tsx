@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useMemo } from "react";
-import { useSettingsStore, ACCENT_COLORS, type GroupLayout, type Density, type AccentColor } from "~src/store/useSettingsStore";
+import { useSettingsStore, HUE_PRESETS, type GroupLayout, type Density } from "~src/store/useSettingsStore";
 import { useAuthStore } from "~src/store/useAuthStore";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { useSyncStore, type SyncStatus } from "~src/store/useSyncStore";
@@ -16,9 +16,8 @@ import { Slider } from "~src/components/ui/slider";
 import { Button } from "~src/components/ui/button";
 import { Input } from "~src/components/ui/input";
 import { Badge } from "~src/components/ui/badge";
-import { Popover, PopoverTrigger, PopoverContent } from "~src/components/ui/popover";
-import { HexColorPicker, HexColorInput } from "react-colorful";
 import * as Tabs from "@radix-ui/react-tabs";
+import * as SliderPrimitive from "@radix-ui/react-slider";
 
 type SettingsTab = 'appearance' | 'layout' | 'sync' | 'history' | 'account' | 'data';
 
@@ -75,68 +74,60 @@ function SidebarItem({ value, icon, label }: { value: SettingsTab; icon: React.R
 
 // --- Appearance Tab ---
 
+const HUE_GRADIENT =
+  "linear-gradient(to right, hsl(0 85% 56%), hsl(60 85% 56%), hsl(120 85% 56%), hsl(180 85% 56%), hsl(240 85% 56%), hsl(300 85% 56%), hsl(360 85% 56%))";
+
+function HueSlider({ value, onChange }: { value: number; onChange: (h: number) => void }) {
+  return (
+    <SliderPrimitive.Root
+      min={0}
+      max={360}
+      step={1}
+      value={[value]}
+      onValueChange={(v) => onChange(v[0])}
+      className="relative flex h-5 w-full grow touch-none select-none items-center"
+    >
+      <SliderPrimitive.Track
+        className="relative h-3 w-full grow rounded-full"
+        style={{ background: HUE_GRADIENT }}
+      />
+      <SliderPrimitive.Thumb
+        aria-label="Hue"
+        className="block h-4 w-4 rounded-full border-2 border-white bg-[var(--accent)] shadow outline-none transition-transform hover:scale-110 focus-visible:ring-2 focus-visible:ring-[var(--accent-subtle)]"
+      />
+    </SliderPrimitive.Root>
+  );
+}
+
 function AppearanceTab() {
-  const {
-    accentColor, setAccentColor,
-    customAccent, setCustomAccent,
-    bgTint, setBgTint,
-  } = useSettingsStore();
+  const { hue, setHue, bgTint, setBgTint } = useSettingsStore();
 
   return (
     <div className="flex flex-col gap-5">
-      <SettingRow label="Accent Color" description="Active states, highlights, and focus rings.">
-        <div className="flex items-center gap-2">
-          {(Object.keys(ACCENT_COLORS) as AccentColor[]).map(key => (
-            <button
-              key={key}
-              onClick={() => setAccentColor(key)}
-              className={`w-6 h-6 rounded-full border-2 transition-all ${
-                !customAccent && accentColor === key ? 'border-white/70 scale-110' : 'border-transparent hover:border-white/30'
-              }`}
-              style={{ backgroundColor: ACCENT_COLORS[key].value }}
-              title={ACCENT_COLORS[key].label}
-            />
-          ))}
-          <Popover>
-            <PopoverTrigger asChild>
+      <SettingRow label="Accent" description="Pick a hue — accent, highlights, and the tint all follow it.">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-3">
+            <HueSlider value={hue} onChange={setHue} />
+            <span className="w-10 shrink-0 rounded-md border border-white/10 py-0.5 text-center text-[11px] font-sans text-white/45">{hue}°</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            {HUE_PRESETS.map(p => (
               <button
-                className={`w-6 h-6 rounded-full border-2 transition-all flex items-center justify-center ${
-                  customAccent ? 'border-white/70 scale-110' : 'border-white/20 hover:border-white/40'
-                }`}
-                style={{ backgroundColor: customAccent || 'transparent' }}
-                title="Custom color"
-              >
-                {!customAccent && (
-                  <svg className="w-3 h-3 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                  </svg>
-                )}
-              </button>
-            </PopoverTrigger>
-            <PopoverContent align="start" className="z-[110] w-auto p-3 picker-pop">
-              <div className="flex flex-col gap-3">
-                <HexColorPicker
-                  color={customAccent || ACCENT_COLORS[accentColor].value}
-                  onChange={setCustomAccent}
-                />
-                <div className="flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.06] px-2.5 py-1.5">
-                  <span className="text-white/30 text-xs font-sans">#</span>
-                  <HexColorInput
-                    color={customAccent || ACCENT_COLORS[accentColor].value}
-                    onChange={setCustomAccent}
-                    className="w-full bg-transparent font-sans text-sm uppercase text-white/90 outline-none"
-                  />
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
+                key={p.hue}
+                onClick={() => setHue(p.hue)}
+                className={`h-5 w-5 rounded-full border transition-all ${hue === p.hue ? 'border-white/70 scale-110' : 'border-transparent hover:border-white/40'}`}
+                style={{ backgroundColor: `hsl(${p.hue} 85% 56%)` }}
+                title={p.label}
+              />
+            ))}
+          </div>
         </div>
       </SettingRow>
 
-      <SettingRow label="Background Tint" description="Tints the background with the accent hue.">
+      <SettingRow label="Hue intensity" description="How strongly the hue tints the dark background. 0 = neutral gray.">
         <div className="flex items-center gap-3">
           <Slider min={0} max={15} value={[bgTint]} onValueChange={(v) => setBgTint(v[0])} className="flex-1" />
-          <span className="text-white/30 text-[11px] font-sans w-8 text-right shrink-0">{bgTint}%</span>
+          <span className="text-white/30 text-[11px] font-sans w-8 text-right shrink-0">{bgTint}</span>
         </div>
       </SettingRow>
     </div>
