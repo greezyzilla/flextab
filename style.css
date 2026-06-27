@@ -26,24 +26,6 @@
   }
   .accent-fill:hover { filter: brightness(1.07); }
   .accent-fill:active { filter: brightness(0.98); }
-
-  /* Dialog enter/exit animations — Radix sets data-state=open|closed and keeps
-     the node mounted until the [data-state=closed] animation finishes. */
-  @keyframes overlay-in { from { opacity: 0; } to { opacity: 1; } }
-  @keyframes overlay-out { from { opacity: 1; } to { opacity: 0; } }
-  @keyframes content-in {
-    from { opacity: 0; transform: translate(-50%, calc(-50% + 16px)) scale(0.92); }
-    to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  }
-  @keyframes content-out {
-    from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-    to { opacity: 0; transform: translate(-50%, calc(-50% + 10px)) scale(0.95); }
-  }
-  .dlg-overlay[data-state="open"] { animation: overlay-in 200ms ease-out; }
-  .dlg-overlay[data-state="closed"] { animation: overlay-out 150ms ease-in; }
-  /* smooth ease-out with a gentle spring — clearly visible, not jittery */
-  .dlg-content[data-state="open"] { animation: content-in 260ms cubic-bezier(0.22, 1.18, 0.36, 1); }
-  .dlg-content[data-state="closed"] { animation: content-out 150ms cubic-bezier(0.4, 0, 1, 1); }
 }
 
 @layer theme {
