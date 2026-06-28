@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { loadTokens, saveTokens, clearTokens, apiFetch, getAuthUrl, apiRegister, apiLogin } from "~src/services/api";
+import { loadTokens, saveTokens, clearTokens, apiFetch, getAuthUrl, apiRegister, apiLogin, ApiError } from "~src/services/api";
 import { clearState } from "~src/lib/yjsDoc";
 import { resetYjsHydration } from "~src/store/useSavedSpacesStore";
 import { clearStoredRevision } from "~src/services/revision";
@@ -70,8 +70,13 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       void persistGuestMode(false);
       try {
         await get().fetchUser();
-      } catch (_) {
-        set({ isAuthenticated: false, user: null });
+      } catch (err) {
+        // Local-first: only sign out on a real auth rejection (401 — the BE
+        // explicitly rejected the token, which clears it). A network error /
+        // BE being down keeps the cached session so the app still works offline.
+        if (err instanceof ApiError && err.status === 401) {
+          set({ isAuthenticated: false, user: null });
+        }
       }
     } else {
       set({ guestMode: await loadGuestMode() });

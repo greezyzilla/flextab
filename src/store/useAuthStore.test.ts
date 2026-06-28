@@ -65,8 +65,21 @@ describe('session restore (initialize with tokens)', () => {
     expect(s.isLoading).toBe(false);
   });
 
-  it('falls back to unauthenticated when fetchUser fails', async () => {
+  it('stays authenticated (local-first) when the BE is unreachable', async () => {
+    // server error / BE down — not a token rejection, so keep the cached session
     (global.fetch as any).mockResolvedValue(jsonRes({}, false, 500));
+    await useAuthStore.getState().initialize();
+    expect(useAuthStore.getState().isAuthenticated).toBe(true);
+  });
+
+  it('stays authenticated when fetch outright fails (offline)', async () => {
+    (global.fetch as any).mockRejectedValue(new TypeError('Failed to fetch'));
+    await useAuthStore.getState().initialize();
+    expect(useAuthStore.getState().isAuthenticated).toBe(true);
+  });
+
+  it('signs out only when the token is rejected (401)', async () => {
+    (global.fetch as any).mockResolvedValue(jsonRes({}, false, 401));
     await useAuthStore.getState().initialize();
     expect(useAuthStore.getState().isAuthenticated).toBe(false);
     expect(useAuthStore.getState().user).toBeNull();
