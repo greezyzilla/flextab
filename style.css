@@ -43,18 +43,19 @@
     --hue: 214;   /* 0-360 */
     --tint: 6;    /* 0-15, how strongly the hue tints the dark surfaces */
 
-    /* Dark surface scale — tinted by --hue, strength = --tint. tint 0 = neutral gray. */
-    --color-black-950: hsl(var(--hue) calc(var(--tint) * 1%) 4%);
-    --color-black-900: hsl(var(--hue) calc(var(--tint) * 1%) 9%);
-    --color-black-800: hsl(var(--hue) calc(var(--tint) * 1%) 15%);
-    --color-black-700: hsl(var(--hue) calc(var(--tint) * 1%) 25%);
-    --color-black-600: hsl(var(--hue) calc(var(--tint) * 1%) 32%);
-    --color-black-500: hsl(var(--hue) calc(var(--tint) * 1%) 45%);
+    /* Dark surface scale — tinted by --hue, strength = --tint. tint 0 = neutral gray.
+       Comma syntax so minifiers can't strip required whitespace. */
+    --color-black-950: hsl(var(--hue), calc(var(--tint) * 1%), 4%);
+    --color-black-900: hsl(var(--hue), calc(var(--tint) * 1%), 9%);
+    --color-black-800: hsl(var(--hue), calc(var(--tint) * 1%), 15%);
+    --color-black-700: hsl(var(--hue), calc(var(--tint) * 1%), 25%);
+    --color-black-600: hsl(var(--hue), calc(var(--tint) * 1%), 32%);
+    --color-black-500: hsl(var(--hue), calc(var(--tint) * 1%), 45%);
 
     /* Accent — always vivid (S/L locked so every hue stays good). */
-    --accent: hsl(var(--hue) 85% 56%);
-    --accent-hover: hsl(var(--hue) 85% 48%);
-    --accent-subtle: hsl(var(--hue) 85% 56% / 0.16);
+    --accent: hsl(var(--hue), 85%, 56%);
+    --accent-hover: hsl(var(--hue), 85%, 48%);
+    --accent-subtle: hsl(var(--hue), 85%, 56%, 0.16);
 
     --radius: 0.5rem;
   }
