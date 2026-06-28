@@ -10,6 +10,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { Tooltip, TooltipTrigger, TooltipContent } from "~src/components/ui/tooltip";
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from "~src/components/ui/context-menu";
 import { Input } from "~src/components/ui/input";
+import { SyncStatusIndicator } from "~src/components/SyncStatusIndicator";
 
 export function ProfilePanel() {
   const { savedSpaces, activeSpaceId, setActiveSpace, addSavedSpace, updateSavedSpace, removeSavedSpace, reorderSpaces } = useSavedSpacesStore();
@@ -155,6 +156,7 @@ export function ProfilePanel() {
         </Tooltip>
       </div>
       <div className="flex flex-col gap-2 py-4 items-center">
+        <SyncStatusIndicator />
         <Tooltip>
         <TooltipTrigger asChild>
         <div

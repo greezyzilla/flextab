@@ -2,7 +2,7 @@ import { useRef, useState, useEffect, useMemo } from "react";
 import { useSettingsStore, HUE_PRESETS, type GroupLayout, type Density } from "~src/store/useSettingsStore";
 import { useAuthStore } from "~src/store/useAuthStore";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
-import { useSyncStore, type SyncStatus } from "~src/store/useSyncStore";
+import { useSyncStore, SYNC_STATUS_META, formatRelativeTime } from "~src/store/useSyncStore";
 import { apiChangePassword, getDeviceId } from "~src/services/api";
 import { apiGetDevices, type DeviceInfo } from "~src/services/device";
 import { apiListSnapshots, apiGetSnapshot, apiRestoreSnapshot, type SnapshotInfo } from "~src/services/snapshots";
@@ -401,25 +401,6 @@ function DataTab() {
 }
 
 // --- Sync Tab ---
-
-const SYNC_STATUS_META: Record<SyncStatus, { label: string; color: string; pulse?: boolean }> = {
-  online:     { label: 'Connected',    color: '#22c55e' },
-  connecting: { label: 'Connecting…',  color: '#eab308', pulse: true },
-  syncing:    { label: 'Syncing…',     color: '#eab308', pulse: true },
-  offline:    { label: 'Offline',      color: '#a3a3a3' },
-  paused:     { label: 'Auto-sync off', color: '#a3a3a3' },
-  error:      { label: 'Sync error',   color: '#ef4444' },
-};
-
-function formatRelativeTime(ts: number | null): string {
-  if (!ts) return 'Not synced yet';
-  const diff = Date.now() - ts;
-  if (diff < 5_000) return 'Just now';
-  if (diff < 60_000) return `${Math.floor(diff / 1000)}s ago`;
-  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
-  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
-  return `${Math.floor(diff / 86_400_000)}d ago`;
-}
 
 function SyncTab() {
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
