@@ -59,9 +59,9 @@ function OnboardingScreen() {
     <div className="flex flex-col lg:flex-row min-h-screen w-screen bg-black-900 font-sans overflow-x-hidden overflow-y-auto lg:overflow-hidden">
       {/* Left — hero */}
       <div className="flex-1 flex flex-col justify-between p-6 sm:p-10 min-w-0 relative">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/[0.07] via-transparent to-purple-600/[0.05]" />
-        <div className="absolute top-0 left-0 w-[600px] h-[600px] bg-blue-500/[0.04] rounded-full blur-[120px] -translate-x-1/3 -translate-y-1/3" />
-        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-indigo-500/[0.03] rounded-full blur-[100px] translate-x-1/4 translate-y-1/4" />
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom right, color-mix(in srgb, var(--accent) 7%, transparent), transparent 60%)' }} />
+        <div className="absolute top-0 left-0 w-[600px] h-[600px] rounded-full blur-[120px] -translate-x-1/3 -translate-y-1/3" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 5%, transparent)' }} />
+        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full blur-[100px] translate-x-1/4 translate-y-1/4" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 4%, transparent)' }} />
         <div className="relative z-10 flex-1 flex flex-col justify-between">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-white/20 to-white/5 border border-white/10 flex items-center justify-center">
