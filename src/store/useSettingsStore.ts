@@ -53,7 +53,7 @@ export const useSettingsStore = create<SettingsState>()(
       gridColumns: 2,
       density: 'comfortable',
       hue: 214,
-      bgTint: 6,
+      bgTint: 0,
       autoSync: true,
 
       setGroupLayout: (groupLayout) => set({ groupLayout }),

@@ -41,7 +41,7 @@
     /* THE theme knobs — the only two values that drive the whole UI.
        useTheme writes these at runtime from the user's hue + intensity sliders. */
     --hue: 214;   /* 0-360 */
-    --tint: 6;    /* 0-15, how strongly the hue tints the dark surfaces */
+    --tint: 0;    /* 0-15, how strongly the hue tints the dark surfaces (0 = neutral) */
 
     /* Dark surface scale — tinted by --hue, strength = --tint. tint 0 = neutral gray.
        Comma syntax so minifiers can't strip required whitespace. */
