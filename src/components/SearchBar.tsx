@@ -1,16 +1,11 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
-import { useWindows } from "~src/hooks/useWindows";
 import { FaviconImg } from "./FaviconImg";
-import { Badge } from "./ui/badge";
 
 interface SearchResult {
-  type: 'saved' | 'opened';
   title: string;
   url: string;
   favicon: string;
-  tabId?: number;
-  windowId?: number;
   breadcrumb?: string;
 }
 
@@ -22,7 +17,6 @@ export function SearchBar() {
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const { savedSpaces } = useSavedSpacesStore();
-  const { windows } = useWindows({ populate: true });
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -45,7 +39,7 @@ export function SearchBar() {
 
     const matches: SearchResult[] = [];
 
-    // Search saved tabs
+    // Search saved tabs only
     for (const space of savedSpaces) {
       for (const project of space.projects) {
         for (const category of project.categories) {
@@ -53,7 +47,6 @@ export function SearchBar() {
             for (const tab of group.tabs) {
               if (tab.title.toLowerCase().includes(q) || tab.url.toLowerCase().includes(q)) {
                 matches.push({
-                  type: 'saved',
                   title: tab.title,
                   url: tab.url,
                   favicon: tab.favicon,
@@ -66,33 +59,11 @@ export function SearchBar() {
       }
     }
 
-    // Search opened tabs
-    for (const window of windows) {
-      for (const tab of window.tabs ?? []) {
-        if (!tab.url || tab.url.startsWith('chrome://')) continue;
-        if ((tab.title ?? '').toLowerCase().includes(q) || tab.url.toLowerCase().includes(q)) {
-          matches.push({
-            type: 'opened',
-            title: tab.title ?? '',
-            url: tab.url,
-            favicon: tab.favIconUrl ?? '',
-            tabId: tab.id,
-            windowId: window.id,
-          });
-        }
-      }
-    }
-
     return matches.slice(0, 20);
-  }, [query, savedSpaces, windows]);
+  }, [query, savedSpaces]);
 
   const handleResultClick = (result: SearchResult) => {
-    if (result.type === 'opened' && result.tabId && result.windowId) {
-      chrome.tabs.update(result.tabId, { active: true });
-      chrome.windows.update(result.windowId, { focused: true });
-    } else {
-      chrome.tabs.create({ url: result.url });
-    }
+    chrome.tabs.create({ url: result.url });
     setQuery("");
     inputRef.current?.blur();
   };
@@ -137,7 +108,7 @@ export function SearchBar() {
           onKeyDown={handleKeyDown}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setTimeout(() => setIsFocused(false), 150)}
-          placeholder="Search tabs... (Cmd+K)"
+          placeholder="Search saved tabs… (Cmd+K)"
           className="flex-1 bg-transparent text-white/80 text-sm placeholder-white/30 outline-none font-sans"
         />
         {query && (
@@ -152,7 +123,7 @@ export function SearchBar() {
           {results.length > 0 ? (
             results.map((result, i) => (
               <button
-                key={`${result.type}-${result.url}-${i}`}
+                key={`${result.url}-${i}`}
                 onClick={() => handleResultClick(result)}
                 onMouseEnter={() => setSelectedIndex(i)}
                 className={`w-full flex items-center gap-3 px-3 py-2 transition-colors text-left ${i === selectedIndex ? 'bg-white/10' : 'hover:bg-white/5'}`}
@@ -165,9 +136,6 @@ export function SearchBar() {
                     <div className="text-white/30 text-xs truncate">{result.breadcrumb}</div>
                   )}
                 </div>
-                <Badge variant={result.type === 'saved' ? 'accent' : 'success'} className="shrink-0 font-normal">
-                  {result.type === 'saved' ? 'saved' : 'open'}
-                </Badge>
               </button>
             ))
           ) : (
