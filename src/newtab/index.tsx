@@ -19,6 +19,7 @@ import { useUIStore } from "~src/store/useUIStore"
 import { useHydrated } from "~src/store/useSavedSpacesStore"
 import { useAuthStore } from "~src/store/useAuthStore"
 import { startSyncEngine, stopSyncEngine, startLocalPersistence, stopLocalPersistence } from "~src/services/syncEngine"
+import { pullSettings, startSettingsSync, stopSettingsSync } from "~src/services/settingsSync"
 import { useSettingsStore } from "~src/store/useSettingsStore"
 
 function LoadingScreen() {
@@ -344,6 +345,14 @@ function NewTabPage() {
     startSyncEngine();
     return () => stopSyncEngine();
   }, [hydrated, isAuthenticated, autoSync]);
+
+  // Account settings (theme/layout/etc.): pull on sign-in, then push on change.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    pullSettings();
+    startSettingsSync();
+    return () => stopSettingsSync();
+  }, [isAuthenticated]);
 
   if (authLoading) return <LoadingScreen />;
   if (!isAuthenticated && !guestMode) return <OnboardingScreen />;

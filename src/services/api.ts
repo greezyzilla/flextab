@@ -245,5 +245,16 @@ export async function apiChangePassword(currentPassword: string, newPassword: st
   });
 }
 
+export async function apiGetSettings(): Promise<Record<string, unknown>> {
+  return apiFetch<Record<string, unknown>>("/api/settings");
+}
+
+export async function apiPutSettings(settings: Record<string, unknown>): Promise<void> {
+  await apiFetch("/api/settings", {
+    method: "PUT",
+    body: JSON.stringify(settings),
+  });
+}
+
 export { API_BASE_URL };
 export type { TokenData };
