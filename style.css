@@ -39,23 +39,27 @@
     --color-black: #000;
 
     /* THE theme knobs — the only two values that drive the whole UI.
-       useTheme writes these at runtime from the user's hue + intensity sliders. */
-    --hue: 214;   /* 0-360 */
-    --tint: 0;    /* 0-15, how strongly the hue tints the dark surfaces (0 = neutral) */
+       useTheme writes these at runtime from the hue + intensity sliders. */
+    --hue: 214;        /* 0-360 */
+    --intensity: 100;  /* 0-100, overall colour strength. 0 = grayscale wireframe. */
 
-    /* Dark surface scale — tinted by --hue, strength = --tint. tint 0 = neutral gray.
-       Comma syntax so minifiers can't strip required whitespace. */
-    --color-black-950: hsl(var(--hue), calc(var(--tint) * 1%), 4%);
-    --color-black-900: hsl(var(--hue), calc(var(--tint) * 1%), 9%);
-    --color-black-800: hsl(var(--hue), calc(var(--tint) * 1%), 15%);
-    --color-black-700: hsl(var(--hue), calc(var(--tint) * 1%), 25%);
-    --color-black-600: hsl(var(--hue), calc(var(--tint) * 1%), 32%);
-    --color-black-500: hsl(var(--hue), calc(var(--tint) * 1%), 45%);
+    /* Saturations derived from intensity. Accent ramps to vivid; surfaces stay
+       subtle. At intensity 0 both are 0% → everything is neutral gray. */
+    --accent-sat: calc(var(--intensity) * 0.85%);    /* 0 → 0%,  100 → 85% */
+    --surface-sat: calc(var(--intensity) * 0.07%);   /* 0 → 0%,  100 → 7%  */
 
-    /* Accent — always vivid (S/L locked so every hue stays good). */
-    --accent: hsl(var(--hue), 85%, 56%);
-    --accent-hover: hsl(var(--hue), 85%, 48%);
-    --accent-subtle: hsl(var(--hue), 85%, 56%, 0.16);
+    /* Dark surface scale. Comma syntax so minifiers keep separators. */
+    --color-black-950: hsl(var(--hue), var(--surface-sat), 4%);
+    --color-black-900: hsl(var(--hue), var(--surface-sat), 9%);
+    --color-black-800: hsl(var(--hue), var(--surface-sat), 15%);
+    --color-black-700: hsl(var(--hue), var(--surface-sat), 25%);
+    --color-black-600: hsl(var(--hue), var(--surface-sat), 32%);
+    --color-black-500: hsl(var(--hue), var(--surface-sat), 45%);
+
+    /* Accent — saturation follows intensity (gray at 0, vivid at 100). */
+    --accent: hsl(var(--hue), var(--accent-sat), 56%);
+    --accent-hover: hsl(var(--hue), var(--accent-sat), 48%);
+    --accent-subtle: hsl(var(--hue), var(--accent-sat), 56%, 0.16);
 
     --radius: 0.5rem;
   }

@@ -22,7 +22,7 @@ module.exports = {
         ring: "var(--accent)",
         background: "var(--color-black-900)",
         foreground: "hsl(0 0% 100% / 0.92)",
-        primary: { DEFAULT: "hsl(var(--hue) 85% 56% / <alpha-value>)", foreground: "hsl(0 0% 100%)" },
+        primary: { DEFAULT: "var(--accent)", foreground: "hsl(0 0% 100%)" },
         secondary: { DEFAULT: "var(--color-black-800)", foreground: "hsl(0 0% 100% / 0.88)" },
         destructive: { DEFAULT: "hsl(0 72% 51% / <alpha-value>)", foreground: "hsl(0 0% 100%)" },
         muted: { DEFAULT: "var(--color-black-800)", foreground: "hsl(0 0% 100% / 0.5)" },

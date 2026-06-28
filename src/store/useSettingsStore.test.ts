@@ -3,7 +3,7 @@ import { useSettingsStore, HUE_PRESETS } from './useSettingsStore';
 
 beforeEach(() => useSettingsStore.setState({
   groupLayout: 'list', gridColumns: 2, density: 'comfortable',
-  hue: 214, bgTint: 6, autoSync: true,
+  hue: 214, intensity: 100, autoSync: true,
 }));
 
 describe('useSettingsStore', () => {
@@ -18,14 +18,14 @@ describe('useSettingsStore', () => {
     s.setGridColumns(4);
     s.setDensity('compact');
     s.setHue(262);
-    s.setBgTint(8);
+    s.setIntensity(50);
     s.setAutoSync(false);
     const st = useSettingsStore.getState();
     expect(st.groupLayout).toBe('grid');
     expect(st.gridColumns).toBe(4);
     expect(st.density).toBe('compact');
     expect(st.hue).toBe(262);
-    expect(st.bgTint).toBe(8);
+    expect(st.intensity).toBe(50);
     expect(st.autoSync).toBe(false);
   });
 

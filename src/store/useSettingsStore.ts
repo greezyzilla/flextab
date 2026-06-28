@@ -34,15 +34,15 @@ interface SettingsState {
   groupLayout: GroupLayout;
   gridColumns: number;
   density: Density;
-  hue: number;   // 0-360, accent hue (drives accent + background tint)
-  bgTint: number; // 0-15, how strongly the hue tints the dark UI
+  hue: number;       // 0-360, accent hue
+  intensity: number; // 0-100, overall colour strength (0 = grayscale)
   autoSync: boolean;
 
   setGroupLayout: (layout: GroupLayout) => void;
   setGridColumns: (columns: number) => void;
   setDensity: (density: Density) => void;
   setHue: (hue: number) => void;
-  setBgTint: (tint: number) => void;
+  setIntensity: (intensity: number) => void;
   setAutoSync: (autoSync: boolean) => void;
 }
 
@@ -53,19 +53,19 @@ export const useSettingsStore = create<SettingsState>()(
       gridColumns: 2,
       density: 'comfortable',
       hue: 214,
-      bgTint: 0,
+      intensity: 100,
       autoSync: true,
 
       setGroupLayout: (groupLayout) => set({ groupLayout }),
       setGridColumns: (gridColumns) => set({ gridColumns }),
       setDensity: (density) => set({ density }),
       setHue: (hue) => set({ hue }),
-      setBgTint: (bgTint) => set({ bgTint }),
+      setIntensity: (intensity) => set({ intensity }),
       setAutoSync: (autoSync) => set({ autoSync }),
     }),
     {
       name: 'flextab-settings',
-      version: 1,
+      version: 2,
       migrate: (persisted: unknown, version) => {
         const s = persisted as Record<string, unknown> | null;
         if (s && version < 1) {
@@ -75,6 +75,11 @@ export const useSettingsStore = create<SettingsState>()(
           else if (typeof s.accentColor === 'string') s.hue = presetHue[s.accentColor] ?? 214;
           delete s.accentColor;
           delete s.customAccent;
+        }
+        if (s && version < 2) {
+          // bgTint (0-15 surface tint) -> intensity (0-100 overall colour); default vivid
+          delete s.bgTint;
+          if (typeof s.intensity !== 'number') s.intensity = 100;
         }
         return s as SettingsState;
       },

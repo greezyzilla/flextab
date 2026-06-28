@@ -100,11 +100,11 @@ function HueSlider({ value, onChange }: { value: number; onChange: (h: number) =
 }
 
 function AppearanceTab() {
-  const { hue, setHue, bgTint, setBgTint } = useSettingsStore();
+  const { hue, setHue, intensity, setIntensity } = useSettingsStore();
 
   return (
     <div className="flex flex-col gap-5">
-      <SettingRow label="Accent" description="Pick a hue — accent, highlights, and the tint all follow it.">
+      <SettingRow label="Accent hue" description="The colour for accents and highlights.">
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-3">
             <HueSlider value={hue} onChange={setHue} />
@@ -124,10 +124,10 @@ function AppearanceTab() {
         </div>
       </SettingRow>
 
-      <SettingRow label="Hue intensity" description="How strongly the hue tints the dark background. 0 = neutral gray.">
+      <SettingRow label="Colour intensity" description="How much colour shows. 0 = neutral grayscale; higher = vivid accent + tinted surfaces.">
         <div className="flex items-center gap-3">
-          <Slider min={0} max={15} value={[bgTint]} onValueChange={(v) => setBgTint(v[0])} className="flex-1" />
-          <span className="text-white/30 text-[11px] font-sans w-8 text-right shrink-0">{bgTint}</span>
+          <Slider min={0} max={100} value={[intensity]} onValueChange={(v) => setIntensity(v[0])} className="flex-1" />
+          <span className="text-white/30 text-[11px] font-sans w-9 text-right shrink-0">{intensity}%</span>
         </div>
       </SettingRow>
     </div>
