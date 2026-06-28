@@ -28,7 +28,7 @@ export function SyncStatusIndicator() {
           />
         </div>
       </TooltipTrigger>
-      <TooltipContent side="right">
+      <TooltipContent side="bottom" align="end">
         <div className="font-medium">{meta.label}</div>
         {isAuthenticated && (
           <div className="text-white/45">

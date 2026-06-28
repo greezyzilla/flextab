@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { ContentPanel, LeftPanel, ProfilePanel, RightPanel, Drawer, DragOverlayContent } from "~src/components"
 import { SearchBar } from "~src/components/SearchBar"
+import { SyncStatusIndicator } from "~src/components/SyncStatusIndicator"
 import { Toaster } from "~src/components/ui/sonner"
 import { SyncConflictModal } from "~src/components/SyncConflictModal"
 import { ErrorBoundary } from "~src/components/ErrorBoundary"
@@ -283,18 +284,21 @@ function NewTabPageContent() {
         )}
 
         <div className="border-x border-black-800 flex-1 flex flex-col min-w-0">
-          <div className="px-3 sm:px-5 py-3 flex items-center gap-2 border-b border-black-800 shrink-0">
-            {!leftInline && (
-              <IconButton onClick={toggleLeftDrawer} className="h-9 w-9 shrink-0" title="Spaces & navigation" aria-label="Toggle navigation">
-                <MenuIcon />
-              </IconButton>
-            )}
-            <SearchBar />
-            {!rightInline && (
-              <IconButton onClick={toggleRightDrawer} className="h-9 w-9 shrink-0" title="Opened tabs" aria-label="Toggle opened tabs">
-                <OpenedTabsIcon />
-              </IconButton>
-            )}
+          <div className="px-3 sm:px-5 py-3 flex items-center justify-between gap-2 border-b border-black-800 shrink-0">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              {!leftInline && (
+                <IconButton onClick={toggleLeftDrawer} className="h-9 w-9 shrink-0" title="Spaces & navigation" aria-label="Toggle navigation">
+                  <MenuIcon />
+                </IconButton>
+              )}
+              <SearchBar />
+              {!rightInline && (
+                <IconButton onClick={toggleRightDrawer} className="h-9 w-9 shrink-0" title="Opened tabs" aria-label="Toggle opened tabs">
+                  <OpenedTabsIcon />
+                </IconButton>
+              )}
+            </div>
+            <SyncStatusIndicator />
           </div>
           <ContentPanel />
         </div>
