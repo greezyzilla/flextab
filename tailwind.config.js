@@ -26,9 +26,11 @@ module.exports = {
         secondary: { DEFAULT: "var(--color-black-800)", foreground: "hsl(0 0% 100% / 0.88)" },
         destructive: { DEFAULT: "hsl(0 72% 51% / <alpha-value>)", foreground: "hsl(0 0% 100%)" },
         muted: { DEFAULT: "var(--color-black-800)", foreground: "hsl(0 0% 100% / 0.5)" },
-        accent: { DEFAULT: "var(--color-black-800)", foreground: "hsl(0 0% 100% / 0.9)" },
-        popover: { DEFAULT: "var(--color-black-950)", foreground: "hsl(0 0% 100% / 0.92)" },
-        card: { DEFAULT: "var(--color-black-900)", foreground: "hsl(0 0% 100% / 0.92)" },
+        // item-hover surface — lighter than the menu bg so hover reads
+        accent: { DEFAULT: "var(--color-black-700)", foreground: "hsl(0 0% 100% / 0.92)" },
+        // elevated surfaces (menus/dropdowns/tooltips) — LIGHTER than the page base
+        popover: { DEFAULT: "var(--color-black-800)", foreground: "hsl(0 0% 100% / 0.92)" },
+        card: { DEFAULT: "var(--color-black-800)", foreground: "hsl(0 0% 100% / 0.92)" },
         'black-50': 'var(--color-black-50)',
         'black-100': 'var(--color-black-100)',
         'black-200': 'var(--color-black-200)',
