@@ -3,6 +3,12 @@
 @tailwind utilities;
 
 @layer base {
+  /* shadcn convention: default border color = our border token. Without this,
+     Tailwind v3's bare `border` falls back to currentColor (= white text) — which
+     is why canonical menus/dialogs showed white borders. */
+  * {
+    border-color: var(--color-black-700);
+  }
   html,
   body {
     font-family: "Inter Variable", Inter, system-ui, -apple-system, sans-serif;
