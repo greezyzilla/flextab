@@ -17,6 +17,7 @@ import type { SavedSpace } from "~src/types";
 export type ConflictKind = "field" | "delete-edit";
 
 export interface Conflict {
+  key: string; // stable identity for this conflict (path + id + field/kind)
   path: string; // breadcrumb, e.g. "Personal / Work / Docs"
   id: string;
   name: string;
@@ -27,6 +28,11 @@ export interface Conflict {
   local?: unknown;
   deletedOn?: "server" | "local"; // for "delete-edit"
 }
+
+// Per-conflict override, keyed by Conflict.key. "server" / "local" = which side's
+// value to keep. For a delete-edit, the deleting side means "honor the delete"
+// (drop the item); the other side means "keep the edit".
+export type Resolutions = Record<string, "server" | "local">;
 
 export interface Merge3Result {
   merged: SavedSpace[];
@@ -80,6 +86,7 @@ function mergeScalars(
   cfg: LevelCfg,
   path: string,
   conflicts: Conflict[],
+  resolutions: Resolutions,
 ): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const f of cfg.scalars) {
@@ -87,8 +94,9 @@ function mergeScalars(
     const sChanged = base ? !eq(bv, sv) : false;
     const lChanged = base ? !eq(bv, lv) : false;
     if (sChanged && lChanged && !eq(sv, lv)) {
-      conflicts.push({ path, id: server.id, name: cfg.label(server), kind: "field", field: f, base: bv, server: sv, local: lv });
-      out[f] = lv; // default: keep this device's value; resolver can override
+      const key = `${path}::${server.id}::${f}`;
+      conflicts.push({ key, path, id: server.id, name: cfg.label(server), kind: "field", field: f, base: bv, server: sv, local: lv });
+      out[f] = resolutions[key] === "server" ? sv : lv; // default: keep this device's value
     } else if (sChanged) out[f] = sv;
     else if (lChanged) out[f] = lv;
     else out[f] = sv; // unchanged
@@ -96,8 +104,8 @@ function mergeScalars(
   return out;
 }
 
-function mergeNode(base: Node | undefined, server: Node, local: Node, cfg: LevelCfg, path: string, conflicts: Conflict[]): Node {
-  const node: Node = { ...server, ...mergeScalars(base, server, local, cfg, path, conflicts) };
+function mergeNode(base: Node | undefined, server: Node, local: Node, cfg: LevelCfg, path: string, conflicts: Conflict[], resolutions: Resolutions): Node {
+  const node: Node = { ...server, ...mergeScalars(base, server, local, cfg, path, conflicts, resolutions) };
   if (cfg.childrenKey && cfg.child) {
     const childPath = path ? `${path} / ${cfg.label(server)}` : cfg.label(server);
     node[cfg.childrenKey] = mergeList(
@@ -107,6 +115,7 @@ function mergeNode(base: Node | undefined, server: Node, local: Node, cfg: Level
       cfg.child,
       childPath,
       conflicts,
+      resolutions,
     );
   }
   return node;
@@ -119,6 +128,7 @@ function mergeList(
   cfg: LevelCfg,
   path: string,
   conflicts: Conflict[],
+  resolutions: Resolutions,
 ): Node[] {
   const bMap = new Map((base ?? []).map((x) => [x.id, x]));
   const sMap = new Map(server.map((x) => [x.id, x]));
@@ -130,20 +140,22 @@ function mergeList(
     const b = bMap.get(id), s = sMap.get(id), l = lMap.get(id);
 
     if (s && l) {
-      out.push(mergeNode(b, s, l, cfg, path, conflicts));
+      out.push(mergeNode(b, s, l, cfg, path, conflicts, resolutions));
     } else if (s && !l) {
       if (!b) out.push(s); // added on server
       else if (!contentEq(b, s)) {
         // deleted on local, but edited on server → conflict (keep the edit by default)
-        conflicts.push({ path, id: s.id, name: cfg.label(s), kind: "delete-edit", deletedOn: "local", server: s });
-        out.push(s);
+        const key = `${path}::${s.id}::delete-edit`;
+        conflicts.push({ key, path, id: s.id, name: cfg.label(s), kind: "delete-edit", deletedOn: "local", server: s });
+        if (resolutions[key] !== "local") out.push(s); // "local" = honor the delete
       } // else: server unchanged + local deleted → respect the delete
     } else if (!s && l) {
       if (!b) out.push(l); // added on local
       else if (!contentEq(b, l)) {
         // deleted on server, but edited on local → conflict (keep the edit by default)
-        conflicts.push({ path, id: l.id, name: cfg.label(l), kind: "delete-edit", deletedOn: "server", local: l });
-        out.push(l);
+        const key = `${path}::${l.id}::delete-edit`;
+        conflicts.push({ key, path, id: l.id, name: cfg.label(l), kind: "delete-edit", deletedOn: "server", local: l });
+        if (resolutions[key] !== "server") out.push(l); // "server" = honor the delete
       } // else: local unchanged + server deleted → respect the delete
     }
     // !s && !l → deleted on both → gone
@@ -153,8 +165,10 @@ function mergeList(
 }
 
 /** 3-way merge of the spaces tree. `base` may be null (first sync) — then it degrades
- *  to a lossless union (everything kept, no deletes/conflicts detected). */
-export function merge3(base: SavedSpace[] | null, server: SavedSpace[], local: SavedSpace[]): Merge3Result {
+ *  to a lossless union (everything kept, no deletes/conflicts detected). Pass
+ *  `resolutions` to override a conflict's default (keyed by Conflict.key) — re-running
+ *  merge3 with the user's choices yields the resolved tree. */
+export function merge3(base: SavedSpace[] | null, server: SavedSpace[], local: SavedSpace[], resolutions: Resolutions = {}): Merge3Result {
   const conflicts: Conflict[] = [];
   const merged = mergeList(
     base as Node[] | undefined,
@@ -163,6 +177,7 @@ export function merge3(base: SavedSpace[] | null, server: SavedSpace[], local: S
     spaceCfg,
     "",
     conflicts,
+    resolutions,
   ) as unknown as SavedSpace[];
   return { merged, conflicts };
 }

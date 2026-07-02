@@ -132,3 +132,48 @@ describe("merge3 — structure / edges", () => {
     expect(r.conflicts).toHaveLength(0);
   });
 });
+
+describe("merge3 — resolutions (per-item overrides)", () => {
+  it("field conflict: override to server keeps the server value", () => {
+    const base = wrap([grp("a", "A")]);
+    const server = wrap([grp("a", "Server")]);
+    const local = wrap([grp("a", "Local")]);
+    const key = merge3(base, server, local).conflicts[0].key;
+    const r = merge3(base, server, local, { [key]: "server" });
+    expect(groupsOf(r.merged)[0].name).toBe("Server");
+  });
+
+  it("field conflict: override to local keeps the local value (explicit default)", () => {
+    const base = wrap([grp("a", "A")]);
+    const server = wrap([grp("a", "Server")]);
+    const local = wrap([grp("a", "Local")]);
+    const key = merge3(base, server, local).conflicts[0].key;
+    const r = merge3(base, server, local, { [key]: "local" });
+    expect(groupsOf(r.merged)[0].name).toBe("Local");
+  });
+
+  it("delete-edit (server deleted): override to server honors the delete (drops it)", () => {
+    const base = wrap([grp("a", "A"), grp("b", "B")]);
+    const server = wrap([grp("a", "A")]); // deleted b
+    const local = wrap([grp("a", "A"), grp("b", "B edited")]); // edited b
+    const key = merge3(base, server, local).conflicts[0].key;
+    const r = merge3(base, server, local, { [key]: "server" });
+    expect(ids(groupsOf(r.merged))).toEqual(["a"]); // delete honored
+  });
+
+  it("delete-edit (local deleted): override to local honors the delete (drops it)", () => {
+    const base = wrap([grp("a", "A"), grp("b", "B")]);
+    const server = wrap([grp("a", "A"), grp("b", "B edited")]); // edited b
+    const local = wrap([grp("a", "A")]); // deleted b
+    const key = merge3(base, server, local).conflicts[0].key;
+    const r = merge3(base, server, local, { [key]: "local" });
+    expect(ids(groupsOf(r.merged))).toEqual(["a"]); // delete honored
+  });
+
+  it("conflict.key is stable across runs", () => {
+    const base = wrap([grp("a", "A")]);
+    const a = merge3(base, wrap([grp("a", "S")]), wrap([grp("a", "L")])).conflicts[0].key;
+    const b = merge3(base, wrap([grp("a", "S")]), wrap([grp("a", "L")])).conflicts[0].key;
+    expect(a).toBe(b);
+  });
+});
