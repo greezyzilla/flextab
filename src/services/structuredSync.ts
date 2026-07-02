@@ -15,13 +15,18 @@ export type StructuredSyncResult = "ok" | "skipped" | "error";
  *    retry (bounded). Merging the conflict payload is what prevents a lost
  *    update — re-pushing our stale snapshot alone would clobber the other change.
  *
- * reReadSpaces returns the latest local snapshot; mergeOnConflict losslessly
- * unions the server's conflict state with it.
+ * `reReadSpaces` returns the latest local snapshot. `mergeOnConflict` reconciles
+ * the server's 409 state with it — a 3-way merge against the sync merge-base, so a
+ * concurrent delete isn't resurrected. It may return `null` to signal a *true*
+ * conflict (edit-edit / delete-vs-edit) that needs interactive resolution: the push
+ * then backs off ("skipped") and the open new-tab reconcile surfaces the resolver.
+ * `onPushed` fires once a push is confirmed (advances the merge-base to what landed).
  */
 export async function syncStructuredSnapshot(
   initialSpaces: unknown[],
   reReadSpaces: () => Promise<unknown[]>,
-  mergeOnConflict?: (server: unknown[], local: unknown[]) => unknown[],
+  mergeOnConflict?: (server: unknown[], local: unknown[]) => unknown[] | null | Promise<unknown[] | null>,
+  onPushed?: (spaces: unknown[], revision: number) => void | Promise<void>,
 ): Promise<StructuredSyncResult> {
   if (initialSpaces.length === 0) return "skipped";
 
@@ -37,13 +42,16 @@ export async function syncStructuredSnapshot(
     const result = await pushSync(spaces, base);
     if (result.status === "ok") {
       await setStoredRevision(result.revision);
+      await onPushed?.(spaces, result.revision);
       return "ok";
     }
     if (result.status === "conflict") {
       base = result.revision;
       await setStoredRevision(base);
       const local = await reReadSpaces();
-      spaces = mergeOnConflict ? mergeOnConflict(result.spaces, local) : local;
+      const merged = mergeOnConflict ? await mergeOnConflict(result.spaces, local) : local;
+      if (merged === null) return "skipped"; // true conflict — defer to interactive resolve
+      spaces = merged;
       if (spaces.length === 0) return "skipped";
       continue;
     }

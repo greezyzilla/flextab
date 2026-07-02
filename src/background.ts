@@ -1,7 +1,8 @@
 import * as Y from "yjs";
 import { loadTokens, getDeviceId } from "~src/services/api";
 import { syncStructuredSnapshot } from "~src/services/structuredSync";
-import { mergeSpaces } from "~src/services/spacesMerge";
+import { merge3 } from "~src/services/spacesMerge3";
+import { getMergeBase, setMergeBase } from "~src/services/mergeBase";
 import type { SavedSpace } from "~src/types";
 
 const API_BASE_URL = process.env.PLASMO_PUBLIC_API_URL || "http://localhost:3000";
@@ -96,13 +97,21 @@ async function pushStructuredData(state: number[]) {
     const f = await chrome.storage.local.get("flextab_sync_hydrated");
     if (f["flextab_sync_hydrated"] !== true) return;
   } catch (_) { return; }
-  // Optimistic-concurrency push with 409 reconcile lives in structuredSync; on a
-  // conflict it merges the server's returned state with our latest local one so
-  // a concurrent change is never clobbered.
+  // Optimistic-concurrency push with 409 reconcile lives in structuredSync. On a
+  // conflict we 3-way merge the server's returned state with our latest local one
+  // against the sync merge-base, so a concurrent delete isn't resurrected. A true
+  // conflict (edit-edit / delete-vs-edit) returns null → the push defers and the
+  // open new-tab reconcile surfaces the resolver. A confirmed push advances the
+  // merge-base to what actually landed.
   await syncStructuredSnapshot(
     extractSpaces(state),
     readLatestSpaces,
-    (server, local) => mergeSpaces(server as SavedSpace[], local as SavedSpace[]),
+    async (server, local) => {
+      const base = await getMergeBase();
+      const { merged, conflicts } = merge3(base, server as SavedSpace[], local as SavedSpace[]);
+      return conflicts.length > 0 ? null : merged;
+    },
+    (spaces) => setMergeBase(spaces as SavedSpace[]),
   );
 }
 
