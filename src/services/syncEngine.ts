@@ -3,6 +3,7 @@ import { useAuthStore } from "~src/store/useAuthStore";
 import { useSyncStore } from "~src/store/useSyncStore";
 import { useSyncConflict } from "~src/store/useSyncConflict";
 import { useMergeConflict } from "~src/store/useMergeConflict";
+import { useSettingsStore } from "~src/store/useSettingsStore";
 import { apiFetch, loadTokens, getDeviceId, API_BASE_URL } from "./api";
 import { setStoredRevision } from "./revision";
 import { getMergeBase, setMergeBase, clearMergeBase } from "./mergeBase";
@@ -235,12 +236,15 @@ export function resolveMergeConflicts(resolutions: Resolutions) {
   applyResolution(merged);
 }
 
-/** Dismiss the resolver without resolving ("ignore for now"): stay on local data,
- *  don't push. Auto-sync is effectively paused until the next reconcile re-detects
- *  the conflict (Phase #16 will surface this state explicitly). */
+/** Dismiss the resolver without resolving ("ignore for now"): turn auto-sync OFF
+ *  and stay on local data (like staying on your own branch). Flipping auto-sync
+ *  off tears the engine down; turning it back on restarts it → the next reconcile
+ *  re-detects the still-unresolved conflict and reopens the resolver, so the user
+ *  can't silently sync past it. */
 export function dismissMergeConflicts() {
   pendingServer = pendingLocal = pendingMergeBase = pendingMergeConflicts = null;
   useMergeConflict.getState().close();
+  useSettingsStore.getState().setAutoSync(false);
   setStatus("paused");
 }
 
