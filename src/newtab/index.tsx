@@ -4,6 +4,7 @@ import { SearchBar } from "~src/components/SearchBar"
 import { SyncStatusIndicator } from "~src/components/SyncStatusIndicator"
 import { Toaster } from "~src/components/ui/sonner"
 import { SyncConflictModal } from "~src/components/SyncConflictModal"
+import { MergeConflictModal } from "~src/components/MergeConflictModal"
 import { ErrorBoundary } from "~src/components/ErrorBoundary"
 import { TooltipProvider } from "~src/components/ui/tooltip"
 import { Button, IconButton } from "~src/components/ui/button"
@@ -367,6 +368,7 @@ function NewTabPage() {
       <ErrorBoundary>
         <NewTabPageContent />
         <SyncConflictModal />
+        <MergeConflictModal />
       </ErrorBoundary>
     </TooltipProvider>
   )

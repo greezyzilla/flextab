@@ -2,10 +2,13 @@ import { doc, getSpaces, setSpaces, persistState } from "~src/lib/yjsDoc";
 import { useAuthStore } from "~src/store/useAuthStore";
 import { useSyncStore } from "~src/store/useSyncStore";
 import { useSyncConflict } from "~src/store/useSyncConflict";
+import { useMergeConflict } from "~src/store/useMergeConflict";
 import { apiFetch, loadTokens, getDeviceId, API_BASE_URL } from "./api";
 import { setStoredRevision } from "./revision";
+import { getMergeBase, setMergeBase, clearMergeBase } from "./mergeBase";
 import { ensureDefaultData, syncActiveSelection } from "~src/store/useSavedSpacesStore";
 import { mergeSpaces, spaceTabCount } from "./spacesMerge";
+import { merge3, type Conflict, type Resolutions } from "./spacesMerge3";
 import type { SavedSpace } from "~src/types";
 import type { SyncStatus } from "~src/store/useSyncStore";
 
@@ -86,6 +89,11 @@ function clearHydrated() {
 
 let pendingServer: SavedSpace[] | null = null;
 let pendingLocal: SavedSpace[] | null = null;
+// A 3-way reconcile awaiting the user's per-item resolution. While set, pushes /
+// re-pulls hold off (like an unmerged git working tree) so we don't act on data
+// with unresolved conflicts.
+let pendingMergeBase: SavedSpace[] | null = null;
+let pendingMergeConflicts: Conflict[] | null = null;
 
 /** Canonical structural signature — used to skip no-op writes (avoids a
  *  push → broadcast → re-pull → push loop once the data has converged). */
@@ -106,11 +114,12 @@ export function spacesSignature(spaces: SavedSpace[]): string {
 }
 
 export type Reconciliation =
-  | { kind: "conflict" }
+  | { kind: "conflict" } // guest↔account sign-in (no shared history) → coarse prompt
+  | { kind: "item-conflict"; spaces: SavedSpace[]; conflicts: Conflict[] } // 3-way per-item
   | { kind: "apply"; spaces: SavedSpace[] };
 
 /**
- * Pure decision for reconciling pulled server data with local data.
+ * Pure decision for reconciling pulled server data with local data (2-way, no base).
  * - explicit login + BOTH sides have real tabs → conflict (ask the user)
  * - server only → take server; local only → keep local; both → lossless merge
  */
@@ -128,6 +137,25 @@ export function decideReconciliation(server: SavedSpace[], local: SavedSpace[], 
   return { kind: "apply", spaces };
 }
 
+/**
+ * Pure 3-way decision. With a common ancestor (`base`) we can tell an edit from a
+ * delete, so we auto-merge non-conflicting changes and surface only true conflicts
+ * (edit-edit, delete-vs-edit) for the user to resolve — treating tabs as sacred.
+ * Without a base (first sync / legacy install) we fall back to the safe 2-way union.
+ */
+export function decideReconciliation3(
+  base: SavedSpace[] | null,
+  server: SavedSpace[],
+  local: SavedSpace[],
+  freshLogin: boolean,
+): Reconciliation {
+  if (!base) return decideReconciliation(server, local, freshLogin);
+  const { merged, conflicts } = merge3(base, server, local);
+  return conflicts.length > 0
+    ? { kind: "item-conflict", spaces: merged, conflicts }
+    : { kind: "apply", spaces: merged };
+}
+
 /** Pure: the resulting spaces for a user's conflict choice. */
 export function resolveChoice(choice: "merge" | "server" | "local", server: SavedSpace[], local: SavedSpace[]): SavedSpace[] {
   return choice === "merge" ? mergeSpaces(server, local) : choice === "server" ? server : local;
@@ -143,6 +171,8 @@ function applyResolution(spaces: SavedSpace[], selectFirst = false) {
   if (selectFirst || changed) syncActiveSelection(selectFirst);
   markSynced();
   markHydrated();      // enable the structured push → uploads the resolved state (OCC)
+  // The converged tree is what both sides now agree on → the next 3-way's base.
+  void setMergeBase(getSpaces());
   connectWebSocket();  // realtime change-notifier
 }
 
@@ -161,7 +191,8 @@ async function reconcile(freshLogin: boolean): Promise<void> {
   }
 
   const local = getSpaces();
-  const decision = decideReconciliation(server, local, freshLogin);
+  const base = await getMergeBase();
+  const decision = decideReconciliation3(base, server, local, freshLogin);
 
   if (decision.kind === "conflict") {
     pendingServer = server;
@@ -169,6 +200,16 @@ async function reconcile(freshLogin: boolean): Promise<void> {
     useSyncConflict.getState().open(server, local);
     setStatus("online");
     return; // wait for resolveConflict()
+  }
+
+  if (decision.kind === "item-conflict") {
+    pendingServer = server;
+    pendingLocal = local;
+    pendingMergeBase = base;
+    pendingMergeConflicts = decision.conflicts;
+    useMergeConflict.getState().open(decision.conflicts, base, server, local);
+    setStatus("online");
+    return; // wait for resolveMergeConflicts()
   }
 
   applyResolution(decision.spaces, freshLogin);
@@ -181,6 +222,26 @@ export function resolveConflict(choice: "merge" | "server" | "local") {
   useSyncConflict.getState().close();
   if (!s || !l) return;
   applyResolution(resolveChoice(choice, s, l), true); // jump to the first space/group after resolving
+}
+
+/** Apply the user's per-item choices to a pending 3-way conflict. Re-runs merge3
+ *  with the resolutions to produce the final tree, then converges (upload + base). */
+export function resolveMergeConflicts(resolutions: Resolutions) {
+  const b = pendingMergeBase, s = pendingServer, l = pendingLocal;
+  pendingServer = pendingLocal = pendingMergeBase = pendingMergeConflicts = null;
+  useMergeConflict.getState().close();
+  if (!s || !l) return;
+  const { merged } = merge3(b, s, l, resolutions);
+  applyResolution(merged);
+}
+
+/** Dismiss the resolver without resolving ("ignore for now"): stay on local data,
+ *  don't push. Auto-sync is effectively paused until the next reconcile re-detects
+ *  the conflict (Phase #16 will surface this state explicitly). */
+export function dismissMergeConflicts() {
+  pendingServer = pendingLocal = pendingMergeBase = pendingMergeConflicts = null;
+  useMergeConflict.getState().close();
+  setStatus("paused");
 }
 
 // --- WebSocket (realtime change-notifier) ---
@@ -205,9 +266,11 @@ function connectWebSocket() {
       wsReconnectDelay = WS_RECONNECT_BASE_MS;
       setStatus("online");
       markSynced();
-      // If we connected before hydrating (e.g. the initial pull failed offline),
-      // reconcile now. Skip while a conflict prompt is pending resolution.
-      if (!sessionHydrated && !pendingServer) void reconcile(false);
+      // Reconcile on every (re)connect, not just the pre-hydration case: a device
+      // that was offline while another device changed data would otherwise stay
+      // stale until it happened to push. The 3-way merge makes this safe (a no-op
+      // when converged). Skip while a conflict prompt is pending resolution.
+      if (!pendingServer) void reconcile(false);
     };
 
     ws.onmessage = (event) => {
@@ -282,8 +345,10 @@ export async function startSyncEngine() {
 export function stopSyncEngine() {
   disconnectWebSocket();
   clearHydrated();
-  pendingServer = pendingLocal = null;
+  pendingServer = pendingLocal = pendingMergeBase = pendingMergeConflicts = null;
   useSyncConflict.getState().close();
+  useMergeConflict.getState().close();
+  void clearMergeBase(); // per-account — forget on sign-out
   setStatus("paused");
 }
 

@@ -4,7 +4,7 @@ import { describe, it, expect, vi } from 'vitest';
 vi.mock('~src/store/useSavedSpacesStore', () => ({ ensureDefaultData: vi.fn(), syncActiveSelection: vi.fn() }));
 vi.mock('~src/store/useSyncConflict', () => ({ useSyncConflict: { getState: () => ({ open: vi.fn(), close: vi.fn() }) } }));
 
-import { decideReconciliation, resolveChoice, spacesSignature } from './syncEngine';
+import { decideReconciliation, decideReconciliation3, resolveChoice, spacesSignature } from './syncEngine';
 import type { SavedSpace } from '~src/types';
 
 const tab = (id: string, url = 'u') => ({ id, url, title: 't', favicon: '', order: 0 });
@@ -43,6 +43,48 @@ describe('decideReconciliation', () => {
   it('both empty → apply (local placeholder, no conflict)', () => {
     const d = decideReconciliation([], empty, true);
     expect(d.kind).toBe('apply');
+  });
+});
+
+describe('decideReconciliation3 (with a merge-base)', () => {
+  it('no base → falls back to 2-way (fresh login + both real → conflict)', () => {
+    const d = decideReconciliation3(null, withTabs, [space('l', 'Research', [tab('t2')])], true);
+    expect(d).toEqual({ kind: 'conflict' });
+  });
+
+  it('base present, change on one side only → apply, no conflict', () => {
+    const base = [space('s', 'Work', [tab('t1')])];
+    const server = [space('s', 'Work', [tab('t1'), tab('t2')])]; // server added a tab
+    const local = base;
+    const d = decideReconciliation3(base, server, local, false);
+    expect(d.kind).toBe('apply');
+  });
+
+  it('base present, delete on local while server unchanged → apply, no resurrect', () => {
+    const base = [space('s', 'Work', [tab('t1')]), space('x', 'Old', [tab('t2')])];
+    const server = base;
+    const local = [space('s', 'Work', [tab('t1')])]; // deleted x
+    const d = decideReconciliation3(base, server, local, false);
+    expect(d.kind).toBe('apply');
+    expect(d.kind === 'apply' && d.spaces.map(s => s.id).sort()).toEqual(['s']);
+  });
+
+  it('base present, same field edited on both sides → item-conflict', () => {
+    const base = [space('s', 'Work', [tab('t1')])];
+    const server = [space('s', 'Server name', [tab('t1')])];
+    const local = [space('s', 'Local name', [tab('t1')])];
+    const d = decideReconciliation3(base, server, local, false);
+    expect(d.kind).toBe('item-conflict');
+    expect(d.kind === 'item-conflict' && d.conflicts.length).toBe(1);
+  });
+
+  it('base present, delete vs edit → item-conflict', () => {
+    const base = [space('s', 'Work', [tab('t1')]), space('x', 'Old', [tab('t2')])];
+    const server = [space('s', 'Work', [tab('t1')])]; // deleted x
+    const local = [space('s', 'Work', [tab('t1')]), space('x', 'Old renamed', [tab('t2')])]; // edited x
+    const d = decideReconciliation3(base, server, local, false);
+    expect(d.kind).toBe('item-conflict');
+    expect(d.kind === 'item-conflict' && d.conflicts[0].kind).toBe('delete-edit');
   });
 });
 
