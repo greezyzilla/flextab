@@ -7,12 +7,12 @@ vi.mock('./api', () => ({
   API_BASE_URL: 'http://localhost:3000',
 }));
 vi.mock('./revision', () => ({ setStoredRevision: vi.fn(async () => {}) }));
-vi.mock('~src/store/useAuthStore', () => ({ useAuthStore: { getState: vi.fn(() => ({ isAuthenticated: true })) } }));
+vi.mock('~src/store/useAuthStore', () => ({ useAuthStore: { getState: vi.fn(() => ({ isAuthenticated: true })), subscribe: vi.fn(() => () => {}) } }));
 vi.mock('~src/store/useSavedSpacesStore', () => ({ ensureDefaultData: vi.fn(), syncActiveSelection: vi.fn() }));
 
 import {
   startSyncEngine, stopSyncEngine, syncNow, pullAndOverwrite, resolveConflict,
-  startLocalPersistence, stopLocalPersistence,
+  dismissMergeConflicts, startLocalPersistence, stopLocalPersistence,
 } from './syncEngine';
 import { apiFetch, loadTokens } from './api';
 import { useAuthStore } from '~src/store/useAuthStore';
@@ -20,6 +20,8 @@ import { ensureDefaultData } from '~src/store/useSavedSpacesStore';
 import { useSyncStore } from '~src/store/useSyncStore';
 import { useSyncConflict } from '~src/store/useSyncConflict';
 import { setSpaces, getSpaces, addSpace, clearState } from '~src/lib/yjsDoc';
+import { clearMergeBase } from './mergeBase';
+import { clearConflictPending } from './conflictState';
 
 // --- Fake WebSocket ---
 class FakeWS {
@@ -64,7 +66,15 @@ beforeEach(async () => {
   await clearState();
 });
 
-afterEach(() => { stopSyncEngine(); stopLocalPersistence(); });
+afterEach(() => {
+  stopSyncEngine();
+  stopLocalPersistence();
+  // stopSyncEngine no longer clears the merge base (that's now logout()-only,
+  // in production — see useAuthStore.ts), so tests must reset it explicitly
+  // for isolation between cases in this file.
+  void clearMergeBase();
+  void clearConflictPending(); // reset the persisted-flag module cache between cases
+});
 
 describe('startSyncEngine', () => {
   it('does nothing when unauthenticated', async () => {
@@ -146,6 +156,34 @@ describe('conflict flow', () => {
   });
 });
 
+describe('conflict-pending flag', () => {
+  it('is set (and persisted) when the merge conflict is dismissed', () => {
+    dismissMergeConflicts();
+    expect(useSyncStore.getState().conflictPending).toBe(true);
+    expect(chrome.storage.local.set).toHaveBeenCalledWith({ flextab_conflict_pending: true });
+    expect(useSyncStore.getState().status).toBe('paused');
+  });
+
+  it('is cleared once the data converges again', async () => {
+    dismissMergeConflicts();
+    expect(useSyncStore.getState().conflictPending).toBe(true);
+    // A converging reconcile (server-only data, clean apply) resolves it.
+    setSpaces([]);
+    (chrome.storage.local.get as any).mockResolvedValue({});
+    (apiFetch as any).mockResolvedValue({ spaces: [beSpace('server', [{ id: 'S' }])], revision: 1 });
+    await syncNow();
+    await flush();
+    expect(useSyncStore.getState().conflictPending).toBe(false);
+    expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_conflict_pending');
+  });
+
+  it('a plain auto-sync-off pause (no pending conflict) does not set it', () => {
+    useSyncStore.getState().reset();
+    stopSyncEngine();
+    expect(useSyncStore.getState().conflictPending).toBe(false);
+  });
+});
+
 describe('realtime + lifecycle', () => {
   async function connect() {
     (apiFetch as any).mockResolvedValue({ spaces: [], revision: 0 });
@@ -205,6 +243,12 @@ describe('realtime + lifecycle', () => {
     expect(useSyncStore.getState().status).toBe('paused');
     expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_sync_hydrated');
   });
+
+  it('stopSyncEngine does NOT clear the merge base — it runs on every auth drop (real or transient, e.g. a refresh-token race), not just a real sign-out', async () => {
+    await connect();
+    stopSyncEngine();
+    expect(chrome.storage.local.remove).not.toHaveBeenCalledWith('flextab_merge_base');
+  });
 });
 
 describe('syncNow', () => {
@@ -258,5 +302,20 @@ describe('local persistence', () => {
     (chrome.storage.local.set as any).mockClear();
     addSpace({ id: 'y', name: 'Y', order: 0, projects: [] });
     expect(chrome.storage.local.set).not.toHaveBeenCalledWith(expect.objectContaining({ flextab_yjs_state: expect.anything() }));
+  });
+
+  it('flags dirty when local drifts from the merge-base, and never when signed out', async () => {
+    startLocalPersistence();
+    // No merge-base yet + a real local tab → local is ahead of the server.
+    addSpace(localSpace('a', [{ id: 't1' }]));
+    await flush();
+    expect(useSyncStore.getState().dirty).toBe(true);
+
+    // Signed out: nothing to sync to, so pending edits aren't "unsynced".
+    (useAuthStore.getState as any).mockReturnValue({ isAuthenticated: false });
+    addSpace(localSpace('b', [{ id: 't2' }]));
+    await flush();
+    expect(useSyncStore.getState().dirty).toBe(false);
+    stopLocalPersistence();
   });
 });

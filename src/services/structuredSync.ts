@@ -3,7 +3,7 @@ import { getStoredRevision, setStoredRevision } from "./revision";
 
 const MAX_ATTEMPTS = 4;
 
-export type StructuredSyncResult = "ok" | "skipped" | "error";
+export type StructuredSyncResult = "ok" | "skipped" | "error" | "limit";
 
 /**
  * Push the structured snapshot to the server with optimistic concurrency, never
@@ -27,6 +27,7 @@ export async function syncStructuredSnapshot(
   reReadSpaces: () => Promise<unknown[]>,
   mergeOnConflict?: (server: unknown[], local: unknown[]) => unknown[] | null | Promise<unknown[] | null>,
   onPushed?: (spaces: unknown[], revision: number) => void | Promise<void>,
+  onLimit?: (message: string) => void | Promise<void>,
 ): Promise<StructuredSyncResult> {
   if (initialSpaces.length === 0) return "skipped";
 
@@ -54,6 +55,13 @@ export async function syncStructuredSnapshot(
       spaces = merged;
       if (spaces.length === 0) return "skipped";
       continue;
+    }
+    if (result.status === "limit") {
+      // The account is over its plan limit — the server rejected the whole write.
+      // Surface it (the caller notifies the UI) and stop; retrying won't help until
+      // the user prunes or their limit is raised.
+      await onLimit?.(result.message);
+      return "limit";
     }
     return "error";
   }

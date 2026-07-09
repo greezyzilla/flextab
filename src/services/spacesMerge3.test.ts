@@ -72,6 +72,19 @@ describe("merge3 — deletion correctness (no resurrect)", () => {
     expect(ids(groupsOf(r.merged))).toEqual(["a"]);
     expect(r.conflicts).toHaveLength(0);
   });
+
+  it("delete on local + server's surviving copy differs from base only by falsy optional keys → still respects the delete (no false conflict)", () => {
+    // Two Yjs→JSON readers exist (yjsDoc.ts omits a falsy icon/color/abbreviation
+    // from the object; background.ts's generic readYMap always includes them,
+    // e.g. as ""). If the merge base came from one reader and the surviving
+    // side's snapshot from the other, the *content* is unchanged but the JS
+    // shape differs — that must not look like an edit and revive a real delete.
+    const base = [spc("s1", "S1"), spc("s2", "S2")]; // base omits the keys, yjsDoc.ts-style
+    const s2ServerShape = { ...spc("s2", "S2"), icon: "", color: "", abbreviation: "" }; // background.ts-style, same content
+    const r = merge3(base, [spc("s1", "S1"), s2ServerShape], [spc("s1", "S1")]); // local deleted s2
+    expect(ids(r.merged)).toEqual(["s1"]); // s2 stays deleted
+    expect(r.conflicts).toHaveLength(0); // not a false delete-edit conflict
+  });
 });
 
 describe("merge3 — true conflicts", () => {

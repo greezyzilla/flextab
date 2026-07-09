@@ -6,7 +6,8 @@ import { useMergeConflict } from "~src/store/useMergeConflict";
 import { useSettingsStore } from "~src/store/useSettingsStore";
 import { apiFetch, loadTokens, getDeviceId, API_BASE_URL } from "./api";
 import { setStoredRevision } from "./revision";
-import { getMergeBase, setMergeBase, clearMergeBase } from "./mergeBase";
+import { getMergeBase, setMergeBase } from "./mergeBase";
+import { setConflictPending, clearConflictPending, loadConflictPending } from "./conflictState";
 import { ensureDefaultData, syncActiveSelection } from "~src/store/useSavedSpacesStore";
 import { mergeSpaces, spaceTabCount } from "./spacesMerge";
 import { merge3, type Conflict, type Resolutions } from "./spacesMerge3";
@@ -28,6 +29,21 @@ function setStatus(status: SyncStatus) {
 }
 function markSynced() {
   useSyncStore.getState().markSynced();
+}
+
+// Recompute whether local data has drifted from the last state the server
+// confirmed (the merge-base). Signature-based so it matches the reconcile
+// layer's notion of "changed" (a no-op reorder/favicon touch isn't drift).
+// Not authenticated → nothing to sync to, so never dirty. Cheap: getMergeBase
+// resolves from an in-memory cache after first load.
+async function recomputeDirty() {
+  if (!useAuthStore.getState().isAuthenticated) {
+    useSyncStore.getState().setDirty(false);
+    return;
+  }
+  const base = await getMergeBase();
+  const dirty = spacesSignature(getSpaces()) !== spacesSignature(base ?? []);
+  useSyncStore.getState().setDirty(dirty);
 }
 
 const WS_RECONNECT_BASE_MS = 3000;
@@ -174,6 +190,8 @@ function applyResolution(spaces: SavedSpace[], selectFirst = false) {
   markHydrated();      // enable the structured push → uploads the resolved state (OCC)
   // The converged tree is what both sides now agree on → the next 3-way's base.
   void setMergeBase(getSpaces());
+  void recomputeDirty(); // just converged with the base → clean
+  void clearConflictPending(); // converged → any prior conflict is resolved
   connectWebSocket();  // realtime change-notifier
 }
 
@@ -244,6 +262,10 @@ export function resolveMergeConflicts(resolutions: Resolutions) {
 export function dismissMergeConflicts() {
   pendingServer = pendingLocal = pendingMergeBase = pendingMergeConflicts = null;
   useMergeConflict.getState().close();
+  // Remember the conflict is unresolved (survives reload) so the paused state
+  // reads as "conflict — resolve", not ordinary "unsynced". Cleared once the
+  // data converges (applyResolution) or on sign-out.
+  setConflictPending(true);
   useSettingsStore.getState().setAutoSync(false);
   setStatus("paused");
 }
@@ -262,9 +284,12 @@ function connectWebSocket() {
   Promise.all([loadTokens(), getDeviceId()]).then(([tokens, did]) => {
     if (!tokens) { setStatus("offline"); return; }
 
+    // The token rides in the Sec-WebSocket-Protocol header (not the query
+    // string, which lands in proxy/access logs). The server echoes back
+    // "flextab.v1" to satisfy the browser's subprotocol negotiation.
     const wsUrl = API_BASE_URL.replace(/^http/, "ws") +
-      "/api/ws?token=" + tokens.access_token + "&device_id=" + encodeURIComponent(did);
-    ws = new WebSocket(wsUrl);
+      "/api/ws?device_id=" + encodeURIComponent(did);
+    ws = new WebSocket(wsUrl, ["flextab.v1", "flextab.bearer." + tokens.access_token]);
 
     ws.onopen = () => {
       wsReconnectDelay = WS_RECONNECT_BASE_MS;
@@ -319,9 +344,25 @@ let unsubPersist: (() => void) | null = null;
 
 export function startLocalPersistence() {
   if (unsubPersist) return;
-  const handler = () => { void persistState(); };
+  // Every local edit: persist, and re-evaluate drift from the merge-base so the
+  // "unsynced changes" hint stays live even when the sync engine is paused.
+  const handler = () => { void persistState(); void recomputeDirty(); };
   doc.on("update", handler);
-  unsubPersist = () => doc.off("update", handler);
+  // Auth flips (e.g. sign-in with auto-sync off never starts the engine) and
+  // background pushes advancing the merge-base both change dirtiness without a
+  // local doc edit — recompute on those too.
+  const unsubAuth = useAuthStore.subscribe(() => void recomputeDirty());
+  const onStorage = (changes: { [k: string]: chrome.storage.StorageChange }, area: string) => {
+    if (area === "local" && changes["flextab_merge_base"]) void recomputeDirty();
+  };
+  chrome.storage?.onChanged?.addListener(onStorage);
+  unsubPersist = () => {
+    doc.off("update", handler);
+    unsubAuth();
+    chrome.storage?.onChanged?.removeListener(onStorage);
+  };
+  void recomputeDirty(); // seed on load (authenticated + auto-sync off with pending edits)
+  void loadConflictPending(); // seed the persisted conflict flag (survives reload)
 }
 
 export function stopLocalPersistence() {
@@ -346,13 +387,23 @@ export async function startSyncEngine() {
   await reconcile(fresh);
 }
 
+// Pauses the engine — called on every isAuthenticated/autoSync flip and on
+// unmount, not just a real sign-out (a transient auth drop, e.g. a
+// refresh-token race, goes through here too). The merge base must survive
+// this: it's cleared explicitly in useAuthStore's logout() instead, so a
+// spurious session drop + re-login doesn't invalidate the 3-way-merge
+// ancestor and manufacture a conflict out of nothing.
 export function stopSyncEngine() {
   disconnectWebSocket();
   clearHydrated();
+  // Torn down with a conflict still unresolved (e.g. auto-sync toggled off from
+  // settings while the resolver was open, bypassing "Ignore for now") → persist
+  // the conflict flag so it isn't silently dropped. The dismiss path already set
+  // it and nulled pendingMergeConflicts before this runs, so it's not double-set.
+  if (pendingMergeConflicts) setConflictPending(true);
   pendingServer = pendingLocal = pendingMergeBase = pendingMergeConflicts = null;
   useSyncConflict.getState().close();
   useMergeConflict.getState().close();
-  void clearMergeBase(); // per-account — forget on sign-out
   setStatus("paused");
 }
 

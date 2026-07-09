@@ -83,7 +83,8 @@
     "permissions": [
       "tabs",
       "storage",
-      "unlimitedStorage"
+      "unlimitedStorage",
+      "alarms"
     ],
     "host_permissions": [
       "$PLASMO_PUBLIC_API_HOST"

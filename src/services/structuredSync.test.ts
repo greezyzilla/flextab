@@ -148,4 +148,16 @@ describe('syncStructuredSnapshot', () => {
     expect(result).toBe('error');
     expect((pushSync as any).mock.calls.length).toBeLessThanOrEqual(4);
   });
+
+  it('on a plan-limit rejection: reports it via onLimit and stops (no retry)', async () => {
+    (getStoredRevision as any).mockResolvedValue(1);
+    (pushSync as any).mockResolvedValue({ status: 'limit', message: 'total tab limit reached (501/500) on the free plan' });
+    const onLimit = vi.fn();
+
+    const result = await syncStructuredSnapshot(SPACES, async () => SPACES, undefined, undefined, onLimit);
+
+    expect(result).toBe('limit');
+    expect(onLimit).toHaveBeenCalledWith('total tab limit reached (501/500) on the free plan');
+    expect((pushSync as any).mock.calls.length).toBe(1); // no retry — retrying can't help
+  });
 });

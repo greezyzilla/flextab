@@ -11,7 +11,20 @@ export type SyncStatus =
 interface SyncState {
   status: SyncStatus
   lastSyncedAt: number | null
+  // Local data is ahead of the last state the server confirmed (the sync
+  // merge-base): there are edits not yet pushed. True while auto-sync is off /
+  // offline with pending changes; clears once a push lands. Drives the
+  // "unsynced changes" hint on the global indicator.
+  dirty: boolean
+  // A merge conflict was detected and abandoned (the user hit "Ignore for now",
+  // which turns auto-sync off) — so the paused state isn't ordinary "unsynced",
+  // it needs the conflict resolved. Persisted (via services/conflictState) so it
+  // survives a reload; cleared once the data converges. Takes visual priority
+  // over `dirty` on the indicator.
+  conflictPending: boolean
   setStatus: (status: SyncStatus) => void
+  setDirty: (dirty: boolean) => void
+  setConflictPending: (conflictPending: boolean) => void
   markSynced: () => void
   reset: () => void
 }
@@ -23,9 +36,13 @@ interface SyncState {
 export const useSyncStore = create<SyncState>((set) => ({
   status: "paused",
   lastSyncedAt: null,
+  dirty: false,
+  conflictPending: false,
   setStatus: (status) => set({ status }),
+  setDirty: (dirty) => set({ dirty }),
+  setConflictPending: (conflictPending) => set({ conflictPending }),
   markSynced: () => set({ lastSyncedAt: Date.now() }),
-  reset: () => set({ status: "paused", lastSyncedAt: null }),
+  reset: () => set({ status: "paused", lastSyncedAt: null, dirty: false, conflictPending: false }),
 }))
 
 /** Display metadata per status — shared by the settings tab + the global indicator. */

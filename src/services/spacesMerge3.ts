@@ -39,21 +39,30 @@ export interface Merge3Result {
   conflicts: Conflict[];
 }
 
-// deep-equal ignoring `order` (reorders aren't content changes / conflicts)
-function stripOrder(x: unknown): unknown {
-  if (Array.isArray(x)) return x.map(stripOrder);
+// Deep-equal ignoring `order` (reorders aren't content changes / conflicts) and
+// falsy optional fields (icon/color/abbreviation etc). Two different Yjs→JSON
+// readers exist — yjsDoc.ts's per-level converters omit a falsy optional field
+// from the object entirely, while background.ts's generic readYMap copies every
+// key the Y.Map holds (including ones set to "" for unset). Same underlying
+// data, two different JS shapes — comparing raw JSON would treat that shape
+// difference as a real content change (and, worse, a false delete-edit
+// conflict) whenever the merge base happens to come from the other reader.
+function normalizeForCompare(x: unknown): unknown {
+  if (Array.isArray(x)) return x.map(normalizeForCompare);
   if (x && typeof x === "object") {
     const out: Record<string, unknown> = {};
     for (const k of Object.keys(x as Record<string, unknown>)) {
       if (k === "order") continue;
-      out[k] = stripOrder((x as Record<string, unknown>)[k]);
+      const v = (x as Record<string, unknown>)[k];
+      if (v === "" || v === null || v === undefined) continue;
+      out[k] = normalizeForCompare(v);
     }
     return out;
   }
   return x;
 }
 function contentEq(a: unknown, b: unknown): boolean {
-  return JSON.stringify(stripOrder(a)) === JSON.stringify(stripOrder(b));
+  return JSON.stringify(normalizeForCompare(a)) === JSON.stringify(normalizeForCompare(b));
 }
 function eq(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
