@@ -3,16 +3,32 @@ import { persist } from 'zustand/middleware';
 import { storage } from './syncStorage';
 
 export type GroupLayout = 'list' | 'grid';
-export type Density = 'compact' | 'comfortable';
+export type Density = 'compact' | 'cozy' | 'comfortable';
+export type FontKey = 'inter' | 'system' | 'rounded' | 'serif' | 'mono';
+
+/** UI font options (system stacks — nothing bundled). Maps to --font-sans in useTheme. */
+export const FONT_OPTIONS: { key: FontKey; label: string }[] = [
+  { key: 'inter', label: 'Inter' },
+  { key: 'system', label: 'System' },
+  { key: 'rounded', label: 'Rounded' },
+  { key: 'serif', label: 'Serif' },
+  { key: 'mono', label: 'Mono' },
+];
 
 /** Quick-pick hues (0–360) for the accent slider. */
 export const HUE_PRESETS: { label: string; hue: number }[] = [
+  { label: 'Red', hue: 2 },
+  { label: 'Orange', hue: 28 },
+  { label: 'Amber', hue: 45 },
+  { label: 'Lime', hue: 100 },
+  { label: 'Green', hue: 145 },
+  { label: 'Teal', hue: 168 },
+  { label: 'Cyan', hue: 190 },
   { label: 'Blue', hue: 214 },
+  { label: 'Indigo', hue: 240 },
   { label: 'Purple', hue: 262 },
   { label: 'Pink', hue: 330 },
-  { label: 'Orange', hue: 28 },
-  { label: 'Green', hue: 145 },
-  { label: 'Cyan', hue: 190 },
+  { label: 'Rose', hue: 348 },
 ];
 
 // hex -> hue (0-360), for migrating old custom accents
@@ -30,12 +46,30 @@ function hexToHue(hex: string): number {
   return Math.round(h * 360);
 }
 
+/** Default appearance/layout preferences — the reset target (autoSync excluded;
+ *  it's a sync concern, not a look-and-feel one). */
+export const APPEARANCE_DEFAULTS = {
+  groupLayout: 'list' as GroupLayout,
+  gridColumns: 2,
+  density: 'comfortable' as Density,
+  hue: 214,
+  intensity: 100,
+  radius: 8,           // px — drives --radius (Tailwind rounded-*). 0 = sharp.
+  reduceMotion: false,
+  fontFamily: 'inter' as FontKey,
+  uiScale: 1,          // 0.8-1.2, whole-UI zoom
+};
+
 interface SettingsState {
   groupLayout: GroupLayout;
   gridColumns: number;
   density: Density;
-  hue: number;       // 0-360, accent hue
-  intensity: number; // 0-100, overall colour strength (0 = grayscale)
+  hue: number;         // 0-360, accent hue
+  intensity: number;   // 0-100, overall colour strength (0 = grayscale)
+  radius: number;      // 0-16 px, UI corner roundness
+  reduceMotion: boolean;
+  fontFamily: FontKey;
+  uiScale: number;     // 0.8-1.2 whole-UI zoom
   autoSync: boolean;
 
   setGroupLayout: (layout: GroupLayout) => void;
@@ -43,17 +77,19 @@ interface SettingsState {
   setDensity: (density: Density) => void;
   setHue: (hue: number) => void;
   setIntensity: (intensity: number) => void;
+  setRadius: (radius: number) => void;
+  setReduceMotion: (reduceMotion: boolean) => void;
+  setFontFamily: (fontFamily: FontKey) => void;
+  setUiScale: (uiScale: number) => void;
   setAutoSync: (autoSync: boolean) => void;
+  /** Restore appearance & layout to defaults (leaves autoSync untouched). */
+  resetAppearance: () => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
-      groupLayout: 'list',
-      gridColumns: 2,
-      density: 'comfortable',
-      hue: 214,
-      intensity: 100,
+      ...APPEARANCE_DEFAULTS,
       autoSync: true,
 
       setGroupLayout: (groupLayout) => set({ groupLayout }),
@@ -61,7 +97,12 @@ export const useSettingsStore = create<SettingsState>()(
       setDensity: (density) => set({ density }),
       setHue: (hue) => set({ hue }),
       setIntensity: (intensity) => set({ intensity }),
+      setRadius: (radius) => set({ radius }),
+      setReduceMotion: (reduceMotion) => set({ reduceMotion }),
+      setFontFamily: (fontFamily) => set({ fontFamily }),
+      setUiScale: (uiScale) => set({ uiScale }),
       setAutoSync: (autoSync) => set({ autoSync }),
+      resetAppearance: () => set({ ...APPEARANCE_DEFAULTS }),
     }),
     {
       name: 'flextab-settings',

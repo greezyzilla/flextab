@@ -6,7 +6,9 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['"Inter Variable"', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        // Routed through a CSS var so the Appearance "Font" setting can swap it
+        // globally. Default (Inter stack) lives in style.css :root.
+        sans: ['var(--font-sans)'],
       },
       borderRadius: {
         lg: "var(--radius)",

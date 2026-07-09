@@ -1,30 +1,51 @@
 import { useEffect } from 'react';
-import { useSettingsStore } from '~src/store/useSettingsStore';
+import { useSettingsStore, type FontKey } from '~src/store/useSettingsStore';
 
 /**
  * Theme = a single hue + tint intensity. Everything (accent, surfaces) is derived
  * from --hue / --intensity in style.css via HSL, so this hook only writes those two
  * numbers. See style.css :root.
  */
+const DENSITY_CLASSES = ['density-compact', 'density-cozy', 'density-comfortable'];
+
+const FONT_STACKS: Record<FontKey, string> = {
+  inter: '"Inter Variable", Inter, system-ui, -apple-system, sans-serif',
+  system: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+  rounded: 'ui-rounded, "SF Pro Rounded", "Nunito", "Quicksand", system-ui, sans-serif',
+  serif: 'Georgia, Cambria, "Times New Roman", ui-serif, serif',
+  mono: 'ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace',
+};
+
 export function useTheme() {
   const hue = useSettingsStore(s => s.hue);
   const intensity = useSettingsStore(s => s.intensity);
   const density = useSettingsStore(s => s.density);
+  const radius = useSettingsStore(s => s.radius);
+  const reduceMotion = useSettingsStore(s => s.reduceMotion);
+  const fontFamily = useSettingsStore(s => s.fontFamily);
+  const uiScale = useSettingsStore(s => s.uiScale);
 
   useEffect(() => {
     const root = document.documentElement;
     root.style.setProperty('--hue', String(hue));
     root.style.setProperty('--intensity', String(intensity));
-  }, [hue, intensity]);
+    root.style.setProperty('--radius', `${radius}px`);
+    root.style.setProperty('--font-sans', FONT_STACKS[fontFamily] ?? FONT_STACKS.inter);
+    // UI scale = scale the rem base, so all rem-based sizing (Tailwind spacing,
+    // text, widths) scales proportionally like a multiplier — the layout reflows
+    // and viewport (vw/vh) containers still fill the window. NOT `zoom`, which is
+    // a viewport zoom that left white gaps below 100% and just zoomed in above.
+    root.style.fontSize = `${uiScale * 100}%`;
+    root.style.removeProperty('zoom'); // clear any value from the old approach
+  }, [hue, intensity, radius, fontFamily, uiScale]);
 
   useEffect(() => {
     const root = document.documentElement;
-    if (density === 'compact') {
-      root.classList.add('density-compact');
-      root.classList.remove('density-comfortable');
-    } else {
-      root.classList.add('density-comfortable');
-      root.classList.remove('density-compact');
-    }
+    root.classList.remove(...DENSITY_CLASSES);
+    root.classList.add(`density-${density}`);
   }, [density]);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('reduce-motion', reduceMotion);
+  }, [reduceMotion]);
 }

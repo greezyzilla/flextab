@@ -11,7 +11,7 @@
   }
   html,
   body {
-    font-family: "Inter Variable", Inter, system-ui, -apple-system, sans-serif;
+    font-family: var(--font-sans);
   }
 }
 
@@ -69,6 +69,10 @@
     --accent-subtle: hsl(var(--hue), var(--accent-sat), 56%, 0.16);
 
     --radius: 0.5rem;
+
+    /* Default UI font (the "Inter" option). The Appearance > Font setting
+       overrides this on :root via useTheme. */
+    --font-sans: "Inter Variable", Inter, system-ui, -apple-system, sans-serif;
   }
 }
 
@@ -81,6 +85,15 @@
   --density-p-section: 1.25rem; /* p-5 */
 }
 
+/* Density: cozy (between compact and comfortable) */
+:root.density-cozy {
+  --density-py-tab: 0.375rem;
+  --density-px-tab: 0.625rem;
+  --density-gap-group: 0.3125rem;
+  --density-p-group: 0.625rem;
+  --density-p-section: 1rem;
+}
+
 /* Density: compact */
 :root.density-compact {
   --density-py-tab: 0.25rem;   /* py-1 */
@@ -88,4 +101,14 @@
   --density-gap-group: 0.25rem;  /* gap-1 */
   --density-p-group: 0.5rem;   /* p-2 */
   --density-p-section: 0.75rem; /* p-3 */
+}
+
+/* Reduce motion: near-instant animations/transitions (accessibility + perf). */
+:root.reduce-motion *,
+:root.reduce-motion *::before,
+:root.reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
 }
