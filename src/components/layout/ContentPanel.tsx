@@ -101,7 +101,7 @@ export function ContentPanel() {
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden min-h-0">
       {/* Category header */}
-      <div className="flex justify-between items-center gap-3 px-6 py-3 border-b border-black-800 shrink-0">
+      <div className="flex justify-between items-center gap-3 h-14 px-6 border-b border-black-800 shrink-0">
         <div className="flex items-center gap-3 min-w-0">
           <h2 className="text-white/70 font-sans text-base font-medium truncate">
             {activeCategory?.name || 'No Category Selected'}

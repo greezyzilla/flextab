@@ -4,7 +4,8 @@ import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { useAuthStore } from "~src/store/useAuthStore";
 import { v7 as uuidv7 } from "uuid";
 import { showUndoToast } from "~src/components/ui/sonner";
-import { GlobalSettingsModal } from "~src/components/GlobalSettingsModal";
+import { navigate, useRoute } from "~src/lib/route";
+import { SETTINGS_ROUTE, isSettingsRoute } from "~src/components/SettingsPage";
 import { ConfirmDialog } from "~src/components/ui/confirm-dialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "~src/components/ui/dropdown-menu";
 import { Tooltip, TooltipTrigger, TooltipContent } from "~src/components/ui/tooltip";
@@ -14,10 +15,16 @@ import { Input } from "~src/components/ui/input";
 export function ProfilePanel() {
   const { savedSpaces, activeSpaceId, setActiveSpace, addSavedSpace, updateSavedSpace, removeSavedSpace, reorderSpaces } = useSavedSpacesStore();
   const { user, isAuthenticated, loginWithGoogle, logout } = useAuthStore();
+  const manifestIcon = typeof chrome !== "undefined" && chrome.runtime?.getManifest
+    ? chrome.runtime.getManifest().icons?.["128"]
+    : undefined;
+  const logoSrc = manifestIcon && chrome.runtime?.getURL
+    ? chrome.runtime.getURL(manifestIcon)
+    : undefined;
   const [renaming, setRenaming] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
-  const [showGlobalSettings, setShowGlobalSettings] = useState(false);
   const renameInputRef = useRef<HTMLInputElement>(null);
+  const inSettings = isSettingsRoute(useRoute());
 
   useEffect(() => {
     if (renaming && renameInputRef.current) {
@@ -81,7 +88,38 @@ export function ProfilePanel() {
           showUndoToast(`Deleted space "${space.name}"`, () => addSavedSpace(space));
         }}
       />
-      <div className="flex flex-col gap-3 py-4 items-center flex-1">
+      <div className="flex flex-col items-center flex-1">
+        {/* Header — h-16 to line up with the brand header in LeftPanel / the
+            search-bar row in the middle column / "Opened Tabs" in RightPanel. */}
+        <div className="h-16 w-full flex items-center justify-center border-b border-black-800 shrink-0">
+          <div
+            className="w-10 h-10 rounded-2xl border flex items-center justify-center"
+            style={{
+              backgroundColor: "var(--accent-subtle)",
+              borderColor: "color-mix(in srgb, var(--accent) 34%, transparent)",
+              boxShadow: "0 10px 24px -18px var(--accent), inset 0 1px 0 rgba(255,255,255,0.08)",
+            }}
+          >
+            {logoSrc ? (
+              <span
+                aria-label="FlexTab"
+                role="img"
+                className="h-7 w-7"
+                style={{
+                  background: "linear-gradient(135deg, color-mix(in srgb, var(--accent) 70%, #ffffff), var(--accent))",
+                  WebkitMask: `url(${logoSrc}) center / contain no-repeat`,
+                  mask: `url(${logoSrc}) center / contain no-repeat`,
+                }}
+              />
+            ) : (
+              <span className="text-sm font-semibold" style={{ color: "var(--accent)" }}>F</span>
+            )}
+          </div>
+        </div>
+        {/* pt-2 centers the first 40px avatar within the same 56px band as the
+            "Personal" row in LeftPanel / category row in ContentPanel / window
+            row in RightPanel, so the space rail lines up with them too. */}
+        <div className="flex flex-col gap-3 items-center pt-2 pb-4 flex-1">
         {savedSpaces.map((space) => (
           <DroppableSpace key={space.id} spaceId={space.id}>
             <div className="relative">
@@ -105,15 +143,15 @@ export function ProfilePanel() {
               <ContextMenu>
               <ContextMenuTrigger asChild>
               <div
-                onClick={() => setActiveSpace(space.id)}
+                onClick={() => { setActiveSpace(space.id); navigate("/"); }}
                 className={`w-10 h-10 rounded-full cursor-pointer transition-all flex items-center justify-center text-xs font-medium font-sans ${
-                  activeSpaceId === space.id ? "ring-2 ring-white/50 text-white/90" : "hover:brightness-125 text-white/70"
+                  !inSettings && activeSpaceId === space.id ? "ring-2 ring-white/50 text-white/90" : "hover:brightness-125 text-white/70"
                 }`}
                 style={{
                   backgroundColor: space.color
-                    ? `${space.color}${activeSpaceId === space.id ? '40' : '25'}`
-                    : activeSpaceId === space.id ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)',
-                  ...(space.color && activeSpaceId === space.id ? { borderColor: space.color, ringColor: space.color } : {}),
+                    ? `${space.color}${!inSettings && activeSpaceId === space.id ? '40' : '25'}`
+                    : !inSettings && activeSpaceId === space.id ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)',
+                  ...(space.color && !inSettings && activeSpaceId === space.id ? { borderColor: space.color, ringColor: space.color } : {}),
                 }}
                 title={space.name}
               >
@@ -153,15 +191,18 @@ export function ProfilePanel() {
           </TooltipTrigger>
           <TooltipContent side="right">Add space</TooltipContent>
         </Tooltip>
+        </div>
       </div>
       <div className="flex flex-col gap-2 py-4 items-center">
         <Tooltip>
         <TooltipTrigger asChild>
         <div
-          onClick={() => setShowGlobalSettings(true)}
-          className="w-10 h-10 rounded-full bg-black-800 hover:bg-black-700 cursor-pointer flex items-center justify-center transition-colors"
+          onClick={() => navigate(SETTINGS_ROUTE)}
+          className={`w-10 h-10 rounded-full cursor-pointer flex items-center justify-center transition-colors ${
+            inSettings ? "bg-black-700 ring-2 ring-white/50" : "bg-black-800 hover:bg-black-700"
+          }`}
         >
-          <svg className="w-5 h-5 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+          <svg className={`w-5 h-5 ${inSettings ? "text-white/90" : "text-white/40"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
           </svg>
@@ -203,8 +244,6 @@ export function ProfilePanel() {
           </div>
         )}
       </div>
-
-      <GlobalSettingsModal open={showGlobalSettings} onOpenChange={setShowGlobalSettings} />
     </div>
   )
 }

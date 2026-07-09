@@ -205,7 +205,7 @@ export function RightPanel() {
   return (
     <div className="w-80 h-full flex flex-col">
       {/* Header */}
-      <div className="px-4 py-4 flex items-center gap-2 border-b border-black-800 shrink-0">
+      <div className="h-16 px-4 flex items-center gap-2 border-b border-black-800 shrink-0">
         <h2 className="text-white/80 font-sans text-sm font-medium flex-1">Opened Tabs</h2>
       </div>
 
@@ -219,7 +219,7 @@ export function RightPanel() {
           return (
             <div key={windowId}>
               {/* Window header */}
-              <div className="sticky top-0 z-10 bg-black-900 border-b border-black-800 px-4 py-2 flex items-center gap-2">
+              <div className="sticky top-0 z-10 bg-black-900 border-b border-black-800 h-14 px-4 flex items-center gap-2">
                 <IconButton variant="subtle" onClick={() => toggleWindow(windowId)}>
                   <svg
                     className={`w-3.5 h-3.5 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}

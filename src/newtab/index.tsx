@@ -3,8 +3,12 @@ import { ContentPanel, LeftPanel, ProfilePanel, RightPanel, Drawer, DragOverlayC
 import { SearchBar } from "~src/components/SearchBar"
 import { SyncStatusIndicator } from "~src/components/SyncStatusIndicator"
 import { Toaster } from "~src/components/ui/sonner"
+import { toast } from "sonner"
 import { SyncConflictModal } from "~src/components/SyncConflictModal"
 import { MergeConflictModal } from "~src/components/MergeConflictModal"
+import { SettingsNav, SettingsContent, isSettingsRoute } from "~src/components/SettingsPage"
+import { useRoute } from "~src/lib/route"
+import { apiGetAuthProviders } from "~src/services/api"
 import { ErrorBoundary } from "~src/components/ErrorBoundary"
 import { TooltipProvider } from "~src/components/ui/tooltip"
 import { Button, IconButton } from "~src/components/ui/button"
@@ -18,11 +22,18 @@ import { useKeyboardShortcuts } from "~src/hooks/useKeyboardShortcuts"
 import { useTheme } from "~src/hooks/useTheme"
 import { useShellLayout } from "~src/hooks/useMediaQuery"
 import { useUIStore } from "~src/store/useUIStore"
-import { useHydrated } from "~src/store/useSavedSpacesStore"
+import { useHydrated, useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
+import { spaceTabCount } from "~src/services/spacesMerge"
 import { useAuthStore } from "~src/store/useAuthStore"
 import { startSyncEngine, stopSyncEngine, startLocalPersistence, stopLocalPersistence } from "~src/services/syncEngine"
 import { pullSettings, startSettingsSync, stopSettingsSync } from "~src/services/settingsSync"
+import { SESSION_EXPIRED_KEY } from "~src/services/api"
 import { useSettingsStore } from "~src/store/useSettingsStore"
+import { useSyncStore } from "~src/store/useSyncStore"
+
+// Where the legal pages are hosted (flextab-landing's /terms.html and
+// /privacy.html).
+const LEGAL_BASE_URL = "https://flextabmanager.com"
 
 function LoadingScreen() {
   return (
@@ -33,13 +44,31 @@ function LoadingScreen() {
 }
 
 function OnboardingScreen() {
-  const { loginWithGoogle, loginWithEmail, register, continueAsGuest } = useAuthStore()
+  const { loginWithGoogle, loginWithGithub, loginWithEmail, register, continueAsGuest } = useAuthStore()
+  // Only show OAuth buttons for providers the server has configured (Google is
+  // required; GitHub is optional). Default to Google if the check fails.
+  const [providers, setProviders] = useState<string[] | null>(null)
+  useEffect(() => { apiGetAuthProviders().then(setProviders).catch(() => setProviders(['google'])) }, [])
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [sessionExpired, setSessionExpired] = useState(false)
+
+  // A 401 / failed refresh drops the user here without explanation — api.ts
+  // leaves a note in storage; show it once so the sign-out isn't silent.
+  useEffect(() => {
+    try {
+      chrome.storage.local.get(SESSION_EXPIRED_KEY).then(r => {
+        if (r[SESSION_EXPIRED_KEY]) {
+          setSessionExpired(true)
+          void chrome.storage.local.remove(SESSION_EXPIRED_KEY)
+        }
+      })
+    } catch (_) { /* no extension context */ }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -143,6 +172,12 @@ function OnboardingScreen() {
       {/* Right — sign in */}
       <div className="w-full lg:w-[420px] shrink-0 flex flex-col justify-center border-t lg:border-t-0 lg:border-l border-black-800 p-6 sm:p-10" style={{ backgroundColor: 'color-mix(in srgb, var(--color-black-950) 50%, transparent)' }}>
         <div className="flex flex-col gap-6">
+          {sessionExpired && (
+            <div className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-amber-200/90 text-xs leading-relaxed">
+              Your session expired. Sign in again to keep syncing — your tabs are still saved on this device.
+            </div>
+          )}
+
           <div className="flex flex-col gap-2">
             <h2 className="text-white/85 text-xl font-medium">
               {mode === 'login' ? 'Welcome back' : 'Create an account'}
@@ -197,6 +232,7 @@ function OnboardingScreen() {
           </div>
 
           {/* Google OAuth */}
+          {(providers === null || providers.includes('google')) && (
           <Button variant="ghost" onClick={loginWithGoogle} className="w-full">
             <svg className="w-4 h-4" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
@@ -206,6 +242,17 @@ function OnboardingScreen() {
             </svg>
             Continue with Google
           </Button>
+          )}
+
+          {/* GitHub OAuth */}
+          {providers?.includes('github') && (
+          <Button variant="ghost" onClick={loginWithGithub} className="w-full">
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 1C5.92 1 1 5.92 1 12c0 4.86 3.15 8.98 7.52 10.44.55.1.75-.24.75-.53v-1.86c-3.06.67-3.71-1.47-3.71-1.47-.5-1.27-1.22-1.61-1.22-1.61-1-.68.08-.67.08-.67 1.1.08 1.68 1.13 1.68 1.13.98 1.68 2.57 1.2 3.2.92.1-.71.38-1.2.69-1.47-2.44-.28-5.01-1.22-5.01-5.43 0-1.2.43-2.18 1.13-2.95-.11-.28-.49-1.4.11-2.92 0 0 .92-.3 3.02 1.13a10.5 10.5 0 0 1 5.5 0c2.1-1.42 3.02-1.13 3.02-1.13.6 1.52.22 2.64.11 2.92.7.77 1.13 1.75 1.13 2.95 0 4.22-2.58 5.15-5.03 5.42.4.34.75 1.01.75 2.04v3.03c0 .29.2.63.76.52A11 11 0 0 0 23 12c0-6.08-4.92-11-11-11z" />
+            </svg>
+            Continue with GitHub
+          </Button>
+          )}
 
           {/* Toggle mode */}
           <div className="text-center">
@@ -223,7 +270,10 @@ function OnboardingScreen() {
           </div>
 
           <p className="text-white/15 text-[11px] leading-relaxed">
-            By continuing, you agree to FlexTab's terms of service and privacy policy.
+            By continuing, you agree to FlexTab's{' '}
+            <a href={`${LEGAL_BASE_URL}/terms.html`} target="_blank" rel="noreferrer" className="underline hover:text-white/40">terms of service</a>
+            {' '}and{' '}
+            <a href={`${LEGAL_BASE_URL}/privacy.html`} target="_blank" rel="noreferrer" className="underline hover:text-white/40">privacy policy</a>.
           </p>
         </div>
       </div>
@@ -260,12 +310,104 @@ function NewTabPageContent() {
     draggedGroup
   } = useDragAndDrop();
 
+  // Surface a plan-limit rejection from the background sync worker (which can't
+  // render UI itself): it stashes a notice in storage; we toast it once and clear it.
+  useEffect(() => {
+    const KEY = "flextab_limit_notice";
+    const show = (notice: unknown) => {
+      if (notice && typeof notice === "object" && "message" in notice) {
+        toast.error(String((notice as { message: unknown }).message), {
+          description: "Prune some tabs or open Settings › Plan & Usage.",
+        });
+        try { void chrome.storage.local.remove(KEY); } catch (_) { /* ok */ }
+      }
+    };
+    try { chrome.storage.local.get(KEY).then(r => show(r[KEY])); } catch (_) { /* ok */ }
+    const listener = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
+      if (area === "local" && changes[KEY]?.newValue) show(changes[KEY].newValue);
+    };
+    try { chrome.storage.onChanged.addListener(listener); } catch (_) { /* ok */ }
+    return () => { try { chrome.storage.onChanged.removeListener(listener); } catch (_) { /* ok */ } };
+  }, []);
+
+  // Surface the outcome of a checkout round-trip (background.ts detects the
+  // /billing/success or /billing/cancel redirect and stashes it here, then
+  // closes that tab — see background.ts for the trust-boundary note: this
+  // toast is just a hint, PlanTab re-fetches GET /billing/status for the
+  // real, webhook-verified confirmation rather than trusting this directly).
+  useEffect(() => {
+    const KEY = "flextab_billing_result";
+    const show = (result: unknown) => {
+      if (result && typeof result === "object" && "outcome" in result) {
+        const outcome = (result as { outcome: unknown }).outcome;
+        if (outcome === "success") {
+          toast.success("Payment received", { description: "Confirming your plan…" });
+        } else if (outcome === "cancel") {
+          toast("Checkout cancelled");
+        }
+        try { void chrome.storage.local.remove(KEY); } catch (_) { /* ok */ }
+      }
+    };
+    try { chrome.storage.local.get(KEY).then(r => show(r[KEY])); } catch (_) { /* ok */ }
+    const listener = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
+      if (area === "local" && changes[KEY]?.newValue) show(changes[KEY].newValue);
+    };
+    try { chrome.storage.onChanged.addListener(listener); } catch (_) { /* ok */ }
+    return () => { try { chrome.storage.onChanged.removeListener(listener); } catch (_) { /* ok */ } };
+  }, []);
+
+  // The background worker's structured push can fail for reasons that never
+  // produce another local edit (offline, a transient 401/5xx) — it retries on
+  // a timer but can't render UI itself, so it stashes a flag; we reflect it as
+  // the "Sync error" status instead of leaving the indicator looking healthy
+  // while a local edit is actually stuck unsynced. Clearing only reverts from
+  // "error" specifically — a real offline/paused state shouldn't be clobbered.
+  useEffect(() => {
+    const KEY = "flextab_push_pending";
+    const apply = (pending: unknown) => {
+      if (pending === true) {
+        useSyncStore.getState().setStatus("error");
+      } else if (useSyncStore.getState().status === "error") {
+        useSyncStore.getState().setStatus("online");
+      }
+    };
+    try { chrome.storage.local.get(KEY).then(r => apply(r[KEY])); } catch (_) { /* ok */ }
+    const listener = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
+      if (area === "local" && KEY in changes) apply(changes[KEY].newValue);
+    };
+    try { chrome.storage.onChanged.addListener(listener); } catch (_) { /* ok */ }
+    return () => { try { chrome.storage.onChanged.removeListener(listener); } catch (_) { /* ok */ } };
+  }, []);
+
+  // A session-expired drop no longer forces this user out to OnboardingScreen
+  // when they have real saved tabs (see NewTabPage's hasSavedTabs gate) — but
+  // they should still be told sync paused, via a toast instead of the
+  // OnboardingScreen's inline banner (which won't render for them). "Sign in"
+  // to resume is available right here in the app (ProfilePanel's sign-in
+  // button), so this isn't a dead end.
+  useEffect(() => {
+    const show = (expired: unknown) => {
+      if (expired !== true) return;
+      toast.error("Your session expired", {
+        description: "Sign in again to keep syncing — your tabs are still saved on this device.",
+      });
+      try { void chrome.storage.local.remove(SESSION_EXPIRED_KEY); } catch (_) { /* ok */ }
+    };
+    try { chrome.storage.local.get(SESSION_EXPIRED_KEY).then(r => show(r[SESSION_EXPIRED_KEY])); } catch (_) { /* ok */ }
+    const listener = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
+      if (area === "local" && changes[SESSION_EXPIRED_KEY]?.newValue) show(changes[SESSION_EXPIRED_KEY].newValue);
+    };
+    try { chrome.storage.onChanged.addListener(listener); } catch (_) { /* ok */ }
+    return () => { try { chrome.storage.onChanged.removeListener(listener); } catch (_) { /* ok */ } };
+  }, []);
+
   const { leftInline, rightInline } = useShellLayout();
   const {
     leftDrawerOpen, rightDrawerOpen,
     setLeftDrawerOpen, setRightDrawerOpen,
     toggleLeftDrawer, toggleRightDrawer,
   } = useUIStore();
+  const inSettings = isSettingsRoute(useRoute());
 
   return (
     <DndContext
@@ -276,40 +418,53 @@ function NewTabPageContent() {
       <div className="flex h-screen w-screen bg-black-900 overflow-hidden">
         <ProfilePanel />
 
-        {leftInline ? (
-          <LeftPanel />
-        ) : (
-          <Drawer side="left" open={leftDrawerOpen} onClose={() => setLeftDrawerOpen(false)}>
-            <LeftPanel />
-          </Drawer>
-        )}
-
-        <div className="border-x border-black-800 flex-1 flex flex-col min-w-0">
-          <div className="px-3 sm:px-5 py-3 flex items-center justify-between gap-2 border-b border-black-800 shrink-0">
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              {!leftInline && (
-                <IconButton onClick={toggleLeftDrawer} className="h-9 w-9 shrink-0" title="Spaces & navigation" aria-label="Toggle navigation">
-                  <MenuIcon />
-                </IconButton>
-              )}
-              <SearchBar />
-              {!rightInline && (
-                <IconButton onClick={toggleRightDrawer} className="h-9 w-9 shrink-0" title="Opened tabs" aria-label="Toggle opened tabs">
-                  <OpenedTabsIcon />
-                </IconButton>
-              )}
+        {inSettings ? (
+          // Settings reuses the tab-manager shell: nav in the LeftPanel slot,
+          // content in the ContentPanel slot. The opened-tabs panel is hidden.
+          <>
+            <SettingsNav />
+            <div className="border-x border-black-800 flex-1 flex flex-col min-w-0">
+              <SettingsContent />
             </div>
-            <SyncStatusIndicator />
-          </div>
-          <ContentPanel />
-        </div>
-
-        {rightInline ? (
-          <RightPanel />
+          </>
         ) : (
-          <Drawer side="right" open={rightDrawerOpen} onClose={() => setRightDrawerOpen(false)}>
-            <RightPanel />
-          </Drawer>
+          <>
+            {leftInline ? (
+              <LeftPanel />
+            ) : (
+              <Drawer side="left" open={leftDrawerOpen} onClose={() => setLeftDrawerOpen(false)}>
+                <LeftPanel />
+              </Drawer>
+            )}
+
+            <div className="border-x border-black-800 flex-1 flex flex-col min-w-0">
+              <div className="h-16 px-3 sm:px-5 flex items-center justify-between gap-2 border-b border-black-800 shrink-0">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  {!leftInline && (
+                    <IconButton onClick={toggleLeftDrawer} className="h-9 w-9 shrink-0" title="Spaces & navigation" aria-label="Toggle navigation">
+                      <MenuIcon />
+                    </IconButton>
+                  )}
+                  <SearchBar />
+                  {!rightInline && (
+                    <IconButton onClick={toggleRightDrawer} className="h-9 w-9 shrink-0" title="Opened tabs" aria-label="Toggle opened tabs">
+                      <OpenedTabsIcon />
+                    </IconButton>
+                  )}
+                </div>
+                <SyncStatusIndicator />
+              </div>
+              <ContentPanel />
+            </div>
+
+            {rightInline ? (
+              <RightPanel />
+            ) : (
+              <Drawer side="right" open={rightDrawerOpen} onClose={() => setRightDrawerOpen(false)}>
+                <RightPanel />
+              </Drawer>
+            )}
+          </>
         )}
       </div>
 
@@ -331,6 +486,15 @@ function NewTabPage() {
   const hydrated = useHydrated();
   const { initialize, isAuthenticated, isLoading: authLoading, guestMode } = useAuthStore();
   const autoSync = useSettingsStore((s) => s.autoSync);
+  // A previously-authenticated device whose session just dropped (e.g. the
+  // refresh-token race, or any other involuntary logout) still has its real
+  // tabs sitting in the local Yjs doc — `savedSpaces` is populated by
+  // hydration regardless of auth state. Gating the full-screen onboarding
+  // wall on auth alone would hide those tabs behind a login page they never
+  // asked to see. Checking actual tab content (not just space count) matters
+  // because a fresh/logged-out account still seeds one empty default space.
+  const savedSpaces = useSavedSpacesStore((s) => s.savedSpaces);
+  const hasSavedTabs = savedSpaces.some((s) => spaceTabCount(s) > 0);
 
   useEffect(() => {
     initialize();
@@ -360,8 +524,8 @@ function NewTabPage() {
   }, [isAuthenticated]);
 
   if (authLoading) return <LoadingScreen />;
-  if (!isAuthenticated && !guestMode) return <OnboardingScreen />;
   if (!hydrated) return <LoadingScreen />;
+  if (!isAuthenticated && !guestMode && !hasSavedTabs) return <OnboardingScreen />;
 
   return (
     <TooltipProvider delayDuration={300}>

@@ -117,6 +117,35 @@ describe('apiFetch', () => {
       .mockResolvedValueOnce(res({ ok: true }));
     await apiFetch('/x');
     expect((global.fetch as any).mock.calls[1][1].headers['Authorization']).toBeUndefined();
+    expect(chrome.storage.local.remove).toHaveBeenCalledWith('auth_tokens');
+  });
+
+  it('a 401 refresh adopts a token a sibling context already rotated in, instead of clearing', async () => {
+    // Simulates the background worker and a newtab page racing to refresh the
+    // same soon-to-expire token: the loser gets a 401 for a token that was
+    // valid when it sent it, not actually dead — it should pick up the
+    // winner's fresh tokens rather than wipe a still-live session.
+    await saveTokens({ access_token: 'old', refresh_token: 'rt-old', expires_at: past() });
+    const rotated = { access_token: 'new2', refresh_token: 'rt-new', expires_at: future() };
+    (chrome.storage.local.get as any).mockResolvedValue({ auth_tokens: rotated });
+    (global.fetch as any)
+      .mockResolvedValueOnce(res({}, 401))
+      .mockResolvedValueOnce(res({ ok: true }));
+    await apiFetch('/x');
+    // One call is the beforeEach's own clearTokens() reset — the assertion is
+    // that this path doesn't add a *second* one of its own.
+    expect(chrome.storage.local.remove).toHaveBeenCalledTimes(1);
+    expect((global.fetch as any).mock.calls[1][1].headers['Authorization']).toBe('Bearer new2');
+  });
+
+  it('a non-401 refresh failure does not clear tokens (transient, not a dead session)', async () => {
+    await saveTokens({ access_token: 'old', refresh_token: 'rt', expires_at: past() });
+    (global.fetch as any)
+      .mockResolvedValueOnce(res({}, 500))
+      .mockResolvedValueOnce(res({ ok: true }));
+    await apiFetch('/x');
+    expect(chrome.storage.local.remove).toHaveBeenCalledTimes(1);
+    expect((global.fetch as any).mock.calls[1][1].headers['Authorization']).toBeUndefined();
   });
 
   it('a thrown refresh resolves to no token', async () => {
