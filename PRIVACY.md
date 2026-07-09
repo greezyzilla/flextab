@@ -6,8 +6,9 @@ FlexTab is a browser extension that replaces your new tab page with a workspace
 to save, organize, and sync your tabs across devices. This policy explains what
 data FlexTab handles and why.
 
-> **Replace `api.flextab.app` and the contact email below with your real values
-> before publishing.** This is a starting draft, not legal advice.
+> This is a starting draft, not legal advice. The rendered version lives at
+> `https://flextabmanager.com/privacy.html` (flextab-landing) — keep the two in
+> sync.
 
 ## What we collect
 
@@ -33,7 +34,7 @@ pages you visit. We do not use analytics or advertising trackers.
 
 - **Locally**, in your browser via `chrome.storage` (and synced across your own
   devices via Chrome's built-in storage sync).
-- **On our backend** at `https://api.flextab.app`, if you are signed in, so your
+- **On our backend** at `https://api.flextabmanager.com`, if you are signed in, so your
   workspace is available across devices. Data is associated with your account.
 
 ## How we use your data
