@@ -1,8 +1,10 @@
 import { create } from "zustand";
-import { loadTokens, saveTokens, clearTokens, apiFetch, getAuthUrl, apiRegister, apiLogin, ApiError } from "~src/services/api";
+import { loadTokens, saveTokens, clearTokens, apiFetch, getAuthUrl, getOAuthUrl, apiRegister, apiLogin, apiLogout, ApiError } from "~src/services/api";
 import { clearState } from "~src/lib/yjsDoc";
 import { resetYjsHydration } from "~src/store/useSavedSpacesStore";
 import { clearStoredRevision } from "~src/services/revision";
+import { clearMergeBase } from "~src/services/mergeBase";
+import { clearConflictPending } from "~src/services/conflictState";
 import type { TokenData } from "~src/services/api";
 
 const SYNC_HYDRATED_KEY = "flextab_sync_hydrated";
@@ -49,6 +51,7 @@ interface AuthState {
   initialize: () => Promise<void>;
   continueAsGuest: () => Promise<void>;
   loginWithGoogle: () => void;
+  loginWithGithub: () => void;
   loginWithEmail: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
   handleAuthCallback: (tokens: TokenData) => Promise<void>;
@@ -93,6 +96,10 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     chrome.tabs.create({ url: getAuthUrl() });
   },
 
+  loginWithGithub: () => {
+    chrome.tabs.create({ url: getOAuthUrl("github") });
+  },
+
   loginWithEmail: async (email: string, password: string) => {
     const tokens = await apiLogin(email, password);
     await get().handleAuthCallback(tokens);
@@ -118,11 +125,19 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   },
 
   logout: async () => {
+    // Revoke the refresh token server-side before dropping it locally.
+    await apiLogout();
     await clearTokens();
     await clearState();
     resetYjsHydration();
     await persistGuestMode(false);
     await clearStoredRevision();
+    // The merge base is per-account, so it belongs here (real, explicit
+    // sign-out) — not in stopSyncEngine's generic pause path, which also runs
+    // on a transient auth drop (e.g. the refresh-token race) where the base
+    // must survive so re-login doesn't manufacture a false merge conflict.
+    await clearMergeBase();
+    await clearConflictPending(); // per-account, like the merge base
     try { await chrome.storage.local.remove(["spaces", SYNC_HYDRATED_KEY, FRESH_LOGIN_KEY]); } catch (_) { /* ok */ }
     set({ user: null, isAuthenticated: false, guestMode: false });
   },

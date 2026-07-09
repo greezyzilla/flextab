@@ -48,6 +48,11 @@ describe('guest mode', () => {
     expect(chrome.storage.local.remove).toHaveBeenCalledWith(['spaces', 'flextab_sync_hydrated', 'flextab_fresh_login']);
     expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_sync_revision');
   });
+
+  it('logout clears the merge base (per-account — a real sign-out, unlike a transient auth drop, should forget it)', async () => {
+    await useAuthStore.getState().logout();
+    expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_merge_base');
+  });
 });
 
 describe('session restore (initialize with tokens)', () => {
