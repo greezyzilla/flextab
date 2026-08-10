@@ -74,25 +74,20 @@ type SelectContentProps = React.ComponentPropsWithoutRef<typeof SelectPrimitive.
 const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
   SelectContentProps
->(({ className, children, position = "popper", onCloseAutoFocus, container, ...props }, ref) => (
+>(({ className, children, position = "popper", container, ...props }, ref) => (
   <SelectPrimitive.Portal container={container ?? undefined}>
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        // z-[110] + pointer-events-auto: above Dialog (z-90) and clickable even when
-        // Dialog's RemoveScroll sets pointer-events:none on body siblings
-        "relative z-[110] max-h-72 min-w-[8rem] overflow-hidden rounded-md border border-white/10 bg-black-800 text-white/90 shadow-md pointer-events-auto data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-[--radix-select-content-transform-origin]",
+        // When portaled into a Dialog (via `container`), z-50 is enough inside that stacking
+        // context. Callers that portal to body while a Dialog is open should pass container.
+        "relative z-50 max-h-72 min-w-[8rem] overflow-hidden rounded-md border border-white/10 bg-black-800 text-white/90 shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-[--radix-select-content-transform-origin]",
         position === "popper" &&
           "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
         className
       )}
       position={position}
       {...props}
-      // Prevent focus jump back into Dialog on pick (can wipe the perceived selection)
-      onCloseAutoFocus={(event) => {
-        event.preventDefault()
-        onCloseAutoFocus?.(event)
-      }}
     >
       <SelectScrollUpButton />
       <SelectPrimitive.Viewport
