@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { Progress } from "~src/components/ui/progress";
+import { ToggleGroup as ShadcnToggleGroup, ToggleGroupItem } from "~src/components/ui/toggle-group";
 
 /** Small uppercase section heading used to group settings within a tab. */
 export function GroupHeading({ children }: { children: ReactNode }) {
@@ -46,11 +48,16 @@ export function UsageBar({ label, used, cap, format, tone = 'quota', hint }: {
           {fmt(used)} {unlimited ? <span className="text-white/25">/ ∞</span> : <span className="text-white/25">/ {fmt(cap)}</span>}
         </span>
       </div>
-      <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
-        {!unlimited && (
-          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: barColor }} />
-        )}
-      </div>
+      {!unlimited ? (
+        <Progress
+          value={pct}
+          className="h-1.5"
+          indicatorClassName="bg-transparent"
+          indicatorStyle={{ backgroundColor: barColor }}
+        />
+      ) : (
+        <Progress value={0} className="h-1.5" />
+      )}
       {hint && <span className="text-white/25 text-[11px] font-sans">{hint}</span>}
     </div>
   );
@@ -89,29 +96,30 @@ export function SettingRow({ label, description, children }: { label: string; de
   );
 }
 
+/** Settings segmented control — shadcn ToggleGroup (single). */
 export function ToggleGroup<T extends string>({ value, onChange, options }: {
   value: T;
   onChange: (v: T) => void;
   options: { value: T; label: string; icon?: ReactNode }[];
 }) {
   return (
-    <div className="flex gap-1.5">
-      {options.map(opt => (
-        <button
-          key={opt.value}
-          onClick={() => onChange(opt.value)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-sans transition-colors border ${
-            value === opt.value
-              ? 'border-white/20 text-white/80'
-              : 'bg-white/[0.03] border-white/[0.06] text-white/40 hover:text-white/60 hover:border-white/15'
-          }`}
-          style={value === opt.value ? { backgroundColor: 'var(--accent-subtle)', borderColor: 'var(--accent)' } : undefined}
-        >
+    <ShadcnToggleGroup
+      type="single"
+      variant="outline"
+      size="sm"
+      value={value}
+      onValueChange={(v) => {
+        if (v) onChange(v as T);
+      }}
+      className="flex flex-wrap justify-start gap-1.5"
+    >
+      {options.map((opt) => (
+        <ToggleGroupItem key={opt.value} value={opt.value} aria-label={opt.label}>
           {opt.icon}
           {opt.label}
-        </button>
+        </ToggleGroupItem>
       ))}
-    </div>
+    </ShadcnToggleGroup>
   );
 }
 

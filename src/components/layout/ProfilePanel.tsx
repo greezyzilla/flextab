@@ -11,6 +11,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { Tooltip, TooltipTrigger, TooltipContent } from "~src/components/ui/tooltip";
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from "~src/components/ui/context-menu";
 import { Input } from "~src/components/ui/input";
+import { Avatar, AvatarImage, AvatarFallback } from "~src/components/ui/avatar";
 
 export function ProfilePanel() {
   const { savedSpaces, activeSpaceId, setActiveSpace, addSavedSpace, updateSavedSpace, removeSavedSpace, reorderSpaces } = useSavedSpacesStore();
@@ -213,14 +214,15 @@ export function ProfilePanel() {
         {isAuthenticated && user ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="w-10 h-10 rounded-full cursor-pointer overflow-hidden outline-none" aria-label={user.name}>
-                {user.avatar ? (
-                  <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                ) : (
-                  <div className="w-full h-full bg-[var(--accent)] flex items-center justify-center text-white text-sm font-medium">
-                    {user.name.slice(0, 1).toUpperCase()}
-                  </div>
-                )}
+              <button type="button" className="cursor-pointer rounded-full outline-none focus-visible:ring-1 focus-visible:ring-ring" aria-label={user.name}>
+                <Avatar className="h-10 w-10">
+                  {user.avatar ? (
+                    <AvatarImage src={user.avatar} alt={user.name} referrerPolicy="no-referrer" />
+                  ) : null}
+                  <AvatarFallback>
+                    {(user.name || "?").slice(0, 1).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent side="top" align="start">

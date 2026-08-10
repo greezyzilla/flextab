@@ -1,5 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
+import { Input } from "~src/components/ui/input";
+import { Button } from "~src/components/ui/button";
 import { FaviconImg } from "./FaviconImg";
 
 interface SearchResult {
@@ -96,11 +98,11 @@ export function SearchBar() {
 
   return (
     <div ref={containerRef} className="relative flex-1 max-w-lg">
-      <div className="flex items-center gap-2 bg-white/5 rounded-md px-3 py-1.5 border border-white/10 focus-within:border-white/30 transition-colors">
+      <div className="flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-1.5 transition-colors focus-within:border-white/30">
         <svg className="w-4 h-4 text-white/30 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
-        <input
+        <Input
           ref={inputRef}
           type="text"
           value={query}
@@ -109,12 +111,19 @@ export function SearchBar() {
           onFocus={() => setIsFocused(true)}
           onBlur={() => setTimeout(() => setIsFocused(false), 150)}
           placeholder="Search saved tabs… (Cmd+K)"
-          className="flex-1 bg-transparent text-white/80 text-sm placeholder-white/30 outline-none font-sans"
+          className="h-auto flex-1 border-0 bg-transparent px-0 py-0 shadow-none focus-visible:border-0"
         />
         {query && (
-          <button onClick={() => setQuery("")} className="text-white/30 hover:text-white/50 text-xs">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setQuery("")}
+            className="h-6 w-6 shrink-0 p-0 text-white/30 hover:text-white/50"
+            aria-label="Clear search"
+          >
             ✕
-          </button>
+          </Button>
         )}
       </div>
 
