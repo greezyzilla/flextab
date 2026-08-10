@@ -40,13 +40,10 @@ export interface Merge3Result {
 }
 
 // Deep-equal ignoring `order` (reorders aren't content changes / conflicts) and
-// falsy optional fields (icon/color/abbreviation etc). Two different Yjs→JSON
-// readers exist — yjsDoc.ts's per-level converters omit a falsy optional field
-// from the object entirely, while background.ts's generic readYMap copies every
-// key the Y.Map holds (including ones set to "" for unset). Same underlying
-// data, two different JS shapes — comparing raw JSON would treat that shape
-// difference as a real content change (and, worse, a false delete-edit
-// conflict) whenever the merge base happens to come from the other reader.
+// empty optional fields (icon/color/abbreviation etc as "", null, or missing).
+// Readers may still differ at the edges; normalize so shape noise is never a
+// content change (false delete-edit or false field conflict). FE-B2: scalar
+// merges use the same empty-as-absent rule via scalarEq.
 function normalizeForCompare(x: unknown): unknown {
   if (Array.isArray(x)) return x.map(normalizeForCompare);
   if (x && typeof x === "object") {
@@ -64,8 +61,10 @@ function normalizeForCompare(x: unknown): unknown {
 function contentEq(a: unknown, b: unknown): boolean {
   return JSON.stringify(normalizeForCompare(a)) === JSON.stringify(normalizeForCompare(b));
 }
-function eq(a: unknown, b: unknown): boolean {
-  return JSON.stringify(a) === JSON.stringify(b);
+/** Field-level equal: missing / null / "" are the same "unset" value. */
+function scalarEq(a: unknown, b: unknown): boolean {
+  const norm = (v: unknown) => (v === "" || v === null || v === undefined ? undefined : v);
+  return JSON.stringify(norm(a)) === JSON.stringify(norm(b));
 }
 
 type Node = { id: string; order?: number } & Record<string, unknown>;
@@ -100,9 +99,9 @@ function mergeScalars(
   const out: Record<string, unknown> = {};
   for (const f of cfg.scalars) {
     const bv = base?.[f], sv = server[f], lv = local[f];
-    const sChanged = base ? !eq(bv, sv) : false;
-    const lChanged = base ? !eq(bv, lv) : false;
-    if (sChanged && lChanged && !eq(sv, lv)) {
+    const sChanged = base ? !scalarEq(bv, sv) : false;
+    const lChanged = base ? !scalarEq(bv, lv) : false;
+    if (sChanged && lChanged && !scalarEq(sv, lv)) {
       const key = `${path}::${server.id}::${f}`;
       conflicts.push({ key, path, id: server.id, name: cfg.label(server), kind: "field", field: f, base: bv, server: sv, local: lv });
       out[f] = resolutions[key] === "server" ? sv : lv; // default: keep this device's value

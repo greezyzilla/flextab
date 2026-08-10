@@ -1,10 +1,10 @@
-import * as Y from "yjs";
 import { loadTokens, getDeviceId } from "~src/services/api";
 import { syncStructuredSnapshot } from "~src/services/structuredSync";
 import { merge3 } from "~src/services/spacesMerge3";
 import { getMergeBase, setMergeBase } from "~src/services/mergeBase";
 import {
   PERSIST_KEY,
+  decodeSpacesFromStorage,
   lightSpacesSig,
   persistSpacesSnapshot,
 } from "~src/lib/yjsDoc";
@@ -104,30 +104,12 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
 let syncTimer: ReturnType<typeof setTimeout> | null = null;
 
-function extractSpaces(state: number[]): unknown[] {
-  const tempDoc = new Y.Doc();
-  Y.applyUpdate(tempDoc, new Uint8Array(state));
-  const arr = tempDoc.getArray<Y.Map<unknown>>("spaces");
-  const spaces = arr.toArray().map(readYMap);
-  tempDoc.destroy();
-  return spaces;
+/** Canonical Yjs→JSON (same as newtab getSpaces / decodeSpacesFromStorage) — FE-B2. */
+function extractSpaces(state: number[]): SavedSpace[] {
+  return decodeSpacesFromStorage(state);
 }
 
-function readYMap(m: Y.Map<unknown>): Record<string, unknown> {
-  const obj: Record<string, unknown> = {};
-  m.forEach((value, key) => {
-    if (value instanceof Y.Array) {
-      obj[key] = value.toArray().map((item) =>
-        item instanceof Y.Map ? readYMap(item) : item,
-      );
-    } else {
-      obj[key] = value;
-    }
-  });
-  return obj;
-}
-
-async function readLatestSpaces(): Promise<unknown[]> {
+async function readLatestSpaces(): Promise<SavedSpace[]> {
   try {
     const result = await chrome.storage.local.get(PERSIST_KEY);
     const state = result[PERSIST_KEY];
@@ -145,7 +127,7 @@ async function readLatestSpaces(): Promise<unknown[]> {
 async function onStructuredPushLanded(spaces: unknown[]): Promise<void> {
   const landed = spaces as SavedSpace[];
   try {
-    const disk = (await readLatestSpaces()) as SavedSpace[];
+    const disk = await readLatestSpaces();
     if (lightSpacesSig(disk) !== lightSpacesSig(landed)) {
       // Suppress the storage.onChanged → push re-entry for our own writeback.
       ignorePersistPush = true;
