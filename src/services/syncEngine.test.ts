@@ -20,7 +20,7 @@ import { ensureDefaultData } from '~src/store/useSavedSpacesStore';
 import { useSyncStore } from '~src/store/useSyncStore';
 import { useSyncConflict } from '~src/store/useSyncConflict';
 import { setSpaces, getSpaces, addSpace, clearState } from '~src/lib/yjsDoc';
-import { clearMergeBase } from './mergeBase';
+import { clearMergeBase, getMergeBase } from './mergeBase';
 import { clearConflictPending } from './conflictState';
 
 // --- Fake WebSocket ---
@@ -104,6 +104,26 @@ describe('startSyncEngine', () => {
     expect(getSpaces().map(s => s.id)).toEqual(['srv']);
   });
 
+  it('advances merge-base when applied tree equals the GET server (FE-B1 serverConfirmed)', async () => {
+    await clearMergeBase();
+    (apiFetch as any).mockResolvedValue({ spaces: [beSpace('srv', [{ id: 't1' }])], revision: 2 });
+    await startSyncEngine();
+    await flush();
+    const base = await getMergeBase();
+    expect(base?.map((s) => s.id)).toEqual(['srv']);
+  });
+
+  it('does not advance merge-base when local-only data is kept for upload (FE-B1)', async () => {
+    await clearMergeBase();
+    // Server empty, local has tabs → apply keeps local; base waits for confirmed push.
+    setSpaces([localSpace('local', [{ id: 'L' }])]);
+    (apiFetch as any).mockResolvedValue({ spaces: [], revision: 0 });
+    await startSyncEngine();
+    await flush();
+    expect(await getMergeBase()).toBeNull();
+    expect(chrome.storage.local.set).toHaveBeenCalledWith({ flextab_sync_hydrated: true });
+  });
+
   it('does not hydrate/upload when the pull fails, but still attempts to connect', async () => {
     (apiFetch as any).mockRejectedValue(new Error('net'));
     await startSyncEngine();
@@ -148,6 +168,17 @@ describe('conflict flow', () => {
     expect(getSpaces().map(s => s.id).sort()).toEqual(['local', 'server']);
     expect(useSyncConflict.getState().pending).toBe(false);
     expect(FakeWS.instances).toHaveLength(1);
+  });
+
+  it('resolveConflict("merge") does not advance merge-base before push (FE-B1)', async () => {
+    await clearMergeBase();
+    await startSyncEngine();
+    await flush();
+    resolveConflict('merge');
+    await flush();
+    // Union includes local-only space — not equal to pure server pull → base waits for OCC land.
+    expect(await getMergeBase()).toBeNull();
+    expect(chrome.storage.local.set).toHaveBeenCalledWith({ flextab_sync_hydrated: true });
   });
 
   it('resolveConflict is a no-op when nothing is pending', () => {

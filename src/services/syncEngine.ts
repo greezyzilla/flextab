@@ -178,7 +178,20 @@ export function resolveChoice(choice: "merge" | "server" | "local", server: Save
   return choice === "merge" ? mergeSpaces(server, local) : choice === "server" ? server : local;
 }
 
-function applyResolution(spaces: SavedSpace[], selectFirst = false) {
+/**
+ * Apply a resolved tree locally and open the door for background OCC push.
+ *
+ * Merge-base / "clean" must only reflect **server-confirmed** state (FE-B1):
+ * - `serverConfirmed: true` — this tree is exactly what GET /api/sync just returned
+ *   (or a force-restore overwrite); safe as merge-base without a push.
+ * - otherwise leave merge-base alone; background `onStructuredPushLanded` advances
+ *   it after a confirmed PUT. `recomputeDirty` then correctly shows unsynced local.
+ */
+function applyResolution(
+  spaces: SavedSpace[],
+  opts: { selectFirst?: boolean; serverConfirmed?: boolean } = {},
+) {
+  const { selectFirst = false, serverConfirmed = false } = opts;
   // Only rewrite the doc when the data actually changed; otherwise the rewrite
   // would persist → push → broadcast → re-pull → push, looping forever.
   const changed = spacesSignature(spaces) !== spacesSignature(getSpaces());
@@ -186,13 +199,14 @@ function applyResolution(spaces: SavedSpace[], selectFirst = false) {
   if (getSpaces().length === 0) ensureDefaultData();
   // After login, jump to the first space/group; otherwise keep a valid selection.
   if (selectFirst || changed) syncActiveSelection(selectFirst);
-  markSynced();
-  markHydrated();      // enable the structured push → uploads the resolved state (OCC)
-  // The converged tree is what both sides now agree on → the next 3-way's base.
-  void setMergeBase(getSpaces());
-  void recomputeDirty(); // just converged with the base → clean
-  void clearConflictPending(); // converged → any prior conflict is resolved
-  connectWebSocket();  // realtime change-notifier
+  markHydrated(); // enable the structured push → uploads when local still needs OCC
+  if (serverConfirmed) {
+    void setMergeBase(spaces);
+    markSynced();
+  }
+  void recomputeDirty();
+  void clearConflictPending(); // resolver finished (or pull overwrite); not the same as push-clean
+  connectWebSocket(); // realtime change-notifier
 }
 
 async function reconcile(freshLogin: boolean): Promise<void> {
@@ -231,7 +245,12 @@ async function reconcile(freshLogin: boolean): Promise<void> {
     return; // wait for resolveMergeConflicts()
   }
 
-  applyResolution(decision.spaces, freshLogin);
+  // Only treat as server-confirmed when the applied tree is exactly the pull —
+  // merged/local-only trees still need a confirmed PUT before merge-base moves.
+  applyResolution(decision.spaces, {
+    selectFirst: freshLogin,
+    serverConfirmed: spacesSignature(decision.spaces) === spacesSignature(server),
+  });
 }
 
 /** Resolve a guest↔account conflict with the user's choice. */
@@ -240,18 +259,20 @@ export function resolveConflict(choice: "merge" | "server" | "local") {
   pendingServer = pendingLocal = null;
   useSyncConflict.getState().close();
   if (!s || !l) return;
-  applyResolution(resolveChoice(choice, s, l), true); // jump to the first space/group after resolving
+  // Jump to first space/group after resolving; always needs push (not server-only GET).
+  applyResolution(resolveChoice(choice, s, l), { selectFirst: true, serverConfirmed: false });
 }
 
 /** Apply the user's per-item choices to a pending 3-way conflict. Re-runs merge3
- *  with the resolutions to produce the final tree, then converges (upload + base). */
+ *  with the resolutions to produce the final tree, then enables upload; merge-base
+ *  advances when the background push lands (FE-A1 / FE-B1). */
 export function resolveMergeConflicts(resolutions: Resolutions) {
   const b = pendingMergeBase, s = pendingServer, l = pendingLocal;
   pendingServer = pendingLocal = pendingMergeBase = pendingMergeConflicts = null;
   useMergeConflict.getState().close();
   if (!s || !l) return;
   const { merged } = merge3(b, s, l, resolutions);
-  applyResolution(merged);
+  applyResolution(merged, { serverConfirmed: false });
 }
 
 /** Dismiss the resolver without resolving ("ignore for now"): turn auto-sync OFF
@@ -426,7 +447,8 @@ export async function pullAndOverwrite(): Promise<boolean> {
   try {
     const data = await apiFetch<{ spaces: BeSpace[]; revision: number }>("/api/sync");
     await setStoredRevision(data.revision);
-    applyResolution(mapBeToLocal(data.spaces), true);
+    // Restore/overwrite: GET is authoritative — merge-base may advance immediately.
+    applyResolution(mapBeToLocal(data.spaces), { selectFirst: true, serverConfirmed: true });
     return true;
   } catch (_) {
     setStatus("offline");
