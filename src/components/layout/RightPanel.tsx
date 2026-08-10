@@ -6,12 +6,20 @@ import { useWindows } from "~src/hooks/useWindows"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import { v7 as uuidv7 } from "uuid"
 import { faviconToDataUrl } from "~src/utils/favicon"
-import { Dialog, DialogContent, DialogTitle } from "~src/components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "~src/components/ui/dialog"
 import { Button, IconButton } from "~src/components/ui/button"
 import { Tooltip, TooltipTrigger, TooltipContent } from "~src/components/ui/tooltip"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "~src/components/ui/select"
 import { Input } from "~src/components/ui/input"
 import { Label } from "~src/components/ui/label"
+import type { SavedSpace } from "~src/types"
 
 const OpenedTab = ({ tab, windowId }: { tab: chrome.tabs.Tab, windowId: number }) => {
   const onTabClick = (tab: chrome.tabs.Tab, windowId: number) => {
@@ -57,6 +65,30 @@ const OpenedTab = ({ tab, windowId }: { tab: chrome.tabs.Tab, windowId: number }
 
 // --- Save Session Modal ---
 
+/** Resolve space/project/category defaults, falling back down the tree when active ids are missing. */
+function resolveSaveTargetIds(
+  savedSpaces: SavedSpace[],
+  activeSpaceId: string | null,
+  activeProjectId: string | null,
+  activeCategoryId: string | null,
+) {
+  const spaceId =
+    activeSpaceId && savedSpaces.some((s) => s.id === activeSpaceId)
+      ? activeSpaceId
+      : savedSpaces[0]?.id ?? ""
+  const space = savedSpaces.find((s) => s.id === spaceId)
+  const projectId =
+    activeProjectId && space?.projects.some((p) => p.id === activeProjectId)
+      ? activeProjectId
+      : space?.projects[0]?.id ?? ""
+  const project = space?.projects.find((p) => p.id === projectId)
+  const categoryId =
+    activeCategoryId && project?.categories.some((c) => c.id === activeCategoryId)
+      ? activeCategoryId
+      : project?.categories[0]?.id ?? ""
+  return { spaceId, projectId, categoryId }
+}
+
 function SaveSessionModal({
   tabs,
   onClose,
@@ -67,17 +99,18 @@ function SaveSessionModal({
   const { savedSpaces, activeSpaceId, activeProjectId, activeCategoryId, addSavedGroup, addSavedTabsBatch } = useSavedSpacesStore()
   const now = new Date()
   const defaultName = `${now.toLocaleDateString()} ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`
+  const initial = resolveSaveTargetIds(savedSpaces, activeSpaceId, activeProjectId, activeCategoryId)
 
   const [name, setName] = useState(defaultName)
-  const [spaceId, setSpaceId] = useState(activeSpaceId ?? savedSpaces[0]?.id ?? "")
-  const [projectId, setProjectId] = useState(activeProjectId ?? "")
-  const [categoryId, setCategoryId] = useState(activeCategoryId ?? "")
+  const [spaceId, setSpaceId] = useState(initial.spaceId)
+  const [projectId, setProjectId] = useState(initial.projectId)
+  const [categoryId, setCategoryId] = useState(initial.categoryId)
   const [saving, setSaving] = useState(false)
 
   const selectedSpace = savedSpaces.find(s => s.id === spaceId)
   const projects = selectedSpace?.projects ?? []
-  const selectedProject = projects.find(p => p.id === projectId)
-  const categories = selectedProject?.categories ?? []
+  const categories = projects.find(p => p.id === projectId)?.categories ?? []
+  const savableTabCount = tabs.filter(t => t.url && !t.url.startsWith('chrome://')).length
 
   const handleSpaceChange = (id: string) => {
     setSpaceId(id)
@@ -123,59 +156,100 @@ function SaveSessionModal({
     onClose()
   }
 
-  const canSave = spaceId && projectId && categoryId && name.trim()
+  const canSave = !!spaceId && !!projectId && !!categoryId && !!name.trim() && savableTabCount > 0
+  const selectedProject = projects.find((p) => p.id === projectId)
+  const selectedCategory = categories.find((c) => c.id === categoryId)
 
   return (
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="w-96 p-5 flex flex-col gap-4">
-        <DialogTitle className="text-white/90 font-sans text-base font-medium">Save Session</DialogTitle>
+      <DialogContent className="w-full max-w-md p-5">
+        <DialogHeader>
+          <DialogTitle className="text-white/90 font-sans text-base font-medium">
+            Save Session
+          </DialogTitle>
+          <DialogDescription>
+            {savableTabCount === 0
+              ? "No savable tabs in this window (chrome:// pages are skipped)."
+              : `${savableTabCount} tab${savableTabCount === 1 ? "" : "s"} will be saved as a group.`}
+          </DialogDescription>
+        </DialogHeader>
 
-        <div className="flex flex-col gap-1">
-          <Label>Name</Label>
-          <Input
-            type="text"
-            value={name}
-            onChange={e => setName(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && canSave) handleSave() }}
-            autoFocus
-            className="w-full"
-          />
-        </div>
+        <div className="flex flex-col gap-3 py-2">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="save-session-name">Name</Label>
+            <Input
+              id="save-session-name"
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && canSave) handleSave() }}
+              autoFocus
+              className="w-full"
+            />
+          </div>
 
-        <div className="flex flex-col gap-1">
-          <Label>Save to</Label>
-          <div className="flex gap-2">
-            <Select value={spaceId} onValueChange={handleSpaceChange}>
-              <SelectTrigger className="flex-1"><SelectValue placeholder="Space" /></SelectTrigger>
+          <div className="flex flex-col gap-1.5">
+            <Label>Space</Label>
+            <Select value={spaceId || undefined} onValueChange={handleSpaceChange}>
+              <SelectTrigger disabled={savedSpaces.length === 0}>
+                {/* Explicit label: ItemText only injects while the menu is open */}
+                <SelectValue placeholder="Select a space">
+                  {selectedSpace?.name}
+                </SelectValue>
+              </SelectTrigger>
               <SelectContent>
-                {savedSpaces.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Select value={projectId} onValueChange={handleProjectChange}>
-              <SelectTrigger className="flex-1" disabled={projects.length === 0}><SelectValue placeholder="No projects" /></SelectTrigger>
-              <SelectContent>
-                {projects.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Select value={categoryId} onValueChange={setCategoryId}>
-              <SelectTrigger className="flex-1" disabled={categories.length === 0}><SelectValue placeholder="No categories" /></SelectTrigger>
-              <SelectContent>
-                {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                {savedSpaces.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label>Project</Label>
+            <Select value={projectId || undefined} onValueChange={handleProjectChange}>
+              <SelectTrigger disabled={projects.length === 0}>
+                <SelectValue placeholder={projects.length === 0 ? "No projects" : "Select a project"}>
+                  {selectedProject?.name}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {projects.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label>Category</Label>
+            <Select value={categoryId || undefined} onValueChange={setCategoryId}>
+              <SelectTrigger disabled={categories.length === 0}>
+                <SelectValue placeholder={categories.length === 0 ? "No categories" : "Select a category"}>
+                  {selectedCategory?.name}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {(projects.length === 0 || categories.length === 0) && (
+            <p className="text-white/40 text-xs font-sans">
+              Create a project and category in the sidebar first, then save here.
+            </p>
+          )}
         </div>
 
-        <div className="text-white/40 text-xs font-sans">
-          {tabs.filter(t => t.url && !t.url.startsWith('chrome://')).length} tabs will be saved
-        </div>
-
-        <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+        <DialogFooter>
+          <Button variant="secondary" onClick={onClose}>Cancel</Button>
           <Button variant="default" onClick={handleSave} disabled={!canSave || saving}>
             {saving ? 'Saving…' : 'Save'}
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

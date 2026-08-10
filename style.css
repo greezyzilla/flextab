@@ -13,6 +13,13 @@
   body {
     font-family: var(--font-sans);
   }
+
+  /* Radix popper wrapper owns stacking; Content z-index alone sits under Dialog (z-90).
+     Keep menus/selects above dialogs and clickable under body scroll-lock. */
+  [data-radix-popper-content-wrapper] {
+    z-index: 110 !important;
+    pointer-events: auto;
+  }
 }
 
 @layer components {

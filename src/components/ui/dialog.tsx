@@ -27,19 +27,43 @@ const DialogOverlay = React.forwardRef<
 ))
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 
+/** Portaled overlays (Select, menus) render under body, outside dialog content.
+ *  Without this, choosing a Select item counts as "outside" and dismisses the dialog
+ *  before onValueChange can stick — looks like the form never selects. */
+function isPortaledOverlayTarget(target: EventTarget | null) {
+  if (!(target instanceof Element)) return false
+  return !!target.closest(
+    "[data-radix-select-content], [data-radix-popper-content-wrapper], [data-radix-dropdown-menu-content], [role='listbox']",
+  )
+}
+
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+>(({ className, children, onPointerDownOutside, onInteractOutside, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-[50%] top-[50%] z-[90] w-full translate-x-[-50%] translate-y-[-50%] rounded-xl border border-white/10 bg-black-900 shadow-[0_18px_50px_-16px_rgba(0,0,0,0.6)] outline-none duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]",
+        "fixed left-[50%] top-[50%] z-[90] w-full translate-x-[-50%] translate-y-[-50%] rounded-xl border border-white/10 bg-black-900 text-foreground shadow-[0_18px_50px_-16px_rgba(0,0,0,0.6)] outline-none duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]",
         className
       )}
       {...props}
+      onPointerDownOutside={(event) => {
+        if (isPortaledOverlayTarget(event.target)) {
+          event.preventDefault()
+          return
+        }
+        onPointerDownOutside?.(event)
+      }}
+      onInteractOutside={(event) => {
+        if (isPortaledOverlayTarget(event.target)) {
+          event.preventDefault()
+          return
+        }
+        onInteractOutside?.(event)
+      }}
     >
       {children}
       <DialogPrimitive.Close className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-md text-white/40 outline-none transition-colors hover:bg-white/10 hover:text-white/80 focus-visible:ring-1 focus-visible:ring-ring">
