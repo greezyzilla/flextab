@@ -1,0 +1,227 @@
+import { describe, it, expect, vi, beforeEach } from "vitest"
+import {
+  findTabLocation,
+  findGroupLocation,
+  findSavedDragItem,
+  isDropTargetId,
+  parseBoundaryDrop,
+  parseGroupDroppable,
+  applyDragEnd,
+} from "./dragDrop"
+import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
+import * as yjs from "~src/lib/yjsDoc"
+import type { SavedSpace } from "~src/types"
+
+const tree = (): SavedSpace[] => [
+  {
+    id: "s1",
+    name: "S1",
+    order: 0,
+    projects: [
+      {
+        id: "p1",
+        name: "P1",
+        order: 0,
+        categories: [
+          {
+            id: "c1",
+            name: "C1",
+            order: 0,
+            groups: [
+              {
+                id: "g1",
+                name: "G1",
+                order: 0,
+                tabs: [
+                  { id: "t1", url: "https://a.com", title: "A", favicon: "", order: 0 },
+                  { id: "t2", url: "https://b.com", title: "B", favicon: "", order: 1 },
+                ],
+              },
+              {
+                id: "g2",
+                name: "G2",
+                order: 1,
+                tabs: [
+                  { id: "t3", url: "https://c.com", title: "C", favicon: "", order: 0 },
+                ],
+              },
+            ],
+          },
+          {
+            id: "c2",
+            name: "C2",
+            order: 1,
+            groups: [
+              {
+                id: "g3",
+                name: "G3",
+                order: 0,
+                tabs: [
+                  { id: "t4", url: "https://d.com", title: "D", favicon: "", order: 0 },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "s2",
+    name: "S2",
+    order: 1,
+    projects: [],
+  },
+]
+
+beforeEach(async () => {
+  vi.clearAllMocks()
+  await yjs.clearState()
+  yjs.setSpaces(tree())
+  useSavedSpacesStore.setState({
+    savedSpaces: yjs.getSpaces(),
+    activeSpaceId: "s1",
+    activeProjectId: "p1",
+    activeCategoryId: "c1",
+  })
+})
+
+describe("findTabLocation / findGroupLocation", () => {
+  it("finds tab deep in tree", () => {
+    expect(findTabLocation(tree(), "t3")).toEqual({
+      spaceId: "s1",
+      projectId: "p1",
+      categoryId: "c1",
+      groupId: "g2",
+    })
+  })
+
+  it("returns null for unknown tab", () => {
+    expect(findTabLocation(tree(), "nope")).toBeNull()
+  })
+
+  it("finds group location", () => {
+    expect(findGroupLocation(tree(), "g3")).toEqual({
+      spaceId: "s1",
+      projectId: "p1",
+      categoryId: "c2",
+    })
+  })
+})
+
+describe("findSavedDragItem", () => {
+  it("resolves group before nested tabs of same id scope", () => {
+    const { group, tab } = findSavedDragItem(tree(), "g1")
+    expect(group?.id).toBe("g1")
+    expect(tab).toBeNull()
+  })
+
+  it("resolves tab", () => {
+    const { group, tab } = findSavedDragItem(tree(), "t2")
+    expect(group).toBeNull()
+    expect(tab?.id).toBe("t2")
+  })
+})
+
+describe("drop ID protocol", () => {
+  it("isDropTargetId recognizes zone prefixes", () => {
+    expect(isDropTargetId("droppable-g1")).toBe(true)
+    expect(isDropTargetId("cat-drop:s:p:c")).toBe(true)
+    expect(isDropTargetId("proj-drop:s:p")).toBe(true)
+    expect(isDropTargetId("space-drop:s")).toBe(true)
+    expect(isDropTargetId("t1")).toBe(false)
+  })
+
+  it("parseBoundaryDrop", () => {
+    expect(parseBoundaryDrop("cat-drop:s1:p1:c2")).toEqual({
+      kind: "category",
+      spaceId: "s1",
+      projectId: "p1",
+      categoryId: "c2",
+    })
+    expect(parseBoundaryDrop("proj-drop:s1:p1")).toEqual({
+      kind: "project",
+      spaceId: "s1",
+      projectId: "p1",
+    })
+    expect(parseBoundaryDrop("space-drop:s2")).toEqual({
+      kind: "space",
+      spaceId: "s2",
+    })
+    expect(parseBoundaryDrop("droppable-g1")).toBeNull()
+  })
+
+  it("parseGroupDroppable", () => {
+    expect(parseGroupDroppable("droppable-g1")).toBe("g1")
+    expect(parseGroupDroppable("t1")).toBeNull()
+  })
+})
+
+describe("applyDragEnd", () => {
+  it("reorders tabs within the same group", async () => {
+    await applyDragEnd({
+      activeId: "t1",
+      overId: "t2",
+      wasDraggingGroup: false,
+    })
+    const g1 = yjs
+      .getSpaces()[0]
+      .projects[0].categories[0].groups.find((g) => g.id === "g1")!
+    const ids = [...g1.tabs]
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      .map((t) => t.id)
+    expect(ids).toEqual(["t2", "t1"])
+  })
+
+  it("moves tab between groups in the same category", async () => {
+    await applyDragEnd({
+      activeId: "t1",
+      overId: "droppable-g2",
+      wasDraggingGroup: false,
+    })
+    const c1 = yjs.getSpaces()[0].projects[0].categories[0]
+    const g1 = c1.groups.find((g) => g.id === "g1")!
+    const g2 = c1.groups.find((g) => g.id === "g2")!
+    expect(g1.tabs.map((t) => t.id)).not.toContain("t1")
+    expect(g2.tabs.map((t) => t.id)).toContain("t1")
+  })
+
+  it("moves group to another category via boundary drop", async () => {
+    await applyDragEnd({
+      activeId: "g1",
+      overId: "cat-drop:s1:p1:c2",
+      wasDraggingGroup: true,
+    })
+    const spaces = yjs.getSpaces()
+    const c1 = spaces[0].projects[0].categories.find((c) => c.id === "c1")!
+    const c2 = spaces[0].projects[0].categories.find((c) => c.id === "c2")!
+    expect(c1.groups.find((g) => g.id === "g1")).toBeUndefined()
+    expect(c2.groups.find((g) => g.id === "g1")).toBeTruthy()
+  })
+
+  it("moves tab cross-boundary and ensures path on empty space", async () => {
+    await applyDragEnd({
+      activeId: "t1",
+      overId: "space-drop:s2",
+      wasDraggingGroup: false,
+    })
+    const s2 = yjs.getSpaces().find((s) => s.id === "s2")!
+    expect(s2.projects.length).toBeGreaterThan(0)
+    const allTabs = s2.projects.flatMap((p) =>
+      p.categories.flatMap((c) => c.groups.flatMap((g) => g.tabs)),
+    )
+    expect(allTabs.map((t) => t.id)).toContain("t1")
+  })
+
+  it("no-ops when over target missing (caller already guards null over)", async () => {
+    await applyDragEnd({
+      activeId: "t1",
+      overId: "unknown-id",
+      wasDraggingGroup: false,
+    })
+    const g1 = yjs
+      .getSpaces()[0]
+      .projects[0].categories[0].groups.find((g) => g.id === "g1")!
+    expect(g1.tabs.map((t) => t.id)).toEqual(["t1", "t2"])
+  })
+})
