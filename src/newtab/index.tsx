@@ -9,7 +9,7 @@ import "@fontsource-variable/inter"
 import "../../style.css"
 
 import { useHydrated, useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
-import { spaceTabCount } from "~src/services/spacesMerge"
+import { spaceTabCount } from "~src/services/spacesTree"
 import { useAuthStore } from "~src/store/useAuthStore"
 import { startSyncEngine, stopSyncEngine, startLocalPersistence, stopLocalPersistence } from "~src/services/syncEngine"
 import { pullSettings, startSettingsSync, stopSettingsSync } from "~src/services/settingsSync"

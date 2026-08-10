@@ -15,12 +15,11 @@ import {
   saveOccConflictPayload,
 } from "./conflictState";
 import { ensureDefaultData, syncActiveSelection } from "~src/store/useSavedSpacesStore";
-import { mergeSpaces, spaceTabCount } from "./spacesMerge";
+import { mergeSpacesGuest } from "./spacesMerge";
+import { spaceTabCount } from "./spacesTree";
 import { merge3, type Conflict, type Resolutions } from "./spacesMerge3";
 import type { SavedSpace } from "~src/types";
 import type { SyncStatus } from "~src/store/useSyncStore";
-
-export { mergeSpaces } from "./spacesMerge";
 
 // Model: the server's structured data (SQL) is the source of truth; the Yjs doc
 // is the local store. Hydration pulls the server state and reconciles it with
@@ -142,9 +141,10 @@ export type Reconciliation =
   | { kind: "apply"; spaces: SavedSpace[] };
 
 /**
- * Pure decision for reconciling pulled server data with local data (2-way, no base).
- * - explicit login + BOTH sides have real tabs → conflict (ask the user)
- * - server only → take server; local only → keep local; both → lossless merge
+ * Guest / no-merge-base reconciliation only (FE-C3).
+ * - explicit login + BOTH sides have real tabs → conflict (SyncConflictModal)
+ * - server only → take server; local only → keep local; both → mergeSpacesGuest
+ * Live OCC with a base uses decideReconciliation3 → merge3.
  */
 export function decideReconciliation(server: SavedSpace[], local: SavedSpace[], freshLogin: boolean): Reconciliation {
   const serverReal = hasRealData(server);
@@ -155,16 +155,15 @@ export function decideReconciliation(server: SavedSpace[], local: SavedSpace[], 
   let spaces: SavedSpace[];
   if (serverReal && !localReal) spaces = server;
   else if (!serverReal && localReal) spaces = local;
-  else if (serverReal && localReal) spaces = mergeSpaces(server, local);
+  else if (serverReal && localReal) spaces = mergeSpacesGuest(server, local);
   else spaces = local.length ? local : server;
   return { kind: "apply", spaces };
 }
 
 /**
- * Pure 3-way decision. With a common ancestor (`base`) we can tell an edit from a
- * delete, so we auto-merge non-conflicting changes and surface only true conflicts
- * (edit-edit, delete-vs-edit) for the user to resolve — treating tabs as sacred.
- * Without a base (first sync / legacy install) we fall back to the safe 2-way union.
+ * Production reconcile decision (FE-C3). With a common ancestor (`base`) we use
+ * merge3 (edit vs delete, item conflicts). Without a base (first sync / legacy)
+ * we fall back to guest 2-way decideReconciliation — never silent OCC on 2-way.
  */
 export function decideReconciliation3(
   base: SavedSpace[] | null,
@@ -179,9 +178,12 @@ export function decideReconciliation3(
     : { kind: "apply", spaces: merged };
 }
 
-/** Pure: the resulting spaces for a user's conflict choice. */
+/**
+ * Guest↔account SyncConflictModal choice (no merge-base).
+ * "merge" → mergeSpacesGuest; not used for OCC item-conflicts (those use merge3 resolutions).
+ */
 export function resolveChoice(choice: "merge" | "server" | "local", server: SavedSpace[], local: SavedSpace[]): SavedSpace[] {
-  return choice === "merge" ? mergeSpaces(server, local) : choice === "server" ? server : local;
+  return choice === "merge" ? mergeSpacesGuest(server, local) : choice === "server" ? server : local;
 }
 
 /**

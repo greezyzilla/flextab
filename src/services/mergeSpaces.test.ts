@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mergeSpaces } from './spacesMerge';
+import { mergeSpaces, mergeSpacesGuest } from './spacesMerge';
 import type { SavedSpace } from '~src/types';
 
 const tab = (id: string) => ({ id, url: 'u' + id, title: 't', favicon: '', order: 0 });
@@ -14,9 +14,15 @@ function allTabIds(spaces: SavedSpace[]): string[] {
   return ids.sort();
 }
 
-describe('mergeSpaces', () => {
+describe('mergeSpacesGuest (legacy 2-way / guest sign-in)', () => {
+  it('mergeSpaces alias matches mergeSpacesGuest', () => {
+    const server = [space('s1', 'Work', [tab('t1')])];
+    const local = [space('l1', 'Research', [tab('t2')])];
+    expect(mergeSpaces(server, local)).toEqual(mergeSpacesGuest(server, local));
+  });
+
   it('keeps server + local-only spaces (union)', () => {
-    const out = mergeSpaces([space('s1', 'Work', [tab('t1')])], [space('l1', 'Research', [tab('t2')])]);
+    const out = mergeSpacesGuest([space('s1', 'Work', [tab('t1')])], [space('l1', 'Research', [tab('t2')])]);
     expect(out.map(s => s.id).sort()).toEqual(['l1', 's1']);
   });
 

@@ -1,4 +1,8 @@
-// Git-style 3-way merge for the spaces tree (base = last-synced snapshot).
+// Production 3-way merge for the spaces tree (base = last-synced snapshot).
+//
+// **This is the OCC / multi-device path (FE-C3).** Background 409 writeback and
+// reconcile-with-base call merge3 only. Guest sign-in without a shared history
+// uses the legacy 2-way in `spacesMerge` (mergeSpacesGuest) instead.
 //
 // Pure + dependency-free. Matches items by stable id at every level
 // (space → project → category → group → tab):
@@ -13,6 +17,9 @@
 // See SYNC_CONFLICT.md for the design + test matrix.
 
 import type { SavedSpace } from "~src/types";
+
+/** Re-export tree helper so OCC callers need one merge-related import. */
+export { spaceTabCount } from "./spacesTree";
 
 export type ConflictKind = "field" | "delete-edit";
 

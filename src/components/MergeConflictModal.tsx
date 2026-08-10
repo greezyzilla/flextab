@@ -2,7 +2,7 @@ import { useMemo, useState } from "react"
 import { useMergeConflict } from "~src/store/useMergeConflict"
 import { resolveMergeConflicts, dismissMergeConflicts } from "~src/services/syncEngine"
 import { merge3, type Conflict, type Resolutions } from "~src/services/spacesMerge3"
-import { spaceTabCount } from "~src/services/spacesMerge"
+import { spaceTabCount } from "~src/services/spacesTree"
 import { Button } from "~src/components/ui/button"
 import {
   AlertDialog,

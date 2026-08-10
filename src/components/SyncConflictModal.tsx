@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react"
 import { useSyncConflict } from "~src/store/useSyncConflict"
-import { resolveConflict, mergeSpaces } from "~src/services/syncEngine"
-import { spaceTabCount } from "~src/services/spacesMerge"
+import { resolveConflict } from "~src/services/syncEngine"
+import { mergeSpacesGuest } from "~src/services/spacesMerge"
+import { spaceTabCount } from "~src/services/spacesTree"
 import type { SavedSpace } from "~src/types"
 import { Button } from "~src/components/ui/button"
 import {
@@ -38,7 +39,7 @@ export function SyncConflictModal() {
   const { pending, server, local } = useSyncConflict()
   const [choice, setChoice] = useState<Choice>("merge")
 
-  const merged = useMemo(() => mergeSpaces(server, local), [server, local])
+  const merged = useMemo(() => mergeSpacesGuest(server, local), [server, local])
   const result = choice === "merge" ? merged : choice === "server" ? server : local
 
   const opts: { id: Choice; label: string; spaces: SavedSpace[] }[] = [
