@@ -304,7 +304,7 @@ export const useSavedSpacesStore = create<SavedSpacesState>()(
       name: 'spaces',
       version: STORE_VERSION,
       storage: createJSONStorage(() => storage),
-      // Only persist UI state — Yjs handles data persistence separately
+      // UI selection only — never savedSpaces (Yjs is data authority; FE-C2)
       partialize: (state) => ({
         activeSpaceId: state.activeSpaceId,
         activeProjectId: state.activeProjectId,
@@ -327,11 +327,14 @@ export const useSavedSpacesStore = create<SavedSpacesState>()(
   )
 );
 
-// --- Yjs observer: sync Yjs changes → Zustand ---
+// --- Yjs observer: Zustand is a reactive VIEW of Yjs (FE-C2) ---
+// Authority for spaces data is the Yjs doc (+ flextab_yjs_state). This mirror
+// exists so React can subscribe cheaply; it must not drive data persistence.
+// Do not bump lastModified here — that field is partialize'd UI metadata and
+// would thrash chrome.storage on every tree edit without changing selection.
 yjs.spacesArray.observeDeep(() => {
   useSavedSpacesStore.setState({
     savedSpaces: yjs.getSpaces(),
-    lastModified: Date.now(),
   });
 });
 

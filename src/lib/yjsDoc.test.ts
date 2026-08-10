@@ -154,6 +154,30 @@ describe('binary state + persistence', () => {
     expect(chrome.storage.local.set).toHaveBeenCalledWith(expect.objectContaining({ flextab_yjs_state: expect.any(Array) }));
   });
 
+  it('persistState single-flights concurrent calls and coalesces trailing writes', async () => {
+    let resolveSet: (() => void) | null = null;
+    let setCalls = 0;
+    ;(chrome.storage.local.set as any).mockImplementation(() => {
+      setCalls++
+      return new Promise<void>((r) => {
+        // First call blocks; later coalesced flush can complete immediately
+        if (setCalls === 1) resolveSet = r
+        else r()
+      })
+    })
+
+    const p1 = y.persistState()
+    const p2 = y.persistState()
+    const p3 = y.persistState()
+    // Only one write in flight while blocked
+    expect(setCalls).toBe(1)
+
+    resolveSet!()
+    await Promise.all([p1, p2, p3])
+    // Trailing coalesced write after the flight (queued by p2/p3)
+    expect(setCalls).toBe(2)
+  });
+
   it('loadPersistedState applies a stored update and reports true/false', async () => {
     const bytes = Array.from(y.encodeState());
     (chrome.storage.local.get as any).mockResolvedValue({ flextab_yjs_state: bytes });

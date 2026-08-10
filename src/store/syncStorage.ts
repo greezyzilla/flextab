@@ -1,7 +1,11 @@
 import type { StateStorage } from 'zustand/middleware';
 
 /**
- * Dual-storage adapter: chrome.storage.local (primary) + chrome.storage.sync (cross-device)
+ * Dual-storage adapter for **Zustand UI state only** (selection, settings).
+ *
+ * Spaces / tab tree data is NOT stored here — Yjs owns that via
+ * `flextab_yjs_state` + structured server sync (FE-C2). Do not assume
+ * chrome.storage.sync is how tabs move across devices.
  *
  * Local storage: fast, ~10MB limit, single device
  * Sync storage: cross-device, 100KB total, 8KB/item → requires chunking
@@ -152,8 +156,18 @@ export const storage: StateStorage = {
   },
 };
 
-// --- Cross-tab & cross-device sync listener ---
+// --- Cross-tab & cross-device sync listener (QUARANTINED — FE-C2) ---
+//
+// Not wired from any production entry (newtab/popup/background). Spaces
+// multi-tab uses Yjs PERSIST_KEY + installExternalPersistBridge; account
+// data uses structured API OCC. Kept for unit coverage and in case a
+// non-spaces store wants chrome.sync rehydrate later — do not call for
+// savedSpaces; it would fight Yjs authority.
 
+/**
+ * @deprecated Unwired in app. Quarantined (FE-C2): not the spaces sync path.
+ * Prefer Yjs external persist bridge / settings pull for live multi-context.
+ */
 export function setupStorageSync(
   storeName: string,
   rehydrate: () => Promise<void>,

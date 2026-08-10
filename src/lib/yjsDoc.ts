@@ -18,6 +18,13 @@ export const PERSIST_ORIGIN_KEY = "flextab_yjs_origin";
 /** When true, persistState is a no-op — used while applying an external writeback. */
 let suppressPersist = false;
 
+// Single-flight + coalesce (FE-C2): concurrent observe/update handlers used to
+// fire unbounded `void persistState()` writes that could complete out of order.
+// One in-flight write; further requests mark dirty and get one trailing write
+// of the latest encodeState after the flight finishes.
+let persistInFlight: Promise<void> | null = null;
+let persistQueued = false;
+
 /** Load Yjs state from chrome.storage. Returns true if state was loaded. */
 export async function loadPersistedState(): Promise<boolean> {
   try {
@@ -31,14 +38,48 @@ export async function loadPersistedState(): Promise<boolean> {
   return false;
 }
 
-/** Persist current Yjs state to chrome.storage (multi-tab CRDT peer write). */
-export async function persistState(): Promise<void> {
+async function writePersistSnapshot(): Promise<void> {
   if (suppressPersist) return;
   const state = encodeState();
   await chrome.storage.local.set({
     [PERSIST_KEY]: Array.from(state),
     [PERSIST_ORIGIN_KEY]: "page" satisfies PersistOrigin,
   });
+}
+
+/**
+ * Persist current Yjs state to chrome.storage (multi-tab CRDT peer write).
+ * Serialized + coalesced so rapid doc updates never race last-write-wins
+ * out of order (FE-C2).
+ */
+export async function persistState(): Promise<void> {
+  if (suppressPersist) return;
+
+  if (persistInFlight) {
+    persistQueued = true;
+    await persistInFlight;
+    // If a race left work after the flight cleared, start another pass.
+    if (persistQueued && !persistInFlight) {
+      return persistState();
+    }
+    return;
+  }
+
+  persistInFlight = (async () => {
+    try {
+      do {
+        persistQueued = false;
+        await writePersistSnapshot();
+      } while (persistQueued && !suppressPersist);
+    } finally {
+      persistInFlight = null;
+    }
+  })();
+
+  await persistInFlight;
+  if (persistQueued && !persistInFlight) {
+    return persistState();
+  }
 }
 
 /**
