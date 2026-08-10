@@ -5,6 +5,10 @@ import { mergeSpacesGuest } from "~src/services/spacesMerge"
 import { spaceTabCount } from "~src/services/spacesTree"
 import type { SavedSpace } from "~src/types"
 import { Button } from "~src/components/ui/button"
+import { Label } from "~src/components/ui/label"
+import { RadioGroup, RadioGroupItem } from "~src/components/ui/radio-group"
+import { Card } from "~src/components/ui/card"
+import { cn } from "~src/lib/utils"
 import {
   AlertDialog,
   AlertDialogContent,
@@ -63,39 +67,37 @@ export function SyncConflictModal() {
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        {/* Options */}
-        <div className="px-6 flex flex-col gap-2 shrink-0">
+        <RadioGroup
+          value={choice}
+          onValueChange={(v) => setChoice(v as Choice)}
+          className="px-6 flex flex-col gap-2 shrink-0"
+        >
           {opts.map((opt) => {
             const t = totals(opt.spaces)
             const active = choice === opt.id
             return (
-              <button
+              <Label
                 key={opt.id}
-                type="button"
-                onClick={() => setChoice(opt.id)}
-                className={`flex items-center justify-between rounded-lg border px-4 py-2.5 text-left transition-colors ${
-                  active ? "" : "border-white/10 bg-white/[0.02] hover:bg-white/[0.05]"
-                }`}
-                style={active ? { borderColor: "var(--accent)", backgroundColor: "var(--accent-subtle)" } : undefined}
+                htmlFor={`sync-choice-${opt.id}`}
+                className={cn(
+                  "flex cursor-pointer items-center justify-between rounded-lg border px-4 py-2.5 font-normal transition-colors",
+                  active
+                    ? "border-[var(--accent)] bg-[var(--accent-subtle)]"
+                    : "border-white/10 bg-white/[0.02] hover:bg-white/[0.05]",
+                )}
               >
                 <div className="flex items-center gap-2.5">
-                  <span
-                    className="w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0"
-                    style={{ borderColor: active ? "var(--accent)" : "rgba(255,255,255,0.25)" }}
-                  >
-                    {active && <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "var(--accent)" }} />}
-                  </span>
+                  <RadioGroupItem value={opt.id} id={`sync-choice-${opt.id}`} />
                   <span className="text-white/80 text-sm">{opt.label}</span>
                 </div>
                 <span className="text-white/35 text-[11px]">
                   {t.spaces} space{t.spaces !== 1 ? "s" : ""} · {t.tabs} tab{t.tabs !== 1 ? "s" : ""}
                 </span>
-              </button>
+              </Label>
             )
           })}
-        </div>
+        </RadioGroup>
 
-        {/* Preview of the chosen result */}
         <div className="px-6 pt-4 pb-2 shrink-0">
           <div className="text-white/40 text-[11px] font-medium uppercase tracking-wider">Result preview</div>
         </div>
@@ -107,7 +109,7 @@ export function SyncConflictModal() {
               {result.map((s) => {
                 const groups = groupSummaries(s)
                 return (
-                  <div key={s.id} className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2">
+                  <Card key={s.id} className="px-3 py-2 shadow-none">
                     <div className="flex items-center justify-between">
                       <span className="text-white/75 text-xs font-medium truncate">{s.name}</span>
                       <span className="text-white/30 text-[10px] shrink-0">
@@ -119,7 +121,7 @@ export function SyncConflictModal() {
                         {groups.map((g) => `${g.name} (${g.tabs})`).join(" · ")}
                       </div>
                     )}
-                  </div>
+                  </Card>
                 )
               })}
             </div>

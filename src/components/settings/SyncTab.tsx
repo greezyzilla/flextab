@@ -8,6 +8,7 @@ import { syncNow } from "~src/services/syncEngine";
 import { Switch } from "~src/components/ui/switch";
 import { Button } from "~src/components/ui/button";
 import { Badge } from "~src/components/ui/badge";
+import { Card } from "~src/components/ui/card";
 import { SettingRow } from "./shared";
 
 export function SyncTab() {
@@ -32,11 +33,11 @@ export function SyncTab() {
               : "Sync your spaces, groups, and tabs across every device."
           }
         >
-          <div className="rounded-lg border border-white/[0.08] bg-white/[0.02] px-5 py-4 text-white/50 text-sm font-sans leading-relaxed">
+          <Card className="px-5 py-4 text-white/50 text-sm font-sans leading-relaxed shadow-none">
             {guestMode
               ? "You're in guest mode — not offline. Tabs save locally on this device. Sign in to back up and sync across devices."
               : "You're using FlexTab locally on this device. Sign in to back up and sync your tabs across devices."}
-          </div>
+          </Card>
         </SettingRow>
       </div>
     );
@@ -54,10 +55,10 @@ export function SyncTab() {
   return (
     <div className="flex flex-col gap-7">
       <SettingRow label="Status" description="Realtime connection with your account.">
-        <div className="flex items-center justify-between rounded-lg border border-white/[0.08] bg-white/[0.02] px-5 py-4">
+        <Card className="flex items-center justify-between px-5 py-4 shadow-none">
           <div className="flex items-center gap-2.5">
             <span
-              className={`w-2 h-2 rounded-full ${meta.pulse ? 'animate-pulse' : ''}`}
+              className={`w-2 h-2 rounded-full ${meta.pulse ? "animate-pulse" : ""}`}
               style={{ backgroundColor: meta.color }}
             />
             <div className="flex flex-col">
@@ -65,10 +66,10 @@ export function SyncTab() {
               <span className="text-white/30 text-xs font-sans">Last synced {formatRelativeTime(lastSyncedAt)}</span>
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={handleSyncNow} disabled={syncing || status === 'syncing'}>
-            {syncing || status === 'syncing' ? 'Syncing…' : 'Sync now'}
+          <Button variant="ghost" size="sm" onClick={handleSyncNow} disabled={syncing || status === "syncing"}>
+            {syncing || status === "syncing" ? "Syncing…" : "Sync now"}
           </Button>
-        </div>
+        </Card>
       </SettingRow>
 
       <SettingRow label="Auto-sync" description="Keep changes in sync across devices automatically. When off, use “Sync now”.">

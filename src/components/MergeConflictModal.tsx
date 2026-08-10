@@ -4,6 +4,8 @@ import { resolveMergeConflicts, dismissMergeConflicts } from "~src/services/sync
 import { merge3, type Conflict, type Resolutions } from "~src/services/spacesMerge3"
 import { spaceTabCount } from "~src/services/spacesTree"
 import { Button } from "~src/components/ui/button"
+import { Card, CardContent, CardHeader } from "~src/components/ui/card"
+import { ToggleGroup, ToggleGroupItem } from "~src/components/ui/toggle-group"
 import {
   AlertDialog,
   AlertDialogContent,
@@ -96,31 +98,38 @@ export function MergeConflictModal() {
                 {items.map((c) => {
                   const opts = optionsFor(c)
                   return (
-                    <div key={c.key} className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2.5">
-                      <div className="flex items-center justify-between gap-2 mb-2">
+                    <Card key={c.key} className="shadow-none">
+                      <CardHeader className="flex-row items-center justify-between gap-2 space-y-0 p-3 pb-2">
                         <span className="text-white/80 text-sm truncate">{c.name || "(untitled)"}</span>
                         <span className="text-white/30 text-[10px] shrink-0">{fieldLabel(c)}</span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        {opts.map((opt) => {
-                          const active = seeded[c.key] === opt.side
-                          return (
-                            <button
+                      </CardHeader>
+                      <CardContent className="p-3 pt-0">
+                        <ToggleGroup
+                          type="single"
+                          variant="outline"
+                          size="sm"
+                          value={seeded[c.key]}
+                          onValueChange={(v) => {
+                            if (!v) return
+                            setChoices((prev) => ({ ...prev, [c.key]: v as Side }))
+                          }}
+                          className="grid w-full grid-cols-2 gap-2"
+                        >
+                          {opts.map((opt) => (
+                            <ToggleGroupItem
                               key={opt.side}
-                              type="button"
-                              onClick={() => setChoices((prev) => ({ ...prev, [c.key]: opt.side }))}
-                              className={`flex flex-col gap-0.5 rounded-md border px-2.5 py-1.5 text-left transition-colors ${
-                                active ? "" : "border-white/10 bg-white/[0.02] hover:bg-white/[0.05]"
-                              }`}
-                              style={active ? { borderColor: "var(--accent)", backgroundColor: "var(--accent-subtle)" } : undefined}
+                              value={opt.side}
+                              className="h-auto min-h-0 flex-col items-start gap-0.5 px-2.5 py-1.5 data-[state=on]:border-[var(--accent)]"
                             >
-                              <span className="text-white/70 text-[11px] font-medium">{opt.label}</span>
-                              <span className="text-white/40 text-[11px] truncate">{opt.detail || "—"}</span>
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </div>
+                              <span className="text-[11px] font-medium">{opt.label}</span>
+                              <span className="max-w-full truncate text-[11px] font-normal text-white/40">
+                                {opt.detail || "—"}
+                              </span>
+                            </ToggleGroupItem>
+                          ))}
+                        </ToggleGroup>
+                      </CardContent>
+                    </Card>
                   )
                 })}
               </div>

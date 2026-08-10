@@ -6,6 +6,7 @@ import {
 } from "~src/services/api";
 import { Button } from "~src/components/ui/button";
 import { Badge } from "~src/components/ui/badge";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "~src/components/ui/card";
 import {
   SettingRow, UsageBar, formatIDR, formatDate, formatBytes,
   PLAN_PRICE_IDR, CONFIRM_POLL_DELAYS,
@@ -117,9 +118,9 @@ export function PlanTab() {
     return (
       <div className="flex flex-col gap-7">
         <SettingRow label="Plan & Usage" description="Your plan limits and how much you've used.">
-          <div className="rounded-lg border border-white/[0.08] bg-white/[0.02] px-5 py-4 text-white/50 text-sm font-sans leading-relaxed">
+          <Card className="px-5 py-4 text-white/50 text-sm font-sans leading-relaxed shadow-none">
             Sign in to see your plan and usage. Local-only workspaces have no limits.
-          </div>
+          </Card>
         </SettingRow>
       </div>
     );
@@ -199,25 +200,29 @@ function PlanCard({ name, price, active, limits, onUpgrade, upgrading }: {
   onUpgrade?: () => void; upgrading?: boolean;
 }) {
   return (
-    <div className={`flex flex-col gap-2.5 rounded-lg border px-4 py-3.5 ${active ? 'border-accent/40 bg-accent/[0.06]' : 'border-white/[0.08] bg-white/[0.02]'}`}>
-      <div className="flex items-center gap-1.5">
-        <span className="text-white/80 text-sm font-sans font-medium">{name}</span>
+    <Card className={`flex flex-col gap-0 ${active ? "border-[var(--accent)]/40 bg-[var(--accent)]/[0.06]" : ""}`}>
+      <CardHeader className="flex-row items-center gap-1.5 space-y-0 p-3.5 pb-2">
+        <CardTitle className="text-sm font-medium">{name}</CardTitle>
         {active && <Badge variant="accent" size="sm" className="font-normal">Current</Badge>}
-      </div>
-      <span className="text-white/50 text-xs font-sans">{price}</span>
-      {limits && (
-        <div className="flex flex-col gap-1 text-[11px] font-sans text-white/40">
-          <span>{limits.max_tabs_total === 0 ? 'Unlimited tabs' : `${limits.max_tabs_total.toLocaleString()} tabs`}</span>
-          <span>{limits.max_tree_bytes === 0 ? 'Unlimited storage' : formatBytes(limits.max_tree_bytes)}</span>
-          <span>{limits.max_snapshots === 0 ? 'Unlimited history' : `${limits.max_snapshots} versions of history`}</span>
-        </div>
-      )}
+      </CardHeader>
+      <CardContent className="flex flex-col gap-2 p-3.5 pt-0">
+        <span className="text-white/50 text-xs font-sans">{price}</span>
+        {limits && (
+          <div className="flex flex-col gap-1 text-[11px] font-sans text-white/40">
+            <span>{limits.max_tabs_total === 0 ? "Unlimited tabs" : `${limits.max_tabs_total.toLocaleString()} tabs`}</span>
+            <span>{limits.max_tree_bytes === 0 ? "Unlimited storage" : formatBytes(limits.max_tree_bytes)}</span>
+            <span>{limits.max_snapshots === 0 ? "Unlimited history" : `${limits.max_snapshots} versions of history`}</span>
+          </div>
+        )}
+      </CardContent>
       {onUpgrade && (
-        <Button variant={active ? 'secondary' : 'default'} size="sm" onClick={onUpgrade} disabled={upgrading} className="mt-1">
-          {upgrading ? 'Opening…' : `Upgrade to ${name}`}
-        </Button>
+        <CardFooter className="p-3.5 pt-0">
+          <Button variant={active ? "secondary" : "default"} size="sm" onClick={onUpgrade} disabled={upgrading} className="w-full">
+            {upgrading ? "Opening…" : `Upgrade to ${name}`}
+          </Button>
+        </CardFooter>
       )}
-    </div>
+    </Card>
   );
 }
 
