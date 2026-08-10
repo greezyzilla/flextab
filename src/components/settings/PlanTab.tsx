@@ -1,11 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuthStore } from "~src/store/useAuthStore";
 import {
-  getDeviceId, apiGetPlan, apiGetCheckoutUrl, apiGetBillingStatus,
+  apiGetPlan, apiGetCheckoutUrl, apiGetBillingStatus, ApiError,
   type PlanStatus, type PlanLimits, type BillingStatus,
 } from "~src/services/api";
 import { Button } from "~src/components/ui/button";
-import { GroupHeading, UsageBar, formatIDR } from "./shared";
+import { Badge } from "~src/components/ui/badge";
+import {
+  SettingRow, UsageBar, formatIDR, formatDate, formatBytes,
+  PLAN_PRICE_IDR, CONFIRM_POLL_DELAYS,
+} from "./shared";
 
 export function PlanTab() {
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
@@ -216,8 +220,4 @@ function PlanCard({ name, price, active, limits, onUpgrade, upgrading }: {
     </div>
   );
 }
-
-// --- Transactions Tab ---
-
-const TXN_TYPE_LABEL: Record<string, string> = { created: 'Purchase', updated: 'Renewal', cancelled: 'Cancellation' };
 

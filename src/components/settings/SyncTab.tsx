@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSettingsStore } from "~src/store/useSettingsStore";
 import { useAuthStore } from "~src/store/useAuthStore";
 import { useSyncStore, SYNC_STATUS_META, formatRelativeTime } from "~src/store/useSyncStore";
@@ -7,7 +7,8 @@ import { apiGetDevices, type DeviceInfo } from "~src/services/device";
 import { syncNow } from "~src/services/syncEngine";
 import { Switch } from "~src/components/ui/switch";
 import { Button } from "~src/components/ui/button";
-import { SettingRow, GroupHeading, formatDate } from "./shared";
+import { Badge } from "~src/components/ui/badge";
+import { SettingRow } from "./shared";
 
 export function SyncTab() {
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
@@ -121,6 +122,4 @@ export function DevicesSection({ refresh }: { refresh: number }) {
     </SettingRow>
   );
 }
-
-// --- History Tab (version snapshots) ---
 

@@ -1,8 +1,13 @@
 import { useState, useEffect } from "react";
 import { useAuthStore } from "~src/store/useAuthStore";
 import { apiGetTransactions, type Transaction } from "~src/services/api";
-import { Badge } from "~src/components/ui/badge";
-import { formatDate, formatIDR } from "./shared";
+import { formatDate, formatIDR, SettingRow } from "./shared";
+
+const TXN_TYPE_LABEL: Record<string, string> = {
+  created: "Purchase",
+  updated: "Renewal",
+  cancelled: "Cancellation",
+};
 
 export function TransactionsTab() {
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
@@ -59,9 +64,3 @@ export function TransactionsTab() {
     </div>
   );
 }
-
-// Settings row: label + description, then the control full-width below. Stacked
-// (not two-column) so it works uniformly for everything — sliders, toggles, and
-// the wide content rows (device/snapshot lists, usage bars, forms) alike — with
-// no floating controls, squished lists, or label/control height mismatch. Rows
-// are separated by the parent's gap.

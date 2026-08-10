@@ -60,7 +60,7 @@ export function UsageBar({ label, used, cap, format, tone = 'quota', hint }: {
 // provider/server-determined (see billing.IPaymu/LemonSqueezy.CheckoutURL);
 // nothing here is trusted or sent to the backend. IDR since iPaymu is the
 // live provider today; update alongside IPAYMU_*_PRICE_IDR if those change.
-const PLAN_PRICE_IDR: Record<'plus' | 'pro', number> = { plus: 59000, pro: 99000 };
+export const PLAN_PRICE_IDR: Record<'plus' | 'pro', number> = { plus: 59000, pro: 99000 };
 
 export function formatIDR(n: number): string {
   return `Rp${n.toLocaleString('id-ID')}`;
@@ -70,7 +70,7 @@ export function formatIDR(n: number): string {
 // confirmed to have changed — increasing backoff, ~34s total coverage. Real
 // webhook delivery is typically a couple seconds, but this needs to survive
 // slower deliveries without the user having to manually refresh the tab.
-const CONFIRM_POLL_DELAYS = [0, 2000, 3000, 5000, 8000, 12000, 4000];
+export const CONFIRM_POLL_DELAYS = [0, 2000, 3000, 5000, 8000, 12000, 4000];
 
 // Settings row: label + description, then the control full-width below. Stacked
 // (not two-column) so it works uniformly for everything — sliders, toggles, and
