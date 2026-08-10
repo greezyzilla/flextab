@@ -3,15 +3,16 @@ import "@fontsource-variable/inter"
 import "../../style.css"
 import { useSavedSpacesStore, useHydrated } from "~src/store/useSavedSpacesStore"
 import { useAuthStore } from "~src/store/useAuthStore"
-import { v7 as uuidv7 } from "uuid"
-import type { SavedTab } from "~src/types"
-import { faviconToDataUrl } from "~src/utils/favicon"
 import { Button } from "~src/components/ui/button"
+import {
+  saveTabsAsGroup,
+  defaultSavedGroupName,
+} from "~src/services/saveTabsAsGroup"
 
 function IndexPopup() {
   const hydrated = useHydrated();
   const { initialize, isAuthenticated, isLoading: authLoading, loginWithGoogle } = useAuthStore();
-  const { savedSpaces, activeSpaceId, activeProjectId, activeCategoryId, addSavedGroup, addSavedTab } = useSavedSpacesStore();
+  const { savedSpaces, activeSpaceId, activeProjectId, activeCategoryId } = useSavedSpacesStore();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -22,65 +23,45 @@ function IndexPopup() {
   const activeCategory = activeProject?.categories.find(c => c.id === activeCategoryId);
   const hasActiveCategory = !!activeCategory;
 
-  const handleSaveCurrentTab = async () => {
-    if (!activeSpace || !activeProject || !activeCategory) return;
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab?.url) return;
-
-    const groupId = uuidv7();
-    addSavedGroup(activeSpace.id, activeProject.id, activeCategory.id, {
-      id: groupId,
-      name: tab.title || 'Saved Tab',
-      tabs: [],
-      order: activeCategory.groups.length,
-    });
-
-    const favicon = await faviconToDataUrl(tab.favIconUrl || '');
-    const savedTab: SavedTab = {
-      id: uuidv7(),
-      url: tab.url,
-      title: tab.title || 'Untitled',
-      favicon,
-      order: 0,
-    };
-    addSavedTab(activeSpace.id, activeProject.id, activeCategory.id, groupId, savedTab);
+  const flashSaved = () => {
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
 
-  const handleSaveAllTabs = async () => {
-    if (!activeSpace || !activeProject || !activeCategory) return;
-    setSaving(true);
+  const target = hasActiveCategory
+    ? {
+        spaceId: activeSpace!.id,
+        projectId: activeProject!.id,
+        categoryId: activeCategory!.id,
+      }
+    : null;
 
-    const tabs = await chrome.tabs.query({ currentWindow: true });
-    const filteredTabs = tabs.filter(t => t.url && !t.url.startsWith('chrome://'));
-    if (filteredTabs.length === 0) { setSaving(false); return; }
-
-    const groupId = uuidv7();
-    const groupName = `Window ${new Date().toLocaleDateString()}`;
-
-    addSavedGroup(activeSpace.id, activeProject.id, activeCategory.id, {
-      id: groupId,
-      name: groupName,
-      tabs: [],
-      order: activeCategory.groups.length,
+  const handleSaveCurrentTab = async () => {
+    if (!target) return;
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab) return;
+    const result = await saveTabsAsGroup({
+      target,
+      name: tab.title || "Saved Tab",
+      tabs: [tab],
     });
+    if (result) flashSaved();
+  };
 
-    for (let i = 0; i < filteredTabs.length; i++) {
-      const tab = filteredTabs[i];
-      const favicon = await faviconToDataUrl(tab.favIconUrl || '');
-      addSavedTab(activeSpace.id, activeProject.id, activeCategory.id, groupId, {
-        id: uuidv7(),
-        url: tab.url || '',
-        title: tab.title || 'Untitled',
-        favicon,
-        order: i,
+  const handleSaveAllTabs = async () => {
+    if (!target) return;
+    setSaving(true);
+    try {
+      const tabs = await chrome.tabs.query({ currentWindow: true });
+      const result = await saveTabsAsGroup({
+        target,
+        name: defaultSavedGroupName("Window"),
+        tabs,
       });
+      if (result) flashSaved();
+    } finally {
+      setSaving(false);
     }
-
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
   };
 
   if (authLoading) {

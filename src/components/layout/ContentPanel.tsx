@@ -1,5 +1,5 @@
 import { useActiveCategory, useActiveGroups, useActiveSpace, useActiveProject, useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
-import type { SavedTab, SavedGroup } from "~src/types";
+import type { SavedGroup } from "~src/types";
 import { TabGroup } from "../TabGroup";
 import { Tooltip, TooltipTrigger, TooltipContent } from "~src/components/ui/tooltip";
 import { Button } from "~src/components/ui/button";
@@ -8,8 +8,8 @@ import { CSS } from "@dnd-kit/utilities";
 import { DragHandleIcon } from "../icons/DragHandleIcon";
 import { useRef, useCallback } from "react";
 import { v7 as uuidv7 } from "uuid";
-import { faviconToDataUrl } from "~src/utils/favicon";
 import { useSettingsStore, type GroupLayout } from "~src/store/useSettingsStore";
+import { saveTabsAsGroup, defaultSavedGroupName } from "~src/services/saveTabsAsGroup";
 
 function SortableGroup({ group, layout, gridColumns }: { group: SavedGroup; layout: GroupLayout; gridColumns: number }) {
   const {
@@ -61,7 +61,7 @@ export function ContentPanel() {
   const activeProject = useActiveProject();
   const activeCategory = useActiveCategory();
   const currentGroups = useActiveGroups();
-  const { addSavedGroup, addSavedTabsBatch } = useSavedSpacesStore();
+  const { addSavedGroup } = useSavedSpacesStore();
   const { groupLayout, setGroupLayout, gridColumns } = useSettingsStore();
   const parentRef = useRef<HTMLDivElement>(null);
 
@@ -69,25 +69,17 @@ export function ContentPanel() {
     if (!activeSpace || !activeProject || !activeCategory) return;
 
     const windows = await chrome.windows.getAll({ populate: true });
-    const allTabs = windows.flatMap(w => w.tabs ?? []).filter(t => t.url && !t.url.startsWith('chrome://'));
-    if (allTabs.length === 0) return;
-
-    const groupId = uuidv7();
-    const groupName = `Saved ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-
-    addSavedGroup(activeSpace.id, activeProject.id, activeCategory.id, {
-      id: groupId, name: groupName, tabs: [], order: currentGroups.length,
+    const allTabs = windows.flatMap((w) => w.tabs ?? []);
+    await saveTabsAsGroup({
+      target: {
+        spaceId: activeSpace.id,
+        projectId: activeProject.id,
+        categoryId: activeCategory.id,
+      },
+      name: defaultSavedGroupName(),
+      tabs: allTabs,
     });
-
-    const savedTabs: SavedTab[] = await Promise.all(
-      allTabs.map(async (tab, i) => ({
-        id: uuidv7(), url: tab.url || '', title: tab.title || 'Untitled',
-        favicon: await faviconToDataUrl(tab.favIconUrl || ''), order: i,
-      })),
-    );
-
-    addSavedTabsBatch(activeSpace.id, activeProject.id, activeCategory.id, groupId, savedTabs);
-  }, [activeSpace, activeProject, activeCategory, currentGroups.length, addSavedGroup, addSavedTabsBatch]);
+  }, [activeSpace, activeProject, activeCategory]);
 
   const handleNewGroup = useCallback(() => {
     if (!activeSpace || !activeProject || !activeCategory) return;

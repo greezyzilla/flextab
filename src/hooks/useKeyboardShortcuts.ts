@@ -1,8 +1,7 @@
 import { useEffect } from "react";
 import { v7 as uuidv7 } from "uuid";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
-import type { SavedTab } from "~src/types";
-import { faviconToDataUrl } from "~src/utils/favicon";
+import { saveTabsAsGroup, defaultSavedGroupName } from "~src/services/saveTabsAsGroup";
 
 function isEditableTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
@@ -70,44 +69,23 @@ export function useKeyboardShortcuts() {
       // Ctrl+Shift+S / Cmd+Shift+S — save all open tabs
       if (mod && e.shiftKey && e.key.toLowerCase() === "s") {
         e.preventDefault();
-        const state = useSavedSpacesStore.getState();
-        const { activeSpaceId, activeProjectId, activeCategoryId, savedSpaces } = state;
+        const { activeSpaceId, activeProjectId, activeCategoryId } =
+          useSavedSpacesStore.getState();
         if (!activeSpaceId || !activeProjectId || !activeCategoryId) return;
 
-        const space = savedSpaces.find(s => s.id === activeSpaceId);
-        const project = space?.projects.find(p => p.id === activeProjectId);
-        const category = project?.categories.find(c => c.id === activeCategoryId);
-        if (!category) return;
-
         // Async — fire and forget
-        (async () => {
+        void (async () => {
           const windows = await chrome.windows.getAll({ populate: true });
-          const allTabs = windows
-            .flatMap(w => w.tabs ?? [])
-            .filter(t => t.url && !t.url.startsWith("chrome://"));
-          if (allTabs.length === 0) return;
-
-          const groupId = uuidv7();
-          const groupName = `Saved ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
-
-          state.addSavedGroup(activeSpaceId, activeProjectId, activeCategoryId, {
-            id: groupId,
-            name: groupName,
-            tabs: [],
-            order: category.groups.length,
+          const allTabs = windows.flatMap((w) => w.tabs ?? []);
+          await saveTabsAsGroup({
+            target: {
+              spaceId: activeSpaceId,
+              projectId: activeProjectId,
+              categoryId: activeCategoryId,
+            },
+            name: defaultSavedGroupName(),
+            tabs: allTabs,
           });
-
-          const savedTabs: SavedTab[] = await Promise.all(
-            allTabs.map(async (tab, i) => ({
-              id: uuidv7(),
-              url: tab.url || "",
-              title: tab.title || "Untitled",
-              favicon: await faviconToDataUrl(tab.favIconUrl || ""),
-              order: i,
-            })),
-          );
-
-          state.addSavedTabsBatch(activeSpaceId, activeProjectId, activeCategoryId, groupId, savedTabs);
         })();
         return;
       }

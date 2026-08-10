@@ -1,5 +1,4 @@
 import { useCallback, useMemo, useState } from "react"
-import { v7 as uuidv7 } from "uuid"
 import { toast } from "sonner"
 import {
   Dialog,
@@ -14,7 +13,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "~
 import { Input } from "~src/components/ui/input"
 import { Label } from "~src/components/ui/label"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
-import { faviconToDataUrl } from "~src/utils/favicon"
+import { isSavableTabUrl, saveTabsAsGroup } from "~src/services/saveTabsAsGroup"
 import type { SavedSpace } from "~src/types"
 
 type SaveTarget = {
@@ -44,10 +43,6 @@ function resolveTarget(
   }
 }
 
-function isSavableTab(tab: chrome.tabs.Tab) {
-  return !!tab.url && !tab.url.startsWith("chrome://")
-}
-
 function defaultSessionName() {
   const now = new Date()
   return `${now.toLocaleDateString()} ${now.toLocaleTimeString([], {
@@ -69,7 +64,6 @@ export function SaveSessionModal({
     activeSpaceId,
     activeProjectId,
     activeCategoryId,
-    addSavedGroup,
   } = useSavedSpacesStore()
 
   const [name, setName] = useState(defaultSessionName)
@@ -86,7 +80,10 @@ export function SaveSessionModal({
   const categories = project?.categories ?? []
   const category = categories.find((c) => c.id === target.categoryId)
 
-  const savableTabs = useMemo(() => tabs.filter(isSavableTab), [tabs])
+  const savableTabs = useMemo(
+    () => tabs.filter((t) => isSavableTabUrl(t.url)),
+    [tabs],
+  )
   const canSave =
     !!target.spaceId &&
     !!target.projectId &&
@@ -138,24 +135,21 @@ export function SaveSessionModal({
     if (!canSave) return
     setSaving(true)
     try {
-      const { spaceId, projectId, categoryId } = target
-      const cat = categories.find((c) => c.id === categoryId)
-      const savedTabs = await Promise.all(
-        savableTabs.map(async (tab, i) => ({
-          id: uuidv7(),
-          url: tab.url || "",
-          title: tab.title || "Untitled",
-          favicon: await faviconToDataUrl(tab.favIconUrl || ""),
-          order: i,
-        })),
-      )
-      // Single store write: group + tabs together (groupToYMap includes tabs).
-      addSavedGroup(spaceId, projectId, categoryId, {
-        id: uuidv7(),
+      const result = await saveTabsAsGroup({
+        target: {
+          spaceId: target.spaceId,
+          projectId: target.projectId,
+          categoryId: target.categoryId,
+        },
         name: name.trim(),
-        tabs: savedTabs,
-        order: cat?.groups.length ?? 0,
+        tabs: savableTabs,
       })
+      if (!result) {
+        toast.error("Couldn't save session", {
+          description: "No savable tabs or destination is missing.",
+        })
+        return
+      }
       onClose()
     } catch (err) {
       console.error("Save session failed", err)
@@ -165,7 +159,7 @@ export function SaveSessionModal({
     } finally {
       setSaving(false)
     }
-  }, [canSave, target, categories, savableTabs, addSavedGroup, name, onClose])
+  }, [canSave, target, savableTabs, name, onClose])
 
   return (
     <Dialog open onOpenChange={(o) => { if (!o) onClose() }}>
