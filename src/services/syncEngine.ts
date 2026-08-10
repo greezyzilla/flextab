@@ -30,16 +30,12 @@ import type { SyncStatus } from "~src/store/useSyncStore";
 // background worker, gated on the hydration flag below.
 
 function setStatus(status: SyncStatus) {
-  // Connection statuses only make sense while signed in. Guest / local-only
-  // must stay on "paused" so Offline is never confused with no-account use.
-  if (
-    !useAuthStore.getState().isAuthenticated &&
-    status !== "paused"
-  ) {
-    useSyncStore.getState().setStatus("paused");
-    return;
-  }
-  useSyncStore.getState().setStatus(status);
+  // Guest / signed-out: only "paused" is valid (never offline/online/error).
+  const next =
+    !useAuthStore.getState().isAuthenticated && status !== "paused"
+      ? "paused"
+      : status;
+  useSyncStore.getState().setStatus(next);
 }
 function markSynced() {
   useSyncStore.getState().markSynced();

@@ -1,101 +1,94 @@
-import { Cloud, CloudOff, HardDrive, RefreshCw } from "lucide-react";
-import { useSyncStore, formatRelativeTime } from "~src/store/useSyncStore";
-import { useAuthStore } from "~src/store/useAuthStore";
-import { Tooltip, TooltipTrigger, TooltipContent } from "./ui/tooltip";
-
-type View = { Icon: typeof Cloud; cls: string; label: string; spin?: boolean; detail: string };
+import type { LucideIcon } from "lucide-react"
+import { Cloud, CloudOff, HardDrive, RefreshCw } from "lucide-react"
+import { useSyncStore, formatRelativeTime } from "~src/store/useSyncStore"
+import { useAuthStore } from "~src/store/useAuthStore"
+import { Tooltip, TooltipTrigger, TooltipContent } from "./ui/tooltip"
 
 /**
- * Connection status in the top header.
+ * Header sync badge.
  *
- * Three different product states must never collapse into one icon/copy:
- * - Guest / not signed in → local device only (no account, not "offline")
- * - Signed in + connection down → Offline (will retry / reconnect)
- * - Signed in + auto-sync off → paused (Cloud, not CloudOff)
+ * Keep these product states separate:
+ * - not signed in / guest → local device only (HardDrive) — never "Offline"
+ * - signed in + no transport → Offline (CloudOff)
+ * - signed in + auto-sync off → paused (Cloud)
  */
 export function SyncStatusIndicator() {
-  const status = useSyncStore((s) => s.status);
-  const lastSyncedAt = useSyncStore((s) => s.lastSyncedAt);
-  const dirty = useSyncStore((s) => s.dirty);
-  const conflictPending = useSyncStore((s) => s.conflictPending);
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const guestMode = useAuthStore((s) => s.guestMode);
+  const status = useSyncStore((s) => s.status)
+  const lastSyncedAt = useSyncStore((s) => s.lastSyncedAt)
+  const dirty = useSyncStore((s) => s.dirty)
+  const conflictPending = useSyncStore((s) => s.conflictPending)
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const guestMode = useAuthStore((s) => s.guestMode)
 
-  let v: View;
+  let Icon: LucideIcon = Cloud
+  let cls = "text-white/35"
+  let label = "Auto-sync off"
+  let detail = formatRelativeTime(lastSyncedAt)
+  let spin = false
+
   if (!isAuthenticated) {
-    // Never use connection statuses (offline/error) here — no account means
-    // there is nothing to be "offline" from. Guest vs bare local-only differ
-    // only in copy; both are device-local (HardDrive ≠ CloudOff).
-    v = guestMode
-      ? {
-          Icon: HardDrive,
-          cls: "text-white/30",
-          label: "Guest",
-          detail: "Local only on this device — sign in anytime to sync",
-        }
-      : {
-          Icon: HardDrive,
-          cls: "text-white/25",
-          label: "Local only",
-          detail: "Not signed in — tabs stay on this device",
-        };
-  } else {
-    switch (status) {
-      case "online":
-        v = { Icon: Cloud, cls: "text-white/45", label: "Connected", detail: formatRelativeTime(lastSyncedAt) };
-        break;
-      case "connecting":
-        v = { Icon: RefreshCw, cls: "text-white/55", label: "Connecting…", detail: "Reaching your account…", spin: true };
-        break;
-      case "syncing":
-        v = { Icon: RefreshCw, cls: "text-white/55", label: "Syncing…", detail: "Uploading or pulling changes…", spin: true };
-        break;
-      case "offline":
-        // Signed-in account, transport down — not the same as guest/local-only.
-        v = {
-          Icon: CloudOff,
-          cls: "text-white/40",
-          label: "Offline",
-          detail: "No connection — changes stay on this device until you reconnect",
-        };
-        break;
-      case "error":
-        v = {
-          Icon: CloudOff,
-          cls: "text-red-400/70",
-          label: "Sync error",
-          detail: "Last sync failed — changes are still saved locally",
-        };
-        break;
-      default:
-        v = {
-          Icon: Cloud,
-          cls: "text-white/35",
-          label: "Auto-sync off",
-          detail: formatRelativeTime(lastSyncedAt),
-        };
-        break;
-    }
+    Icon = HardDrive
+    cls = guestMode ? "text-white/30" : "text-white/25"
+    label = guestMode ? "Guest" : "Local only"
+    detail = guestMode
+      ? "Local only on this device — sign in anytime to sync"
+      : "Not signed in — tabs stay on this device"
+  } else if (status === "online") {
+    Icon = Cloud
+    cls = "text-white/45"
+    label = "Connected"
+    detail = formatRelativeTime(lastSyncedAt)
+  } else if (status === "connecting") {
+    Icon = RefreshCw
+    cls = "text-white/55"
+    label = "Connecting…"
+    detail = "Reaching your account…"
+    spin = true
+  } else if (status === "syncing") {
+    Icon = RefreshCw
+    cls = "text-white/55"
+    label = "Syncing…"
+    detail = "Uploading or pulling changes…"
+    spin = true
+  } else if (status === "offline") {
+    Icon = CloudOff
+    cls = "text-white/40"
+    label = "Offline"
+    detail = "No connection — changes stay on this device until you reconnect"
+  } else if (status === "error") {
+    Icon = CloudOff
+    cls = "text-red-400/70"
+    label = "Sync error"
+    detail = "Last sync failed — changes are still saved locally"
   }
 
-  // Pending dots only for signed-in idle connection states (never guest).
-  const idle = isAuthenticated && (status === "paused" || status === "offline" || status === "error");
-  const showConflict = idle && conflictPending;
-  const showDirty = idle && dirty && !showConflict;
-  const label = showConflict ? "Sync conflict" : v.label;
-  const detail = showConflict
-    ? "Turn on sync to resolve the conflict"
-    : showDirty
-      ? status === "paused"
+  const idle =
+    isAuthenticated &&
+    (status === "paused" || status === "offline" || status === "error")
+  const showConflict = idle && conflictPending
+  const showDirty = idle && dirty && !showConflict
+
+  if (showConflict) {
+    label = "Sync conflict"
+    detail = "Turn on sync to resolve the conflict"
+  } else if (showDirty) {
+    detail =
+      status === "paused"
         ? "Unsynced changes — turn on sync or use Sync now"
         : "Unsynced changes — will sync when reconnected"
-      : v.detail;
+  }
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <div className="relative flex h-9 w-7 shrink-0 items-center justify-center" aria-label={label}>
-          <v.Icon className={`h-[18px] w-[18px] ${v.cls} ${v.spin ? "animate-spin" : ""}`} strokeWidth={1.75} />
+        <div
+          className="relative flex h-9 w-7 shrink-0 items-center justify-center"
+          aria-label={label}
+        >
+          <Icon
+            className={`h-[18px] w-[18px] ${cls} ${spin ? "animate-spin" : ""}`}
+            strokeWidth={1.75}
+          />
           {(showConflict || showDirty) && (
             <span
               className={`absolute right-1 top-1.5 h-[7px] w-[7px] rounded-full ring-2 ring-black-900 ${
@@ -111,5 +104,5 @@ export function SyncStatusIndicator() {
         <div className="text-white/45">{detail}</div>
       </TooltipContent>
     </Tooltip>
-  );
+  )
 }
