@@ -30,6 +30,15 @@ import type { SyncStatus } from "~src/store/useSyncStore";
 // background worker, gated on the hydration flag below.
 
 function setStatus(status: SyncStatus) {
+  // Connection statuses only make sense while signed in. Guest / local-only
+  // must stay on "paused" so Offline is never confused with no-account use.
+  if (
+    !useAuthStore.getState().isAuthenticated &&
+    status !== "paused"
+  ) {
+    useSyncStore.getState().setStatus("paused");
+    return;
+  }
   useSyncStore.getState().setStatus(status);
 }
 function markSynced() {
@@ -409,7 +418,14 @@ export function startLocalPersistence() {
   // Auth flips (e.g. sign-in with auto-sync off never starts the engine) and
   // background pushes advancing the merge-base both change dirtiness without a
   // local doc edit — recompute on those too.
-  const unsubAuth = useAuthStore.subscribe(() => void recomputeDirty());
+  const unsubAuth = useAuthStore.subscribe((state, prev) => {
+    void recomputeDirty();
+    // Session drop (logout / expired token): clear any leftover Offline/error
+    // so the indicator shows Local only / Guest, not Offline.
+    if (!state.isAuthenticated && prev.isAuthenticated) {
+      useSyncStore.getState().setStatus("paused");
+    }
+  });
   const onStorage = (changes: { [k: string]: chrome.storage.StorageChange }, area: string) => {
     if (area === "local" && changes["flextab_merge_base"]) void recomputeDirty();
   };

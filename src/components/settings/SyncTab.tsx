@@ -12,18 +12,30 @@ import { SettingRow } from "./shared";
 
 export function SyncTab() {
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
+  const guestMode = useAuthStore(s => s.guestMode);
   const { autoSync, setAutoSync } = useSettingsStore();
   const status = useSyncStore(s => s.status);
   const lastSyncedAt = useSyncStore(s => s.lastSyncedAt);
   const [syncing, setSyncing] = useState(false);
   const [devicesNonce, setDevicesNonce] = useState(0);
 
+  // No account → local-only workspace (not "offline"). Offline is a signed-in
+  // transport state shown only after authentication below.
   if (!isAuthenticated) {
     return (
       <div className="flex flex-col gap-7">
-        <SettingRow label="Sync" description="Sync your spaces, groups, and tabs across every device.">
+        <SettingRow
+          label="Sync"
+          description={
+            guestMode
+              ? "Guest mode: everything stays on this device until you sign in."
+              : "Sync your spaces, groups, and tabs across every device."
+          }
+        >
           <div className="rounded-lg border border-white/[0.08] bg-white/[0.02] px-5 py-4 text-white/50 text-sm font-sans leading-relaxed">
-            You're using FlexTab locally on this device. Sign in to back up and sync your tabs across devices.
+            {guestMode
+              ? "You're in guest mode — not offline. Tabs save locally on this device. Sign in to back up and sync across devices."
+              : "You're using FlexTab locally on this device. Sign in to back up and sync your tabs across devices."}
           </div>
         </SettingRow>
       </div>

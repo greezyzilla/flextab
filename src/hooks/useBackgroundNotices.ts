@@ -1,6 +1,7 @@
 import { useEffect } from "react"
 import { toast } from "sonner"
 import { SESSION_EXPIRED_KEY } from "~src/services/api"
+import { useAuthStore } from "~src/store/useAuthStore"
 import { useSyncStore } from "~src/store/useSyncStore"
 
 const LIMIT_NOTICE_KEY = "flextab_limit_notice"
@@ -37,7 +38,9 @@ function showBillingResult(result: unknown) {
 
 // Reflect background push-failure as Sync error; clear only reverts from
 // "error" specifically so offline/paused is not clobbered.
+// Guest / signed-out: never touch connection status (offline ≠ local-only).
 function applyPushPending(pending: unknown) {
+  if (!useAuthStore.getState().isAuthenticated) return
   if (pending === true) {
     useSyncStore.getState().setStatus("error")
   } else if (useSyncStore.getState().status === "error") {

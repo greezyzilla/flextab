@@ -1,12 +1,12 @@
 import { create } from "zustand"
 
 export type SyncStatus =
-  | "paused" // sync engine not running (auto-sync off, or signed out)
-  | "connecting" // establishing the realtime connection
-  | "online" // connected, changes flow in realtime
-  | "offline" // engine running but the connection is down (will retry)
-  | "syncing" // a manual / one-shot sync is in progress
-  | "error" // last sync attempt failed
+  | "paused" // engine not running (auto-sync off, signed out, or guest/local-only)
+  | "connecting" // establishing the realtime connection (signed-in only)
+  | "online" // connected, changes flow in realtime (signed-in only)
+  | "offline" // signed-in, engine running, transport down (will retry) — NOT guest
+  | "syncing" // a manual / one-shot sync is in progress (signed-in only)
+  | "error" // last sync attempt failed (signed-in only)
 
 interface SyncState {
   status: SyncStatus
