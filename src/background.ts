@@ -2,6 +2,7 @@ import { loadTokens, getDeviceId } from "~src/services/api";
 import { syncStructuredSnapshot } from "~src/services/structuredSync";
 import { merge3 } from "~src/services/spacesMerge3";
 import { getMergeBase, setMergeBase } from "~src/services/mergeBase";
+import { isConflictPending, saveOccConflictPayload, clearConflictPending } from "~src/services/conflictState";
 import {
   PERSIST_KEY,
   decodeSpacesFromStorage,
@@ -154,23 +155,36 @@ async function pushStructuredData(state: number[]) {
     if (f["flextab_sync_hydrated"] !== true) return;
   } catch (_) { return; }
 
+  // Hold pushes while a true OCC / merge conflict is unresolved (FE-B3).
+  if (await isConflictPending()) return;
+
   try { await chrome.storage.local.set({ [PENDING_PUSH_KEY]: true }); } catch (_) { /* ok */ }
 
   // Optimistic-concurrency push with 409 reconcile lives in structuredSync. On a
   // conflict we 3-way merge the server's returned state with our latest local one
   // against the sync merge-base, so a concurrent delete isn't resurrected. A true
-  // conflict (edit-edit / delete-vs-edit) returns null → the push defers and the
-  // open new-tab reconcile surfaces the resolver. A confirmed push writebacks the
-  // landed tree to local storage (if it differs) and advances the merge-base.
+  // conflict (edit-edit / delete-vs-edit) returns null → durable OCC payload is
+  // stored for any newtab resolver; push retries stop until the user acts.
+  // A confirmed push writebacks the landed tree and advances the merge-base.
   const result = await syncStructuredSnapshot(
     extractSpaces(state),
     readLatestSpaces,
     async (server, local) => {
       const base = await getMergeBase();
-      const { merged, conflicts } = merge3(base, server as SavedSpace[], local as SavedSpace[]);
-      return conflicts.length > 0 ? null : merged;
+      const srv = server as SavedSpace[];
+      const loc = local as SavedSpace[];
+      const { merged, conflicts } = merge3(base, srv, loc);
+      if (conflicts.length > 0) {
+        // Persist so a closed newtab still surfaces the conflict on next open.
+        await saveOccConflictPayload({ base, server: srv, local: loc, conflicts });
+        return null;
+      }
+      return merged;
     },
-    onStructuredPushLanded,
+    async (spaces) => {
+      await clearConflictPending(); // successful land clears any stale OCC deferral
+      await onStructuredPushLanded(spaces);
+    },
     // Plan-limit rejection: stash a notice the open new-tab picks up and toasts,
     // since the background worker can't render UI itself.
     (message) => {
@@ -178,12 +192,9 @@ async function pushStructuredData(state: number[]) {
     },
   );
 
-  // "error" (offline, transient 401/5xx, etc.) is the one outcome worth
-  // retrying automatically — leave the pending flag set so the next alarm
-  // tick retries it even if the user makes no further edits. "ok" landed;
-  // "limit"/"skipped" are terminal until the user acts (prune, or resolve the
-  // interactive conflict) — retrying blindly would just repeat the same
-  // outcome (or re-spam the limit notice), so clear the flag for those too.
+  // "error" → keep PENDING_PUSH for the retry alarm.
+  // "ok" / "limit" / "skipped" → clear it: skipped is handled by conflictPending
+  // + OCC payload (retrying the same 409 loop would not help until resolve).
   if (result !== "error") {
     try { await chrome.storage.local.remove(PENDING_PUSH_KEY); } catch (_) { /* ok */ }
   }

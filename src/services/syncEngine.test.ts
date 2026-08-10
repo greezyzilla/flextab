@@ -205,7 +205,10 @@ describe('conflict-pending flag', () => {
     await syncNow();
     await flush();
     expect(useSyncStore.getState().conflictPending).toBe(false);
-    expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_conflict_pending');
+    expect(chrome.storage.local.remove).toHaveBeenCalledWith([
+      'flextab_conflict_pending',
+      'flextab_occ_conflict',
+    ]);
   });
 
   it('a plain auto-sync-off pause (no pending conflict) does not set it', () => {

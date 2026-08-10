@@ -7,7 +7,13 @@ import { useSettingsStore } from "~src/store/useSettingsStore";
 import { apiFetch, loadTokens, getDeviceId, API_BASE_URL } from "./api";
 import { setStoredRevision } from "./revision";
 import { getMergeBase, setMergeBase } from "./mergeBase";
-import { setConflictPending, clearConflictPending, loadConflictPending } from "./conflictState";
+import {
+  setConflictPending,
+  clearConflictPending,
+  loadConflictPending,
+  loadOccConflictPayload,
+  saveOccConflictPayload,
+} from "./conflictState";
 import { ensureDefaultData, syncActiveSelection } from "~src/store/useSavedSpacesStore";
 import { mergeSpaces, spaceTabCount } from "./spacesMerge";
 import { merge3, type Conflict, type Resolutions } from "./spacesMerge3";
@@ -241,6 +247,13 @@ async function reconcile(freshLogin: boolean): Promise<void> {
     pendingMergeBase = base;
     pendingMergeConflicts = decision.conflicts;
     useMergeConflict.getState().open(decision.conflicts, base, server, local);
+    // Durable so reload / other contexts know a resolver is needed (FE-B3).
+    void saveOccConflictPayload({
+      base,
+      server,
+      local,
+      conflicts: decision.conflicts,
+    });
     setStatus("online");
     return; // wait for resolveMergeConflicts()
   }
@@ -281,14 +294,33 @@ export function resolveMergeConflicts(resolutions: Resolutions) {
  *  re-detects the still-unresolved conflict and reopens the resolver, so the user
  *  can't silently sync past it. */
 export function dismissMergeConflicts() {
+  // Keep durable OCC payload if present so re-enable auto-sync reopens resolver.
+  const b = pendingMergeBase, s = pendingServer, l = pendingLocal, c = pendingMergeConflicts;
   pendingServer = pendingLocal = pendingMergeBase = pendingMergeConflicts = null;
   useMergeConflict.getState().close();
-  // Remember the conflict is unresolved (survives reload) so the paused state
-  // reads as "conflict — resolve", not ordinary "unsynced". Cleared once the
-  // data converges (applyResolution) or on sign-out.
-  setConflictPending(true);
+  if (s && l && c) {
+    void saveOccConflictPayload({ base: b, server: s, local: l, conflicts: c });
+  } else {
+    setConflictPending(true);
+  }
   useSettingsStore.getState().setAutoSync(false);
   setStatus("paused");
+}
+
+/**
+ * If the background SW deferred a true OCC 409 (or a prior item-conflict was
+ * persisted), reopen the per-item resolver. Returns true when a modal was opened.
+ */
+export async function adoptStoredOccConflict(): Promise<boolean> {
+  const p = await loadOccConflictPayload();
+  if (!p || p.conflicts.length === 0) return false;
+  pendingServer = p.server;
+  pendingLocal = p.local;
+  pendingMergeBase = p.base;
+  pendingMergeConflicts = p.conflicts;
+  useMergeConflict.getState().open(p.conflicts, p.base, p.server, p.local);
+  setConflictPending(true);
+  return true;
 }
 
 // --- WebSocket (realtime change-notifier) ---
@@ -387,6 +419,8 @@ export function startLocalPersistence() {
   };
   void recomputeDirty(); // seed on load (authenticated + auto-sync off with pending edits)
   void loadConflictPending(); // seed the persisted conflict flag (survives reload)
+  // Reopen resolver if SW stashed an OCC conflict while auto-sync was off / no engine.
+  void adoptStoredOccConflict();
 }
 
 export function stopLocalPersistence() {
@@ -407,6 +441,14 @@ export async function startSyncEngine() {
     fresh = f[FRESH_LOGIN_KEY] === true;
     if (fresh) await chrome.storage.local.remove(FRESH_LOGIN_KEY);
   } catch (_) { /* ok */ }
+
+  // Background may have stashed a true OCC conflict while no newtab was open.
+  if (await adoptStoredOccConflict()) {
+    markHydrated();
+    setStatus("online");
+    connectWebSocket();
+    return;
+  }
 
   await reconcile(fresh);
 }
