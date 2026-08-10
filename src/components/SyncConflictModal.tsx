@@ -1,20 +1,19 @@
 import { useMemo, useState } from "react"
 import { useSyncConflict } from "~src/store/useSyncConflict"
 import { resolveConflict, mergeSpaces } from "~src/services/syncEngine"
+import { spaceTabCount } from "~src/services/spacesMerge"
 import type { SavedSpace } from "~src/types"
 import { Button } from "~src/components/ui/button"
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "~src/components/ui/alert-dialog"
 
 type Choice = "merge" | "server" | "local"
-
-function spaceTabCount(s: SavedSpace): number {
-  let n = 0
-  for (const p of s.projects || []) {
-    for (const c of p.categories || []) {
-      for (const g of c.groups || []) n += g.tabs?.length || 0
-    }
-  }
-  return n
-}
 
 function groupSummaries(s: SavedSpace): { name: string; tabs: number }[] {
   const out: { name: string; tabs: number }[] = []
@@ -42,33 +41,36 @@ export function SyncConflictModal() {
   const merged = useMemo(() => mergeSpaces(server, local), [server, local])
   const result = choice === "merge" ? merged : choice === "server" ? server : local
 
-  if (!pending) return null
-
   const opts: { id: Choice; label: string; spaces: SavedSpace[] }[] = [
     { id: "merge", label: "Merge both", spaces: merged },
     { id: "server", label: "Keep my account's", spaces: server },
     { id: "local", label: "Keep this device's", spaces: local },
   ]
 
+  // Controlled solely by store pending — no Esc/outside dismiss until Apply
+  // clears pending (same as the previous hand-rolled shell).
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[rgba(0,0,0,0.66)] backdrop-blur-[8px] font-sans p-6">
-      <div className="bg-black-900 border border-white/10 rounded-xl w-[560px] max-h-[85vh] flex flex-col shadow-[0_18px_50px_-16px_rgba(0,0,0,0.6)]">
-        <div className="p-6 pb-4 flex flex-col gap-1.5 shrink-0">
-          <h2 className="text-white/90 text-base font-medium">Choose what to keep</h2>
-          <p className="text-white/45 text-sm leading-relaxed">
+    <AlertDialog open={pending}>
+      <AlertDialogContent className="w-[560px] max-w-[92vw] max-h-[85vh] p-0 gap-0 flex flex-col font-sans">
+        <AlertDialogHeader className="p-6 pb-4 space-y-1.5 shrink-0 text-left">
+          <AlertDialogTitle className="text-white/90 text-base font-medium">
+            Choose what to keep
+          </AlertDialogTitle>
+          <AlertDialogDescription className="text-white/45 text-sm leading-relaxed">
             This device has local tabs and your account already has saved tabs.
             Pick an option — nothing changes until you apply.
-          </p>
-        </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
 
         {/* Options */}
         <div className="px-6 flex flex-col gap-2 shrink-0">
-          {opts.map(opt => {
+          {opts.map((opt) => {
             const t = totals(opt.spaces)
             const active = choice === opt.id
             return (
               <button
                 key={opt.id}
+                type="button"
                 onClick={() => setChoice(opt.id)}
                 className={`flex items-center justify-between rounded-lg border px-4 py-2.5 text-left transition-colors ${
                   active ? "" : "border-white/10 bg-white/[0.02] hover:bg-white/[0.05]"
@@ -84,7 +86,9 @@ export function SyncConflictModal() {
                   </span>
                   <span className="text-white/80 text-sm">{opt.label}</span>
                 </div>
-                <span className="text-white/35 text-[11px]">{t.spaces} space{t.spaces !== 1 ? "s" : ""} · {t.tabs} tab{t.tabs !== 1 ? "s" : ""}</span>
+                <span className="text-white/35 text-[11px]">
+                  {t.spaces} space{t.spaces !== 1 ? "s" : ""} · {t.tabs} tab{t.tabs !== 1 ? "s" : ""}
+                </span>
               </button>
             )
           })}
@@ -99,17 +103,19 @@ export function SyncConflictModal() {
             <div className="text-white/30 text-xs py-4">Nothing — an empty workspace.</div>
           ) : (
             <div className="flex flex-col gap-2.5 pb-2">
-              {result.map(s => {
+              {result.map((s) => {
                 const groups = groupSummaries(s)
                 return (
                   <div key={s.id} className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2">
                     <div className="flex items-center justify-between">
                       <span className="text-white/75 text-xs font-medium truncate">{s.name}</span>
-                      <span className="text-white/30 text-[10px] shrink-0">{groups.length} group{groups.length !== 1 ? "s" : ""} · {spaceTabCount(s)} tabs</span>
+                      <span className="text-white/30 text-[10px] shrink-0">
+                        {groups.length} group{groups.length !== 1 ? "s" : ""} · {spaceTabCount(s)} tabs
+                      </span>
                     </div>
                     {groups.length > 0 && (
                       <div className="mt-1 text-white/35 text-[11px] leading-relaxed truncate">
-                        {groups.map(g => `${g.name} (${g.tabs})`).join(" · ")}
+                        {groups.map((g) => `${g.name} (${g.tabs})`).join(" · ")}
                       </div>
                     )}
                   </div>
@@ -119,10 +125,12 @@ export function SyncConflictModal() {
           )}
         </div>
 
-        <div className="p-6 pt-4 flex items-center justify-end gap-2 shrink-0 border-t border-black-800">
-          <Button variant="default" onClick={() => resolveConflict(choice)}>Apply</Button>
-        </div>
-      </div>
-    </div>
+        <AlertDialogFooter className="p-6 pt-4 flex-row items-center justify-end gap-2 shrink-0 border-t border-black-800 sm:space-x-0">
+          <Button variant="default" onClick={() => resolveConflict(choice)}>
+            Apply
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   )
 }

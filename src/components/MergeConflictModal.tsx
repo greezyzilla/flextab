@@ -2,7 +2,16 @@ import { useMemo, useState } from "react"
 import { useMergeConflict } from "~src/store/useMergeConflict"
 import { resolveMergeConflicts, dismissMergeConflicts } from "~src/services/syncEngine"
 import { merge3, type Conflict, type Resolutions } from "~src/services/spacesMerge3"
+import { spaceTabCount } from "~src/services/spacesMerge"
 import { Button } from "~src/components/ui/button"
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "~src/components/ui/alert-dialog"
 
 type Side = "server" | "local"
 
@@ -49,14 +58,13 @@ export function MergeConflictModal() {
   }, [conflicts, choices])
 
   const resolvedCount = useMemo(
-    () => merge3(base, server, local, seeded).merged.reduce((n, s) => {
-      for (const p of s.projects || []) for (const c of p.categories || []) for (const g of c.groups || []) n += g.tabs?.length || 0
-      return n
-    }, 0),
+    () =>
+      merge3(base, server, local, seeded).merged.reduce(
+        (n, s) => n + spaceTabCount(s),
+        0,
+      ),
     [base, server, local, seeded],
   )
-
-  if (!pending) return null
 
   const byPath = new Map<string, Conflict[]>()
   for (const c of conflicts) {
@@ -65,16 +73,20 @@ export function MergeConflictModal() {
     byPath.set(c.path, arr)
   }
 
+  // Controlled solely by store pending. Ignore/Apply clear pending via engine
+  // helpers — no Esc/outside path that would accidentally pause sync.
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[rgba(0,0,0,0.66)] backdrop-blur-[8px] font-sans p-6">
-      <div className="bg-black-900 border border-white/10 rounded-xl w-[560px] max-h-[85vh] flex flex-col shadow-[0_18px_50px_-16px_rgba(0,0,0,0.6)]">
-        <div className="p-6 pb-4 flex flex-col gap-1.5 shrink-0">
-          <h2 className="text-white/90 text-base font-medium">Resolve sync conflicts</h2>
-          <p className="text-white/45 text-sm leading-relaxed">
+    <AlertDialog open={pending}>
+      <AlertDialogContent className="w-[560px] max-w-[92vw] max-h-[85vh] p-0 gap-0 flex flex-col font-sans">
+        <AlertDialogHeader className="p-6 pb-4 space-y-1.5 shrink-0 text-left">
+          <AlertDialogTitle className="text-white/90 text-base font-medium">
+            Resolve sync conflicts
+          </AlertDialogTitle>
+          <AlertDialogDescription className="text-white/45 text-sm leading-relaxed">
             {conflicts.length} item{conflicts.length !== 1 ? "s" : ""} changed on both this device and your account.
             Everything else was merged automatically. Pick which to keep — nothing changes until you apply.
-          </p>
-        </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
 
         <div className="px-6 flex-1 overflow-y-auto min-h-[100px]">
           <div className="flex flex-col gap-3.5 pb-2">
@@ -95,6 +107,7 @@ export function MergeConflictModal() {
                           return (
                             <button
                               key={opt.side}
+                              type="button"
                               onClick={() => setChoices((prev) => ({ ...prev, [c.key]: opt.side }))}
                               className={`flex flex-col gap-0.5 rounded-md border px-2.5 py-1.5 text-left transition-colors ${
                                 active ? "" : "border-white/10 bg-white/[0.02] hover:bg-white/[0.05]"
@@ -115,14 +128,32 @@ export function MergeConflictModal() {
           </div>
         </div>
 
-        <div className="p-6 pt-4 flex items-center justify-between gap-2 shrink-0 border-t border-black-800">
-          <span className="text-white/30 text-[11px]">{resolvedCount} tab{resolvedCount !== 1 ? "s" : ""} after merge</span>
+        <AlertDialogFooter className="p-6 pt-4 flex-row items-center justify-between gap-2 shrink-0 border-t border-black-800 sm:justify-between sm:space-x-0">
+          <span className="text-white/30 text-[11px]">
+            {resolvedCount} tab{resolvedCount !== 1 ? "s" : ""} after merge
+          </span>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" onClick={() => { dismissMergeConflicts(); setChoices({}) }}>Ignore for now</Button>
-            <Button variant="default" onClick={() => { resolveMergeConflicts(seeded); setChoices({}) }}>Apply</Button>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                dismissMergeConflicts()
+                setChoices({})
+              }}
+            >
+              Ignore for now
+            </Button>
+            <Button
+              variant="default"
+              onClick={() => {
+                resolveMergeConflicts(seeded)
+                setChoices({})
+              }}
+            >
+              Apply
+            </Button>
           </div>
-        </div>
-      </div>
-    </div>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   )
 }
