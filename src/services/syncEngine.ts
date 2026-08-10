@@ -418,8 +418,8 @@ export function startLocalPersistence() {
     void recomputeDirty();
     // Session drop (logout / expired token): clear any leftover Offline/error
     // so the indicator shows Local only / Guest, not Offline.
-    if (!state.isAuthenticated && prev.isAuthenticated) {
-      useSyncStore.getState().setStatus("paused");
+    if (!state.isAuthenticated && prev?.isAuthenticated) {
+      setStatus("paused");
     }
   });
   const onStorage = (changes: { [k: string]: chrome.storage.StorageChange }, area: string) => {
