@@ -172,4 +172,38 @@ describe('binary state + persistence', () => {
     expect(y.getSpaces()).toEqual([]);
     expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_yjs_state');
   });
+
+  it('encodeSpacesAsStorage / decodeSpacesFromStorage round-trip tab tree', () => {
+    const spaces = y.getSpaces();
+    const blob = y.encodeSpacesAsStorage(spaces);
+    expect(Array.isArray(blob)).toBe(true);
+    expect(blob.length).toBeGreaterThan(0);
+    const back = y.decodeSpacesFromStorage(blob);
+    expect(y.lightSpacesSig(back)).toBe(y.lightSpacesSig(spaces));
+  });
+
+  it('persistSpacesSnapshot writes an encoded blob under PERSIST_KEY', async () => {
+    const spaces = y.getSpaces();
+    await y.persistSpacesSnapshot(spaces);
+    expect(chrome.storage.local.set).toHaveBeenCalledWith(
+      expect.objectContaining({ [y.PERSIST_KEY]: expect.any(Array) }),
+    );
+  });
+
+  it('applyExternalPersistUpdate replaces the live doc and skips no-op when equal', () => {
+    const spaces = y.getSpaces();
+    const blob = y.encodeSpacesAsStorage(spaces);
+    expect(y.applyExternalPersistUpdate(blob)).toBe(false); // already same content
+
+    const other = y.decodeSpacesFromStorage(blob);
+    // mutate a tab url so content differs
+    if (other[0]?.projects[0]?.categories[0]?.groups[0]?.tabs[0]) {
+      other[0].projects[0].categories[0].groups[0].tabs[0].url = 'https://changed.example';
+    }
+    const changedBlob = y.encodeSpacesAsStorage(other);
+    expect(y.applyExternalPersistUpdate(changedBlob)).toBe(true);
+    expect(y.getSpaces()[0].projects[0].categories[0].groups[0].tabs[0].url).toBe(
+      'https://changed.example',
+    );
+  });
 });

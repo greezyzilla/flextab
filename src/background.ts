@@ -3,13 +3,17 @@ import { loadTokens, getDeviceId } from "~src/services/api";
 import { syncStructuredSnapshot } from "~src/services/structuredSync";
 import { merge3 } from "~src/services/spacesMerge3";
 import { getMergeBase, setMergeBase } from "~src/services/mergeBase";
+import {
+  PERSIST_KEY,
+  lightSpacesSig,
+  persistSpacesSnapshot,
+} from "~src/lib/yjsDoc";
 import type { SavedSpace } from "~src/types";
 
 const API_BASE_URL = process.env.PLASMO_PUBLIC_API_URL || "http://localhost:3000";
 const AUTH_SUCCESS_PATH = "/auth/success";
 const BILLING_SUCCESS_PATH = "/billing/success";
 const BILLING_CANCEL_PATH = "/billing/cancel";
-const PERSIST_KEY = "flextab_yjs_state";
 const LIMIT_NOTICE_KEY = "flextab_limit_notice";
 // Set after a provider-link (bind) OAuth round-trip so the open new-tab can
 // refresh its linked-accounts list + toast the result.
@@ -132,6 +136,32 @@ async function readLatestSpaces(): Promise<unknown[]> {
   return [];
 }
 
+/**
+ * After a confirmed push, durable local state must match what landed on the server.
+ * OCC merge can produce a tree that was never written to flextab_yjs_state — without
+ * writeback, merge-base advances while local stays stale and the next 3-way can drop
+ * peer-only tabs. Open newtabs apply the storage change via installExternalPersistBridge.
+ */
+async function onStructuredPushLanded(spaces: unknown[]): Promise<void> {
+  const landed = spaces as SavedSpace[];
+  try {
+    const disk = (await readLatestSpaces()) as SavedSpace[];
+    if (lightSpacesSig(disk) !== lightSpacesSig(landed)) {
+      // Suppress the storage.onChanged → push re-entry for our own writeback.
+      ignorePersistPush = true;
+      try {
+        await persistSpacesSnapshot(landed);
+      } finally {
+        ignorePersistPush = false;
+      }
+    }
+  } catch (_) { /* storage unavailable — still advance merge-base below */ }
+  await setMergeBase(landed);
+}
+
+/** Skip push debounce when we ourselves wrote PERSIST_KEY after OCC land. */
+let ignorePersistPush = false;
+
 async function pushStructuredData(state: number[]) {
   const tokens = await loadTokens();
   if (!tokens) return;
@@ -148,8 +178,8 @@ async function pushStructuredData(state: number[]) {
   // conflict we 3-way merge the server's returned state with our latest local one
   // against the sync merge-base, so a concurrent delete isn't resurrected. A true
   // conflict (edit-edit / delete-vs-edit) returns null → the push defers and the
-  // open new-tab reconcile surfaces the resolver. A confirmed push advances the
-  // merge-base to what actually landed.
+  // open new-tab reconcile surfaces the resolver. A confirmed push writebacks the
+  // landed tree to local storage (if it differs) and advances the merge-base.
   const result = await syncStructuredSnapshot(
     extractSpaces(state),
     readLatestSpaces,
@@ -158,7 +188,7 @@ async function pushStructuredData(state: number[]) {
       const { merged, conflicts } = merge3(base, server as SavedSpace[], local as SavedSpace[]);
       return conflicts.length > 0 ? null : merged;
     },
-    (spaces) => setMergeBase(spaces as SavedSpace[]),
+    onStructuredPushLanded,
     // Plan-limit rejection: stash a notice the open new-tab picks up and toasts,
     // since the background worker can't render UI itself.
     (message) => {
@@ -197,6 +227,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== "local" || !changes[PERSIST_KEY]) return;
+  if (ignorePersistPush) return;
   const newValue = changes[PERSIST_KEY].newValue;
   if (!newValue || !Array.isArray(newValue)) return;
 

@@ -1,4 +1,4 @@
-import { doc, getSpaces, setSpaces, persistState } from "~src/lib/yjsDoc";
+import { doc, getSpaces, setSpaces, persistState, installExternalPersistBridge } from "~src/lib/yjsDoc";
 import { useAuthStore } from "~src/store/useAuthStore";
 import { useSyncStore } from "~src/store/useSyncStore";
 import { useSyncConflict } from "~src/store/useSyncConflict";
@@ -344,6 +344,9 @@ let unsubPersist: (() => void) | null = null;
 
 export function startLocalPersistence() {
   if (unsubPersist) return;
+  // Background OCC writeback updates flextab_yjs_state — apply into this page's
+  // live doc so a later local persist doesn't clobber the landed merge (FE-A1).
+  installExternalPersistBridge();
   // Every local edit: persist, and re-evaluate drift from the merge-base so the
   // "unsynced changes" hint stays live even when the sync engine is paused.
   const handler = () => { void persistState(); void recomputeDirty(); };

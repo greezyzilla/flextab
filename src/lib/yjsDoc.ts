@@ -4,7 +4,11 @@ import type { SavedSpace, SavedProject, SavedCategory, SavedGroup, SavedTab } fr
 export const doc = new Y.Doc();
 export const spacesArray = doc.getArray<Y.Map<unknown>>("spaces");
 
-const PERSIST_KEY = "flextab_yjs_state";
+/** chrome.storage.local key for the encoded Yjs blob (background + page share this). */
+export const PERSIST_KEY = "flextab_yjs_state";
+
+/** When true, persistState is a no-op — used while applying an external writeback. */
+let suppressPersist = false;
 
 /** Load Yjs state from chrome.storage. Returns true if state was loaded. */
 export async function loadPersistedState(): Promise<boolean> {
@@ -21,8 +25,107 @@ export async function loadPersistedState(): Promise<boolean> {
 
 /** Persist current Yjs state to chrome.storage. */
 export async function persistState(): Promise<void> {
+  if (suppressPersist) return;
   const state = encodeState();
   await chrome.storage.local.set({ [PERSIST_KEY]: Array.from(state) });
+}
+
+/**
+ * Encode plain spaces into a Yjs update byte array suitable for PERSIST_KEY.
+ * Uses a throwaway doc so the background worker can write without a live UI doc.
+ */
+export function encodeSpacesAsStorage(spaces: SavedSpace[]): number[] {
+  const temp = new Y.Doc();
+  try {
+    const arr = temp.getArray<Y.Map<unknown>>("spaces");
+    temp.transact(() => {
+      arr.push(spaces.map(spaceToYMap));
+    });
+    return Array.from(Y.encodeStateAsUpdate(temp));
+  } finally {
+    temp.destroy();
+  }
+}
+
+/** Decode a PERSIST_KEY blob into plain spaces (throwaway doc). */
+export function decodeSpacesFromStorage(data: number[]): SavedSpace[] {
+  const temp = new Y.Doc();
+  try {
+    Y.applyUpdate(temp, new Uint8Array(data));
+    const arr = temp.getArray<Y.Map<unknown>>("spaces");
+    return arr.toArray().map(yMapToSpace);
+  } finally {
+    temp.destroy();
+  }
+}
+
+/** Write plain spaces as the durable Yjs blob (used after OCC merge lands on the server). */
+export async function persistSpacesSnapshot(spaces: SavedSpace[]): Promise<void> {
+  await chrome.storage.local.set({ [PERSIST_KEY]: encodeSpacesAsStorage(spaces) });
+}
+
+/**
+ * Replace the live doc with spaces decoded from an external PERSIST_KEY write
+ * (e.g. background OCC writeback). Skips re-persist to avoid feedback loops.
+ * Returns true if the live tree changed.
+ */
+export function applyExternalPersistUpdate(data: number[]): boolean {
+  if (!Array.isArray(data) || data.length === 0) return false;
+  let next: SavedSpace[];
+  try {
+    next = decodeSpacesFromStorage(data);
+  } catch (_) {
+    return false;
+  }
+  if (lightSpacesSig(next) === lightSpacesSig(getSpaces())) return false;
+  suppressPersist = true;
+  try {
+    setSpaces(next);
+  } finally {
+    suppressPersist = false;
+  }
+  return true;
+}
+
+/** Content signature for “did landed snapshot differ from disk?” (ids/urls/names). */
+export function lightSpacesSig(spaces: SavedSpace[]): string {
+  return JSON.stringify(
+    (spaces || []).map((s) => ({
+      i: s.id,
+      n: s.name,
+      p: (s.projects || []).map((p) => ({
+        i: p.id,
+        n: p.name,
+        c: (p.categories || []).map((c) => ({
+          i: c.id,
+          n: c.name,
+          g: (c.groups || []).map((g) => ({
+            i: g.id,
+            n: g.name,
+            t: (g.tabs || []).map((t) => ({ i: t.id, u: t.url })),
+          })),
+        })),
+      })),
+    })),
+  );
+}
+
+let externalBridgeInstalled = false;
+
+/**
+ * When another context (background OCC writeback) updates PERSIST_KEY, apply it
+ * into this page's live doc so we don't overwrite the landed merge on next edit.
+ */
+export function installExternalPersistBridge(): void {
+  if (externalBridgeInstalled) return;
+  if (!chrome.storage?.onChanged) return;
+  externalBridgeInstalled = true;
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== "local" || !changes[PERSIST_KEY]) return;
+    const data = changes[PERSIST_KEY].newValue;
+    if (!Array.isArray(data)) return;
+    applyExternalPersistUpdate(data);
+  });
 }
 
 // =====================================================================
