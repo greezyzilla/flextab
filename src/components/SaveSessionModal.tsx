@@ -14,34 +14,10 @@ import { Input } from "~src/components/ui/input"
 import { Label } from "~src/components/ui/label"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import { isSavableTabUrl, saveTabsAsGroup } from "~src/services/saveTabsAsGroup"
-import type { SavedSpace } from "~src/types"
-
-type SaveTarget = {
-  spaceId: string
-  projectId: string
-  categoryId: string
-}
+import { resolveSaveTargetIds } from "~src/services/resolveSaveTarget"
+import type { SaveTabsTarget } from "~src/services/saveTabsAsGroup"
 
 type Named = { id: string; name: string }
-
-/** Resolve a full space→project→category target, cascading defaults down the tree. */
-function resolveTarget(
-  spaces: SavedSpace[],
-  spaceId?: string | null,
-  projectId?: string | null,
-  categoryId?: string | null,
-): SaveTarget {
-  const space = (spaceId && spaces.find((s) => s.id === spaceId)) || spaces[0]
-  const projects = space?.projects ?? []
-  const project = (projectId && projects.find((p) => p.id === projectId)) || projects[0]
-  const categories = project?.categories ?? []
-  const category = (categoryId && categories.find((c) => c.id === categoryId)) || categories[0]
-  return {
-    spaceId: space?.id ?? "",
-    projectId: project?.id ?? "",
-    categoryId: category?.id ?? "",
-  }
-}
 
 function defaultSessionName() {
   const now = new Date()
@@ -67,8 +43,12 @@ export function SaveSessionModal({
   } = useSavedSpacesStore()
 
   const [name, setName] = useState(defaultSessionName)
-  const [target, setTarget] = useState<SaveTarget>(() =>
-    resolveTarget(savedSpaces, activeSpaceId, activeProjectId, activeCategoryId),
+  const [target, setTarget] = useState<SaveTabsTarget>(() =>
+    resolveSaveTargetIds(savedSpaces, {
+      spaceId: activeSpaceId,
+      projectId: activeProjectId,
+      categoryId: activeCategoryId,
+    }),
   )
   const [saving, setSaving] = useState(false)
   /** Portal host for Select menus — keeps them inside the dialog pointer/stacking island. */
@@ -107,7 +87,8 @@ export function SaveSessionModal({
       options: savedSpaces,
       emptyLabel: savedSpaces.length === 0 ? "No spaces" : "Select a space",
       selectedName: space?.name,
-      onChange: (spaceId) => setTarget(resolveTarget(savedSpaces, spaceId)),
+      onChange: (spaceId) =>
+        setTarget(resolveSaveTargetIds(savedSpaces, { spaceId })),
     },
     {
       key: "project",
@@ -117,7 +98,12 @@ export function SaveSessionModal({
       emptyLabel: projects.length === 0 ? "No projects" : "Select a project",
       selectedName: project?.name,
       onChange: (projectId) =>
-        setTarget(resolveTarget(savedSpaces, target.spaceId, projectId)),
+        setTarget(
+          resolveSaveTargetIds(savedSpaces, {
+            spaceId: target.spaceId,
+            projectId,
+          }),
+        ),
     },
     {
       key: "category",

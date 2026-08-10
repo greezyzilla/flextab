@@ -5,6 +5,7 @@ import { v7 as uuidv7 } from "uuid";
 import type { SavedTab, SavedGroup, SavedSpace } from "~src/types";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { faviconToDataUrl } from "~src/utils/favicon";
+import { ensureSaveTargetPath } from "~src/services/resolveSaveTarget";
 
 /** Locate a tab across all spaces/projects/categories. */
 function findTabLocation(spaces: SavedSpace[], tabId: string) {
@@ -46,57 +47,15 @@ function getState() {
   return { spaces, currentSpace, currentProject, currentCategory };
 }
 
-/**
- * Ensure a target path has at least a project, category, and group.
- * Creates missing nodes as needed. Returns the resolved IDs, or null if the space doesn't exist.
- */
+/** DnD policy: ensure-or-create Default Project/Category/Group when missing (FE-B6). */
 function ensureDropTarget(
   spaceId: string,
   projectId?: string,
   categoryId?: string,
 ): { projectId: string; categoryId: string; groupId: string } | null {
-  const store = useSavedSpacesStore.getState();
-  let spaces = store.savedSpaces;
-  const space = spaces.find(s => s.id === spaceId);
-  if (!space) return null;
-
-  // Ensure project
-  let pId = projectId;
-  if (!pId || !space.projects.find(p => p.id === pId)) {
-    if (space.projects.length > 0) {
-      pId = space.projects[0].id;
-    } else {
-      pId = uuidv7();
-      store.addSavedProject(spaceId, { id: pId, name: "Default Project", categories: [] });
-      spaces = useSavedSpacesStore.getState().savedSpaces;
-    }
-  }
-
-  // Ensure category
-  const project = useSavedSpacesStore.getState().savedSpaces.find(s => s.id === spaceId)?.projects.find(p => p.id === pId);
-  let cId = categoryId;
-  if (!cId || !project?.categories.find(c => c.id === cId)) {
-    if (project && project.categories.length > 0) {
-      cId = project.categories[0].id;
-    } else {
-      cId = uuidv7();
-      store.addSavedCategory(spaceId, pId!, { id: cId, name: "Default Category", groups: [] });
-    }
-  }
-
-  // Ensure group
-  const category = useSavedSpacesStore.getState().savedSpaces
-    .find(s => s.id === spaceId)?.projects.find(p => p.id === pId)
-    ?.categories.find(c => c.id === cId);
-  let gId: string;
-  if (category && category.groups.length > 0) {
-    gId = category.groups[0].id;
-  } else {
-    gId = uuidv7();
-    store.addSavedGroup(spaceId, pId!, cId!, { id: gId, name: "Default Group", tabs: [] });
-  }
-
-  return { projectId: pId!, categoryId: cId!, groupId: gId };
+  const t = ensureSaveTargetPath(spaceId, { projectId, categoryId });
+  if (!t) return null;
+  return { projectId: t.projectId, categoryId: t.categoryId, groupId: t.groupId };
 }
 
 export function useDragAndDrop() {
