@@ -2,6 +2,7 @@ import * as SliderPrimitive from "@radix-ui/react-slider";
 import { useSettingsStore, HUE_PRESETS, FONT_OPTIONS, type GroupLayout, type Density, type FontKey } from "~src/store/useSettingsStore";
 import { Switch } from "~src/components/ui/switch";
 import { Slider } from "~src/components/ui/slider";
+import { Button } from "~src/components/ui/button";
 import { SettingRow, ToggleGroup, GroupHeading } from "./shared";
 import { LayoutIcon, ListIcon, GridIcon } from "./icons";
 
