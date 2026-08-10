@@ -190,20 +190,55 @@ describe('binary state + persistence', () => {
     );
   });
 
-  it('applyExternalPersistUpdate replaces the live doc and skips no-op when equal', () => {
+  it('applyExternalPersistUpdate snapshot origin replaces the live doc', () => {
     const spaces = y.getSpaces();
     const blob = y.encodeSpacesAsStorage(spaces);
-    expect(y.applyExternalPersistUpdate(blob)).toBe(false); // already same content
+    expect(y.applyExternalPersistUpdate(blob, 'snapshot')).toBe(false); // same content
 
     const other = y.decodeSpacesFromStorage(blob);
-    // mutate a tab url so content differs
     if (other[0]?.projects[0]?.categories[0]?.groups[0]?.tabs[0]) {
       other[0].projects[0].categories[0].groups[0].tabs[0].url = 'https://changed.example';
     }
     const changedBlob = y.encodeSpacesAsStorage(other);
-    expect(y.applyExternalPersistUpdate(changedBlob)).toBe(true);
+    expect(y.applyExternalPersistUpdate(changedBlob, 'snapshot')).toBe(true);
     expect(y.getSpaces()[0].projects[0].categories[0].groups[0].tabs[0].url).toBe(
       'https://changed.example',
     );
+  });
+
+  it('page-origin external update CRDT-merges a peer tab add (FE-A2)', async () => {
+    const Y = await import('yjs');
+
+    // Peer starts from the same history as the live module doc, then adds a tab.
+    const peer = new Y.Doc();
+    Y.applyUpdate(peer, y.encodeState());
+
+    const spaces = peer.getArray<Y.Map<unknown>>('spaces');
+    const s0 = spaces.get(0);
+    const projects = s0.get('projects') as Y.Array<Y.Map<unknown>>;
+    const cats = projects.get(0).get('categories') as Y.Array<Y.Map<unknown>>;
+    const groups = cats.get(0).get('groups') as Y.Array<Y.Map<unknown>>;
+    const tabs = groups.get(0).get('tabs') as Y.Array<Y.Map<unknown>>;
+    peer.transact(() => {
+      const m = new Y.Map<unknown>();
+      m.set('id', 'peer-tab');
+      m.set('url', 'https://peer.example');
+      m.set('title', 'Peer');
+      m.set('favicon', '');
+      m.set('order', tabs.length);
+      tabs.push([m]);
+    });
+
+    const peerBlob = Array.from(Y.encodeStateAsUpdate(peer));
+    peer.destroy();
+
+    const beforeIds = group(y.getSpaces(), 's1', 'p1', 'c1', 'g1').tabs.map((t) => t.id);
+    expect(beforeIds).toEqual(['t1', 't2']);
+
+    expect(y.applyExternalPersistUpdate(peerBlob, 'page')).toBe(true);
+
+    const afterIds = group(y.getSpaces(), 's1', 'p1', 'c1', 'g1').tabs.map((t) => t.id).sort();
+    // Live still has t1,t2 and gained peer-tab — not replaced/wiped.
+    expect(afterIds).toEqual(['peer-tab', 't1', 't2']);
   });
 });

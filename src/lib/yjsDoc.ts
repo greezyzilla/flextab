@@ -7,6 +7,14 @@ export const spacesArray = doc.getArray<Y.Map<unknown>>("spaces");
 /** chrome.storage.local key for the encoded Yjs blob (background + page share this). */
 export const PERSIST_KEY = "flextab_yjs_state";
 
+/**
+ * How PERSIST_KEY was produced:
+ * - `page` — live doc `encodeState()` from a newtab/popup (CRDT-merge on apply)
+ * - `snapshot` — plain spaces rebuilt into a fresh doc (OCC writeback; must replace)
+ */
+export type PersistOrigin = "page" | "snapshot";
+export const PERSIST_ORIGIN_KEY = "flextab_yjs_origin";
+
 /** When true, persistState is a no-op — used while applying an external writeback. */
 let suppressPersist = false;
 
@@ -23,11 +31,14 @@ export async function loadPersistedState(): Promise<boolean> {
   return false;
 }
 
-/** Persist current Yjs state to chrome.storage. */
+/** Persist current Yjs state to chrome.storage (multi-tab CRDT peer write). */
 export async function persistState(): Promise<void> {
   if (suppressPersist) return;
   const state = encodeState();
-  await chrome.storage.local.set({ [PERSIST_KEY]: Array.from(state) });
+  await chrome.storage.local.set({
+    [PERSIST_KEY]: Array.from(state),
+    [PERSIST_ORIGIN_KEY]: "page" satisfies PersistOrigin,
+  });
 }
 
 /**
@@ -59,31 +70,59 @@ export function decodeSpacesFromStorage(data: number[]): SavedSpace[] {
   }
 }
 
-/** Write plain spaces as the durable Yjs blob (used after OCC merge lands on the server). */
+/** Write plain spaces as a replace-snapshot (OCC merge land). Origin = snapshot. */
 export async function persistSpacesSnapshot(spaces: SavedSpace[]): Promise<void> {
-  await chrome.storage.local.set({ [PERSIST_KEY]: encodeSpacesAsStorage(spaces) });
+  await chrome.storage.local.set({
+    [PERSIST_KEY]: encodeSpacesAsStorage(spaces),
+    [PERSIST_ORIGIN_KEY]: "snapshot" satisfies PersistOrigin,
+  });
 }
 
 /**
- * Replace the live doc with spaces decoded from an external PERSIST_KEY write
- * (e.g. background OCC writeback). Skips re-persist to avoid feedback loops.
- * Returns true if the live tree changed.
+ * Apply an external PERSIST_KEY write into the live doc.
+ * - `page`: Y.applyUpdate (CRDT merge) so concurrent newtab edits combine
+ * - `snapshot`: setSpaces replace (fresh-doc OCC blob cannot be CRDT-merged safely)
+ * Skips re-persist during apply; after a CRDT merge that changed content, persists
+ * the union once so storage converges.
+ * Returns true if the live tree content changed.
  */
-export function applyExternalPersistUpdate(data: number[]): boolean {
+export function applyExternalPersistUpdate(
+  data: number[],
+  origin: PersistOrigin = "page",
+): boolean {
   if (!Array.isArray(data) || data.length === 0) return false;
-  let next: SavedSpace[];
-  try {
-    next = decodeSpacesFromStorage(data);
-  } catch (_) {
-    return false;
+
+  if (origin === "snapshot") {
+    let next: SavedSpace[];
+    try {
+      next = decodeSpacesFromStorage(data);
+    } catch (_) {
+      return false;
+    }
+    if (lightSpacesSig(next) === lightSpacesSig(getSpaces())) return false;
+    suppressPersist = true;
+    try {
+      setSpaces(next);
+    } finally {
+      suppressPersist = false;
+    }
+    return true;
   }
-  if (lightSpacesSig(next) === lightSpacesSig(getSpaces())) return false;
+
+  // Multi-tab peer: merge remote encodeState into this doc.
+  const before = lightSpacesSig(getSpaces());
   suppressPersist = true;
   try {
-    setSpaces(next);
-  } finally {
+    Y.applyUpdate(doc, new Uint8Array(data));
+  } catch (_) {
     suppressPersist = false;
+    return false;
   }
+  suppressPersist = false;
+  const after = lightSpacesSig(getSpaces());
+  if (before === after) return false;
+  // Publish the merged union so other tabs / background see both sides' edits.
+  void persistState();
   return true;
 }
 
@@ -113,8 +152,8 @@ export function lightSpacesSig(spaces: SavedSpace[]): string {
 let externalBridgeInstalled = false;
 
 /**
- * When another context (background OCC writeback) updates PERSIST_KEY, apply it
- * into this page's live doc so we don't overwrite the landed merge on next edit.
+ * When another context updates PERSIST_KEY (peer newtab or OCC snapshot writeback),
+ * merge or replace into this page's live doc (FE-A1 / FE-A2).
  */
 export function installExternalPersistBridge(): void {
   if (externalBridgeInstalled) return;
@@ -124,7 +163,10 @@ export function installExternalPersistBridge(): void {
     if (area !== "local" || !changes[PERSIST_KEY]) return;
     const data = changes[PERSIST_KEY].newValue;
     if (!Array.isArray(data)) return;
-    applyExternalPersistUpdate(data);
+    const originRaw = changes[PERSIST_ORIGIN_KEY]?.newValue;
+    // Default `page` when origin missing (older writers); OCC always sets snapshot now.
+    const origin: PersistOrigin = originRaw === "snapshot" ? "snapshot" : "page";
+    applyExternalPersistUpdate(data, origin);
   });
 }
 
