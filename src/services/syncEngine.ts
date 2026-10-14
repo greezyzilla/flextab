@@ -5,6 +5,7 @@ import { useSyncConflict } from "~src/store/useSyncConflict";
 import { useMergeConflict } from "~src/store/useMergeConflict";
 import { useSettingsStore } from "~src/store/useSettingsStore";
 import { apiFetch, loadTokens, getDeviceId, API_BASE_URL } from "./api";
+import { applyPendingLandedSnapshot, LANDED_SNAPSHOT_KEY } from "./landedSnapshot";
 import { setStoredRevision } from "./revision";
 import { getMergeBase, setMergeBase } from "./mergeBase";
 import {
@@ -404,8 +405,7 @@ let unsubPersist: (() => void) | null = null;
 
 export function startLocalPersistence() {
   if (unsubPersist) return;
-  // Background OCC writeback updates flextab_yjs_state — apply into this page's
-  // live doc so a later local persist doesn't clobber the landed merge (FE-A1).
+  // Receive peer page writes; OCC acknowledgements are rebased separately below.
   installExternalPersistBridge();
   // Every local edit: persist, and re-evaluate drift from the merge-base so the
   // "unsynced changes" hint stays live even when the sync engine is paused.
@@ -422,8 +422,15 @@ export function startLocalPersistence() {
       setStatus("paused");
     }
   });
+  const applyLanded = () => {
+    void applyPendingLandedSnapshot().then(() => adoptStoredOccConflict()).catch(() => {
+      // Receipt remains durable; retry on next sync/open after storage recovers.
+      setStatus("error");
+    });
+  };
   const onStorage = (changes: { [k: string]: chrome.storage.StorageChange }, area: string) => {
     if (area === "local" && changes["flextab_merge_base"]) void recomputeDirty();
+    if (area === "local" && changes[LANDED_SNAPSHOT_KEY]?.newValue) applyLanded();
   };
   chrome.storage?.onChanged?.addListener(onStorage);
   unsubPersist = () => {
@@ -431,6 +438,7 @@ export function startLocalPersistence() {
     unsubAuth();
     chrome.storage?.onChanged?.removeListener(onStorage);
   };
+  applyLanded(); // recover an OCC acknowledgement left by a closed page/worker
   void recomputeDirty(); // seed on load (authenticated + auto-sync off with pending edits)
   void loadConflictPending(); // seed the persisted conflict flag (survives reload)
   // Reopen resolver if SW stashed an OCC conflict while auto-sync was off / no engine.
@@ -464,6 +472,14 @@ export async function startSyncEngine() {
     return;
   }
 
+  try { await applyPendingLandedSnapshot(); }
+  catch (_) { setStatus("error"); return; }
+  if (await adoptStoredOccConflict()) {
+    markHydrated();
+    setStatus("online");
+    connectWebSocket();
+    return;
+  }
   await reconcile(fresh);
 }
 
@@ -491,6 +507,9 @@ export function stopSyncEngine() {
 export async function syncNow(): Promise<boolean> {
   if (!useAuthStore.getState().isAuthenticated) return false;
   setStatus("syncing");
+  try { await applyPendingLandedSnapshot(); }
+  catch (_) { setStatus("error"); return false; }
+  if (await adoptStoredOccConflict()) return false;
   await reconcile(false);
   return true;
 }

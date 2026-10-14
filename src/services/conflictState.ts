@@ -62,7 +62,7 @@ export async function saveOccConflictPayload(input: {
   server: SavedSpace[];
   local: SavedSpace[];
   conflicts?: Conflict[];
-}): Promise<OccConflictPayload> {
+}, requireDurable = false): Promise<OccConflictPayload> {
   const conflicts = input.conflicts ?? merge3(input.base, input.server, input.local).conflicts;
   const payload: OccConflictPayload = {
     base: input.base,
@@ -72,9 +72,11 @@ export async function saveOccConflictPayload(input: {
     at: Date.now(),
   };
   try {
-    await chrome.storage.local.set({ [OCC_CONFLICT_PAYLOAD_KEY]: payload });
-  } catch (_) { /* ok */ }
-  setConflictPending(true);
+    await chrome.storage.local.set({ [OCC_CONFLICT_PAYLOAD_KEY]: payload, [CONFLICT_PENDING_KEY]: true });
+  } catch (error) { if (requireDurable) throw error; }
+  cached = true;
+  loaded = true;
+  useSyncStore.getState().setConflictPending(true);
   return payload;
 }
 

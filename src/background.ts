@@ -1,14 +1,13 @@
 import { loadTokens, getDeviceId } from "~src/services/api";
 import { syncStructuredSnapshot } from "~src/services/structuredSync";
 import { merge3 } from "~src/services/spacesMerge3";
-import { getMergeBase, setMergeBase } from "~src/services/mergeBase";
+import { getMergeBase } from "~src/services/mergeBase";
 import { isConflictPending, saveOccConflictPayload, clearConflictPending } from "~src/services/conflictState";
 import {
   PERSIST_KEY,
   decodeSpacesFromStorage,
-  lightSpacesSig,
-  persistSpacesSnapshot,
 } from "~src/lib/yjsDoc";
+import { recordLandedSnapshot, LANDED_SNAPSHOT_KEY } from "~src/services/landedSnapshot";
 import type { SavedSpace } from "~src/types";
 
 const API_BASE_URL = process.env.PLASMO_PUBLIC_API_URL || "http://localhost:3000";
@@ -111,41 +110,37 @@ function extractSpaces(state: number[]): SavedSpace[] {
 }
 
 async function readLatestSpaces(): Promise<SavedSpace[]> {
-  try {
-    const result = await chrome.storage.local.get(PERSIST_KEY);
-    const state = result[PERSIST_KEY];
-    if (Array.isArray(state)) return extractSpaces(state);
-  } catch (_) { /* ignore */ }
-  return [];
+  // A failed read is not an empty workspace; retain the retry flag on failure.
+  const result = await chrome.storage.local.get(PERSIST_KEY);
+  const state = result[PERSIST_KEY];
+  return Array.isArray(state) ? extractSpaces(state) : [];
 }
 
-/**
- * After a confirmed push, durable local state must match what landed on the server.
- * OCC merge can produce a tree that was never written to flextab_yjs_state — without
- * writeback, merge-base advances while local stays stale and the next 3-way can drop
- * peer-only tabs. Open newtabs apply the storage change via installExternalPersistBridge.
- */
-async function onStructuredPushLanded(spaces: unknown[]): Promise<void> {
-  const landed = spaces as SavedSpace[];
-  try {
-    const disk = await readLatestSpaces();
-    if (lightSpacesSig(disk) !== lightSpacesSig(landed)) {
-      // Suppress the storage.onChanged → push re-entry for our own writeback.
-      ignorePersistPush = true;
-      try {
-        await persistSpacesSnapshot(landed);
-      } finally {
-        ignorePersistPush = false;
-      }
+// All triggers share one flight. A trailing pass always reads current storage;
+// no timer/alarm is allowed to upload a captured, obsolete snapshot.
+let pushInFlight: Promise<void> | null = null;
+let pushAgain = false;
+
+export function pushStructuredData(): Promise<void> {
+  if (syncTimer) { clearTimeout(syncTimer); syncTimer = null; }
+  pushAgain = true;
+  if (pushInFlight) return pushInFlight;
+  pushInFlight = (async () => {
+    try {
+      do {
+        pushAgain = false;
+        await pushLatestStructuredData();
+      } while (pushAgain);
+    } catch (_) {
+      // Keep the durable pending flag for the retry alarm on storage/API failure.
+    } finally {
+      pushInFlight = null;
     }
-  } catch (_) { /* storage unavailable — still advance merge-base below */ }
-  await setMergeBase(landed);
+  })();
+  return pushInFlight;
 }
 
-/** Skip push debounce when we ourselves wrote PERSIST_KEY after OCC land. */
-let ignorePersistPush = false;
-
-async function pushStructuredData(state: number[]) {
+async function pushLatestStructuredData() {
   const tokens = await loadTokens();
   if (!tokens) return;
   // Don't push until the page has hydrated from the server this session — else
@@ -157,6 +152,10 @@ async function pushStructuredData(state: number[]) {
 
   // Hold pushes while a true OCC / merge conflict is unresolved (FE-B3).
   if (await isConflictPending()) return;
+  // An OCC result must be rebased in a live page before its merge-base advances.
+  // The receipt survives worker/page closure; do not upload stale disk over it.
+  const pending = await chrome.storage.local.get(LANDED_SNAPSHOT_KEY);
+  if (pending[LANDED_SNAPSHOT_KEY]) return;
 
   try { await chrome.storage.local.set({ [PENDING_PUSH_KEY]: true }); } catch (_) { /* ok */ }
 
@@ -165,9 +164,9 @@ async function pushStructuredData(state: number[]) {
   // against the sync merge-base, so a concurrent delete isn't resurrected. A true
   // conflict (edit-edit / delete-vs-edit) returns null → durable OCC payload is
   // stored for any newtab resolver; push retries stop until the user acts.
-  // A confirmed push writebacks the landed tree and advances the merge-base.
+  // A confirmed push records its local ancestor as well as what landed.
   const result = await syncStructuredSnapshot(
-    extractSpaces(state),
+    await readLatestSpaces(),
     readLatestSpaces,
     async (server, local) => {
       const base = await getMergeBase();
@@ -176,14 +175,14 @@ async function pushStructuredData(state: number[]) {
       const { merged, conflicts } = merge3(base, srv, loc);
       if (conflicts.length > 0) {
         // Persist so a closed newtab still surfaces the conflict on next open.
-        await saveOccConflictPayload({ base, server: srv, local: loc, conflicts });
+        await saveOccConflictPayload({ base, server: srv, local: loc, conflicts }, true);
         return null;
       }
       return merged;
     },
-    async (spaces) => {
+    async (spaces, _revision, localAtAttempt) => {
       await clearConflictPending(); // successful land clears any stale OCC deferral
-      await onStructuredPushLanded(spaces);
+      await recordLandedSnapshot(spaces as SavedSpace[], localAtAttempt as SavedSpace[]);
     },
     // Plan-limit rejection: stash a notice the open new-tab picks up and toasts,
     // since the background worker can't render UI itself.
@@ -195,7 +194,7 @@ async function pushStructuredData(state: number[]) {
   // "error" → keep PENDING_PUSH for the retry alarm.
   // "ok" / "limit" / "skipped" → clear it: skipped is handled by conflictPending
   // + OCC payload (retrying the same 409 loop would not help until resolve).
-  if (result !== "error") {
+  if (result !== "error" && !pushAgain) {
     try { await chrome.storage.local.remove(PENDING_PUSH_KEY); } catch (_) { /* ok */ }
   }
 }
@@ -212,33 +211,29 @@ chrome.alarms.onAlarm.addListener((alarm) => {
       const p = await chrome.storage.local.get(PENDING_PUSH_KEY);
       if (p[PENDING_PUSH_KEY] !== true) return;
     } catch (_) { return; }
-    const result = await chrome.storage.local.get(PERSIST_KEY);
-    const state = result[PERSIST_KEY];
-    if (state && Array.isArray(state)) await pushStructuredData(state);
+    await pushStructuredData();
   })();
 });
 
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area !== "local" || !changes[PERSIST_KEY]) return;
-  if (ignorePersistPush) return;
+  if (area !== "local") return;
+  if (changes[LANDED_SNAPSHOT_KEY]?.oldValue && !changes[LANDED_SNAPSHOT_KEY]?.newValue) {
+    void pushStructuredData();
+  }
+  if (!changes[PERSIST_KEY]) return;
   const newValue = changes[PERSIST_KEY].newValue;
   if (!newValue || !Array.isArray(newValue)) return;
 
+  // Mark pending immediately so worker suspension during debounce cannot forget it.
+  void chrome.storage.local.set({ [PENDING_PUSH_KEY]: true });
+  if (pushInFlight) pushAgain = true;
   if (syncTimer) clearTimeout(syncTimer);
-  syncTimer = setTimeout(() => pushStructuredData(newValue), SYNC_DEBOUNCE_MS);
+  syncTimer = setTimeout(() => { syncTimer = null; void pushStructuredData(); }, SYNC_DEBOUNCE_MS);
 });
 
 chrome.runtime.onInstalled.addListener(doInitialPush);
 chrome.runtime.onStartup.addListener(doInitialPush);
 
 async function doInitialPush() {
-  try {
-    const result = await chrome.storage.local.get(PERSIST_KEY);
-    const state = result[PERSIST_KEY];
-    if (state && Array.isArray(state)) {
-      await pushStructuredData(state);
-    }
-  } catch (_) {
-    // Offline or no auth
-  }
+  await pushStructuredData();
 }

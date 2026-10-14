@@ -3,6 +3,7 @@ import { loadTokens, saveTokens, clearTokens, apiFetch, getAuthUrl, getOAuthUrl,
 import { clearState } from "~src/lib/yjsDoc";
 import { resetYjsHydration } from "~src/store/useSavedSpacesStore";
 import { clearStoredRevision } from "~src/services/revision";
+import { LANDED_SNAPSHOT_KEY } from "~src/services/landedSnapshot";
 import { clearMergeBase } from "~src/services/mergeBase";
 import { clearConflictPending } from "~src/services/conflictState";
 import type { TokenData } from "~src/services/api";
@@ -138,7 +139,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     // must survive so re-login doesn't manufacture a false merge conflict.
     await clearMergeBase();
     await clearConflictPending(); // per-account, like the merge base
-    try { await chrome.storage.local.remove(["spaces", SYNC_HYDRATED_KEY, FRESH_LOGIN_KEY]); } catch (_) { /* ok */ }
+    try { await chrome.storage.local.remove(["spaces", SYNC_HYDRATED_KEY, FRESH_LOGIN_KEY, LANDED_SNAPSHOT_KEY]); } catch (_) { /* ok */ }
     set({ user: null, isAuthenticated: false, guestMode: false });
   },
 

@@ -26,12 +26,13 @@ export async function syncStructuredSnapshot(
   initialSpaces: unknown[],
   reReadSpaces: () => Promise<unknown[]>,
   mergeOnConflict?: (server: unknown[], local: unknown[]) => unknown[] | null | Promise<unknown[] | null>,
-  onPushed?: (spaces: unknown[], revision: number) => void | Promise<void>,
+  onPushed?: (spaces: unknown[], revision: number, localAtAttempt: unknown[]) => void | Promise<void>,
   onLimit?: (message: string) => void | Promise<void>,
 ): Promise<StructuredSyncResult> {
   if (initialSpaces.length === 0) return "skipped";
 
   let spaces = initialSpaces;
+  let localAtAttempt = initialSpaces;
   let base = await getStoredRevision();
   if (base === null) {
     base = await fetchSyncRevision();
@@ -42,16 +43,22 @@ export async function syncStructuredSnapshot(
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const result = await pushSync(spaces, base);
     if (result.status === "ok") {
+      // Persist the acknowledgement before advancing the revision. If receipt
+      // storage fails, the next attempt must still get a 409 and recover peers.
+      await onPushed?.(spaces, result.revision, localAtAttempt);
       await setStoredRevision(result.revision);
-      await onPushed?.(spaces, result.revision);
       return "ok";
     }
     if (result.status === "conflict") {
       base = result.revision;
-      await setStoredRevision(base);
       const local = await reReadSpaces();
       const merged = mergeOnConflict ? await mergeOnConflict(result.spaces, local) : local;
-      if (merged === null) return "skipped"; // true conflict — defer to interactive resolve
+      if (merged === null) {
+        // The caller durably saved the conflict before returning null.
+        await setStoredRevision(base);
+        return "skipped";
+      }
+      localAtAttempt = local;
       spaces = merged;
       if (spaces.length === 0) return "skipped";
       continue;

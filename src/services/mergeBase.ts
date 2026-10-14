@@ -23,11 +23,13 @@ export async function getMergeBase(): Promise<SavedSpace[] | null> {
   return cached;
 }
 
-export async function setMergeBase(spaces: SavedSpace[]): Promise<void> {
+export async function setMergeBase(spaces: SavedSpace[], requireDurable = false): Promise<void> {
   // Deep clone so a later in-place doc mutation can't retroactively change the base.
-  cached = JSON.parse(JSON.stringify(spaces)) as SavedSpace[];
+  const next = JSON.parse(JSON.stringify(spaces)) as SavedSpace[];
+  try { await chrome.storage.local.set({ [MERGE_BASE_KEY]: next }); }
+  catch (error) { if (requireDurable) throw error; }
+  cached = next;
   loaded = true;
-  try { await chrome.storage.local.set({ [MERGE_BASE_KEY]: cached }); } catch (_) { /* ok */ }
 }
 
 /** Forget the base (on sign-in/out — it's per-account). */

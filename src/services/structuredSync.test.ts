@@ -124,7 +124,7 @@ describe('syncStructuredSnapshot', () => {
 
     await syncStructuredSnapshot(SPACES, async () => SPACES, undefined, onPushed);
 
-    expect(onPushed).toHaveBeenCalledWith(SPACES, 4);
+    expect(onPushed).toHaveBeenCalledWith(SPACES, 4, SPACES);
   });
 
   it('returns error when the push errors mid-loop', async () => {

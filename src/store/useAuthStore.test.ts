@@ -45,7 +45,7 @@ describe('guest mode', () => {
     useAuthStore.setState({ guestMode: true });
     await useAuthStore.getState().logout();
     expect(useAuthStore.getState().guestMode).toBe(false);
-    expect(chrome.storage.local.remove).toHaveBeenCalledWith(['spaces', 'flextab_sync_hydrated', 'flextab_fresh_login']);
+    expect(chrome.storage.local.remove).toHaveBeenCalledWith(['spaces', 'flextab_sync_hydrated', 'flextab_fresh_login', 'flextab_landed_snapshot']);
     expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_sync_revision');
   });
 
