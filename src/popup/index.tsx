@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import "@fontsource-variable/inter"
 import "../../style.css"
 import { useSavedSpacesStore, useHydrated } from "~src/store/useSavedSpacesStore"
 import { useAuthStore } from "~src/store/useAuthStore"
+import { installExternalPersistBridge, persistState } from "~src/lib/yjsDoc"
 import { Button } from "~src/components/ui/button"
 import {
   saveTabsAsGroup,
@@ -15,8 +16,25 @@ function IndexPopup() {
   const { savedSpaces, activeSpaceId, activeProjectId, activeCategoryId } = useSavedSpacesStore();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
+  const savingRef = useRef(false);
+  const mounted = useRef(true);
+  // A failed flush leaves the group in this popup's Y.Doc. Retry that same write,
+  // rather than creating a duplicate group or requiring another tabs query.
+  const pendingSave = useRef(false);
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => { initialize(); }, []);
+  useEffect(() => {
+    if (hydrated) installExternalPersistBridge();
+  }, [hydrated]);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      if (savedTimer.current) clearTimeout(savedTimer.current);
+    };
+  }, []);
 
   const activeSpace = savedSpaces.find(s => s.id === activeSpaceId);
   const activeProject = activeSpace?.projects.find(p => p.id === activeProjectId);
@@ -24,8 +42,9 @@ function IndexPopup() {
   const hasActiveCategory = !!activeCategory;
 
   const flashSaved = () => {
+    if (!mounted.current) return;
     setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    savedTimer.current = setTimeout(() => setSaved(false), 2000);
   };
 
   const target = hasActiveCategory
@@ -36,30 +55,41 @@ function IndexPopup() {
       }
     : null;
 
-  const handleSaveCurrentTab = async () => {
-    if (!target) return;
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab) return;
-    const result = await saveTabsAsGroup({
-      target,
-      name: tab.title || "Saved Tab",
-      tabs: [tab],
-    });
-    if (result) flashSaved();
-  };
-
-  const handleSaveAllTabs = async () => {
-    if (!target) return;
+  const save = async (mode: "current" | "all" | "retry") => {
+    if (savingRef.current || (mode !== "retry" && (!target || pendingSave.current))) return;
+    savingRef.current = true;
     setSaving(true);
+    setSaved(false);
+    setError("");
+    if (savedTimer.current) clearTimeout(savedTimer.current);
     try {
-      const tabs = await chrome.tabs.query({ currentWindow: true });
-      const result = await saveTabsAsGroup({
-        target,
-        name: defaultSavedGroupName("Window"),
-        tabs,
-      });
-      if (result) flashSaved();
+      if (mode !== "retry") {
+        const tabs = await chrome.tabs.query(mode === "current"
+          ? { active: true, currentWindow: true }
+          : { currentWindow: true });
+        const result = await saveTabsAsGroup({
+          target: target!,
+          name: mode === "current" ? tabs[0]?.title || "Saved Tab" : defaultSavedGroupName("Window"),
+          tabs: mode === "current" ? tabs.slice(0, 1) : tabs,
+        });
+        if (!result) {
+          setError("No tabs were saved. Check the selected category and try a regular web page.");
+          return;
+        }
+        pendingSave.current = true;
+      }
+      // The popup owns a separate Y.Doc, and may be the only open extension UI.
+      // Await the shared persistence queue before acknowledging success. A
+      // new-tab observer or a running cloud sync worker is not required.
+      await persistState();
+      pendingSave.current = false;
+      flashSaved();
+    } catch (_) {
+      setError(pendingSave.current
+        ? "Could not save to this device. Keep this popup open and retry."
+        : "Could not read your tabs. Please try again.");
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
@@ -94,7 +124,7 @@ function IndexPopup() {
     <div className="w-72 bg-black-900 p-4 font-sans">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-white/90 text-base font-medium">FlexTab</h2>
-        {saved && <span className="text-green-400 text-xs">Saved!</span>}
+        {saved && <span role="status" className="text-green-400 text-xs">Saved locally!</span>}
       </div>
 
       {hasActiveCategory && (
@@ -104,13 +134,25 @@ function IndexPopup() {
       )}
 
       <div className="flex flex-col gap-2 mb-3">
-        <Button variant="secondary" onClick={handleSaveCurrentTab} disabled={!hasActiveCategory || saving} className="w-full">
+        <Button variant="secondary" onClick={() => void save("current")} disabled={!hasActiveCategory || saving || pendingSave.current} className="w-full">
           Save Current Tab
         </Button>
-        <Button variant="secondary" onClick={handleSaveAllTabs} disabled={!hasActiveCategory || saving} className="w-full">
+        <Button variant="secondary" onClick={() => void save("all")} disabled={!hasActiveCategory || saving || pendingSave.current} className="w-full">
           {saving ? 'Saving…' : 'Save All Tabs'}
         </Button>
       </div>
+
+      {saving && <p role="status" className="text-white/50 text-xs mb-3">Saving to this device…</p>}
+      {error && (
+        <div className="mb-3">
+          <p role="alert" className="text-red-400 text-xs">{error}</p>
+          {pendingSave.current && (
+            <Button variant="secondary" onClick={() => void save("retry")} disabled={saving} className="w-full mt-2">
+              Retry Save
+            </Button>
+          )}
+        </div>
+      )}
 
       <Button variant="ghost" size="sm" onClick={() => chrome.tabs.create({ url: "chrome://newtab" })} className="w-full">
         Open FlexTab Dashboard
