@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   apiFetch, pushSync, fetchSyncRevision, apiRegister, apiLogin, apiChangePassword,
-  getAuthUrl, getDeviceId, loadTokens, saveTokens, clearTokens, ApiError,
+  getAuthUrl, getDeviceId, loadTokens, saveTokens, clearTokens, ApiError, RefreshUnavailableError,
 } from './api';
 
 function res(body: unknown, status = 200) {
@@ -110,13 +110,13 @@ describe('apiFetch', () => {
     expect((global.fetch as any).mock.calls[1][1].headers['Authorization']).toBe('Bearer new');
   });
 
-  it('a failed refresh (401) clears tokens and proceeds unauthenticated', async () => {
+  it('a failed refresh (401) clears tokens and stops before the protected request', async () => {
     await saveTokens({ access_token: 'old', refresh_token: 'rt', expires_at: past() });
     (global.fetch as any)
       .mockResolvedValueOnce(res({}, 401)) // refresh fails
       .mockResolvedValueOnce(res({ ok: true }));
-    await apiFetch('/x');
-    expect((global.fetch as any).mock.calls[1][1].headers['Authorization']).toBeUndefined();
+    await expect(apiFetch('/x')).rejects.toMatchObject({ status: 401 });
+    expect(global.fetch).toHaveBeenCalledTimes(1);
     expect(chrome.storage.local.remove).toHaveBeenCalledWith('auth_tokens');
   });
 
@@ -143,23 +143,23 @@ describe('apiFetch', () => {
     (global.fetch as any)
       .mockResolvedValueOnce(res({}, 500))
       .mockResolvedValueOnce(res({ ok: true }));
-    await apiFetch('/x');
+    await expect(apiFetch('/x')).rejects.toBeInstanceOf(RefreshUnavailableError);
     expect(chrome.storage.local.remove).toHaveBeenCalledTimes(1);
-    expect((global.fetch as any).mock.calls[1][1].headers['Authorization']).toBeUndefined();
+    expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
-  it('a thrown refresh resolves to no token', async () => {
+  it('a network failure aborts the request with a retryable error', async () => {
     await saveTokens({ access_token: 'old', refresh_token: 'rt', expires_at: past() });
     (global.fetch as any).mockRejectedValueOnce(new Error('net')).mockResolvedValueOnce(res({ ok: true }));
-    await apiFetch('/x');
-    expect((global.fetch as any).mock.calls[1][1].headers['Authorization']).toBeUndefined();
+    await expect(apiFetch('/x')).rejects.toMatchObject({ status: 503, retryable: true });
+    expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
-  it('an expired token without a refresh token yields no token', async () => {
+  it('an expired token without a refresh token cannot send a protected request', async () => {
     await saveTokens({ access_token: 'old', refresh_token: '', expires_at: past() });
     (global.fetch as any).mockResolvedValue(res({ ok: true }));
-    await apiFetch('/x');
-    expect((global.fetch as any).mock.calls[0][1].headers['Authorization']).toBeUndefined();
+    await expect(apiFetch('/x')).rejects.toMatchObject({ status: 401 });
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 });
 

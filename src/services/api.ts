@@ -88,6 +88,12 @@ async function refreshTokens(): Promise<TokenData | null> {
 
     if (res.ok) {
       const newTokens: TokenData = await res.json();
+      if (!newTokens || typeof newTokens.access_token !== "string" || !newTokens.access_token ||
+          typeof newTokens.refresh_token !== "string" || !newTokens.refresh_token ||
+          typeof newTokens.expires_at !== "number" || !Number.isFinite(newTokens.expires_at) ||
+          newTokens.expires_at <= Date.now() / 1000) {
+        throw new RefreshUnavailableError();
+      }
       await saveTokens(newTokens);
       return newTokens;
     }
@@ -105,8 +111,13 @@ async function refreshTokens(): Promise<TokenData | null> {
       // hasn't landed in storage yet.
       for (const delayMs of [0, 250]) {
         if (delayMs) await new Promise((r) => setTimeout(r, delayMs));
-        const latest = await loadTokens();
-        if (latest && latest.refresh_token !== attemptedRefreshToken) {
+        // A storage read error cannot prove no sibling rotated the token.
+        // Preserve the cached session and let the caller retry instead of logout.
+        const stored = await chrome.storage.local.get("auth_tokens");
+        const latest = stored.auth_tokens as TokenData | undefined;
+        if (latest && latest.refresh_token !== attemptedRefreshToken &&
+            latest.access_token && latest.expires_at > Date.now() / 1000) {
+          tokenData = latest;
           return latest;
         }
       }
@@ -115,11 +126,12 @@ async function refreshTokens(): Promise<TokenData | null> {
       return null;
     }
 
-    // Any other failure (5xx, etc.) is transient — don't nuke the session,
-    // just fail this attempt so the next call can retry.
-    return null;
-  } catch (_) {
-    return null;
+    // Do not turn a refresh outage into an anonymous protected request. Only
+    // an explicit 401 above expires the session; other failures are retryable.
+    throw new RefreshUnavailableError();
+  } catch (error) {
+    if (error instanceof RefreshUnavailableError) throw error;
+    throw new RefreshUnavailableError();
   }
 }
 
@@ -141,7 +153,8 @@ async function getValidToken(): Promise<string | null> {
   }
 
   const refreshed = await refreshPromise;
-  return refreshed?.access_token ?? null;
+  if (!refreshed) throw new ApiError(401, "Session expired");
+  return refreshed.access_token;
 }
 
 export async function apiFetch<T = unknown>(
@@ -190,6 +203,15 @@ export class ApiError extends Error {
   }
 }
 
+/** Refresh failed without proving the saved session invalid. */
+export class RefreshUnavailableError extends ApiError {
+  readonly retryable = true;
+  constructor() {
+    super(503, "Could not refresh your session. Please try again.");
+    this.name = "RefreshUnavailableError";
+  }
+}
+
 export function getAuthUrl(): string {
   return `${API_BASE_URL}/api/auth/google`;
 }
@@ -218,11 +240,10 @@ export type SyncPushResult =
  * returns 409 with the up-to-date revision so the caller can reconcile + retry.
  */
 export async function pushSync(spaces: unknown[], baseRevision: number | null): Promise<SyncPushResult> {
-  const token = await getValidToken();
-  if (!token) return { status: "error" };
-
   let res: Response;
   try {
+    const token = await getValidToken();
+    if (!token) return { status: "error" };
     res = await fetch(`${API_BASE_URL}/api/sync`, {
       method: "PUT",
       headers: {
