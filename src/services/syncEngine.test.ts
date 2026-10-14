@@ -19,8 +19,8 @@ import { useAuthStore } from '~src/store/useAuthStore';
 import { ensureDefaultData } from '~src/store/useSavedSpacesStore';
 import { useSyncStore } from '~src/store/useSyncStore';
 import { useSyncConflict } from '~src/store/useSyncConflict';
-import { setSpaces, getSpaces, addSpace, clearState } from '~src/lib/yjsDoc';
-import { clearMergeBase, getMergeBase } from './mergeBase';
+import { doc, setSpaces, getSpaces, addSpace, clearState } from '~src/lib/yjsDoc';
+import { clearMergeBase, getMergeBase, setMergeBase } from './mergeBase';
 import { clearConflictPending } from './conflictState';
 
 // --- Fake WebSocket ---
@@ -77,6 +77,53 @@ afterEach(() => {
 });
 
 describe('startSyncEngine', () => {
+  it.each(['color', 'icon', 'abbreviation', 'title', 'favicon'])('applies a server-only %s edit and skips rewriting the identical next pull', async (field) => {
+    setSpaces([localSpace('same', [{ id: 't1' }])]);
+    await setMergeBase(getSpaces());
+    const server: any = beSpace('same', [{ id: 't1' }]);
+    const target = ['title', 'favicon'].includes(field) ? server.projects[0].categories[0].groups[0].tabs[0] : server;
+    target[field] = 'updated';
+    (apiFetch as any).mockResolvedValue({ spaces: [server], revision: 2 });
+    const update = vi.fn();
+    doc.on('update', update);
+    try {
+      await startSyncEngine();
+      await flush();
+      const local: any = getSpaces()[0];
+      const actual = ['title', 'favicon'].includes(field) ? local.projects[0].categories[0].groups[0].tabs[0] : local;
+      expect(actual[field]).toBe('updated');
+      expect(useSyncStore.getState().dirty).toBe(false);
+      expect(update).toHaveBeenCalledTimes(1);
+      await startSyncEngine();
+      await flush();
+      expect(update).toHaveBeenCalledTimes(1);
+    } finally {
+      doc.off('update', update);
+    }
+  });
+
+  it('keeps a local-only metadata edit dirty until the server confirms it', async () => {
+    setSpaces([localSpace('same', [{ id: 't1' }])]);
+    const base = getSpaces();
+    await setMergeBase(base);
+    const edited = structuredClone(base);
+    edited[0].color = 'blue';
+    setSpaces(edited);
+    (apiFetch as any).mockResolvedValue({ spaces: [beSpace('same', [{ id: 't1' }])], revision: 1 });
+    await startSyncEngine();
+    await flush();
+    expect(getSpaces()[0].color).toBe('blue');
+    expect(await getMergeBase()).toEqual(base);
+    expect(useSyncStore.getState().dirty).toBe(true);
+    expect(useSyncStore.getState().lastSyncedAt).toBeNull();
+
+    (apiFetch as any).mockResolvedValue({ spaces: [{ ...beSpace('same', [{ id: 't1' }]), color: 'blue' }], revision: 2 });
+    await startSyncEngine();
+    await flush();
+    expect((await getMergeBase())?.[0].color).toBe('blue');
+    expect(useSyncStore.getState().dirty).toBe(false);
+  });
+
   it('does nothing when unauthenticated', async () => {
     (useAuthStore.getState as any).mockReturnValue({ isAuthenticated: false });
     await startSyncEngine();

@@ -108,10 +108,10 @@ describe('spacesSignature', () => {
     expect(spacesSignature(withTabs)).toBe(spacesSignature([space('s', 'Work', [tab('t1')])]));
   });
 
-  it('ignores favicon changes (avoids a needless rewrite/loop)', () => {
+  it('detects favicon changes as persisted content', () => {
     const a = [space('s', 'Work', [{ ...tab('t1'), favicon: 'data:a' }])];
     const b = [space('s', 'Work', [{ ...tab('t1'), favicon: 'data:DIFFERENT' }])];
-    expect(spacesSignature(a)).toBe(spacesSignature(b));
+    expect(spacesSignature(a)).not.toBe(spacesSignature(b));
   });
 
   it('changes when a tab is added', () => {

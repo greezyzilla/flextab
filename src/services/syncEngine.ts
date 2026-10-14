@@ -1,4 +1,6 @@
 import { doc, getSpaces, setSpaces, persistState, installExternalPersistBridge } from "~src/lib/yjsDoc";
+import { spacesSignature } from "~src/lib/spacesSignature";
+export { spacesSignature } from "~src/lib/spacesSignature";
 import { useAuthStore } from "~src/store/useAuthStore";
 import { useSyncStore } from "~src/store/useSyncStore";
 import { useSyncConflict } from "~src/store/useSyncConflict";
@@ -44,7 +46,7 @@ function markSynced() {
 
 // Recompute whether local data has drifted from the last state the server
 // confirmed (the merge-base). Signature-based so it matches the reconcile
-// layer's notion of "changed" (a no-op reorder/favicon touch isn't drift).
+// layer's notion of "changed", including metadata and order edits.
 // Not authenticated → nothing to sync to, so never dirty. Cheap: getMergeBase
 // resolves from an in-memory cache after first load.
 async function recomputeDirty() {
@@ -123,24 +125,6 @@ let pendingLocal: SavedSpace[] | null = null;
 let pendingMergeBase: SavedSpace[] | null = null;
 let pendingMergeConflicts: Conflict[] | null = null;
 
-/** Canonical structural signature — used to skip no-op writes (avoids a
- *  push → broadcast → re-pull → push loop once the data has converged). */
-export function spacesSignature(spaces: SavedSpace[]): string {
-  return JSON.stringify(spaces.map(s => ({
-    i: s.id, n: s.name,
-    p: (s.projects || []).map(p => ({
-      i: p.id, n: p.name,
-      c: (p.categories || []).map(c => ({
-        i: c.id, n: c.name,
-        g: (c.groups || []).map(g => ({
-          i: g.id, n: g.name,
-          t: (g.tabs || []).map(t => ({ i: t.id, u: t.url })),
-        })),
-      })),
-    })),
-  })));
-}
-
 export type Reconciliation =
   | { kind: "conflict" } // guest↔account sign-in (no shared history) → coarse prompt
   | { kind: "item-conflict"; spaces: SavedSpace[]; conflicts: Conflict[] } // 3-way per-item
@@ -215,10 +199,15 @@ function applyResolution(
   if (selectFirst || changed) syncActiveSelection(selectFirst);
   markHydrated(); // enable the structured push → uploads when local still needs OCC
   if (serverConfirmed) {
-    void setMergeBase(spaces);
-    markSynced();
+    // setMergeBase updates its cache after storage completes. Compare against
+    // that confirmed base, not the previous one captured before its write.
+    void setMergeBase(spaces).then(() => {
+      markSynced();
+      void recomputeDirty();
+    });
+  } else {
+    void recomputeDirty();
   }
-  void recomputeDirty();
   void clearConflictPending(); // resolver finished (or pull overwrite); not the same as push-clean
   connectWebSocket(); // realtime change-notifier
 }

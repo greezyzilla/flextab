@@ -1,4 +1,6 @@
 import * as Y from "yjs";
+import { spacesSignature } from "./spacesSignature";
+export { spacesSignature as lightSpacesSig } from "./spacesSignature";
 import type { SavedSpace, SavedProject, SavedCategory, SavedGroup, SavedTab } from "~src/types";
 
 export const doc = new Y.Doc();
@@ -140,7 +142,7 @@ export function applyExternalPersistUpdate(
     } catch (_) {
       return false;
     }
-    if (lightSpacesSig(next) === lightSpacesSig(getSpaces())) return false;
+    if (spacesSignature(next) === spacesSignature(getSpaces())) return false;
     suppressPersist = true;
     try {
       setSpaces(next);
@@ -151,7 +153,7 @@ export function applyExternalPersistUpdate(
   }
 
   // Multi-tab peer: merge remote encodeState into this doc.
-  const before = lightSpacesSig(getSpaces());
+  const before = spacesSignature(getSpaces());
   suppressPersist = true;
   try {
     Y.applyUpdate(doc, new Uint8Array(data));
@@ -160,34 +162,11 @@ export function applyExternalPersistUpdate(
     return false;
   }
   suppressPersist = false;
-  const after = lightSpacesSig(getSpaces());
+  const after = spacesSignature(getSpaces());
   if (before === after) return false;
   // Publish the merged union so other tabs / background see both sides' edits.
   void persistState();
   return true;
-}
-
-/** Content signature for “did landed snapshot differ from disk?” (ids/urls/names). */
-export function lightSpacesSig(spaces: SavedSpace[]): string {
-  return JSON.stringify(
-    (spaces || []).map((s) => ({
-      i: s.id,
-      n: s.name,
-      p: (s.projects || []).map((p) => ({
-        i: p.id,
-        n: p.name,
-        c: (p.categories || []).map((c) => ({
-          i: c.id,
-          n: c.name,
-          g: (c.groups || []).map((g) => ({
-            i: g.id,
-            n: g.name,
-            t: (g.tabs || []).map((t) => ({ i: t.id, u: t.url })),
-          })),
-        })),
-      })),
-    })),
-  );
 }
 
 let externalBridgeInstalled = false;
