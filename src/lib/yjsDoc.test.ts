@@ -34,6 +34,44 @@ describe('getSpaces / setSpaces', () => {
     expect(y.getSpaces().map(s => s.id)).toEqual(['s1', 's2']);
     expect(tabIds(group(y.getSpaces(), 's1', 'p1', 'c1', 'g1'))).toEqual(['t1', 't2']);
   });
+
+  it.each(["projects", "categories", "groups", "tabs"])(
+    "preserves the live document and emits no update when replacement has invalid %s",
+    (field) => {
+      const invalid: any = tree();
+      const parent = field === "projects" ? invalid[0]
+        : field === "categories" ? invalid[0].projects[0]
+        : field === "groups" ? invalid[0].projects[0].categories[0]
+        : invalid[0].projects[0].categories[0].groups[0];
+      delete parent[field];
+      const before = y.getSpaces();
+      const bytes = y.encodeState();
+      const update = vi.fn();
+      y.doc.on("update", update);
+      try {
+        // A valid item before the malformed item must not be partially imported.
+        expect(() => y.setSpaces([{ id: "new", name: "New", projects: [] }, ...invalid])).toThrow();
+        expect(y.getSpaces()).toEqual(before);
+        expect(y.encodeState()).toEqual(bytes);
+        expect(update).not.toHaveBeenCalled();
+      } finally {
+        y.doc.off("update", update);
+      }
+    },
+  );
+
+  it("publishes only the complete replacement in one update", () => {
+    const observed: SavedSpace[][] = [];
+    const update = () => { observed.push(y.getSpaces()); };
+    y.doc.on("update", update);
+    try {
+      y.setSpaces([{ id: "replacement", name: "Imported", projects: [] }]);
+      expect(observed).toHaveLength(1);
+      expect(observed[0].map(s => s.id)).toEqual(["replacement"]);
+    } finally {
+      y.doc.off("update", update);
+    }
+  });
 });
 
 describe('find helpers', () => {

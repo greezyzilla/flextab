@@ -338,9 +338,12 @@ function spaceToYMap(s: SavedSpace): Y.Map<unknown> {
 
 /** Replace all spaces in the Yjs doc with the given array. */
 export function setSpaces(spaces: SavedSpace[]) {
+  // Yjs transactions batch notifications; they do not roll back on exceptions.
+  // Finish all fallible conversion before deleting anything from the live doc.
+  const replacement = spaces.map(spaceToYMap);
   doc.transact(() => {
     spacesArray.delete(0, spacesArray.length);
-    spacesArray.push(spaces.map(spaceToYMap));
+    spacesArray.push(replacement);
   });
 }
 

@@ -4,6 +4,7 @@ import { useAuthStore } from "~src/store/useAuthStore";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { apiListSnapshots, apiGetSnapshot, apiRestoreSnapshot, type SnapshotInfo } from "~src/services/snapshots";
 import { pullAndOverwrite } from "~src/services/syncEngine";
+import { parseWorkspaceBackup } from "~src/services/workspaceBackup";
 import type { SavedSpace, SavedGroup, SavedTab } from "~src/types";
 import * as yjs from "~src/lib/yjsDoc";
 import { ConfirmDialog } from "~src/components/ui/confirm-dialog";
@@ -59,23 +60,20 @@ function DataTab() {
     const file = e.target.files?.[0];
     if (!file) return;
     setImportStatus(null);
+    setPendingImport(null);
 
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
-        const data = JSON.parse(ev.target?.result as string);
-        if (!Array.isArray(data)) throw new Error('Invalid format: expected array of spaces');
-        // Basic validation
-        for (const space of data) {
-          if (!space.id || !space.name || !Array.isArray(space.projects)) {
-            throw new Error('Invalid space format');
-          }
-        }
+        const data = parseWorkspaceBackup(JSON.parse(ev.target?.result as string));
         // Validated — defer the destructive replace until the user confirms.
         setPendingImport(data);
       } catch (err) {
         setImportStatus({ type: 'error', message: err instanceof Error ? err.message : 'Failed to import' });
       }
+    };
+    reader.onerror = () => {
+      setImportStatus({ type: 'error', message: 'Could not read this backup. Please try again.' });
     };
     reader.readAsText(file);
     // Reset so the same file can be re-imported
@@ -98,8 +96,14 @@ function DataTab() {
         confirmLabel="Import & replace"
         onConfirm={() => {
           if (!pendingImport) return;
-          yjs.setSpaces(pendingImport);
-          setImportStatus({ type: 'success', message: `Imported ${pendingImport.length} space${pendingImport.length !== 1 ? 's' : ''}` });
+          try {
+            yjs.setSpaces(pendingImport);
+            setImportStatus({ type: 'success', message: `Imported ${pendingImport.length} space${pendingImport.length !== 1 ? 's' : ''}` });
+          } catch (err) {
+            setImportStatus({ type: 'error', message: err instanceof Error ? err.message : 'Failed to import' });
+          } finally {
+            setPendingImport(null);
+          }
         }}
       />
       <SettingRow label="Export" description="Download all your data as a JSON file.">
@@ -116,7 +120,7 @@ function DataTab() {
           <Button variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()} className="self-start">Import JSON</Button>
           <input ref={fileInputRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
           {importStatus && (
-            <div className={`text-xs font-sans ${importStatus.type === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+            <div role="status" className={`text-xs font-sans ${importStatus.type === 'success' ? 'text-green-400' : 'text-red-400'}`}>
               {importStatus.message}
             </div>
           )}
