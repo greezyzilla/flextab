@@ -6,7 +6,7 @@ import type { SavedSpace, SavedProject, SavedCategory, SavedGroup, SavedTab } fr
 export const doc = new Y.Doc();
 export const spacesArray = doc.getArray<Y.Map<unknown>>("spaces");
 
-/** chrome.storage.local key for the encoded Yjs blob (background + page share this). */
+/** Atomic Yjs payload + origin (background + page share this key). */
 export const PERSIST_KEY = "flextab_yjs_state";
 
 /**
@@ -15,7 +15,29 @@ export const PERSIST_KEY = "flextab_yjs_state";
  * - `snapshot` — plain spaces rebuilt into a fresh doc (OCC writeback; must replace)
  */
 export type PersistOrigin = "page" | "snapshot";
+// Read-only compatibility with releases that stored origin separately.
 export const PERSIST_ORIGIN_KEY = "flextab_yjs_origin";
+
+type PersistedUpdate = { version: 1; origin: PersistOrigin; data: number[] };
+
+function isBytes(value: unknown): value is number[] {
+  return Array.isArray(value) && value.length > 0 &&
+    value.every(byte => Number.isInteger(byte) && byte >= 0 && byte <= 255);
+}
+
+/** Accept legacy arrays for hydration; new writers always use an atomic envelope. */
+export function readPersistedUpdate(value: unknown): PersistedUpdate | null {
+  if (isBytes(value)) return { version: 1, origin: "page", data: value };
+  if (!value || typeof value !== "object") return null;
+  const entry = value as Partial<PersistedUpdate>;
+  if (entry.version !== 1 || (entry.origin !== "page" && entry.origin !== "snapshot") ||
+      !isBytes(entry.data)) return null;
+  return { version: 1, origin: entry.origin, data: entry.data };
+}
+
+function storageEnvelope(data: number[], origin: PersistOrigin): PersistedUpdate {
+  return { version: 1, origin, data };
+}
 
 /** When true, persistState is a no-op — used while applying an external writeback. */
 let suppressPersist = false;
@@ -31,9 +53,9 @@ let persistQueued = false;
 export async function loadPersistedState(): Promise<boolean> {
   try {
     const result = await chrome.storage.local.get(PERSIST_KEY);
-    const data = result[PERSIST_KEY];
-    if (data && Array.isArray(data)) {
-      Y.applyUpdate(doc, new Uint8Array(data));
+    const update = readPersistedUpdate(result[PERSIST_KEY]);
+    if (update) {
+      Y.applyUpdate(doc, new Uint8Array(update.data));
       return true;
     }
   } catch (_) { /* storage unavailable */ }
@@ -44,8 +66,7 @@ async function writePersistSnapshot(): Promise<void> {
   if (suppressPersist) return;
   const state = encodeState();
   await chrome.storage.local.set({
-    [PERSIST_KEY]: Array.from(state),
-    [PERSIST_ORIGIN_KEY]: "page" satisfies PersistOrigin,
+    [PERSIST_KEY]: storageEnvelope(Array.from(state), "page"),
   });
 }
 
@@ -102,10 +123,12 @@ export function encodeSpacesAsStorage(spaces: SavedSpace[]): number[] {
 }
 
 /** Decode a PERSIST_KEY blob into plain spaces (throwaway doc). */
-export function decodeSpacesFromStorage(data: number[]): SavedSpace[] {
+export function decodeSpacesFromStorage(value: unknown): SavedSpace[] {
+  const update = readPersistedUpdate(value);
+  if (!update) throw new Error("Invalid persisted workspace format");
   const temp = new Y.Doc();
   try {
-    Y.applyUpdate(temp, new Uint8Array(data));
+    Y.applyUpdate(temp, new Uint8Array(update.data));
     const arr = temp.getArray<Y.Map<unknown>>("spaces");
     return arr.toArray().map(yMapToSpace);
   } finally {
@@ -116,8 +139,7 @@ export function decodeSpacesFromStorage(data: number[]): SavedSpace[] {
 /** Write plain spaces as a replace-snapshot (OCC merge land). Origin = snapshot. */
 export async function persistSpacesSnapshot(spaces: SavedSpace[]): Promise<void> {
   await chrome.storage.local.set({
-    [PERSIST_KEY]: encodeSpacesAsStorage(spaces),
-    [PERSIST_ORIGIN_KEY]: "snapshot" satisfies PersistOrigin,
+    [PERSIST_KEY]: storageEnvelope(encodeSpacesAsStorage(spaces), "snapshot"),
   });
 }
 
@@ -179,14 +201,29 @@ export function installExternalPersistBridge(): void {
   if (externalBridgeInstalled) return;
   if (!chrome.storage?.onChanged) return;
   externalBridgeInstalled = true;
+  let eventSequence = 0;
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== "local" || !changes[PERSIST_KEY]) return;
-    const data = changes[PERSIST_KEY].newValue;
-    if (!Array.isArray(data)) return;
-    const originRaw = changes[PERSIST_ORIGIN_KEY]?.newValue;
-    // Default `page` when origin missing (older writers); OCC always sets snapshot now.
-    const origin: PersistOrigin = originRaw === "snapshot" ? "snapshot" : "page";
-    applyExternalPersistUpdate(data, origin);
+    const sequence = ++eventSequence;
+    const value = changes[PERSIST_KEY].newValue;
+    const update = readPersistedUpdate(value);
+    if (!update) return;
+    if (!Array.isArray(value)) {
+      applyExternalPersistUpdate(update.data, update.origin);
+      return;
+    }
+    // Legacy onChanged deltas omit an unchanged origin. Read both keys together,
+    // and discard a delayed lookup if another event or storage write superseded it.
+    void (async () => {
+      try {
+        const current = await chrome.storage.local.get([PERSIST_KEY, PERSIST_ORIGIN_KEY]);
+        if (sequence !== eventSequence ||
+            JSON.stringify(current[PERSIST_KEY]) !== JSON.stringify(value)) return;
+        const origin = current[PERSIST_ORIGIN_KEY];
+        if (origin !== undefined && origin !== "page" && origin !== "snapshot") return;
+        applyExternalPersistUpdate(update.data, origin ?? "page");
+      } catch (_) { /* Never guess an origin after a failed storage read. */ }
+    })();
   });
 }
 

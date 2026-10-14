@@ -189,7 +189,7 @@ describe('binary state + persistence', () => {
 
   it('persistState writes the encoded doc', async () => {
     await y.persistState();
-    expect(chrome.storage.local.set).toHaveBeenCalledWith(expect.objectContaining({ flextab_yjs_state: expect.any(Array) }));
+    expect(chrome.storage.local.set).toHaveBeenCalledWith(expect.objectContaining({ flextab_yjs_state: expect.objectContaining({ version: 1, origin: "page", data: expect.any(Array) }) }));
   });
 
   it('persistState single-flights concurrent calls and coalesces trailing writes', async () => {
@@ -248,7 +248,7 @@ describe('binary state + persistence', () => {
     const spaces = y.getSpaces();
     await y.persistSpacesSnapshot(spaces);
     expect(chrome.storage.local.set).toHaveBeenCalledWith(
-      expect.objectContaining({ [y.PERSIST_KEY]: expect.any(Array) }),
+      expect.objectContaining({ [y.PERSIST_KEY]: expect.objectContaining({ version: 1, origin: "snapshot", data: expect.any(Array) }) }),
     );
   });
 

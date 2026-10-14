@@ -6,6 +6,7 @@ import { isConflictPending, saveOccConflictPayload, clearConflictPending } from 
 import {
   PERSIST_KEY,
   decodeSpacesFromStorage,
+  readPersistedUpdate,
 } from "~src/lib/yjsDoc";
 import { recordLandedSnapshot, LANDED_SNAPSHOT_KEY } from "~src/services/landedSnapshot";
 import type { SavedSpace } from "~src/types";
@@ -105,7 +106,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 let syncTimer: ReturnType<typeof setTimeout> | null = null;
 
 /** Canonical Yjs→JSON (same as newtab getSpaces / decodeSpacesFromStorage) — FE-B2. */
-function extractSpaces(state: number[]): SavedSpace[] {
+function extractSpaces(state: unknown): SavedSpace[] {
   return decodeSpacesFromStorage(state);
 }
 
@@ -113,7 +114,7 @@ async function readLatestSpaces(): Promise<SavedSpace[]> {
   // A failed read is not an empty workspace; retain the retry flag on failure.
   const result = await chrome.storage.local.get(PERSIST_KEY);
   const state = result[PERSIST_KEY];
-  return Array.isArray(state) ? extractSpaces(state) : [];
+  return state === undefined ? [] : extractSpaces(state);
 }
 
 // All triggers share one flight. A trailing pass always reads current storage;
@@ -222,7 +223,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
   }
   if (!changes[PERSIST_KEY]) return;
   const newValue = changes[PERSIST_KEY].newValue;
-  if (!newValue || !Array.isArray(newValue)) return;
+  if (!readPersistedUpdate(newValue)) return;
 
   // Mark pending immediately so worker suspension during debounce cannot forget it.
   void chrome.storage.local.set({ [PENDING_PUSH_KEY]: true });

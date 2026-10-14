@@ -373,7 +373,7 @@ describe('local persistence', () => {
     startLocalPersistence();
     startLocalPersistence(); // idempotent
     addSpace({ id: 'x', name: 'X', order: 0, projects: [] });
-    expect(chrome.storage.local.set).toHaveBeenCalledWith(expect.objectContaining({ flextab_yjs_state: expect.any(Array) }));
+    expect(chrome.storage.local.set).toHaveBeenCalledWith(expect.objectContaining({ flextab_yjs_state: expect.objectContaining({ version: 1, origin: "page", data: expect.any(Array) }) }));
     stopLocalPersistence();
   });
 

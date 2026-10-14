@@ -68,6 +68,35 @@ async function until(predicate: () => boolean) {
 }
 
 describe("production background push", () => {
+  it("debounces and uploads a page envelope written by the live document", async () => {
+    vi.mocked(api.pushSync).mockResolvedValue({ status: "ok", revision: 2 });
+    const spaces = [space("page")];
+    yjs.setSpaces(spaces);
+    await yjs.persistState();
+    expect(disk.flextab_push_pending).toBe(true);
+    expect(api.pushSync).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(api.pushSync).toHaveBeenCalledWith(spaces, 1);
+    expect(disk.flextab_push_pending).toBeUndefined();
+  });
+
+  it("uploads a persisted snapshot envelope on worker startup without a new storage event", async () => {
+    const spaces = [space("snapshot")];
+    disk[yjs.PERSIST_KEY] = { version: 1, origin: "snapshot", data: yjs.encodeSpacesAsStorage(spaces) };
+    vi.mocked(api.pushSync).mockResolvedValue({ status: "ok", revision: 2 });
+    const startup = vi.mocked(chrome.runtime.onStartup.addListener).mock.calls[0][0];
+    await startup();
+    expect(api.pushSync).toHaveBeenCalledWith(spaces, 1);
+  });
+
+  it("retains pending work instead of uploading an invalid envelope as an empty tree", async () => {
+    disk[yjs.PERSIST_KEY] = { version: 2, origin: "page", data: [0, 0] };
+    disk.flextab_push_pending = true;
+    await background.pushStructuredData();
+    expect(api.pushSync).not.toHaveBeenCalled();
+    expect(disk.flextab_push_pending).toBe(true);
+  });
+
   it("holds response A, keeps edit B, and serializes overlapping triggers into a latest-state push", async () => {
     const first = deferred<any>();
     const second = deferred<any>();
