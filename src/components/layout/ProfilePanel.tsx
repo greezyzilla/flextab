@@ -1,3 +1,4 @@
+import { SignOutDialog } from "~src/components/SignOutDialog";
 import { useState, useRef, useEffect } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
@@ -15,13 +16,14 @@ import { Avatar, AvatarImage, AvatarFallback } from "~src/components/ui/avatar";
 
 export function ProfilePanel() {
   const { savedSpaces, activeSpaceId, setActiveSpace, addSavedSpace, updateSavedSpace, removeSavedSpace, reorderSpaces } = useSavedSpacesStore();
-  const { user, isAuthenticated, loginWithGoogle, logout } = useAuthStore();
+  const { user, isAuthenticated, loginWithGoogle } = useAuthStore();
   const manifestIcon = typeof chrome !== "undefined" && chrome.runtime?.getManifest
     ? chrome.runtime.getManifest().icons?.["128"]
     : undefined;
   const logoSrc = manifestIcon && chrome.runtime?.getURL
     ? chrome.runtime.getURL(manifestIcon)
     : undefined;
+  const [signOutOpen, setSignOutOpen] = useState(false);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const renameInputRef = useRef<HTMLInputElement>(null);
@@ -72,6 +74,7 @@ export function ProfilePanel() {
 
   return (
     <div className="w-16 h-full flex flex-col border-r border-black-800">
+      <SignOutDialog open={signOutOpen} onOpenChange={setSignOutOpen} />
       <ConfirmDialog
         open={!!confirmDeleteSpace}
         onOpenChange={(o) => { if (!o) setConfirmDeleteSpace(null); }}
@@ -231,7 +234,7 @@ export function ProfilePanel() {
                 <div className="text-white/40 text-[11px] truncate max-w-[10rem]">{user.email}</div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={() => logout()}>Sign out</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setSignOutOpen(true)}>Sign out</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (

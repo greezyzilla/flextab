@@ -112,7 +112,7 @@ describe('useAuthStore — storage set/remove catch branches', () => {
     await useAuthStore.getState().handleAuthCallback({ access_token: 't', refresh_token: 'r', expires_at: Date.now() / 1000 + 3600 });
     expect(useAuthStore.getState().isAuthenticated).toBe(true);
     (chrome.storage.local.remove as any).mockRejectedValue(new Error('x'));
-    await useAuthStore.getState().logout();
+    await useAuthStore.getState().logout({ discardLocalData: true });
     expect(useAuthStore.getState().isAuthenticated).toBe(false);
   });
 });

@@ -1,3 +1,4 @@
+import { getSpaces, setSpaces } from "~src/lib/yjsDoc";
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useAuthStore } from './useAuthStore';
 import { clearTokens } from '~src/services/api';
@@ -43,14 +44,14 @@ describe('guest mode', () => {
 
   it('logout clears guest mode + per-account sync keys', async () => {
     useAuthStore.setState({ guestMode: true });
-    await useAuthStore.getState().logout();
+    await useAuthStore.getState().logout({ discardLocalData: true });
     expect(useAuthStore.getState().guestMode).toBe(false);
     expect(chrome.storage.local.remove).toHaveBeenCalledWith(['spaces', 'flextab_sync_hydrated', 'flextab_fresh_login', 'flextab_landed_snapshot']);
     expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_sync_revision');
   });
 
   it('logout clears the merge base (per-account — a real sign-out, unlike a transient auth drop, should forget it)', async () => {
-    await useAuthStore.getState().logout();
+    await useAuthStore.getState().logout({ discardLocalData: true });
     expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_merge_base');
   });
 });
@@ -138,5 +139,40 @@ describe('chrome.storage.onChanged listener', () => {
     await fireChange({ auth_tokens: { newValue: tokens() } });
     await new Promise(r => setTimeout(r, 0)); // let the fire-and-forget callback settle
     expect(useAuthStore.getState().isAuthenticated).toBe(true);
+  });
+});
+
+describe('destructive logout authorization', () => {
+  it.each([undefined, {}, { discardLocalData: false }, { type: 'click' }])('rejects missing confirmation %j before clearing data or tokens', async confirmation => {
+    setSpaces([{ id: 'local', name: 'Not synced', projects: [] }]);
+    useAuthStore.setState({ isAuthenticated: true });
+    vi.clearAllMocks();
+    await expect(useAuthStore.getState().logout(confirmation as any)).rejects.toThrow('Confirm local data deletion');
+    expect(getSpaces()[0].name).toBe('Not synced');
+    expect(useAuthStore.getState().isAuthenticated).toBe(true);
+    expect(chrome.storage.local.remove).not.toHaveBeenCalled();
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('waits for in-flight sync before clearing the workspace and its receipt', async () => {
+    setSpaces([{ id: 'local', name: 'Not synced', projects: [] }]);
+    let release!: () => Promise<void>;
+    let finish!: () => void;
+    const queued = new Promise<void>(resolve => { finish = resolve; });
+    const request = vi.fn((_name: string, work: () => Promise<void>) => {
+      release = async () => { await work(); finish(); };
+      return queued;
+    });
+    Object.defineProperty(navigator, 'locks', { value: { request }, configurable: true });
+    try {
+      const run = useAuthStore.getState().logout({ discardLocalData: true });
+      expect(request).toHaveBeenCalledWith('flextab-structured-sync', expect.any(Function));
+      expect(getSpaces()[0].name).toBe('Not synced');
+      expect(chrome.storage.local.remove).not.toHaveBeenCalledWith('flextab_landed_snapshot');
+      await release();
+      await run;
+      expect(getSpaces()).toEqual([]);
+      expect(useAuthStore.getState().isAuthenticated).toBe(false);
+    } finally { Reflect.deleteProperty(navigator, 'locks'); }
   });
 });

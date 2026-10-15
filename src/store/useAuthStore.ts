@@ -1,3 +1,4 @@
+import { withSyncWriteLock } from "~src/services/syncPolicy";
 import { create } from "zustand";
 import { loadTokens, saveTokens, clearTokens, apiFetch, getAuthUrl, getOAuthUrl, apiRegister, apiLogin, apiLogout, ApiError } from "~src/services/api";
 import { clearState } from "~src/lib/yjsDoc";
@@ -56,7 +57,7 @@ interface AuthState {
   loginWithEmail: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
   handleAuthCallback: (tokens: TokenData) => Promise<void>;
-  logout: () => Promise<void>;
+  logout: (confirmation: { discardLocalData: true }) => Promise<void>;
   fetchUser: () => Promise<void>;
 }
 
@@ -125,22 +126,28 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     await get().fetchUser();
   },
 
-  logout: async () => {
-    // Revoke the refresh token server-side before dropping it locally.
-    await apiLogout();
-    await clearTokens();
-    await clearState();
-    resetYjsHydration();
-    await persistGuestMode(false);
-    await clearStoredRevision();
-    // The merge base is per-account, so it belongs here (real, explicit
-    // sign-out) — not in stopSyncEngine's generic pause path, which also runs
-    // on a transient auth drop (e.g. the refresh-token race) where the base
-    // must survive so re-login doesn't manufacture a false merge conflict.
-    await clearMergeBase();
-    await clearConflictPending(); // per-account, like the merge base
-    try { await chrome.storage.local.remove(["spaces", SYNC_HYDRATED_KEY, FRESH_LOGIN_KEY, LANDED_SNAPSHOT_KEY]); } catch (_) { /* ok */ }
-    set({ user: null, isAuthenticated: false, guestMode: false });
+  logout: async (confirmation) => {
+    // Fail closed for stale callers (including an onClick MouseEvent): deleting
+    // local data requires the explicit choice from the shared sign-out dialog.
+    if (confirmation?.discardLocalData !== true) throw new Error("Confirm local data deletion before signing out");
+    await withSyncWriteLock(async () => {
+      // Drain an in-flight sync before clearing its revision/receipt and workspace.
+      // Revoke the refresh token server-side before dropping it locally.
+      await apiLogout();
+      await clearTokens();
+      await clearState();
+      resetYjsHydration();
+      await persistGuestMode(false);
+      await clearStoredRevision();
+      // The merge base is per-account, so it belongs here (real, explicit
+      // sign-out) — not in stopSyncEngine's generic pause path, which also runs
+      // on a transient auth drop (e.g. the refresh-token race) where the base
+      // must survive so re-login doesn't manufacture a false merge conflict.
+      await clearMergeBase();
+      await clearConflictPending(); // per-account, like the merge base
+      try { await chrome.storage.local.remove(["spaces", SYNC_HYDRATED_KEY, FRESH_LOGIN_KEY, LANDED_SNAPSHOT_KEY]); } catch (_) { /* ok */ }
+      set({ user: null, isAuthenticated: false, guestMode: false });
+    });
   },
 
   fetchUser: async () => {

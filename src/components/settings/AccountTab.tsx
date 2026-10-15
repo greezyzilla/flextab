@@ -1,3 +1,4 @@
+import { SignOutDialog } from "~src/components/SignOutDialog";
 import { useState, useEffect, type FormEvent } from "react";
 import { useAuthStore } from "~src/store/useAuthStore";
 import {
@@ -20,7 +21,9 @@ const LINKABLE_PROVIDERS: { id: string; label: string }[] = [
 ];
 
 export function AccountTab() {
-  const { user, logout, fetchUser } = useAuthStore();
+  const { user, fetchUser } = useAuthStore();
+
+  const [signOutOpen, setSignOutOpen] = useState(false);
 
   // Display name
   const [name, setName] = useState(user?.name ?? '');
@@ -133,6 +136,7 @@ export function AccountTab() {
 
   return (
     <div className="flex flex-col gap-7">
+      <SignOutDialog open={signOutOpen} onOpenChange={setSignOutOpen} />
       {/* Profile */}
       <SettingRow label="Profile" description="Your FlexTab account.">
         {user && (
@@ -212,7 +216,7 @@ export function AccountTab() {
 
       {/* Sign out */}
       <div className="pt-2 border-t border-white/5">
-        <Button variant="link" onClick={logout} className="!text-sm !text-red-400/70 hover:!text-red-400">
+        <Button variant="link" onClick={() => setSignOutOpen(true)} className="!text-sm !text-red-400/70 hover:!text-red-400">
           Sign out
         </Button>
       </div>
