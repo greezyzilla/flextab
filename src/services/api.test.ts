@@ -164,6 +164,53 @@ describe('apiFetch', () => {
 });
 
 describe('pushSync', () => {
+  it.each([0, 1])('counts the complete UTF-8 body at 8 MiB + %i bytes before upload', async (extra) => {
+    await validToken();
+    vi.clearAllMocks();
+    (global.fetch as any).mockResolvedValue(res({ revision: 8 }));
+    // Multibyte text and escaped characters distinguish byte count from JS
+    // string length or the unescaped workspace's size.
+    const spaces = [{ name: '文"\\' }];
+    const overhead = new TextEncoder().encode(JSON.stringify({ spaces, base_revision: 7 })).byteLength;
+    spaces[0].name += 'x'.repeat(8 * 1024 * 1024 + extra - overhead);
+    const result = await pushSync(spaces, 7);
+    if (extra === 0) {
+      expect(result).toEqual({ status: 'ok', revision: 8 });
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      const body = (global.fetch as any).mock.calls[0][1].body;
+      expect(new TextEncoder().encode(body).byteLength).toBe(8 * 1024 * 1024);
+      expect(JSON.parse(body).spaces).toEqual(spaces);
+    } else {
+      expect(result).toEqual({ status: 'limit', message: 'Sync payload is too large. Reduce it to 8 MiB or less.' });
+      expect(global.fetch).not.toHaveBeenCalled();
+    }
+    expect(chrome.storage.local.remove).not.toHaveBeenCalled();
+  });
+  it('reports a structured HTTP 413 as a terminal limit and keeps the session', async () => {
+    await validToken();
+    vi.clearAllMocks();
+    (global.fetch as any).mockResolvedValue(res({ code: 'payload_too_large', error: 'Reduce the sync payload to 8 MiB or less.' }, 413));
+    expect(await pushSync([], 7)).toEqual({ status: 'limit', message: 'Reduce the sync payload to 8 MiB or less.' });
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(chrome.storage.local.remove).not.toHaveBeenCalled();
+  });
+  it.each([null, {}, { error: '' }, { error: 42 }, { error: '  ' }])('uses an actionable fallback for a bare 413 (%j)', async (body) => {
+    await validToken();
+    (global.fetch as any).mockResolvedValue(res(body, 413));
+    expect(await pushSync([], 7)).toEqual({ status: 'limit', message: 'Sync payload is too large for the server. Reduce the workspace size and try again.' });
+  });
+  it('handles an HTML/plain-text ingress 413 as a terminal limit', async () => {
+    await validToken();
+    (global.fetch as any).mockResolvedValue({ status: 413, ok: false, json: async () => { throw new SyntaxError('HTML response'); } });
+    expect(await pushSync([], 7)).toMatchObject({ status: 'limit', message: expect.stringContaining('too large') });
+  });
+  it('keeps structured plan quota errors distinct from other forbidden responses', async () => {
+    await validToken();
+    (global.fetch as any).mockResolvedValueOnce(res({ code: 'plan_limit_exceeded', error: 'Sync size limit reached' }, 403));
+    expect(await pushSync([], 7)).toEqual({ status: 'limit', message: 'Sync size limit reached' });
+    (global.fetch as any).mockResolvedValueOnce(res({ error: 'Forbidden' }, 403));
+    expect(await pushSync([], 7)).toEqual({ status: 'error' });
+  });
   it('returns error without a token', async () => {
     (chrome.storage.local.get as any).mockResolvedValue({});
     expect(await pushSync([], 1)).toEqual({ status: 'error' });

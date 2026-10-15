@@ -244,6 +244,13 @@ export async function pushSync(spaces: unknown[], baseRevision: number | null): 
   try {
     const token = await getValidToken();
     if (!token) return { status: "error" };
+    const body = JSON.stringify({ spaces, base_revision: baseRevision });
+    // Match the API's transport ceiling (internal/plan.MaxSyncBodyBytes).
+    // An early server rejection can reset an in-flight upload before fetch
+    // receives the 413. Count UTF-8 bytes, including the JSON envelope.
+    if (new TextEncoder().encode(body).byteLength > 8 * 1024 * 1024) {
+      return { status: "limit", message: "Sync payload is too large. Reduce it to 8 MiB or less." };
+    }
     res = await fetch(`${API_BASE_URL}/api/sync`, {
       method: "PUT",
       headers: {
@@ -251,7 +258,7 @@ export async function pushSync(spaces: unknown[], baseRevision: number | null): 
         "X-Client-ID": await getDeviceId(),
         "Authorization": `Bearer ${token}`,
       },
-      body: JSON.stringify({ spaces, base_revision: baseRevision }),
+      body,
     });
   } catch (_) {
     return { status: "error" };
@@ -263,6 +270,17 @@ export async function pushSync(spaces: unknown[], baseRevision: number | null): 
       status: "conflict",
       revision: typeof body.revision === "number" ? body.revision : (baseRevision ?? 0),
       spaces: Array.isArray(body.spaces) ? body.spaces : [],
+    };
+  }
+  if (res.status === 413) {
+    // Transport/ingress limits are terminal for this payload, just like plan
+    // limits. Proxies may return HTML instead of the API's structured JSON.
+    const body = (await res.json().catch(() => ({}))) ?? {};
+    return {
+      status: "limit",
+      message: typeof body.error === "string" && body.error.trim()
+        ? body.error
+        : "Sync payload is too large for the server. Reduce the workspace size and try again.",
     };
   }
   if (res.status === 403) {

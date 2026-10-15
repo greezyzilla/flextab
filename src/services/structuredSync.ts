@@ -64,7 +64,7 @@ export async function syncStructuredSnapshot(
       continue;
     }
     if (result.status === "limit") {
-      // The account is over its plan limit — the server rejected the whole write.
+      // A plan or payload-size limit prevented this write from being accepted.
       // Surface it (the caller notifies the UI) and stop; retrying won't help until
       // the user prunes or their limit is raised.
       await onLimit?.(result.message);
