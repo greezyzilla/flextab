@@ -262,3 +262,12 @@ describe("production background push", () => {
     expect(yjs.decodeSpacesFromStorage(disk[yjs.PERSIST_KEY])).toEqual(a);
   });
 });
+
+it("does not accept raw callback credentials through tabs.onUpdated", async () => {
+  const listener = vi.mocked(chrome.tabs.onUpdated.addListener).mock.calls[0][0];
+  const origin = process.env.PLASMO_PUBLIC_API_URL || "http://localhost:3000";
+  listener(42, { status: "complete" }, { url: `${origin}/auth/success#access_token=attacker&refresh_token=evil&expires_at=9999999999` } as any);
+  for (let i = 0; i < 10; i++) await Promise.resolve();
+  expect(disk.auth_tokens).toBeUndefined();
+  expect(chrome.tabs.remove).not.toHaveBeenCalled();
+});

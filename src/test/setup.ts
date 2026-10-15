@@ -33,6 +33,7 @@ global.chrome = {
     onFocusChanged: { addListener: vi.fn(), removeListener: vi.fn() },
   },
   storage: {
+    session: { get: vi.fn(async () => ({})), set: vi.fn(async () => {}), remove: vi.fn(async () => {}) },
     local: {
       get: vi.fn((keys: string | string[] | Record<string, any> | null, callback?: (items: Record<string, any>) => void) => {
         const result = {};
@@ -79,5 +80,7 @@ global.chrome = {
   runtime: {
     getURL: vi.fn((path: string) => `chrome-extension://test/${path}`),
     id: 'test-extension-id',
+    sendMessage: vi.fn(async () => ({ ok: true })),
+    onMessage: { addListener: vi.fn(), removeListener: vi.fn() },
   },
 } as any;

@@ -1,6 +1,8 @@
+import { toast } from "sonner";
+import { cancelPendingOAuth, OAUTH_START } from "~src/services/oauthLogin";
 import { withSyncWriteLock } from "~src/services/syncPolicy";
 import { create } from "zustand";
-import { loadTokens, saveTokens, clearTokens, apiFetch, getAuthUrl, getOAuthUrl, apiRegister, apiLogin, apiLogout, ApiError } from "~src/services/api";
+import { loadTokens, saveTokens, clearTokens, apiFetch, apiRegister, apiLogin, apiLogout, ApiError } from "~src/services/api";
 import { clearState } from "~src/lib/yjsDoc";
 import { resetYjsHydration } from "~src/store/useSavedSpacesStore";
 import { clearStoredRevision } from "~src/services/revision";
@@ -52,13 +54,20 @@ interface AuthState {
 
   initialize: () => Promise<void>;
   continueAsGuest: () => Promise<void>;
-  loginWithGoogle: () => void;
-  loginWithGithub: () => void;
+  loginWithGoogle: () => Promise<void>;
+  loginWithGithub: () => Promise<void>;
   loginWithEmail: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
-  handleAuthCallback: (tokens: TokenData) => Promise<void>;
+  handleAuthCallback: (tokens: TokenData, alreadyStored?: boolean) => Promise<void>;
   logout: (confirmation: { discardLocalData: true }) => Promise<void>;
   fetchUser: () => Promise<void>;
+}
+
+async function requestOAuthLogin(provider: "google" | "github"): Promise<void> {
+  try {
+    const result = await chrome.runtime.sendMessage({ type: OAUTH_START, provider });
+    if (!result?.ok) throw new Error("Sign-in could not start. Please try again.");
+  } catch (_) { toast.error("Sign-in could not start. Please try again."); }
 }
 
 export const useAuthStore = create<AuthState>()((set, get) => ({
@@ -94,13 +103,9 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     set({ guestMode: true });
   },
 
-  loginWithGoogle: () => {
-    chrome.tabs.create({ url: getAuthUrl() });
-  },
+  loginWithGoogle: () => requestOAuthLogin("google"),
 
-  loginWithGithub: () => {
-    chrome.tabs.create({ url: getOAuthUrl("github") });
-  },
+  loginWithGithub: () => requestOAuthLogin("github"),
 
   loginWithEmail: async (email: string, password: string) => {
     const tokens = await apiLogin(email, password);
@@ -112,18 +117,26 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     await get().handleAuthCallback(tokens);
   },
 
-  handleAuthCallback: async (tokens: TokenData) => {
-    await saveTokens(tokens);
-    await persistGuestMode(false);
-    // Keep local data (it may be guest work to reconcile). Mark this as an
-    // explicit login so the sync engine pulls the account and, if BOTH local and
-    // the account have real tabs, asks the user how to resolve instead of
-    // overwriting. Clear per-account sync state so it re-seeds for this account.
-    await clearStoredRevision();
-    try { await chrome.storage.local.set({ [FRESH_LOGIN_KEY]: true }); } catch (_) { /* ok */ }
-    try { await chrome.storage.local.remove(SYNC_HYDRATED_KEY); } catch (_) { /* ok */ }
-    set({ isAuthenticated: true, guestMode: false });
-    await get().fetchUser();
+  handleAuthCallback: async (tokens: TokenData, alreadyStored = false) => {
+    const accepted = await withSyncWriteLock(async () => {
+      if (alreadyStored) {
+        // A delayed storage event must not write an older session over a newer
+        // email/OAuth login. Reload this context's cache instead of re-saving.
+        const latest = await loadTokens();
+        if (!latest || latest.access_token !== tokens.access_token || latest.refresh_token !== tokens.refresh_token) return false;
+      } else {
+        await cancelPendingOAuth();
+        await saveTokens(tokens);
+      }
+      await persistGuestMode(false);
+      // Preserve guest work for the existing explicit sync reconciliation flow.
+      await clearStoredRevision();
+      try { await chrome.storage.local.set({ [FRESH_LOGIN_KEY]: true }); } catch (_) { /* ok */ }
+      try { await chrome.storage.local.remove(SYNC_HYDRATED_KEY); } catch (_) { /* ok */ }
+      set({ isAuthenticated: true, guestMode: false });
+      return true;
+    });
+    if (accepted) await get().fetchUser();
   },
 
   logout: async (confirmation) => {
@@ -131,6 +144,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     // local data requires the explicit choice from the shared sign-out dialog.
     if (confirmation?.discardLocalData !== true) throw new Error("Confirm local data deletion before signing out");
     await withSyncWriteLock(async () => {
+      await cancelPendingOAuth();
       // Drain an in-flight sync before clearing its revision/receipt and workspace.
       // Revoke the refresh token server-side before dropping it locally.
       await apiLogout();
@@ -163,7 +177,7 @@ if (chrome.storage?.onChanged) {
     if (changes.auth_tokens) {
       const { isAuthenticated } = useAuthStore.getState();
       if (changes.auth_tokens.newValue && !isAuthenticated) {
-        useAuthStore.getState().handleAuthCallback(changes.auth_tokens.newValue);
+        useAuthStore.getState().handleAuthCallback(changes.auth_tokens.newValue, true).catch(() => {});
       } else if (!changes.auth_tokens.newValue && isAuthenticated) {
         useAuthStore.setState({ user: null, isAuthenticated: false });
       }

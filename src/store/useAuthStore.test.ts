@@ -93,9 +93,10 @@ describe('session restore (initialize with tokens)', () => {
 });
 
 describe('login flows', () => {
-  it('loginWithGoogle opens the auth tab', () => {
-    useAuthStore.getState().loginWithGoogle();
-    expect(chrome.tabs.create).toHaveBeenCalledWith({ url: expect.stringContaining('/api/auth/google') });
+  it.each(['Google', 'Github'] as const)('loginWith%s asks the worker to start a correlated attempt', async provider => {
+    await useAuthStore.getState()[`loginWith${provider}`]();
+    expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({ type: 'flextab.oauth.start', provider: provider.toLowerCase() });
+    expect(chrome.tabs.create).not.toHaveBeenCalled();
   });
 
   it('loginWithEmail authenticates and flags a fresh login', async () => {
@@ -136,10 +137,20 @@ describe('chrome.storage.onChanged listener', () => {
   it('runs the callback when a token appears while unauthenticated', async () => {
     useAuthStore.setState({ isAuthenticated: false });
     (global.fetch as any).mockResolvedValue(jsonRes({ id: 'u9', email: '', name: '', avatar: '', provider: '', has_password: false }));
-    await fireChange({ auth_tokens: { newValue: tokens() } });
+    const received = tokens();
+    (chrome.storage.local.get as any).mockResolvedValue({ auth_tokens: received });
+    await fireChange({ auth_tokens: { newValue: received } });
     await new Promise(r => setTimeout(r, 0)); // let the fire-and-forget callback settle
     expect(useAuthStore.getState().isAuthenticated).toBe(true);
   });
+});
+
+it('does not replay a delayed token storage event over a newer session', async () => {
+  const latest = { ...tokens(), access_token: 'newer', refresh_token: 'newer-refresh' };
+  (chrome.storage.local.get as any).mockResolvedValue({ auth_tokens: latest });
+  await useAuthStore.getState().handleAuthCallback(tokens(), true);
+  expect(chrome.storage.local.set).not.toHaveBeenCalled();
+  expect(global.fetch).not.toHaveBeenCalled();
 });
 
 describe('destructive logout authorization', () => {

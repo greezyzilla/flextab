@@ -1,3 +1,4 @@
+import { completeOAuthLogin, registerOAuthMessages } from "~src/services/oauthLogin";
 import { automaticPushAllowed, SETTINGS_KEY, storedAutoSync, withSyncWriteLock } from "~src/services/syncPolicy";
 import { loadTokens, getDeviceId } from "~src/services/api";
 import { syncStructuredSnapshot } from "~src/services/structuredSync";
@@ -44,8 +45,10 @@ chrome.runtime.onInstalled.addListener(() => { void getDeviceId(); });
 void getDeviceId();
 
 // =====================================================================
-// Auth callback — capture tokens from the auth success page
+// Auth callback — complete only a correlated, PKCE-bound login
 // =====================================================================
+
+registerOAuthMessages();
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status !== "complete" || !tab.url) return;
@@ -56,20 +59,8 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
     if (url.origin === baseUrl.origin && url.pathname === AUTH_SUCCESS_PATH && url.hash) {
       const params = new URLSearchParams(url.hash.slice(1));
-      const accessToken = params.get("access_token");
-      const refreshToken = params.get("refresh_token");
-      const expiresAt = params.get("expires_at");
-
-      if (accessToken && refreshToken && expiresAt) {
-        const tokens = {
-          access_token: accessToken,
-          refresh_token: refreshToken,
-          expires_at: Number(expiresAt),
-        };
-
-        chrome.storage.local.set({ auth_tokens: tokens }).then(() => {
-          chrome.tabs.remove(tabId);
-        });
+      if (params.has("code") || params.has("access_token") || params.has("refresh_token")) {
+        void completeOAuthLogin(tabId, tab.url).catch(() => {});
         return;
       }
 
