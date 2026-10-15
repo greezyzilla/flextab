@@ -3,7 +3,7 @@ import { getStoredRevision, setStoredRevision } from "./revision";
 
 const MAX_ATTEMPTS = 4;
 
-export type StructuredSyncResult = "ok" | "skipped" | "error" | "limit";
+export type StructuredSyncResult = "ok" | "skipped" | "error" | "limit" | "paused";
 
 /**
  * Push the structured snapshot to the server with optimistic concurrency, never
@@ -28,6 +28,7 @@ export async function syncStructuredSnapshot(
   mergeOnConflict?: (server: unknown[], local: unknown[]) => unknown[] | null | Promise<unknown[] | null>,
   onPushed?: (spaces: unknown[], revision: number, localAtAttempt: unknown[]) => void | Promise<void>,
   onLimit?: (message: string) => void | Promise<void>,
+  canPush?: () => Promise<boolean>,
 ): Promise<StructuredSyncResult> {
   if (initialSpaces.length === 0) return "skipped";
 
@@ -41,7 +42,9 @@ export async function syncStructuredSnapshot(
   }
 
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-    const result = await pushSync(spaces, base);
+    if (canPush && !await canPush()) return "paused";
+    const result = canPush ? await pushSync(spaces, base, canPush) : await pushSync(spaces, base);
+    if (result.status === "paused") return "paused";
     if (result.status === "ok") {
       // Persist the acknowledgement before advancing the revision. If receipt
       // storage fails, the next attempt must still get a 409 and recover peers.

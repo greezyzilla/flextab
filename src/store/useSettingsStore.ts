@@ -139,3 +139,15 @@ export const useSettingsStore = create<SettingsState>()(
     },
   ),
 );
+
+// Keep the automatic-sync preference consistent across open extension pages.
+// Rehydrate from the current durable record rather than re-saving an old event.
+chrome.storage?.onChanged?.addListener((changes, area) => {
+  if (area !== "local" || !changes["flextab-settings"]?.newValue) return;
+  try {
+    const value = JSON.parse(changes["flextab-settings"].newValue)?.state?.autoSync;
+    if (typeof value === "boolean" && value !== useSettingsStore.getState().autoSync) {
+      void useSettingsStore.persist.rehydrate();
+    }
+  } catch { /* Worker treats malformed settings as paused. */ }
+});

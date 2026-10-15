@@ -68,6 +68,58 @@ async function until(predicate: () => boolean) {
 }
 
 describe("production background push", () => {
+  it("keeps edits local after manual hydration when auto-sync is off, across every trigger", async () => {
+    disk["flextab-settings"] = JSON.stringify({ state: { autoSync: false }, version: 2 });
+    await edit([space("private")]);
+    await vi.advanceTimersByTimeAsync(5000);
+    await vi.mocked(chrome.runtime.onStartup.addListener).mock.calls[0][0]();
+    const alarm = vi.mocked(chrome.alarms.onAlarm.addListener).mock.calls[0][0];
+    alarm({ name: "flextab_push_retry" } as any);
+    await background.pushStructuredData();
+    expect(api.pushSync).not.toHaveBeenCalled();
+    expect(disk.flextab_push_pending).toBe(true);
+    expect(yjs.decodeSpacesFromStorage(disk[yjs.PERSIST_KEY])).toEqual([space("private")]);
+  });
+
+  it("pauses a queued debounce and retains the retry marker", async () => {
+    await edit([space("local")]);
+    await chrome.storage.local.set({ "flextab-settings": JSON.stringify({ state: { autoSync: false } }) });
+    await vi.advanceTimersByTimeAsync(10000);
+    expect(api.pushSync).not.toHaveBeenCalled();
+    expect(disk.flextab_push_pending).toBe(true);
+  });
+
+  it("records an already accepted request but prevents the trailing upload after Off", async () => {
+    const first = deferred<any>();
+    vi.mocked(api.pushSync).mockReturnValueOnce(first.promise);
+    await edit([space("a")]);
+    const run = background.pushStructuredData();
+    await until(() => vi.mocked(api.pushSync).mock.calls.length === 1);
+    await chrome.storage.local.set({ "flextab-settings": JSON.stringify({ state: { autoSync: false } }) });
+    await edit([space("later")]);
+    first.resolve({ status: "ok", revision: 2 });
+    await run;
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(api.pushSync).toHaveBeenCalledTimes(1);
+    expect(disk.flextab_push_pending).toBe(true);
+    expect(yjs.decodeSpacesFromStorage(disk[yjs.PERSIST_KEY])).toEqual([space("later")]);
+    expect(disk.flextab_merge_base).toEqual([space("a")]);
+  });
+
+  it("does not retry a 409 after automatic sync is turned off", async () => {
+    const first = deferred<any>();
+    disk.flextab_merge_base = [space("a")];
+    vi.mocked(api.pushSync).mockReturnValueOnce(first.promise);
+    await edit([space("a")]);
+    const run = background.pushStructuredData();
+    await until(() => vi.mocked(api.pushSync).mock.calls.length === 1);
+    disk["flextab-settings"] = JSON.stringify({ state: { autoSync: false } });
+    first.resolve({ status: "conflict", revision: 2, spaces: [space("a"), space("peer")] });
+    await run;
+    expect(api.pushSync).toHaveBeenCalledTimes(1);
+    expect(disk.flextab_push_pending).toBe(true);
+  });
+
   it("debounces and uploads a page envelope written by the live document", async () => {
     vi.mocked(api.pushSync).mockResolvedValue({ status: "ok", revision: 2 });
     const spaces = [space("page")];
@@ -76,7 +128,7 @@ describe("production background push", () => {
     expect(disk.flextab_push_pending).toBe(true);
     expect(api.pushSync).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(5000);
-    expect(api.pushSync).toHaveBeenCalledWith(spaces, 1);
+    expect(api.pushSync).toHaveBeenCalledWith(spaces, 1, expect.any(Function));
     expect(disk.flextab_push_pending).toBeUndefined();
   });
 
@@ -86,7 +138,7 @@ describe("production background push", () => {
     vi.mocked(api.pushSync).mockResolvedValue({ status: "ok", revision: 2 });
     const startup = vi.mocked(chrome.runtime.onStartup.addListener).mock.calls[0][0];
     await startup();
-    expect(api.pushSync).toHaveBeenCalledWith(spaces, 1);
+    expect(api.pushSync).toHaveBeenCalledWith(spaces, 1, expect.any(Function));
   });
 
   it("retains pending work instead of uploading an invalid envelope as an empty tree", async () => {
@@ -115,7 +167,7 @@ describe("production background push", () => {
     expect(yjs.decodeSpacesFromStorage(disk[yjs.PERSIST_KEY])).toEqual(b);
     expect(disk.flextab_merge_base).toEqual(a);
     expect(disk.flextab_push_pending).toBe(true);
-    expect(api.pushSync).toHaveBeenNthCalledWith(2, b, 2);
+    expect(api.pushSync).toHaveBeenNthCalledWith(2, b, 2, expect.any(Function));
     second.resolve({ status: "ok", revision: 3 });
     await run;
     expect(disk.flextab_merge_base).toEqual(b);
@@ -138,7 +190,7 @@ describe("production background push", () => {
     expect(disk.flextab_push_pending).toBe(true);
     vi.mocked(api.pushSync).mockResolvedValueOnce({ status: "ok", revision: 3 });
     await background.pushStructuredData();
-    expect(api.pushSync).toHaveBeenLastCalledWith(b, 2);
+    expect(api.pushSync).toHaveBeenLastCalledWith(b, 2, expect.any(Function));
     expect(disk.flextab_push_pending).toBeUndefined();
   });
 
@@ -172,7 +224,7 @@ describe("production background push", () => {
       ["a", "edited later"], ["peer", "peer"], ["new", "new"],
     ]);
     expect(disk[landed.LANDED_SNAPSHOT_KEY]).toBeUndefined();
-    expect(api.pushSync).toHaveBeenNthCalledWith(3, yjs.getSpaces(), 3);
+    expect(api.pushSync).toHaveBeenNthCalledWith(3, yjs.getSpaces(), 3, expect.any(Function));
   });
 
   it("keeps a durable retry marker when reading the workspace fails", async () => {

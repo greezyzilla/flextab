@@ -164,6 +164,29 @@ describe('apiFetch', () => {
 });
 
 describe('pushSync', () => {
+  it('does not upload when Off is selected during token refresh', async () => {
+    await saveTokens({ access_token: 'old', refresh_token: 'rt', expires_at: past() });
+    let finish!: (response: Response) => void;
+    (global.fetch as any).mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    let allowed = true;
+    const request = pushSync([{ id: 's' }], 1, async () => allowed);
+    for (let i = 0; i < 20 && !finish; i++) await Promise.resolve();
+    expect(finish).toBeDefined();
+    allowed = false;
+    finish(res({ access_token: 'new', refresh_token: 'rt2', expires_at: future() }));
+    expect(await request).toEqual({ status: 'paused' });
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect((global.fetch as any).mock.calls[0][0]).toContain('/auth/refresh');
+  });
+
+  it('checks automatic-sync permission after awaiting token/device work', async () => {
+    await validToken();
+    const guard = vi.fn(async () => false);
+    expect(await pushSync([{ id: 's' }], 1, guard)).toEqual({ status: 'paused' });
+    expect(guard).toHaveBeenCalledOnce();
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
   it.each([0, 1])('counts the complete UTF-8 body at 8 MiB + %i bytes before upload', async (extra) => {
     await validToken();
     vi.clearAllMocks();

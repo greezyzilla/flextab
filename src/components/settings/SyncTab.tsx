@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { useState, useEffect, useMemo } from "react";
 import { useSettingsStore } from "~src/store/useSettingsStore";
 import { useAuthStore } from "~src/store/useAuthStore";
@@ -47,9 +48,21 @@ export function SyncTab() {
 
   const handleSyncNow = async () => {
     setSyncing(true);
-    await syncNow();
-    setSyncing(false);
-    setDevicesNonce(n => n + 1); // refresh the device list after a manual sync
+    try {
+      const result = await syncNow();
+      switch (result.status) {
+        case "ok": toast.success("Sync completed"); setDevicesNonce(n => n + 1); break;
+        case "offline": toast.error("Could not reach the server. Your changes are saved locally."); break;
+        case "conflict": toast.info("Resolve the sync conflict, then use Sync now again."); break;
+        case "limit": toast.error(result.message); break;
+        case "signed_out": toast.error("Sign in to sync your workspace."); break;
+        default: toast.error("Sync did not complete. Your changes are saved locally. Try again.");
+      }
+    } catch {
+      toast.error("Sync did not complete. Please try again.");
+    } finally {
+      setSyncing(false);
+    }
   };
 
   return (

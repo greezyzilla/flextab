@@ -232,6 +232,7 @@ export type SyncPushResult =
   | { status: "ok"; revision: number }
   | { status: "conflict"; revision: number; spaces: unknown[] }
   | { status: "limit"; message: string }
+  | { status: "paused" }
   | { status: "error" };
 
 /**
@@ -239,7 +240,7 @@ export type SyncPushResult =
  * applies it only if base_revision matches its current revision; otherwise it
  * returns 409 with the up-to-date revision so the caller can reconcile + retry.
  */
-export async function pushSync(spaces: unknown[], baseRevision: number | null): Promise<SyncPushResult> {
+export async function pushSync(spaces: unknown[], baseRevision: number | null, canPush?: () => Promise<boolean>): Promise<SyncPushResult> {
   let res: Response;
   try {
     const token = await getValidToken();
@@ -251,11 +252,15 @@ export async function pushSync(spaces: unknown[], baseRevision: number | null): 
     if (new TextEncoder().encode(body).byteLength > 8 * 1024 * 1024) {
       return { status: "limit", message: "Sync payload is too large. Reduce it to 8 MiB or less." };
     }
+    const deviceId = await getDeviceId();
+    // Recheck after token refresh/device lookup: the user may have paused sync
+    // while those awaited operations were in flight.
+    if (canPush && !await canPush()) return { status: "paused" };
     res = await fetch(`${API_BASE_URL}/api/sync`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        "X-Client-ID": await getDeviceId(),
+        "X-Client-ID": deviceId,
         "Authorization": `Bearer ${token}`,
       },
       body,

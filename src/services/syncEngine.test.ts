@@ -1,20 +1,24 @@
+import { useSettingsStore } from "~src/store/useSettingsStore";
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+const authListeners = vi.hoisted(() => new Set<(state: any, previous: any) => void>());
 
 vi.mock('./api', () => ({
   apiFetch: vi.fn(),
+  pushSync: vi.fn(async () => ({ status: "ok", revision: 2 })),
   loadTokens: vi.fn(async () => ({ access_token: 't', refresh_token: 'r', expires_at: 0 })),
   getDeviceId: vi.fn(async () => 'dev1'),
   API_BASE_URL: 'http://localhost:3000',
 }));
-vi.mock('./revision', () => ({ setStoredRevision: vi.fn(async () => {}) }));
-vi.mock('~src/store/useAuthStore', () => ({ useAuthStore: { getState: vi.fn(() => ({ isAuthenticated: true })), subscribe: vi.fn(() => () => {}) } }));
+vi.mock('./revision', () => ({ setStoredRevision: vi.fn(async () => {}), getStoredRevision: vi.fn(async () => 1) }));
+vi.mock('~src/store/useAuthStore', () => ({ useAuthStore: { getState: vi.fn(() => ({ isAuthenticated: true })), subscribe: vi.fn((fn) => { authListeners.add(fn); return () => authListeners.delete(fn); }) } }));
 vi.mock('~src/store/useSavedSpacesStore', () => ({ ensureDefaultData: vi.fn(), syncActiveSelection: vi.fn() }));
 
 import {
   startSyncEngine, stopSyncEngine, syncNow, pullAndOverwrite, resolveConflict,
   dismissMergeConflicts, startLocalPersistence, stopLocalPersistence,
 } from './syncEngine';
-import { apiFetch, loadTokens } from './api';
+import { apiFetch, loadTokens, pushSync } from './api';
 import { useAuthStore } from '~src/store/useAuthStore';
 import { ensureDefaultData } from '~src/store/useSavedSpacesStore';
 import { useSyncStore } from '~src/store/useSyncStore';
@@ -55,6 +59,7 @@ const localSpace = (id: string, tabs: { id: string }[] = []) => ({
 
 beforeEach(async () => {
   vi.clearAllMocks();
+  useSettingsStore.setState({ autoSync: true });
   (chrome.storage.local.get as any).mockResolvedValue({});
   (chrome.storage.local.set as any).mockResolvedValue(undefined);
   (chrome.storage.local.remove as any).mockResolvedValue(undefined);
@@ -266,6 +271,33 @@ describe('conflict-pending flag', () => {
 });
 
 describe('realtime + lifecycle', () => {
+  it('ignores an automatic pull that finishes after auto-sync is turned off', async () => {
+    setSpaces([localSpace('before')]);
+    let resolve!: (value: any) => void;
+    (apiFetch as any).mockImplementationOnce(() => new Promise(r => { resolve = r; }));
+    const run = startSyncEngine();
+    await flush();
+    useSettingsStore.getState().setAutoSync(false);
+    resolve({ spaces: [beSpace('late', [{ id: 'remote' }])], revision: 9 });
+    await run;
+    expect(getSpaces().map(s => s.id)).toEqual(['before']);
+    expect(FakeWS.instances).toHaveLength(0);
+    expect(useSyncStore.getState().status).toBe('paused');
+    expect(chrome.storage.local.set).not.toHaveBeenCalledWith({ flextab_sync_hydrated: true });
+  });
+
+  it('does not connect a socket if token lookup completes after stopping', async () => {
+    let resolve!: (value: any) => void;
+    (loadTokens as any).mockImplementationOnce(() => new Promise(r => { resolve = r; }));
+    (apiFetch as any).mockResolvedValue({ spaces: [], revision: 1 });
+    await startSyncEngine();
+    useSettingsStore.getState().setAutoSync(false);
+    resolve({ access_token: 'late-token' });
+    await flush();
+    expect(FakeWS.instances).toHaveLength(0);
+    expect(useSyncStore.getState().status).toBe('paused');
+  });
+
   async function connect() {
     (apiFetch as any).mockResolvedValue({ spaces: [], revision: 0 });
     await startSyncEngine();
@@ -333,14 +365,119 @@ describe('realtime + lifecycle', () => {
 });
 
 describe('syncNow', () => {
-  it('returns false when unauthenticated', async () => {
+  it('pulls and pushes once with auto-sync off without opening WS or enabling the worker', async () => {
+    useSettingsStore.setState({ autoSync: false });
+    setSpaces([localSpace('local', [{ id: 't1' }])]);
+    (apiFetch as any).mockResolvedValue({ spaces: [], revision: 1 });
+    (pushSync as any).mockResolvedValue({ status: 'ok', revision: 2 });
+    expect(await syncNow()).toEqual({ status: 'ok' });
+    expect(pushSync).toHaveBeenCalledTimes(1);
+    expect(FakeWS.instances).toHaveLength(0);
+    expect(chrome.storage.local.set).not.toHaveBeenCalledWith({ flextab_sync_hydrated: true });
+    expect(useSettingsStore.getState().autoSync).toBe(false);
+    expect(useSyncStore.getState().status).toBe('paused');
+    expect(useSyncStore.getState().dirty).toBe(false);
+    addSpace(localSpace('later'));
+    await flush();
+    expect(pushSync).toHaveBeenCalledTimes(1);
+    expect(FakeWS.instances).toHaveLength(0);
+  });
+
+  it('discards a manual pull from an account that changed while it was in flight', async () => {
+    useSettingsStore.setState({ autoSync: false });
+    setSpaces([localSpace('local')]);
+    let resolve!: (value: any) => void;
+    (apiFetch as any).mockImplementationOnce(() => new Promise(r => { resolve = r; }));
+    const run = syncNow();
+    await flush();
+    const previous = { isAuthenticated: true, user: { id: 'old' } };
+    const next = { isAuthenticated: true, user: { id: 'new' } };
+    (useAuthStore.getState as any).mockReturnValue(next);
+    authListeners.forEach(fn => fn(next, previous));
+    resolve({ spaces: [beSpace('old-account', [{ id: 'private' }])], revision: 9 });
+    expect(await run).toEqual({ status: 'signed_out' });
+    expect(getSpaces().map(s => s.id)).toEqual(['local']);
+    expect(pushSync).not.toHaveBeenCalled();
+  });
+
+  it('reports offline without enabling retry/realtime or claiming success', async () => {
+    useSettingsStore.setState({ autoSync: false });
+    (apiFetch as any).mockRejectedValue(new Error('offline'));
+    expect(await syncNow()).toEqual({ status: 'offline' });
+    expect(pushSync).not.toHaveBeenCalled();
+    expect(FakeWS.instances).toHaveLength(0);
+    expect(useSyncStore.getState().lastSyncedAt).toBeNull();
+  });
+
+  it.each(['error', 'limit'])('reports a rejected upload as %s and keeps local data dirty', async status => {
+    useSettingsStore.setState({ autoSync: false });
+    setSpaces([localSpace('local', [{ id: 't1' }])]);
+    const local = getSpaces();
+    (apiFetch as any).mockResolvedValue({ spaces: [], revision: 1 });
+    (pushSync as any).mockResolvedValue({ status, message: 'Quota reached' });
+    expect(await syncNow()).toEqual(status === 'limit' ? { status, message: 'Quota reached' } : { status });
+    expect(getSpaces()).toEqual(local);
+    expect(useSyncStore.getState().dirty).toBe(true);
+    expect(useSyncStore.getState().lastSyncedAt).toBeNull();
+    expect(FakeWS.instances).toHaveLength(0);
+  });
+
+  it('reports a fresh-login conflict without uploading guest data', async () => {
+    useSettingsStore.setState({ autoSync: false });
+    setSpaces([localSpace('guest', [{ id: 'g' }])]);
+    (chrome.storage.local.get as any).mockImplementation(async (key: string) => key === 'flextab_fresh_login' ? { flextab_fresh_login: true } : {});
+    (apiFetch as any).mockResolvedValue({ spaces: [beSpace('account', [{ id: 'a' }])], revision: 1 });
+    expect(await syncNow()).toEqual({ status: 'conflict' });
+    expect(pushSync).not.toHaveBeenCalled();
+    expect(getSpaces()[0].id).toBe('guest');
+    expect(useSyncConflict.getState().pending).toBe(true);
+  });
+
+  it('uploads the explicit keep-local choice on the next manual sync instead of asking again', async () => {
+    useSettingsStore.setState({ autoSync: false });
+    setSpaces([localSpace('guest', [{ id: 'g' }])]);
+    const local = getSpaces();
+    (chrome.storage.local.get as any).mockImplementation(async (key: string) => key === 'flextab_fresh_login' ? { flextab_fresh_login: true } : {});
+    (apiFetch as any).mockResolvedValue({ spaces: [beSpace('account', [{ id: 'a' }])], revision: 1 });
+    (pushSync as any).mockResolvedValue({ status: 'ok', revision: 2 });
+    expect(await syncNow()).toEqual({ status: 'conflict' });
+    resolveConflict('local');
+    expect(await syncNow()).toEqual({ status: 'ok' });
+    expect(apiFetch).toHaveBeenCalledTimes(1);
+    expect(pushSync).toHaveBeenCalledWith(local, 1, expect.any(Function));
+    expect(getSpaces()).toEqual(local);
+    expect(FakeWS.instances).toHaveLength(0);
+  });
+
+  it('waits for the upload acknowledgement and preserves edits made during it', async () => {
+    useSettingsStore.setState({ autoSync: false });
+    setSpaces([localSpace('local', [{ id: 't1' }])]);
+    const original = getSpaces();
+    (apiFetch as any).mockResolvedValue({ spaces: [], revision: 1 });
+    let resolve!: (value: any) => void;
+    (pushSync as any).mockImplementationOnce(() => new Promise(r => { resolve = r; }));
+    const run = syncNow();
+    expect(syncNow()).toBe(run);
+    await flush();
+    expect(pushSync).toHaveBeenCalledTimes(1);
+    expect(useSyncStore.getState().lastSyncedAt).toBeNull();
+    addSpace(localSpace('later'));
+    resolve({ status: 'ok', revision: 2 });
+    expect(await run).toEqual({ status: 'ok' });
+    expect(getSpaces().map(s => s.id)).toEqual(['local', 'later']);
+    expect(await getMergeBase()).toEqual(original);
+    expect(useSyncStore.getState().dirty).toBe(true);
+    expect(pushSync).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports signed_out when unauthenticated', async () => {
     (useAuthStore.getState as any).mockReturnValue({ isAuthenticated: false });
-    expect(await syncNow()).toBe(false);
+    expect(await syncNow()).toEqual({ status: "signed_out" });
   });
 
   it('re-pulls when authenticated', async () => {
     (apiFetch as any).mockResolvedValue({ spaces: [], revision: 0 });
-    expect(await syncNow()).toBe(true);
+    expect(await syncNow()).toEqual({ status: "ok" });
     await flush();
     expect(apiFetch).toHaveBeenCalledWith('/api/sync');
   });

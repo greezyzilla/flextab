@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useSettingsStore, HUE_PRESETS } from './useSettingsStore';
 
 beforeEach(() => useSettingsStore.setState({
@@ -27,6 +27,22 @@ describe('useSettingsStore', () => {
     expect(st.hue).toBe(262);
     expect(st.intensity).toBe(50);
     expect(st.autoSync).toBe(false);
+  });
+
+  it("adopts another page's Off preference without writing a stale settings snapshot back", async () => {
+    const read = vi.mocked(chrome.storage.local.get).getMockImplementation()!;
+    const value = JSON.stringify({ state: { autoSync: false, hue: 262 }, version: 2 });
+    vi.mocked(chrome.storage.local.get).mockResolvedValue({ 'flextab-settings': value });
+    vi.mocked(chrome.storage.local.set).mockClear();
+    try {
+      for (const [listener] of vi.mocked(chrome.storage.onChanged.addListener).mock.calls) {
+        listener({ 'flextab-settings': { newValue: value } }, 'local');
+      }
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(useSettingsStore.getState().autoSync).toBe(false);
+      expect(useSettingsStore.getState().hue).toBe(262);
+      expect(chrome.storage.local.set).not.toHaveBeenCalled();
+    } finally { vi.mocked(chrome.storage.local.get).mockImplementation(read); }
   });
 
   it('persists changes through the storage adapter', async () => {

@@ -1,3 +1,4 @@
+import { automaticPushAllowed, SETTINGS_KEY, storedAutoSync, withSyncWriteLock } from "~src/services/syncPolicy";
 import { loadTokens, getDeviceId } from "~src/services/api";
 import { syncStructuredSnapshot } from "~src/services/structuredSync";
 import { merge3 } from "~src/services/spacesMerge3";
@@ -130,7 +131,7 @@ export function pushStructuredData(): Promise<void> {
     try {
       do {
         pushAgain = false;
-        await pushLatestStructuredData();
+        await withSyncWriteLock(pushLatestStructuredData);
       } while (pushAgain);
     } catch (_) {
       // Keep the durable pending flag for the retry alarm on storage/API failure.
@@ -142,15 +143,9 @@ export function pushStructuredData(): Promise<void> {
 }
 
 async function pushLatestStructuredData() {
+  if (!await automaticPushAllowed()) return;
   const tokens = await loadTokens();
   if (!tokens) return;
-  // Don't push until the page has hydrated from the server this session — else
-  // we could overwrite the server with pre-hydration (empty/guest) data.
-  try {
-    const f = await chrome.storage.local.get("flextab_sync_hydrated");
-    if (f["flextab_sync_hydrated"] !== true) return;
-  } catch (_) { return; }
-
   // Hold pushes while a true OCC / merge conflict is unresolved (FE-B3).
   if (await isConflictPending()) return;
   // An OCC result must be rebased in a live page before its merge-base advances.
@@ -190,12 +185,13 @@ async function pushLatestStructuredData() {
     (message) => {
       try { void chrome.storage.local.set({ [LIMIT_NOTICE_KEY]: { message, at: Date.now() } }); } catch (_) { /* ok */ }
     },
+    automaticPushAllowed,
   );
 
-  // "error" → keep PENDING_PUSH for the retry alarm.
+  // "error" / "paused" → keep PENDING_PUSH for a later allowed retry.
   // "ok" / "limit" / "skipped" → clear it: skipped is handled by conflictPending
   // + OCC payload (retrying the same 409 loop would not help until resolve).
-  if (result !== "error" && !pushAgain) {
+  if (result !== "error" && result !== "paused" && !pushAgain && await automaticPushAllowed()) {
     try { await chrome.storage.local.remove(PENDING_PUSH_KEY); } catch (_) { /* ok */ }
   }
 }
@@ -218,6 +214,10 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== "local") return;
+  if (changes[SETTINGS_KEY] && !storedAutoSync(changes[SETTINGS_KEY].newValue)) {
+    if (syncTimer) { clearTimeout(syncTimer); syncTimer = null; }
+    pushAgain = false;
+  }
   if (changes[LANDED_SNAPSHOT_KEY]?.oldValue && !changes[LANDED_SNAPSHOT_KEY]?.newValue) {
     void pushStructuredData();
   }

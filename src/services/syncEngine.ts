@@ -1,3 +1,6 @@
+import { withSyncWriteLock } from "./syncPolicy";
+import { syncStructuredSnapshot } from "./structuredSync";
+import { recordLandedSnapshot } from "./landedSnapshot";
 import { doc, getSpaces, setSpaces, persistState, installExternalPersistBridge } from "~src/lib/yjsDoc";
 import { spacesSignature } from "~src/lib/spacesSignature";
 export { spacesSignature } from "~src/lib/spacesSignature";
@@ -104,8 +107,15 @@ function hasRealData(spaces: SavedSpace[]): boolean {
 // --- hydration gate (read by the background worker before its structured push) ---
 
 let sessionHydrated = false;
+let engineRunning = false;
+let engineGeneration = 0;
+let authGeneration = 0;
+function automaticSyncActive() {
+  return engineRunning && useAuthStore.getState().isAuthenticated && useSettingsStore.getState().autoSync;
+}
 
 function markHydrated() {
+  if (!automaticSyncActive()) return;
   sessionHydrated = true;
   try { void chrome.storage.local.set({ [SYNC_HYDRATED_KEY]: true }); } catch (_) { /* ok */ }
 }
@@ -124,6 +134,14 @@ let pendingLocal: SavedSpace[] | null = null;
 // with unresolved conflicts.
 let pendingMergeBase: SavedSpace[] | null = null;
 let pendingMergeConflicts: Conflict[] | null = null;
+// An explicit resolver choice is ready to PUT against the revision that was
+// shown. Re-pulling first would rediscover the same conflict and undo the choice.
+let manualResolution: Promise<void> | null = null;
+function applyUserResolution(spaces: SavedSpace[], selectFirst = false) {
+  const work = applyResolution(spaces, { selectFirst, serverConfirmed: false });
+  if (!automaticSyncActive()) manualResolution = work;
+  void work.catch(() => { manualResolution = null; setStatus("error"); });
+}
 
 export type Reconciliation =
   | { kind: "conflict" } // guest↔account sign-in (no shared history) → coarse prompt
@@ -185,9 +203,9 @@ export function resolveChoice(choice: "merge" | "server" | "local", server: Save
  * - otherwise leave merge-base alone; background `onStructuredPushLanded` advances
  *   it after a confirmed PUT. `recomputeDirty` then correctly shows unsynced local.
  */
-function applyResolution(
+async function applyResolution(
   spaces: SavedSpace[],
-  opts: { selectFirst?: boolean; serverConfirmed?: boolean } = {},
+  opts: { selectFirst?: boolean; serverConfirmed?: boolean; manual?: boolean } = {},
 ) {
   const { selectFirst = false, serverConfirmed = false } = opts;
   // Only rewrite the doc when the data actually changed; otherwise the rewrite
@@ -197,37 +215,47 @@ function applyResolution(
   if (getSpaces().length === 0) ensureDefaultData();
   // After login, jump to the first space/group; otherwise keep a valid selection.
   if (selectFirst || changed) syncActiveSelection(selectFirst);
-  markHydrated(); // enable the structured push → uploads when local still needs OCC
+  if (!opts.manual) markHydrated(); // enable the structured push → uploads when local still needs OCC
   if (serverConfirmed) {
     // setMergeBase updates its cache after storage completes. Compare against
     // that confirmed base, not the previous one captured before its write.
-    void setMergeBase(spaces).then(() => {
-      markSynced();
-      void recomputeDirty();
-    });
+    await setMergeBase(spaces);
+    markSynced();
+    await recomputeDirty();
   } else {
-    void recomputeDirty();
+    await recomputeDirty();
   }
-  void clearConflictPending(); // resolver finished (or pull overwrite); not the same as push-clean
-  connectWebSocket(); // realtime change-notifier
+  await clearConflictPending(); // resolver finished (or pull overwrite); not the same as push-clean
+  if (!opts.manual) connectWebSocket(); // realtime change-notifier
 }
 
-async function reconcile(freshLogin: boolean): Promise<void> {
+function reconcile(freshLogin: boolean, manual = false) {
+  return manual ? reconcileState(freshLogin, true) : withSyncWriteLock(() => reconcileState(freshLogin, false));
+}
+
+async function reconcileState(freshLogin: boolean, manual: boolean): Promise<"ok" | "offline" | "conflict" | "paused"> {
+  const generation = engineGeneration;
+  const session = authGeneration;
+  const allowed = () => session === authGeneration && useAuthStore.getState().isAuthenticated && (manual || (automaticSyncActive() && generation === engineGeneration));
+  if (!allowed()) return "paused";
   let server: SavedSpace[];
   try {
     const data = await apiFetch<{ spaces: BeSpace[]; revision: number }>("/api/sync");
+    if (!allowed()) return "paused";
     server = mapBeToLocal(data.spaces);
     await setStoredRevision(data.revision);
   } catch (_) {
     // Offline — can't reconcile. Keep local; don't upload (would risk a blind
     // overwrite). Connect so we retry when back online.
+    if (!allowed()) return "paused";
     setStatus("offline");
-    connectWebSocket();
-    return;
+    if (!manual) connectWebSocket();
+    return "offline";
   }
 
-  const local = getSpaces();
   const base = await getMergeBase();
+  if (!allowed()) return "paused";
+  const local = getSpaces();
   const decision = decideReconciliation3(base, server, local, freshLogin);
 
   if (decision.kind === "conflict") {
@@ -235,7 +263,7 @@ async function reconcile(freshLogin: boolean): Promise<void> {
     pendingLocal = local;
     useSyncConflict.getState().open(server, local);
     setStatus("online");
-    return; // wait for resolveConflict()
+    return "conflict"; // wait for resolveConflict()
   }
 
   if (decision.kind === "item-conflict") {
@@ -252,15 +280,17 @@ async function reconcile(freshLogin: boolean): Promise<void> {
       conflicts: decision.conflicts,
     });
     setStatus("online");
-    return; // wait for resolveMergeConflicts()
+    return "conflict"; // wait for resolveMergeConflicts()
   }
 
   // Only treat as server-confirmed when the applied tree is exactly the pull —
   // merged/local-only trees still need a confirmed PUT before merge-base moves.
-  applyResolution(decision.spaces, {
+  await applyResolution(decision.spaces, {
+    manual,
     selectFirst: freshLogin,
     serverConfirmed: spacesSignature(decision.spaces) === spacesSignature(server),
   });
+  return "ok";
 }
 
 /** Resolve a guest↔account conflict with the user's choice. */
@@ -270,7 +300,7 @@ export function resolveConflict(choice: "merge" | "server" | "local") {
   useSyncConflict.getState().close();
   if (!s || !l) return;
   // Jump to first space/group after resolving; always needs push (not server-only GET).
-  applyResolution(resolveChoice(choice, s, l), { selectFirst: true, serverConfirmed: false });
+  applyUserResolution(resolveChoice(choice, s, l), true);
 }
 
 /** Apply the user's per-item choices to a pending 3-way conflict. Re-runs merge3
@@ -282,7 +312,7 @@ export function resolveMergeConflicts(resolutions: Resolutions) {
   useMergeConflict.getState().close();
   if (!s || !l) return;
   const { merged } = merge3(b, s, l, resolutions);
-  applyResolution(merged, { serverConfirmed: false });
+  applyUserResolution(merged);
 }
 
 /** Dismiss the resolver without resolving ("ignore for now"): turn auto-sync OFF
@@ -327,11 +357,12 @@ let wsReconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let wsReconnectDelay = WS_RECONNECT_BASE_MS;
 
 function connectWebSocket() {
-  if (ws) return;
-  if (!useAuthStore.getState().isAuthenticated) return;
+  if (ws || !automaticSyncActive()) return;
+  const generation = engineGeneration;
 
   setStatus("connecting");
   Promise.all([loadTokens(), getDeviceId()]).then(([tokens, did]) => {
+    if (ws || !automaticSyncActive() || generation !== engineGeneration) return;
     if (!tokens) { setStatus("offline"); return; }
 
     // The token rides in the Sec-WebSocket-Protocol header (not the query
@@ -342,9 +373,9 @@ function connectWebSocket() {
     ws = new WebSocket(wsUrl, ["flextab.v1", "flextab.bearer." + tokens.access_token]);
 
     ws.onopen = () => {
+      if (!automaticSyncActive() || generation !== engineGeneration) return;
       wsReconnectDelay = WS_RECONNECT_BASE_MS;
       setStatus("online");
-      markSynced();
       // Reconcile on every (re)connect, not just the pre-hydration case: a device
       // that was offline while another device changed data would otherwise stay
       // stale until it happened to push. The 3-way merge makes this safe (a no-op
@@ -353,6 +384,7 @@ function connectWebSocket() {
     };
 
     ws.onmessage = (event) => {
+      if (!automaticSyncActive() || generation !== engineGeneration) return;
       try {
         const msg = JSON.parse(event.data);
         if (msg.type === "sync" && !pendingServer) {
@@ -360,7 +392,7 @@ function connectWebSocket() {
           if (msg.entity_type === "restore") {
             // Another device restored a version — the server is authoritative;
             // overwrite local so a merge can't resurrect the discarded tree.
-            void pullAndOverwrite();
+            void pullAndOverwrite(true);
           } else if (msg.entity_type === "full") {
             // Another device changed data — re-pull and merge (no conflict prompt).
             void reconcile(false);
@@ -371,7 +403,7 @@ function connectWebSocket() {
 
     ws.onclose = () => {
       ws = null;
-      if (useAuthStore.getState().isAuthenticated) {
+      if (automaticSyncActive() && generation === engineGeneration) {
         setStatus("offline");
         wsReconnectTimer = setTimeout(connectWebSocket, wsReconnectDelay);
         wsReconnectDelay = Math.min(wsReconnectDelay * 2, WS_RECONNECT_MAX_MS);
@@ -379,7 +411,7 @@ function connectWebSocket() {
     };
 
     ws.onerror = () => { ws?.close(); };
-  });
+  }).catch(() => { if (automaticSyncActive()) setStatus("offline"); });
 }
 
 function disconnectWebSocket() {
@@ -441,8 +473,17 @@ export function stopLocalPersistence() {
 // --- Public API ---
 
 export async function startSyncEngine() {
+  const generation = ++engineGeneration;
+  engineRunning = true;
   clearHydrated();
-  if (!useAuthStore.getState().isAuthenticated) return;
+  // Wait for persisted settings before using the default-on UI state.
+  if (!useSettingsStore.persist.hasHydrated()) {
+    await new Promise<void>(resolve => {
+      const unsub = useSettingsStore.persist.onFinishHydration(() => { unsub(); resolve(); });
+    });
+  }
+  const active = () => automaticSyncActive() && generation === engineGeneration;
+  if (!active()) return;
 
   setStatus("connecting");
   // Was this triggered by an explicit login (vs a returning-session restore)?
@@ -454,7 +495,9 @@ export async function startSyncEngine() {
   } catch (_) { /* ok */ }
 
   // Background may have stashed a true OCC conflict while no newtab was open.
+  if (!active()) return;
   if (await adoptStoredOccConflict()) {
+    if (!active()) return;
     markHydrated();
     setStatus("online");
     connectWebSocket();
@@ -463,13 +506,15 @@ export async function startSyncEngine() {
 
   try { await applyPendingLandedSnapshot(); }
   catch (_) { setStatus("error"); return; }
+  if (!active()) return;
   if (await adoptStoredOccConflict()) {
+    if (!active()) return;
     markHydrated();
     setStatus("online");
     connectWebSocket();
     return;
   }
-  await reconcile(fresh);
+  if (active()) await reconcile(fresh);
 }
 
 // Pauses the engine — called on every isAuthenticated/autoSync flip and on
@@ -479,6 +524,9 @@ export async function startSyncEngine() {
 // spurious session drop + re-login doesn't invalidate the 3-way-merge
 // ancestor and manufacture a conflict out of nothing.
 export function stopSyncEngine() {
+  manualResolution = null;
+  engineRunning = false;
+  ++engineGeneration;
   disconnectWebSocket();
   clearHydrated();
   // Torn down with a conflict still unresolved (e.g. auto-sync toggled off from
@@ -492,31 +540,112 @@ export function stopSyncEngine() {
   setStatus("paused");
 }
 
-/** Manual "Sync now": re-pull + reconcile (auto-merge, no prompt). */
-export async function syncNow(): Promise<boolean> {
-  if (!useAuthStore.getState().isAuthenticated) return false;
-  setStatus("syncing");
-  try { await applyPendingLandedSnapshot(); }
-  catch (_) { setStatus("error"); return false; }
-  if (await adoptStoredOccConflict()) return false;
-  await reconcile(false);
-  return true;
+export type ManualSyncResult =
+  | { status: "ok" | "offline" | "conflict" | "error" | "signed_out" }
+  | { status: "limit"; message: string };
+
+let manualFlight: Promise<ManualSyncResult> | null = null;
+
+/** One explicit pull/reconcile/upload. Never enables background or WS sync. */
+export function syncNow(): Promise<ManualSyncResult> {
+  if (manualFlight) return manualFlight;
+  manualFlight = withSyncWriteLock(async (): Promise<ManualSyncResult> => {
+    const session = authGeneration;
+    const authorized = () => session === authGeneration && useAuthStore.getState().isAuthenticated;
+    if (!authorized()) return { status: "signed_out" };
+    setStatus("syncing");
+    try {
+      if (manualResolution) await manualResolution;
+      await applyPendingLandedSnapshot();
+      if (await adoptStoredOccConflict()) { manualResolution = null; return { status: "conflict" }; }
+      const flags = await chrome.storage.local.get(FRESH_LOGIN_KEY);
+      const fresh = flags[FRESH_LOGIN_KEY] === true;
+      if (fresh) await chrome.storage.local.remove(FRESH_LOGIN_KEY);
+      const result = manualResolution ? "ok" : await reconcile(fresh, true);
+      if (result !== "ok") return { status: result === "paused" ? "signed_out" : result };
+      if (!authorized()) return { status: "signed_out" };
+      await persistState();
+      // A server-only pull already completed the operation. Local edits need an
+      // acknowledged PUT; scheduling a worker upload is not a successful sync.
+      const base = await getMergeBase();
+      if (!manualResolution && spacesSignature(getSpaces()) === spacesSignature(base ?? [])) return { status: "ok" };
+      let limitMessage = "Sync limit reached";
+      const pushed = await syncStructuredSnapshot(
+        getSpaces(),
+        async () => getSpaces(),
+        async (server, local) => {
+          const base = await getMergeBase();
+          const { merged, conflicts } = merge3(base, server as SavedSpace[], local as SavedSpace[]);
+          if (conflicts.length) {
+            await saveOccConflictPayload({ base, server: server as SavedSpace[], local: local as SavedSpace[], conflicts }, true);
+            return null;
+          }
+          return merged;
+        },
+        async (spaces, _revision, local) => {
+          if (!authorized()) throw new Error("Session changed during sync");
+          await recordLandedSnapshot(spaces as SavedSpace[], local as SavedSpace[]);
+          await applyPendingLandedSnapshot();
+        },
+        message => { limitMessage = message; },
+        async () => authorized(),
+      );
+      if (await adoptStoredOccConflict()) { manualResolution = null; return { status: "conflict" }; }
+      await recomputeDirty();
+      if (pushed === "ok") { manualResolution = null; markSynced(); return { status: "ok" }; }
+      if (pushed === "limit") return { status: "limit", message: limitMessage };
+      if (pushed === "paused") return { status: "signed_out" };
+      return { status: "error" };
+    } catch {
+      return { status: "error" };
+    }
+  }).then(result => {
+    if (!automaticSyncActive()) setStatus("paused");
+    else if (result.status === "error" || result.status === "limit") setStatus("error");
+    else if (result.status === "offline") setStatus("offline");
+    else setStatus("online");
+    return result;
+  }).finally(() => { manualFlight = null; });
+  return manualFlight;
 }
 
 /** Force-pull the server state and overwrite local — used after a snapshot
  *  restore, where the server is authoritative and a merge would undo the restore. */
-export async function pullAndOverwrite(): Promise<boolean> {
+export function pullAndOverwrite(automatic = false): Promise<boolean> {
+  const generation = engineGeneration;
+  return withSyncWriteLock(() => overwriteFromServer(automatic, generation));
+}
+
+async function overwriteFromServer(automatic: boolean, generation: number): Promise<boolean> {
+  const allowed = () => useAuthStore.getState().isAuthenticated && (!automatic || (automaticSyncActive() && generation === engineGeneration));
+  if (!allowed()) return false;
   if (!useAuthStore.getState().isAuthenticated) return false;
   setStatus("syncing");
   try {
     const data = await apiFetch<{ spaces: BeSpace[]; revision: number }>("/api/sync");
+    if (!allowed()) return false;
     await setStoredRevision(data.revision);
+    if (!allowed()) return false;
     // Restore/overwrite: GET is authoritative — merge-base may advance immediately.
-    applyResolution(mapBeToLocal(data.spaces), { selectFirst: true, serverConfirmed: true });
+    await applyResolution(mapBeToLocal(data.spaces), { selectFirst: true, serverConfirmed: true });
     return true;
   } catch (_) {
+    if (!allowed()) return false;
     setStatus("offline");
     connectWebSocket();
     return false;
+  } finally {
+    if (!automaticSyncActive()) setStatus("paused");
   }
 }
+
+useSettingsStore.subscribe((state, previous) => {
+  if (!state.autoSync && previous.autoSync) stopSyncEngine();
+});
+
+useAuthStore.subscribe((state, previous) => {
+  if (state.isAuthenticated !== previous.isAuthenticated || state.user?.id !== previous.user?.id) {
+    ++authGeneration;
+    manualResolution = null;
+  }
+});
