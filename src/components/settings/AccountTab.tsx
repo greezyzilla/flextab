@@ -121,9 +121,9 @@ export function AccountTab() {
     setPwLoading(true);
     try {
       await apiChangePassword(currentPw, newPw);
-      setPwSuccess('Password updated');
+      setPwSuccess('Password updated. Sign in again to continue.');
       setCurrentPw(''); setNewPw(''); setConfirmPw('');
-      loadIdentities(); // reflects newly-set password (enables unlinking the last provider)
+      loadIdentities(); // Let the API handle the revoked session without clearing local spaces.
     } catch (err: unknown) {
       setPwError(err instanceof Error ? err.message : 'Failed to update password');
     } finally {
@@ -189,7 +189,7 @@ export function AccountTab() {
       {/* Password */}
       <SettingRow
         label={hasPassword ? 'Change password' : 'Set password'}
-        description={hasPassword ? 'Update your account password.' : 'Add a password so you can also sign in with email.'}
+        description={hasPassword ? 'Changing your password signs out all devices.' : 'Add email sign-in. Setting a password signs out all devices.'}
       >
         <form onSubmit={handleChangePassword} className="flex flex-col gap-2.5">
           {!hasPassword && (
