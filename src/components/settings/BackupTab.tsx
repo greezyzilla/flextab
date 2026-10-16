@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect, useMemo, type ChangeEvent } from "react";
 import { ChevronRight } from "lucide-react";
 import { useAuthStore } from "~src/store/useAuthStore";
+import { formatRelativeTime } from "~src/store/useSyncStore";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { apiListSnapshots, apiGetSnapshot, apiRestoreSnapshot, type SnapshotInfo } from "~src/services/snapshots";
 import { pullAndOverwrite } from "~src/services/syncEngine";
