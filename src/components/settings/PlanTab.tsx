@@ -35,7 +35,7 @@ export function PlanTab() {
       window.open(url, '_blank', 'noopener');
     } catch (err) {
       if (err instanceof ApiError && err.status === 503) {
-        setUpgradeError('Upgrades aren’t available yet during the beta.');
+        setUpgradeError('Upgrades are currently unavailable. Please try again later.');
       } else if (err instanceof ApiError && err.status === 409) {
         setUpgradeError('This account already has an active subscription.');
       } else if (err instanceof ApiError && err.status === 400) {

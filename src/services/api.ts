@@ -419,7 +419,7 @@ export async function apiGetPlan(): Promise<PlanStatus> {
 /**
  * Get a checkout URL for upgrading to the given plan ("plus" or "pro",
  * defaults to "pro" for back-compat). Throws ApiError 503 when billing isn't
- * configured on the server and 409 when already subscribed.
+ * configured or billing state cannot be read, and 409 when already subscribed.
  */
 export async function apiGetCheckoutUrl(plan: "plus" | "pro" = "pro"): Promise<string> {
   const data = await apiFetch<{ url: string }>("/api/billing/checkout", {
