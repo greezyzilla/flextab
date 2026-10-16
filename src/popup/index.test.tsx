@@ -43,6 +43,15 @@ async function openPopup() {
 }
 
 describe("popup durable save without a new-tab or sync engine", () => {
+  it("shows recovery instead of editing controls when workspace storage is corrupt", async () => {
+    disk[yjs.PERSIST_KEY] = [255];
+    render(<Popup />);
+    expect(await screen.findByRole("alert")).toHaveTextContent("Could not load your saved workspace");
+    expect(screen.getByRole("button", { name: "Reload workspace" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Save Current Tab" })).not.toBeInTheDocument();
+    expect(disk[yjs.PERSIST_KEY]).toEqual([255]);
+  });
+
   it("does not acknowledge success until storage resolves; reopens from saved bytes", async () => {
     let finish!: () => void;
     writeWorkspace = items => new Promise<void>(resolve => {

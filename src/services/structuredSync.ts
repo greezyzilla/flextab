@@ -30,12 +30,13 @@ export async function syncStructuredSnapshot(
   onLimit?: (message: string) => void | Promise<void>,
   canPush?: () => Promise<boolean>,
 ): Promise<StructuredSyncResult> {
-  if (initialSpaces.length === 0) return "skipped";
-
   let spaces = initialSpaces;
   let localAtAttempt = initialSpaces;
   let base = await getStoredRevision();
   if (base === null) {
+    // An empty workspace needs a revision from reconciliation/earlier sync.
+    // Fetching only a fresh revision would authorize a blind full deletion.
+    if (spaces.length === 0) return "error";
     base = await fetchSyncRevision();
     if (base === null) return "error"; // offline / not ready — retry on next change
     await setStoredRevision(base);
@@ -63,7 +64,6 @@ export async function syncStructuredSnapshot(
       }
       localAtAttempt = local;
       spaces = merged;
-      if (spaces.length === 0) return "skipped";
       continue;
     }
     if (result.status === "limit") {

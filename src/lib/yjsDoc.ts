@@ -49,17 +49,24 @@ let suppressPersist = false;
 let persistInFlight: Promise<void> | null = null;
 let persistQueued = false;
 
-/** Load Yjs state from chrome.storage. Returns true if state was loaded. */
+/** False means absent, never unreadable. Validate before touching the live doc. */
 export async function loadPersistedState(): Promise<boolean> {
-  try {
-    const result = await chrome.storage.local.get(PERSIST_KEY);
-    const update = readPersistedUpdate(result[PERSIST_KEY]);
-    if (update) {
-      Y.applyUpdate(doc, new Uint8Array(update.data));
-      return true;
+  const result = await chrome.storage.local.get(PERSIST_KEY);
+  if (result[PERSIST_KEY] === undefined) {
+    // Missing workspace with surviving sync history is not a new installation.
+    // Seeding defaults here could turn that history into apparent deletions.
+    for (const key of ["flextab_merge_base", "flextab_sync_revision", "flextab_landed_snapshot"]) {
+      const history = await chrome.storage.local.get(key);
+      if (history[key] !== undefined && history[key] !== null) {
+        throw new Error("Workspace is missing but sync history remains");
+      }
     }
-  } catch (_) { /* storage unavailable */ }
-  return false;
+    return false;
+  }
+  decodeSpacesFromStorage(result[PERSIST_KEY]);
+  const update = readPersistedUpdate(result[PERSIST_KEY])!;
+  Y.applyUpdate(doc, new Uint8Array(update.data));
+  return true;
 }
 
 async function writePersistSnapshot(): Promise<void> {

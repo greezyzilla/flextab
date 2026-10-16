@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react"
+import { WorkspaceLoadError } from "~src/components/WorkspaceLoadError"
 import "@fontsource-variable/inter"
 import "../../style.css"
 import { useSavedSpacesStore, useHydrated } from "~src/store/useSavedSpacesStore"
@@ -11,7 +12,7 @@ import {
 } from "~src/services/saveTabsAsGroup"
 
 function IndexPopup() {
-  const hydrated = useHydrated();
+  const { hydrated, error: hydrationError } = useHydrated();
   const { initialize, isAuthenticated, isLoading: authLoading, loginWithGoogle } = useAuthStore();
   const { savedSpaces, activeSpaceId, activeProjectId, activeCategoryId } = useSavedSpacesStore();
   const [saving, setSaving] = useState(false);
@@ -93,6 +94,8 @@ function IndexPopup() {
       setSaving(false);
     }
   };
+
+  if (hydrationError) return <div className="w-72"><WorkspaceLoadError /></div>;
 
   if (authLoading) {
     return (

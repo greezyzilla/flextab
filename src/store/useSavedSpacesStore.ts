@@ -125,11 +125,15 @@ export function syncActiveSelection(forceFirst = false): void {
   useSavedSpacesStore.setState({ savedSpaces: spaces, activeSpaceId, activeProjectId, activeCategoryId });
 }
 
-/** Load persisted Yjs state, then initialize defaults if still empty. */
+/** Seed only an absent workspace; a successfully loaded empty tree is durable. */
 export async function hydrateYjs(): Promise<void> {
   if (yjsHydrated) return;
-  await yjs.loadPersistedState();
-  ensureDefaultData();
+  const loaded = await yjs.loadPersistedState();
+  if (!loaded) {
+    ensureDefaultData();
+    // Mark initialization durably even in a popup without a persistence observer.
+    await yjs.persistState();
+  }
   yjsHydrated = true;
   syncActiveSelection(false);
 }
@@ -341,6 +345,7 @@ yjs.spacesArray.observeDeep(() => {
 // Hydration hook — waits for both Zustand persist AND Yjs state to load
 export const useHydrated = () => {
   const [hydrated, setHydrated] = useState(false);
+  const [error, setError] = useState(false);
   useEffect(() => {
     let cancelled = false;
     async function hydrate() {
@@ -354,8 +359,8 @@ export const useHydrated = () => {
       await hydrateYjs();
       if (!cancelled) setHydrated(true);
     }
-    hydrate();
+    void hydrate().catch(() => { if (!cancelled) setError(true); });
     return () => { cancelled = true; };
   }, []);
-  return hydrated;
+  return { hydrated, error };
 };

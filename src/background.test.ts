@@ -68,6 +68,47 @@ async function until(predicate: () => boolean) {
 }
 
 describe("production background push", () => {
+  it("uploads deletion of the last space and advances the empty merge-base", async () => {
+    disk.flextab_merge_base = [space("last")];
+    yjs.setSpaces([space("last")]);
+    yjs.removeSpace("last");
+    await yjs.persistState();
+    vi.mocked(api.pushSync).mockResolvedValue({ status: "ok", revision: 2 });
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(api.pushSync).toHaveBeenCalledWith([], 1, expect.any(Function));
+    expect(disk.flextab_merge_base).toEqual([]);
+    expect(disk.flextab_sync_revision).toBe(2);
+    expect(yjs.decodeSpacesFromStorage(disk[yjs.PERSIST_KEY])).toEqual([]);
+    expect(disk.flextab_push_pending).toBeUndefined();
+  });
+
+  it.each(["missing", "read failure", "corrupt bytes", "not hydrated", "unknown revision"])("does not upload an empty tree from %s", async reason => {
+    disk[yjs.PERSIST_KEY] = yjs.encodeSpacesAsStorage([]);
+    if (reason === "missing") delete disk[yjs.PERSIST_KEY];
+    if (reason === "corrupt bytes") disk[yjs.PERSIST_KEY] = [255];
+    if (reason === "not hydrated") delete disk.flextab_sync_hydrated;
+    if (reason === "unknown revision") delete disk.flextab_sync_revision;
+    if (reason === "read failure") vi.mocked(chrome.storage.local.get).mockImplementation(async (key: any) => {
+      if (key === yjs.PERSIST_KEY) throw new Error("Storage unavailable");
+      return { [key]: disk[key] };
+    });
+    disk.flextab_push_pending = true;
+    await background.pushStructuredData();
+    expect(api.pushSync).not.toHaveBeenCalled();
+    expect(disk.flextab_push_pending).toBe(true);
+  });
+
+  it("retains an offline empty deletion and retries it on worker startup", async () => {
+    await edit([]);
+    vi.mocked(api.pushSync).mockResolvedValueOnce({ status: "error" });
+    await background.pushStructuredData();
+    expect(disk.flextab_push_pending).toBe(true);
+    vi.mocked(api.pushSync).mockResolvedValueOnce({ status: "ok", revision: 2 });
+    await vi.mocked(chrome.runtime.onStartup.addListener).mock.calls[0][0]();
+    expect(api.pushSync).toHaveBeenLastCalledWith([], 1, expect.any(Function));
+    expect(disk.flextab_push_pending).toBeUndefined();
+  });
+
   it("keeps edits local after manual hydration when auto-sync is off, across every trigger", async () => {
     disk["flextab-settings"] = JSON.stringify({ state: { autoSync: false }, version: 2 });
     await edit([space("private")]);

@@ -124,6 +124,6 @@ describe('useSavedSpacesStore — hydrate', () => {
     await store.hydrateYjs();
     const { result } = renderHook(() => store.useHydrated());
     // eventually true (effect runs async)
-    await vi.waitFor(() => expect(result.current).toBe(true));
+    await vi.waitFor(() => expect(result.current).toEqual({ hydrated: true, error: false }));
   });
 });

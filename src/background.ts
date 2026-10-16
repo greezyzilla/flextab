@@ -106,7 +106,8 @@ async function readLatestSpaces(): Promise<SavedSpace[]> {
   // A failed read is not an empty workspace; retain the retry flag on failure.
   const result = await chrome.storage.local.get(PERSIST_KEY);
   const state = result[PERSIST_KEY];
-  return state === undefined ? [] : extractSpaces(state);
+  if (state === undefined) throw new Error("Workspace has not been persisted");
+  return extractSpaces(state);
 }
 
 // All triggers share one flight. A trailing pass always reads current storage;

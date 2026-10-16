@@ -20,7 +20,7 @@ import {
   loadOccConflictPayload,
   saveOccConflictPayload,
 } from "./conflictState";
-import { ensureDefaultData, syncActiveSelection } from "~src/store/useSavedSpacesStore";
+import { syncActiveSelection } from "~src/store/useSavedSpacesStore";
 import { mergeSpacesGuest } from "./spacesMerge";
 import { spaceTabCount } from "./spacesTree";
 import { merge3, type Conflict, type Resolutions } from "./spacesMerge3";
@@ -212,7 +212,6 @@ async function applyResolution(
   // would persist → push → broadcast → re-pull → push, looping forever.
   const changed = spacesSignature(spaces) !== spacesSignature(getSpaces());
   if (changed) setSpaces(spaces);
-  if (getSpaces().length === 0) ensureDefaultData();
   // After login, jump to the first space/group; otherwise keep a valid selection.
   if (selectFirst || changed) syncActiveSelection(selectFirst);
   if (!opts.manual) markHydrated(); // enable the structured push → uploads when local still needs OCC

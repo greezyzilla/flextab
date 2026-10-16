@@ -137,6 +137,41 @@ beforeEach(() => {
 });
 
 describe("sync integration — data integrity (production merge3 path)", () => {
+  it("last-space deletion reaches the server and another device without resurrection", async () => {
+    be.spaces = [space("last", "Work", [tab("one")])];
+    be.revision = 1;
+    const a = new Device("A");
+    const b = new Device("B");
+    a.reconcile();
+    b.reconcile();
+    a.local = [];
+    expect(await a.push()).toBe("ok");
+    expect(be.spaces).toEqual([]);
+    // B still has the old data and revision: the 409 must merge to empty.
+    expect(await b.push()).toBe("ok");
+    expect(b.local).toEqual([]);
+    b.reconcile();
+    a.reconcile();
+    expect(a.local).toEqual([]);
+    expect(b.local).toEqual([]);
+    expect(be.spaces).toEqual([]);
+  });
+
+  it("empty local deletion conflicts with a concurrent edit instead of wiping it", async () => {
+    be.spaces = [space("last", "Work", [tab("one")])];
+    be.revision = 1;
+    const a = new Device("A");
+    const b = new Device("B");
+    a.reconcile();
+    b.reconcile();
+    a.local = [];
+    b.local[0].name = "Peer edit";
+    expect(await b.push()).toBe("ok");
+    expect(await a.push()).toBe("skipped");
+    expect(be.spaces[0].name).toBe("Peer edit");
+    expect(a.local).toEqual([]);
+  });
+
   it("guest with tabs logs into an account with tabs → merge keeps both", async () => {
     be.spaces = [space("acc", "Account", [tab("x")])];
     be.revision = 1;

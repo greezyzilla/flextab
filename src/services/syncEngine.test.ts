@@ -20,7 +20,6 @@ import {
 } from './syncEngine';
 import { apiFetch, loadTokens, pushSync } from './api';
 import { useAuthStore } from '~src/store/useAuthStore';
-import { ensureDefaultData } from '~src/store/useSavedSpacesStore';
 import { useSyncStore } from '~src/store/useSyncStore';
 import { useSyncConflict } from '~src/store/useSyncConflict';
 import { doc, setSpaces, getSpaces, addSpace, clearState } from '~src/lib/yjsDoc';
@@ -137,12 +136,14 @@ describe('startSyncEngine', () => {
     expect(FakeWS.instances).toHaveLength(0);
   });
 
-  it('reconciles an empty account → default workspace, then connects', async () => {
+  it('preserves an empty account and local tree, then connects', async () => {
     (apiFetch as any).mockResolvedValue({ spaces: [], revision: 0 });
     await startSyncEngine();
     await flush();
     expect(apiFetch).toHaveBeenCalledWith('/api/sync');
-    expect(ensureDefaultData).toHaveBeenCalled();
+    expect(getSpaces()).toEqual([]);
+    expect(await getMergeBase()).toEqual([]);
+    expect(useSyncStore.getState().dirty).toBe(false);
     expect(chrome.storage.local.set).toHaveBeenCalledWith({ flextab_sync_hydrated: true });
     expect(FakeWS.instances).toHaveLength(1);
     FakeWS.instances[0].open();
@@ -365,6 +366,23 @@ describe('realtime + lifecycle', () => {
 });
 
 describe('syncNow', () => {
+  it('uploads deletion of the last space while auto-sync is off', async () => {
+    useSettingsStore.setState({ autoSync: false });
+    const original = localSpace('last', [{ id: 't1' }]);
+    setSpaces([original]);
+    await setMergeBase(getSpaces());
+    setSpaces([]);
+    vi.mocked(apiFetch).mockResolvedValue({ spaces: [beSpace('last', [{ id: 't1' }])], revision: 1 });
+    vi.mocked(pushSync).mockResolvedValue({ status: 'ok', revision: 2 });
+    expect(await syncNow()).toEqual({ status: 'ok' });
+    expect(pushSync).toHaveBeenCalledWith([], 1, expect.any(Function));
+    expect(getSpaces()).toEqual([]);
+    expect(await getMergeBase()).toEqual([]);
+    expect(useSyncStore.getState().dirty).toBe(false);
+    expect(FakeWS.instances).toHaveLength(0);
+    expect(chrome.storage.local.set).not.toHaveBeenCalledWith({ flextab_sync_hydrated: true });
+  });
+
   it('pulls and pushes once with auto-sync off without opening WS or enabling the worker', async () => {
     useSettingsStore.setState({ autoSync: false });
     setSpaces([localSpace('local', [{ id: 't1' }])]);
@@ -484,6 +502,14 @@ describe('syncNow', () => {
 });
 
 describe('pullAndOverwrite (post-restore)', () => {
+  it('preserves an authoritative empty restore', async () => {
+    setSpaces([localSpace('old', [{ id: 't1' }])]);
+    vi.mocked(apiFetch).mockResolvedValue({ spaces: [], revision: 5 });
+    expect(await pullAndOverwrite()).toBe(true);
+    expect(getSpaces()).toEqual([]);
+    expect(await getMergeBase()).toEqual([]);
+    expect(useSyncStore.getState().dirty).toBe(false);
+  });
   it('returns false when unauthenticated', async () => {
     (useAuthStore.getState as any).mockReturnValue({ isAuthenticated: false });
     expect(await pullAndOverwrite()).toBe(false);

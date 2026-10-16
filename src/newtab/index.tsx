@@ -1,4 +1,5 @@
 import { useEffect } from "react"
+import { WorkspaceLoadError } from "~src/components/WorkspaceLoadError"
 import { SyncConflictModal } from "~src/components/SyncConflictModal"
 import { MergeConflictModal } from "~src/components/MergeConflictModal"
 import { OnboardingScreen } from "~src/components/OnboardingScreen"
@@ -24,7 +25,7 @@ function LoadingScreen() {
 }
 
 function NewTabPage() {
-  const hydrated = useHydrated()
+  const { hydrated, error: hydrationError } = useHydrated()
   const { initialize, isAuthenticated, isLoading: authLoading, guestMode } = useAuthStore()
   const autoSync = useSettingsStore((s) => s.autoSync)
   // A previously-authenticated device whose session just dropped (e.g. the
@@ -64,6 +65,7 @@ function NewTabPage() {
     return () => stopSettingsSync()
   }, [isAuthenticated])
 
+  if (hydrationError) return <WorkspaceLoadError />
   if (authLoading) return <LoadingScreen />
   if (!hydrated) return <LoadingScreen />
   if (!isAuthenticated && !guestMode && !hasSavedTabs) return <OnboardingScreen />

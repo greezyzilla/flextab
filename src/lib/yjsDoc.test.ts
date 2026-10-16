@@ -224,9 +224,23 @@ describe('binary state + persistence', () => {
     expect(await y.loadPersistedState()).toBe(false);
   });
 
-  it('loadPersistedState returns false on storage error', async () => {
+  it('loadPersistedState rejects storage errors without changing the live doc', async () => {
+    const before = y.encodeState();
     (chrome.storage.local.get as any).mockRejectedValue(new Error('x'));
-    expect(await y.loadPersistedState()).toBe(false);
+    await expect(y.loadPersistedState()).rejects.toThrow('x');
+    expect(y.encodeState()).toEqual(before);
+  });
+
+  it.each([null, { version: 2, data: [0, 0] }, [255]])('rejects corrupt storage %j without applying it', async value => {
+    const before = y.encodeState();
+    vi.mocked(chrome.storage.local.get).mockResolvedValue({ [y.PERSIST_KEY]: value });
+    await expect(y.loadPersistedState()).rejects.toThrow();
+    expect(y.encodeState()).toEqual(before);
+  });
+
+  it.each(['flextab_merge_base', 'flextab_sync_revision', 'flextab_landed_snapshot'])('rejects absent workspace with surviving %s', async key => {
+    vi.mocked(chrome.storage.local.get).mockImplementation(async requested => requested === key ? { [key]: [] } : {});
+    await expect(y.loadPersistedState()).rejects.toThrow('sync history remains');
   });
 
   it('clearState empties the doc and removes storage', async () => {

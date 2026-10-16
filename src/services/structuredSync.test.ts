@@ -26,10 +26,21 @@ beforeEach(() => {
 });
 
 describe('syncStructuredSnapshot', () => {
-  it('skips an empty snapshot', async () => {
+  it('refuses an empty snapshot without a reconciled revision', async () => {
     const result = await syncStructuredSnapshot([], async () => []);
-    expect(result).toBe('skipped');
+    expect(result).toBe('error');
     expect(pushSync).not.toHaveBeenCalled();
+    expect(fetchSyncRevision).not.toHaveBeenCalled();
+  });
+
+  it('uploads a deliberate empty snapshot and acknowledges its revision', async () => {
+    vi.mocked(getStoredRevision).mockResolvedValue(5);
+    vi.mocked(pushSync).mockResolvedValue({ status: 'ok', revision: 6 });
+    const ack = vi.fn();
+    expect(await syncStructuredSnapshot([], async () => [], undefined, ack)).toBe('ok');
+    expect(pushSync).toHaveBeenCalledWith([], 5);
+    expect(ack).toHaveBeenCalledWith([], 6, []);
+    expect(setStoredRevision).toHaveBeenLastCalledWith(6);
   });
 
   it('seeds base_revision from the server when unknown, then pushes', async () => {
@@ -133,10 +144,13 @@ describe('syncStructuredSnapshot', () => {
     expect(await syncStructuredSnapshot(SPACES, async () => SPACES)).toBe('error');
   });
 
-  it('returns skipped when a conflict re-read yields nothing', async () => {
+  it('uploads a conflict merge that intentionally deletes the last space', async () => {
     (getStoredRevision as any).mockResolvedValue(5);
-    (pushSync as any).mockResolvedValue({ status: 'conflict', revision: 6, spaces: [] });
-    expect(await syncStructuredSnapshot(SPACES, async () => [])).toBe('skipped');
+    vi.mocked(pushSync)
+      .mockResolvedValueOnce({ status: 'conflict', revision: 6, spaces: [] })
+      .mockResolvedValueOnce({ status: 'ok', revision: 7 });
+    expect(await syncStructuredSnapshot(SPACES, async () => [], () => [])).toBe('ok');
+    expect(pushSync).toHaveBeenLastCalledWith([], 6);
   });
 
   it('gives up after bounded retries under sustained contention', async () => {
