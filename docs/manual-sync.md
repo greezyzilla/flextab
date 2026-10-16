@@ -48,6 +48,30 @@ page, using OCC against the revision shown to the user. It does not immediately
 upload or discard the choice by re-pulling the same conflict. Closing/reloading
 the page can require reconciliation again; local data remains persisted.
 
+## Session ownership of queued and pending pulls
+
+Page sync operations capture their authenticated session before waiting for the
+structured-sync lock. Logout/login or a user ID change invalidates that captured
+session, including signing back into the same account. A profile refresh that
+keeps the same user ID and authenticated state does not invalidate it.
+
+Manual sync and restore pulls queued by an older session do not start a request
+under a later session. A restore response arriving after a session change is
+discarded before writing its revision or applying its workspace. Manual sync
+returns `signed_out`, restore pulls return `false`, and stale completion/error
+handlers leave the newer session's sync status alone. Automatic reconciliation
+also captures engine generation before the lock, so restarting the engine does
+not revive a pull queued by the stopped engine. Startup and manual preparation
+recheck ownership after asynchronous reads, before starting the next stage.
+
+The guard uses auth-store transitions observed in this page. It does not partition
+storage by account, cancel a storage write already issued, or retroactively undo
+an HTTP request already sent. Existing Web Locks still serialize participating
+login/logout and sync writers. Token changes not reflected in the auth store,
+worker/account ownership, and invalidation during an already-started local apply
+need their own lifecycle guarantees; this is not a claim of complete account
+isolation across extension contexts.
+
 ## Verification and scope
 
 Regression tests exercise real production worker triggers with simulated Chrome
@@ -57,6 +81,13 @@ and retry alarms, Off during upload/409/token refresh, delayed pull/socket setup
 manual success/offline/limit/error/conflict, conflict continuation, repeated clicks,
 and edits during acknowledgement. Settings tests cover another page's Off update
 without writing an older settings snapshot back.
+
+Session tests defer the structured-sync lock, API response, fresh-login flag
+read, and revision storage separately. They cover account switch, logout/login,
+same-account relogin, signed-out calls queued before login, old request failure,
+automatic engine restart, and a same-session/profile-refresh control. The tests
+use the production sync engine and Yjs document with simulated auth, API, locks,
+and Chrome storage.
 
 These are automated extension-runtime simulations, not a live Chrome/provider or
 production-server E2E run. Before release, load the built MV3 extension, sign in,

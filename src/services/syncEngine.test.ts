@@ -25,6 +25,7 @@ import { useSyncConflict } from '~src/store/useSyncConflict';
 import { doc, setSpaces, getSpaces, addSpace, clearState } from '~src/lib/yjsDoc';
 import { clearMergeBase, getMergeBase, setMergeBase } from './mergeBase';
 import { clearConflictPending } from './conflictState';
+import { setStoredRevision } from './revision';
 
 // --- Fake WebSocket ---
 class FakeWS {
@@ -528,6 +529,174 @@ describe('pullAndOverwrite (post-restore)', () => {
   it('goes offline when the pull fails', async () => {
     (apiFetch as any).mockRejectedValue(new Error('net'));
     expect(await pullAndOverwrite()).toBe(false);
+  });
+});
+
+describe('sync session ownership', () => {
+  function changeSession(id: string | null) {
+    const previous = useAuthStore.getState();
+    const next = { isAuthenticated: id !== null, user: id === null ? null : { id } };
+    vi.mocked(useAuthStore.getState).mockReturnValue(next as any);
+    authListeners.forEach(fn => fn(next, previous));
+  }
+
+  function queueLock() {
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    const request = vi.fn(async (_name: string, work: () => Promise<unknown>) => {
+      await gate;
+      return work();
+    });
+    Object.defineProperty(navigator, 'locks', {
+      value: { request: (name: string, work: () => Promise<unknown>) => name === 'flextab-structured-sync' ? request(name, work) : work() },
+      configurable: true,
+    });
+    return { release, request };
+  }
+
+  beforeEach(async () => {
+    changeSession('account-a');
+    setSpaces([localSpace('current-workspace', [{ id: 'keep' }])]);
+    await setMergeBase(getSpaces());
+    vi.mocked(apiFetch).mockResolvedValue({ spaces: [beSpace('private-account-a', [{ id: 'private' }])], revision: 91 });
+  });
+
+  afterEach(() => { Reflect.deleteProperty(navigator, 'locks'); });
+
+  it.each(['account-switch', 'logout-login', 'same-account-relogin'])(
+    'discards an in-flight restore pull after %s before writing revision or workspace', async transition => {
+      const before = getSpaces();
+      const base = await getMergeBase();
+      let finish!: (value: unknown) => void;
+      vi.mocked(apiFetch).mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+      const run = pullAndOverwrite();
+      await flush();
+      if (transition !== 'account-switch') changeSession(null);
+      changeSession(transition === 'same-account-relogin' ? 'account-a' : 'account-b');
+      useSyncStore.getState().setStatus('error');
+      finish({ spaces: [beSpace('private-account-a', [{ id: 'private' }])], revision: 91 });
+      expect(await run).toBe(false);
+      expect(setStoredRevision).not.toHaveBeenCalled();
+      expect(getSpaces()).toEqual(before);
+      expect(await getMergeBase()).toEqual(base);
+      expect(useSyncStore.getState().lastSyncedAt).toBeNull();
+      expect(useSyncStore.getState().status).toBe('error');
+      expect(FakeWS.instances).toHaveLength(0);
+    },
+  );
+
+  it.each(['manual', 'restore'])(
+    'does not authorize a queued %s operation under a later account', async kind => {
+      const lock = queueLock();
+      const before = getSpaces();
+      const run = kind === 'manual' ? syncNow() : pullAndOverwrite();
+      expect(lock.request).toHaveBeenCalledTimes(1);
+      changeSession('account-b');
+      useSyncStore.getState().setStatus('error');
+      lock.release();
+      expect(await run).toEqual(kind === 'manual' ? { status: 'signed_out' } : false);
+      expect(apiFetch).not.toHaveBeenCalled();
+      expect(pushSync).not.toHaveBeenCalled();
+      expect(setStoredRevision).not.toHaveBeenCalled();
+      expect(getSpaces()).toEqual(before);
+      expect(useSyncStore.getState().status).toBe('error');
+    },
+  );
+
+  it.each(['manual', 'restore'])(
+    'does not authorize a signed-out %s call merely because login completes while queued', async kind => {
+      changeSession(null);
+      const lock = queueLock();
+      const run = kind === 'manual' ? syncNow() : pullAndOverwrite();
+      changeSession('account-b');
+      lock.release();
+      expect(await run).toEqual(kind === 'manual' ? { status: 'signed_out' } : false);
+      expect(apiFetch).not.toHaveBeenCalled();
+      expect(pushSync).not.toHaveBeenCalled();
+    },
+  );
+
+  it('discards an automatic reconciliation queued before the account changed', async () => {
+    const lock = queueLock();
+    const before = getSpaces();
+    const run = startSyncEngine();
+    await vi.waitFor(() => expect(lock.request).toHaveBeenCalledTimes(1));
+    changeSession('account-b');
+    lock.release();
+    await run;
+    expect(apiFetch).not.toHaveBeenCalled();
+    expect(setStoredRevision).not.toHaveBeenCalled();
+    expect(getSpaces()).toEqual(before);
+  });
+
+  it('ignores a stale pull failure without overwriting the new session status', async () => {
+    let fail!: (reason: Error) => void;
+    vi.mocked(apiFetch).mockReturnValueOnce(new Promise((_resolve, reject) => { fail = reject; }));
+    const run = pullAndOverwrite();
+    await flush();
+    changeSession('account-b');
+    useSyncStore.getState().setStatus('error');
+    fail(new Error('old request failed'));
+    expect(await run).toBe(false);
+    expect(useSyncStore.getState().status).toBe('error');
+    expect(FakeWS.instances).toHaveLength(0);
+  });
+
+  it('continues a queued operation when the same session remains current', async () => {
+    const lock = queueLock();
+    const run = pullAndOverwrite();
+    changeSession('account-a'); // A profile refresh for the same user is not a new session.
+    lock.release();
+    expect(await run).toBe(true);
+    expect(getSpaces()[0].id).toBe('private-account-a');
+    expect(setStoredRevision).toHaveBeenCalledWith(91);
+  });
+
+  it.each(['manual', 'automatic'])(
+    'cancels %s sync when the session changes while reading the fresh-login flag', async kind => {
+      let finishFlags!: (value: unknown) => void;
+      let readingFlags = false;
+      vi.mocked(chrome.storage.local.get).mockImplementation(async (key: any) => {
+        if (key !== 'flextab_fresh_login') return {};
+        readingFlags = true;
+        return new Promise(resolve => { finishFlags = resolve; });
+      });
+      const run = kind === 'manual' ? syncNow() : startSyncEngine();
+      await vi.waitFor(() => expect(readingFlags).toBe(true));
+      changeSession('account-b');
+      finishFlags({ flextab_fresh_login: true });
+      await run;
+      expect(apiFetch).not.toHaveBeenCalled();
+      expect(pushSync).not.toHaveBeenCalled();
+      expect(chrome.storage.local.remove).not.toHaveBeenCalledWith('flextab_fresh_login');
+    },
+  );
+
+  it('does not apply a restore response if the session changes while revision storage is pending', async () => {
+    let finishRevision!: () => void;
+    vi.mocked(setStoredRevision).mockReturnValueOnce(new Promise(resolve => { finishRevision = resolve; }));
+    const before = getSpaces();
+    const base = await getMergeBase();
+    const run = pullAndOverwrite();
+    await vi.waitFor(() => expect(setStoredRevision).toHaveBeenCalledWith(91));
+    changeSession('account-b');
+    finishRevision();
+    expect(await run).toBe(false);
+    expect(getSpaces()).toEqual(before);
+    expect(await getMergeBase()).toEqual(base);
+  });
+
+  it('does not revive an old queued reconciliation after the automatic engine restarts', async () => {
+    const lock = queueLock();
+    const oldRun = startSyncEngine();
+    await vi.waitFor(() => expect(lock.request).toHaveBeenCalledTimes(1));
+    stopSyncEngine();
+    const newRun = startSyncEngine();
+    await vi.waitFor(() => expect(lock.request).toHaveBeenCalledTimes(2));
+    lock.release();
+    await Promise.all([oldRun, newRun]);
+    expect(apiFetch).toHaveBeenCalledTimes(1);
+    expect(setStoredRevision).toHaveBeenCalledTimes(1);
   });
 });
 

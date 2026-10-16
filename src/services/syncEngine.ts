@@ -110,6 +110,14 @@ let sessionHydrated = false;
 let engineRunning = false;
 let engineGeneration = 0;
 let authGeneration = 0;
+// Capture before waiting for a lock or I/O. An old request must never acquire
+// authority from a later login, even when it is the same user logging in again.
+function captureSyncSession(): () => boolean {
+  const session = authGeneration;
+  const signedIn = useAuthStore.getState().isAuthenticated;
+  return () => signedIn && session === authGeneration && useAuthStore.getState().isAuthenticated;
+}
+
 function automaticSyncActive() {
   return engineRunning && useAuthStore.getState().isAuthenticated && useSettingsStore.getState().autoSync;
 }
@@ -228,14 +236,13 @@ async function applyResolution(
   if (!opts.manual) connectWebSocket(); // realtime change-notifier
 }
 
-function reconcile(freshLogin: boolean, manual = false) {
-  return manual ? reconcileState(freshLogin, true) : withSyncWriteLock(() => reconcileState(freshLogin, false));
+function reconcile(freshLogin: boolean, manual = false, sameSession = captureSyncSession()) {
+  const generation = engineGeneration;
+  const allowed = () => sameSession() && (manual || (automaticSyncActive() && generation === engineGeneration));
+  return manual ? reconcileState(freshLogin, true, allowed) : withSyncWriteLock(() => reconcileState(freshLogin, false, allowed));
 }
 
-async function reconcileState(freshLogin: boolean, manual: boolean): Promise<"ok" | "offline" | "conflict" | "paused"> {
-  const generation = engineGeneration;
-  const session = authGeneration;
-  const allowed = () => session === authGeneration && useAuthStore.getState().isAuthenticated && (manual || (automaticSyncActive() && generation === engineGeneration));
+async function reconcileState(freshLogin: boolean, manual: boolean, allowed: () => boolean): Promise<"ok" | "offline" | "conflict" | "paused"> {
   if (!allowed()) return "paused";
   let server: SavedSpace[];
   try {
@@ -472,6 +479,7 @@ export function stopLocalPersistence() {
 // --- Public API ---
 
 export async function startSyncEngine() {
+  const sameSession = captureSyncSession();
   const generation = ++engineGeneration;
   engineRunning = true;
   clearHydrated();
@@ -481,7 +489,7 @@ export async function startSyncEngine() {
       const unsub = useSettingsStore.persist.onFinishHydration(() => { unsub(); resolve(); });
     });
   }
-  const active = () => automaticSyncActive() && generation === engineGeneration;
+  const active = () => sameSession() && automaticSyncActive() && generation === engineGeneration;
   if (!active()) return;
 
   setStatus("connecting");
@@ -489,6 +497,7 @@ export async function startSyncEngine() {
   let fresh = false;
   try {
     const f = await chrome.storage.local.get(FRESH_LOGIN_KEY);
+    if (!active()) return;
     fresh = f[FRESH_LOGIN_KEY] === true;
     if (fresh) await chrome.storage.local.remove(FRESH_LOGIN_KEY);
   } catch (_) { /* ok */ }
@@ -504,7 +513,7 @@ export async function startSyncEngine() {
   }
 
   try { await applyPendingLandedSnapshot(); }
-  catch (_) { setStatus("error"); return; }
+  catch (_) { if (active()) setStatus("error"); return; }
   if (!active()) return;
   if (await adoptStoredOccConflict()) {
     if (!active()) return;
@@ -548,25 +557,31 @@ let manualFlight: Promise<ManualSyncResult> | null = null;
 /** One explicit pull/reconcile/upload. Never enables background or WS sync. */
 export function syncNow(): Promise<ManualSyncResult> {
   if (manualFlight) return manualFlight;
+  const authorized = captureSyncSession();
   manualFlight = withSyncWriteLock(async (): Promise<ManualSyncResult> => {
-    const session = authGeneration;
-    const authorized = () => session === authGeneration && useAuthStore.getState().isAuthenticated;
     if (!authorized()) return { status: "signed_out" };
     setStatus("syncing");
     try {
       if (manualResolution) await manualResolution;
+      if (!authorized()) return { status: "signed_out" };
       await applyPendingLandedSnapshot();
+      if (!authorized()) return { status: "signed_out" };
       if (await adoptStoredOccConflict()) { manualResolution = null; return { status: "conflict" }; }
+      if (!authorized()) return { status: "signed_out" };
       const flags = await chrome.storage.local.get(FRESH_LOGIN_KEY);
+      if (!authorized()) return { status: "signed_out" };
       const fresh = flags[FRESH_LOGIN_KEY] === true;
       if (fresh) await chrome.storage.local.remove(FRESH_LOGIN_KEY);
-      const result = manualResolution ? "ok" : await reconcile(fresh, true);
+      if (!authorized()) return { status: "signed_out" };
+      const result = manualResolution ? "ok" : await reconcile(fresh, true, authorized);
       if (result !== "ok") return { status: result === "paused" ? "signed_out" : result };
       if (!authorized()) return { status: "signed_out" };
       await persistState();
+      if (!authorized()) return { status: "signed_out" };
       // A server-only pull already completed the operation. Local edits need an
       // acknowledged PUT; scheduling a worker upload is not a successful sync.
       const base = await getMergeBase();
+      if (!authorized()) return { status: "signed_out" };
       if (!manualResolution && spacesSignature(getSpaces()) === spacesSignature(base ?? [])) return { status: "ok" };
       let limitMessage = "Sync limit reached";
       const pushed = await syncStructuredSnapshot(
@@ -589,8 +604,11 @@ export function syncNow(): Promise<ManualSyncResult> {
         message => { limitMessage = message; },
         async () => authorized(),
       );
+      if (!authorized()) return { status: "signed_out" };
       if (await adoptStoredOccConflict()) { manualResolution = null; return { status: "conflict" }; }
+      if (!authorized()) return { status: "signed_out" };
       await recomputeDirty();
+      if (!authorized()) return { status: "signed_out" };
       if (pushed === "ok") { manualResolution = null; markSynced(); return { status: "ok" }; }
       if (pushed === "limit") return { status: "limit", message: limitMessage };
       if (pushed === "paused") return { status: "signed_out" };
@@ -599,6 +617,7 @@ export function syncNow(): Promise<ManualSyncResult> {
       return { status: "error" };
     }
   }).then(result => {
+    if (!authorized()) return { status: "signed_out" } as ManualSyncResult;
     if (!automaticSyncActive()) setStatus("paused");
     else if (result.status === "error" || result.status === "limit") setStatus("error");
     else if (result.status === "offline") setStatus("offline");
@@ -612,13 +631,13 @@ export function syncNow(): Promise<ManualSyncResult> {
  *  restore, where the server is authoritative and a merge would undo the restore. */
 export function pullAndOverwrite(automatic = false): Promise<boolean> {
   const generation = engineGeneration;
-  return withSyncWriteLock(() => overwriteFromServer(automatic, generation));
+  const sameSession = captureSyncSession();
+  const allowed = () => sameSession() && (!automatic || (automaticSyncActive() && generation === engineGeneration));
+  return withSyncWriteLock(() => overwriteFromServer(allowed));
 }
 
-async function overwriteFromServer(automatic: boolean, generation: number): Promise<boolean> {
-  const allowed = () => useAuthStore.getState().isAuthenticated && (!automatic || (automaticSyncActive() && generation === engineGeneration));
+async function overwriteFromServer(allowed: () => boolean): Promise<boolean> {
   if (!allowed()) return false;
-  if (!useAuthStore.getState().isAuthenticated) return false;
   setStatus("syncing");
   try {
     const data = await apiFetch<{ spaces: BeSpace[]; revision: number }>("/api/sync");
@@ -627,14 +646,14 @@ async function overwriteFromServer(automatic: boolean, generation: number): Prom
     if (!allowed()) return false;
     // Restore/overwrite: GET is authoritative — merge-base may advance immediately.
     await applyResolution(mapBeToLocal(data.spaces), { selectFirst: true, serverConfirmed: true });
-    return true;
+    return allowed();
   } catch (_) {
     if (!allowed()) return false;
     setStatus("offline");
     connectWebSocket();
     return false;
   } finally {
-    if (!automaticSyncActive()) setStatus("paused");
+    if (allowed() && !automaticSyncActive()) setStatus("paused");
   }
 }
 
