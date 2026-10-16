@@ -18,13 +18,15 @@ import { HistoryIcon, DataIcon } from "./icons";
 // version history and manual export/import. (History needs sign-in; export/
 // import works locally too — each section handles its own auth state.)
 export function BackupTab() {
+  // Recovery state belongs to the account whose snapshot was selected.
+  const historyAccount = useAuthStore(s => s.isAuthenticated ? s.user?.id ?? "authenticated" : "signed-out");
   return (
     <div className="flex flex-col gap-9">
       {/* Export/Import first: short & fixed. Version history last: it grows
           unboundedly, so keep it at the bottom instead of pushing everything
           else down. */}
       <DataTab />
-      <HistoryTab />
+      <HistoryTab key={historyAccount} />
     </div>
   );
 }
@@ -141,6 +143,21 @@ function HistoryTab() {
   const [confirming, setConfirming] = useState<number | null>(null);
   const [restoring, setRestoring] = useState(false);
   const [done, setDone] = useState(false);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
+  const [pendingPull, setPendingPull] = useState(false);
+  const inFlight = useRef(false);
+  const active = useRef(true);
+
+  useEffect(() => {
+    active.current = true;
+    return () => { active.current = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!done) return;
+    const timer = setTimeout(() => setDone(false), 2500);
+    return () => clearTimeout(timer);
+  }, [done]);
 
   const load = () => {
     setSnapshots(null);
@@ -164,18 +181,42 @@ function HistoryTab() {
     );
   }
 
-  const handleRestore = async (revision: number) => {
+  // An omitted revision retries only the download after an acknowledged restore.
+  // Never repeat the destructive POST just because its subsequent pull failed.
+  const handleRestore = async (revision?: number) => {
+    if (inFlight.current || (revision !== undefined && pendingPull)) return;
+    if (revision === undefined && !pendingPull) return;
+    inFlight.current = true;
     setRestoring(true);
+    setDone(false);
+    setRestoreError(null);
+    setConfirming(null);
+    setPreviewing(null);
+    let serverRestored = revision === undefined;
+    const pullFailure = "The version was restored on the server, but is not fully loaded on this device. Retry loading the current server workspace before making more changes.";
     try {
-      await apiRestoreSnapshot(revision);
-      await pullAndOverwrite(); // server is authoritative after a restore
+      if (revision !== undefined) await apiRestoreSnapshot(revision);
+      if (!active.current) return;
+      serverRestored = true;
+      setPendingPull(true);
+      const applied = await pullAndOverwrite(); // server is authoritative after a restore
+      if (!active.current) return;
+      if (!applied) {
+        setRestoreError(pullFailure);
+        return;
+      }
+      setPendingPull(false);
       setDone(true);
-      setConfirming(null);
-      setPreviewing(null);
       load();
-      setTimeout(() => setDone(false), 2500);
+    } catch (_) {
+      if (active.current) {
+        setRestoreError(serverRestored
+          ? pullFailure
+          : "Could not confirm the restore. The server may have received it. Check your workspace and version history before trying again.");
+      }
     } finally {
-      setRestoring(false);
+      inFlight.current = false;
+      if (active.current) setRestoring(false);
     }
   };
 
@@ -190,11 +231,18 @@ function HistoryTab() {
           {!failed && snapshots === null && <div className="text-white/30 text-xs font-sans">Loading…</div>}
           {!failed && snapshots?.length === 0 && <div className="text-white/30 text-xs font-sans">No snapshots yet — they appear after your tabs sync.</div>}
           {restoring && <div className="text-white/40 text-xs font-sans">Restoring…</div>}
+          {restoreError && <div role="alert" className="text-red-400 text-xs font-sans">{restoreError}</div>}
+          {pendingPull && (
+            <Button variant="secondary" size="sm" className="self-start" disabled={restoring} onClick={() => { void handleRestore(); }}>
+              Retry loading workspace
+            </Button>
+          )}
           {done && <div className="text-xs font-sans" style={{ color: 'var(--accent)' }}>Restored.</div>}
           {snapshots?.map(s => (
             <SnapshotRow
               key={s.revision}
               snapshot={s}
+              restoreDisabled={restoring || pendingPull}
               onPreview={() => setPreviewing(s.revision)}
               onRestore={() => setConfirming(s.revision)}
             />
@@ -206,6 +254,7 @@ function HistoryTab() {
         <SnapshotPreviewModal
           snapshot={previewingSnap}
           open={previewing !== null}
+          restoreDisabled={restoring || pendingPull}
           onOpenChange={(o) => { if (!o) setPreviewing(null); }}
           onRestore={() => { setPreviewing(null); setConfirming(previewingSnap.revision); }}
         />
@@ -226,10 +275,11 @@ function HistoryTab() {
   );
 }
 
-function SnapshotRow({ snapshot, onPreview, onRestore }: {
+function SnapshotRow({ snapshot, onPreview, onRestore, restoreDisabled }: {
   snapshot: SnapshotInfo;
   onPreview: () => void;
   onRestore: () => void;
+  restoreDisabled: boolean;
 }) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-lg border border-white/[0.08] bg-white/[0.02] px-4 py-3.5">
@@ -246,7 +296,7 @@ function SnapshotRow({ snapshot, onPreview, onRestore }: {
       </div>
       <div className="flex items-center gap-1.5 shrink-0">
         <Button variant="ghost" size="sm" onClick={onPreview}>Preview</Button>
-        <Button variant="ghost" size="sm" onClick={onRestore}>Restore</Button>
+        <Button variant="ghost" size="sm" disabled={restoreDisabled} onClick={onRestore}>Restore</Button>
       </div>
     </div>
   );
@@ -315,11 +365,12 @@ function structureIds(nodes: PNode[]): string[] {
   return ids;
 }
 
-function SnapshotPreviewModal({ snapshot, open, onOpenChange, onRestore }: {
+function SnapshotPreviewModal({ snapshot, open, onOpenChange, onRestore, restoreDisabled }: {
   snapshot: SnapshotInfo;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onRestore: () => void;
+  restoreDisabled: boolean;
 }) {
   const [tree, setTree] = useState<PNode[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -367,7 +418,7 @@ function SnapshotPreviewModal({ snapshot, open, onOpenChange, onRestore }: {
         </div>
 
         <div className="flex justify-end gap-2 p-4 border-t border-black-800 shrink-0">
-          <Button variant="default" size="sm" onClick={onRestore}>Restore this version</Button>
+          <Button variant="default" size="sm" disabled={restoreDisabled} onClick={onRestore}>Restore this version</Button>
         </div>
       </DialogContent>
     </Dialog>

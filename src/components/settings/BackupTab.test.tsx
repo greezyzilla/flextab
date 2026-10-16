@@ -17,7 +17,7 @@ beforeEach(async () => {
   vi.resetAllMocks();
   await yjs.clearState();
   yjs.setSpaces([{ id: "existing", name: "Keep my work", projects: [] }]);
-  useAuthStore.setState({ isAuthenticated: false });
+  useAuthStore.setState({ isAuthenticated: false, user: null });
 });
 
 describe("version history recovery", () => {
@@ -89,6 +89,117 @@ describe("version history recovery", () => {
     expect(apiListSnapshots).toHaveBeenCalledTimes(2);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+  });
+
+  async function confirmRestore() {
+    fireEvent.click(await screen.findByRole("button", { name: "Restore" }));
+    const confirmation = await screen.findByRole("alertdialog");
+    await act(async () => { fireEvent.click(within(confirmation).getByRole("button", { name: "Restore" })); });
+  }
+
+  it.each(["false", "rejection"])("reports a failed local pull (%s) and retries only the pull", async (failure) => {
+    const before = yjs.encodeState();
+    if (failure === "false") vi.mocked(pullAndOverwrite).mockResolvedValueOnce(false);
+    else vi.mocked(pullAndOverwrite).mockRejectedValueOnce(new Error("storage failed"));
+    render(<BackupTab />);
+    await confirmRestore();
+    expect(await screen.findByRole("alert")).toHaveTextContent("not fully loaded on this device");
+    expect(screen.queryByText("Restored.")).not.toBeInTheDocument();
+    expect(yjs.encodeState()).toEqual(before);
+    expect(apiListSnapshots).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: "Restore" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Preview" }));
+    expect(await screen.findByRole("button", { name: "Restore this version" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    fireEvent.click(screen.getByRole("button", { name: "Retry loading workspace" }));
+    expect(await screen.findByText("Restored.")).toBeInTheDocument();
+    expect(apiRestoreSnapshot).toHaveBeenCalledExactlyOnceWith(42);
+    expect(pullAndOverwrite).toHaveBeenCalledTimes(2);
+    expect(apiListSnapshots).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Restore" })).toBeEnabled();
+  });
+
+  it("catches a rejected restore without pulling or claiming the server was restored", async () => {
+    vi.mocked(apiRestoreSnapshot).mockRejectedValueOnce(new Error("network disconnected"));
+    render(<BackupTab />);
+    await confirmRestore();
+    expect(await screen.findByRole("alert")).toHaveTextContent("Could not confirm the restore");
+    expect(pullAndOverwrite).not.toHaveBeenCalled();
+    expect(screen.queryByText("Restored.")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Retry loading workspace" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Restore" })).toBeEnabled();
+  });
+
+  it("blocks overlapping restore and retry requests while either phase is pending", async () => {
+    let finishRestore!: (revision: number) => void;
+    let finishPull!: (applied: boolean) => void;
+    vi.mocked(apiRestoreSnapshot).mockReturnValueOnce(new Promise(resolve => { finishRestore = resolve; }));
+    vi.mocked(pullAndOverwrite).mockResolvedValueOnce(false)
+      .mockReturnValueOnce(new Promise(resolve => { finishPull = resolve; }));
+    render(<BackupTab />);
+    await confirmRestore();
+    const restore = screen.getByRole("button", { name: "Restore" });
+    expect(restore).toBeDisabled();
+    fireEvent.click(restore);
+    expect(apiRestoreSnapshot).toHaveBeenCalledTimes(1);
+    await act(async () => { finishRestore(43); });
+    const retry = await screen.findByRole("button", { name: "Retry loading workspace" });
+    fireEvent.click(retry);
+    expect(retry).toBeDisabled();
+    fireEvent.click(retry);
+    expect(pullAndOverwrite).toHaveBeenCalledTimes(2);
+    await act(async () => { finishPull(false); });
+    expect(retry).toBeEnabled();
+    expect(screen.getByRole("alert")).toHaveTextContent("not fully loaded on this device");
+    expect(screen.queryByText("Restored.")).not.toBeInTheDocument();
+  });
+
+  it("does not start a local overwrite after the backup view is unmounted", async () => {
+    let finishRestore!: (revision: number) => void;
+    vi.mocked(apiRestoreSnapshot).mockReturnValueOnce(new Promise(resolve => { finishRestore = resolve; }));
+    const view = render(<BackupTab />);
+    await confirmRestore();
+    view.unmount();
+    await act(async () => { finishRestore(43); });
+    expect(pullAndOverwrite).not.toHaveBeenCalled();
+  });
+
+  it("clears the pending recovery action on sign out", async () => {
+    vi.mocked(pullAndOverwrite).mockResolvedValueOnce(false);
+    render(<BackupTab />);
+    await confirmRestore();
+    await screen.findByRole("button", { name: "Retry loading workspace" });
+    act(() => useAuthStore.setState({ isAuthenticated: false }));
+    expect(screen.queryByRole("button", { name: "Retry loading workspace" })).not.toBeInTheDocument();
+    act(() => useAuthStore.setState({ isAuthenticated: true }));
+    expect(await screen.findByRole("button", { name: "Restore" })).toBeEnabled();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("does not continue an old account's restore after switching accounts", async () => {
+    const user = { id: "account-a", email: "a@example.test", name: "A", avatar: "", provider: "email", has_password: true };
+    useAuthStore.setState({ user });
+    let finishRestore!: (revision: number) => void;
+    vi.mocked(apiRestoreSnapshot).mockReturnValueOnce(new Promise(resolve => { finishRestore = resolve; }));
+    render(<BackupTab />);
+    await confirmRestore();
+    await act(async () => { useAuthStore.setState({ user: { ...user, id: "account-b" } }); });
+    await act(async () => { finishRestore(43); });
+    expect(pullAndOverwrite).not.toHaveBeenCalled();
+    expect(screen.queryByText("Restored.")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Restore" })).toBeEnabled();
+  });
+
+  it("clears an earlier success when the next restore fails", async () => {
+    render(<BackupTab />);
+    await confirmRestore();
+    expect(await screen.findByText("Restored.")).toBeInTheDocument();
+    vi.mocked(apiRestoreSnapshot).mockRejectedValueOnce(new Error("network disconnected"));
+    await confirmRestore();
+    expect(await screen.findByRole("alert")).toHaveTextContent("Could not confirm the restore");
+    expect(screen.queryByText("Restored.")).not.toBeInTheDocument();
+    expect(pullAndOverwrite).toHaveBeenCalledTimes(1);
   });
 });
 
