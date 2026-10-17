@@ -78,7 +78,7 @@ export function AppShell() {
             {leftInline ? (
               <LeftPanel />
             ) : (
-              <Drawer side="left" open={leftDrawerOpen} onClose={() => setLeftDrawerOpen(false)}>
+              <Drawer id="navigation-drawer" side="left" open={leftDrawerOpen} onClose={() => setLeftDrawerOpen(false)}>
                 <LeftPanel />
               </Drawer>
             )}
@@ -87,13 +87,13 @@ export function AppShell() {
               <div className="h-16 px-3 sm:px-5 flex items-center justify-between gap-2 border-b border-black-800 shrink-0">
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   {!leftInline && (
-                    <IconButton onClick={toggleLeftDrawer} className="h-9 w-9 shrink-0" title="Spaces & navigation" aria-label="Toggle navigation">
+                    <IconButton onClick={toggleLeftDrawer} className="h-9 w-9 shrink-0" title="Spaces & navigation" aria-label="Toggle navigation" aria-haspopup="dialog" aria-expanded={leftDrawerOpen} aria-controls={leftDrawerOpen ? "navigation-drawer" : undefined}>
                       <MenuIcon />
                     </IconButton>
                   )}
                   <SearchBar />
                   {!rightInline && (
-                    <IconButton onClick={toggleRightDrawer} className="h-9 w-9 shrink-0" title="Opened tabs" aria-label="Toggle opened tabs">
+                    <IconButton onClick={toggleRightDrawer} className="h-9 w-9 shrink-0" title="Opened tabs" aria-label="Toggle opened tabs" aria-haspopup="dialog" aria-expanded={rightDrawerOpen} aria-controls={rightDrawerOpen ? "opened-tabs-drawer" : undefined}>
                       <OpenedTabsIcon />
                     </IconButton>
                   )}
@@ -106,7 +106,7 @@ export function AppShell() {
             {rightInline ? (
               <RightPanel />
             ) : (
-              <Drawer side="right" open={rightDrawerOpen} onClose={() => setRightDrawerOpen(false)}>
+              <Drawer id="opened-tabs-drawer" side="right" open={rightDrawerOpen} onClose={() => setRightDrawerOpen(false)}>
                 <RightPanel />
               </Drawer>
             )}

@@ -1,57 +1,50 @@
-import { useEffect } from "react"
+import { useRef } from "react"
+import * as Dialog from "@radix-ui/react-dialog"
+import { X } from "lucide-react"
 
 interface DrawerProps {
+  id?: string
   side: "left" | "right"
   open: boolean
   onClose: () => void
   children: React.ReactNode
 }
 
-/**
- * Slide-in overlay panel used to host the navigation / opened-tabs panels on
- * narrow viewports. Rendered inline in the React tree (not portaled) so that
- * dnd-kit drag sensors keep working across the drawer boundary.
- *
- * The left drawer is offset by the always-visible 64px ProfilePanel so the
- * space switcher stays reachable.
+/** Modal panel for narrow viewports. Content stays inline under the shell's
+ * DndContext; closed panels unmount so their controls cannot receive focus.
+ * Radix manages the focus trap, nested layers, Escape and background isolation.
  */
-export function Drawer({ side, open, onClose, children }: DrawerProps) {
-  // Close on Escape for keyboard users.
-  useEffect(() => {
-    if (!open) return
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose()
-    }
-    document.addEventListener("keydown", handler)
-    return () => document.removeEventListener("keydown", handler)
-  }, [open, onClose])
-
-  const positionClass =
-    side === "left" ? "left-16 border-r" : "right-0 border-l"
-  // Hidden state must clear the viewport edge fully. The left drawer is shifted
-  // right by the 64px (4rem) ProfilePanel, so it has to travel its own width
-  // PLUS that offset to disappear — otherwise a sliver peeks over the profile.
-  const hiddenTransform =
-    side === "left" ? "translate-x-[calc(-100%-4rem)]" : "translate-x-full"
+export function Drawer({ id, side, open, onClose, children }: DrawerProps) {
+  const opener = useRef<HTMLElement | null>(null)
+  const positionClass = side === "left" ? "left-16 border-r w-64" : "right-0 border-l w-80"
 
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        onClick={onClose}
-        aria-hidden
-        className={`fixed inset-0 z-40 bg-[rgba(0,0,0,0.55)] backdrop-blur-[2px] transition-opacity duration-200 ${
-          open ? "opacity-100" : "pointer-events-none opacity-0"
-        }`}
-      />
-      {/* Sliding panel */}
-      <div
-        className={`fixed top-0 ${positionClass} z-50 h-full bg-black-900 border-black-800 shadow-2xl transition-transform duration-200 ease-out ${
-          open ? "translate-x-0" : `${hiddenTransform} pointer-events-none`
-        }`}
+    <Dialog.Root open={open} onOpenChange={next => { if (!next) onClose() }}>
+      <Dialog.Overlay className="fixed inset-0 z-40 bg-[rgba(0,0,0,0.55)] backdrop-blur-[2px]" />
+      <Dialog.Content
+        id={id}
+        aria-modal="true"
+        aria-describedby={undefined}
+        className={`fixed top-0 ${positionClass} z-50 h-full max-w-[calc(100vw-4rem)] flex flex-col bg-black-900 border-black-800 shadow-2xl outline-none`}
+        onOpenAutoFocus={() => {
+          // Triggers live in the shell rather than under this Dialog.Root.
+          opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+        }}
+        onCloseAutoFocus={event => {
+          event.preventDefault()
+          if (opener.current?.isConnected) opener.current.focus()
+        }}
       >
-        {children}
-      </div>
-    </>
+        <div className="h-11 px-3 flex items-center justify-between gap-2 border-b border-black-800 shrink-0">
+          <Dialog.Title className="text-sm text-white/80 font-sans font-medium">
+            {side === "left" ? "Navigation" : "Opened tabs"}
+          </Dialog.Title>
+          <Dialog.Close aria-label="Close panel" className="h-8 w-8 flex items-center justify-center rounded-md text-white/70 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <X className="h-4 w-4" />
+          </Dialog.Close>
+        </div>
+        <div className="min-h-0 flex-1 [&>div]:w-full">{children}</div>
+      </Dialog.Content>
+    </Dialog.Root>
   )
 }
