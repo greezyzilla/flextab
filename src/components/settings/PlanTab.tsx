@@ -131,7 +131,7 @@ export function PlanTab() {
   return (
     <div className="flex flex-col gap-7">
       <SettingRow label="Plan" description="FlexTab is in beta — limits are generous while we're in preview.">
-        <div className="grid grid-cols-3 gap-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
           <PlanCard
             name="Free" price="Free" active={currentPlan === 'free'}
             limits={status?.limits}
@@ -155,7 +155,7 @@ export function PlanTab() {
 
       {billing?.active && (
         <SettingRow label="Billing" description="Your subscription, managed by our payment provider.">
-          <div className="flex items-center justify-between rounded-lg border border-white/[0.08] bg-white/[0.02] px-5 py-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/[0.08] bg-white/[0.02] px-5 py-4">
             <div className="flex flex-col gap-0.5">
               <span className="text-white/70 text-sm font-sans">
                 {billing.status === 'cancelled' && billing.ends_at

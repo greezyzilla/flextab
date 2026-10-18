@@ -48,8 +48,8 @@ export function TransactionsTab() {
             {txns.map((t, i) => (
               <div key={t.id}>
                 {i > 0 && <Separator className="bg-white/[0.06]" />}
-                <div className="flex items-center justify-between px-5 py-3">
-                  <div className="flex flex-col gap-0.5">
+                <div className="flex flex-wrap items-center justify-between gap-2 px-4 sm:px-5 py-3">
+                  <div className="flex flex-col gap-0.5 min-w-0">
                     <span className="text-white/70 text-sm font-sans">
                       {TXN_TYPE_LABEL[t.type] ?? t.type} — {t.plan === "plus" ? "Plus" : "Pro"}
                     </span>

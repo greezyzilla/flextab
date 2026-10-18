@@ -110,7 +110,7 @@ function DataTab() {
         }}
       />
       <SettingRow label="Export" description="Download all your data as a JSON file.">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Button variant="secondary" size="sm" onClick={handleExport}>Export JSON</Button>
           <span className="text-white/25 text-xs font-sans">
             {savedSpaces.length} space{savedSpaces.length !== 1 ? 's' : ''} · {totalTabs} tab{totalTabs !== 1 ? 's' : ''} · {formatSize(dataSize)}
@@ -282,7 +282,7 @@ function SnapshotRow({ snapshot, onPreview, onRestore, restoreDisabled }: {
   restoreDisabled: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border border-white/[0.08] bg-white/[0.02] px-4 py-3.5">
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/[0.08] bg-white/[0.02] px-4 py-3.5">
       <div className="min-w-0 flex flex-col gap-0.5">
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-white/25 text-[11px] font-mono shrink-0">v{snapshot.revision}</span>

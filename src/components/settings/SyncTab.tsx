@@ -68,7 +68,7 @@ export function SyncTab() {
   return (
     <div className="flex flex-col gap-7">
       <SettingRow label="Status" description="Realtime connection with your account.">
-        <Card className="flex items-center justify-between px-5 py-4 shadow-none">
+        <Card className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-5 py-4 shadow-none">
           <div className="flex items-center gap-2.5">
             <span
               className={`w-2 h-2 rounded-full ${meta.pulse ? "animate-pulse" : ""}`}
@@ -128,8 +128,8 @@ export function DevicesSection({ refresh }: { refresh: number }) {
           {!failed && devices === null && <div className="text-white/30 text-xs font-sans">Loading…</div>}
           {!failed && devices?.length === 0 && <div className="text-white/30 text-xs font-sans">No devices recorded yet.</div>}
           {devices?.map(d => (
-            <div key={d.id} className="flex items-center justify-between gap-3 rounded-lg border border-white/[0.08] bg-white/[0.02] px-4 py-3">
-              <div className="flex items-center gap-2 min-w-0">
+            <div key={d.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/[0.08] bg-white/[0.02] px-4 py-3">
+              <div className="flex flex-wrap items-center gap-2 min-w-0 max-w-full">
                 <span className="text-white/75 text-sm font-sans truncate">{d.label}</span>
                 {d.id === thisDeviceId && (
                   <Badge variant="accent" size="sm" className="shrink-0 font-normal">This device</Badge>

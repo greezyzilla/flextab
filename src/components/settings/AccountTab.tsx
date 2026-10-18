@@ -159,7 +159,7 @@ export function AccountTab() {
       {/* Display name */}
       <SettingRow label="Display name" description="Shown across FlexTab. Independent of your provider.">
         <div className="flex items-center gap-2">
-          <Input value={name} onChange={e => setName(e.target.value)} maxLength={100} placeholder="Your name" className="flex-1" />
+          <Input value={name} onChange={e => setName(e.target.value)} maxLength={100} placeholder="Your name" className="flex-1 min-w-0" />
           <Button variant="secondary" size="sm" onClick={handleSaveName} disabled={nameSaving || !name.trim() || name.trim() === user?.name}>
             {nameSaving ? 'Saving…' : nameSaved ? 'Saved' : 'Save'}
           </Button>
@@ -172,8 +172,8 @@ export function AccountTab() {
           {idError && <div className="text-red-400 text-xs font-sans">{idError}</div>}
           {identities === null && <div className="text-white/30 text-xs font-sans">Loading…</div>}
           {identities?.map(id => (
-            <div key={id.provider} className="flex items-center justify-between gap-3 rounded-lg border border-white/[0.08] bg-white/[0.02] px-4 py-3">
-              <div className="flex items-center gap-2 min-w-0">
+            <div key={id.provider} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/[0.08] bg-white/[0.02] px-4 py-3">
+              <div className="flex flex-wrap items-center gap-2 min-w-0 max-w-full">
                 <span className="text-white/75 text-sm font-sans capitalize">{id.provider}</span>
                 {id.email && <span className="text-white/30 text-xs font-sans truncate">{id.email}</span>}
               </div>

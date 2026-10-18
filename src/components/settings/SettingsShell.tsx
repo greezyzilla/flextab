@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { useEffect } from "react"
+import { useEffect, useId } from "react"
 import { useRoute, navigate, goBack } from "~src/lib/route"
 import { SETTINGS_ROUTE, SECTION_LABEL, tabFromRoute, type SettingsTab } from "./types"
 import { AppearanceTab } from "./AppearanceTab"
@@ -24,7 +24,7 @@ const NAV: { id: SettingsTab; icon: ReactNode; label: string }[] = [
 export function SettingsNav() {
   const active = tabFromRoute(useRoute())
   return (
-    <div className="w-64 h-full flex flex-col bg-black-900 shrink-0 font-sans">
+    <div className="hidden md:flex w-64 h-full flex-col bg-black-900 shrink-0 font-sans">
       <div className="h-16 p-4 flex items-end border-b border-black-800 shrink-0">
         <h1 className="text-white/90 font-sans text-2xl">Settings</h1>
       </div>
@@ -65,6 +65,7 @@ function SectionContent({ tab }: { tab: SettingsTab }) {
 /** Main content column — same structure as ContentPanel (header + scroll). */
 export function SettingsContent() {
   const tab = tabFromRoute(useRoute())
+  const sectionSelectId = useId()
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") goBack() }
@@ -73,12 +74,21 @@ export function SettingsContent() {
   }, [])
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden min-h-0">
-      <div className="h-16 px-8 flex items-center border-b border-black-800 shrink-0">
-        <span className="text-white/80 text-sm font-medium font-sans">{SECTION_LABEL[tab]}</span>
+    <div className="flex-1 flex flex-col h-full overflow-hidden min-h-0 min-w-0">
+      <div className="min-h-16 px-4 py-3 sm:px-6 md:px-8 flex flex-col justify-center gap-1.5 border-b border-black-800 shrink-0">
+        <span className="hidden md:block text-white/80 text-sm font-medium font-sans">{SECTION_LABEL[tab]}</span>
+        <label htmlFor={sectionSelectId} className="md:hidden text-white/60 text-xs font-sans">Settings section</label>
+        <select
+          id={sectionSelectId}
+          value={tab}
+          onChange={(event) => navigate(`${SETTINGS_ROUTE}/${event.target.value}`)}
+          className="md:hidden w-full min-w-0 rounded-md border border-white/15 bg-black-900 px-2 py-2 text-sm text-white/90 font-sans focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          {NAV.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
+        </select>
       </div>
-      <div className="flex-1 overflow-y-auto px-8 py-7">
-        <div className="max-w-xl">
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-5 sm:px-6 md:px-8 md:py-7">
+        <div className="max-w-xl min-w-0 break-words">
           <SectionContent tab={tab} />
         </div>
       </div>
