@@ -27,12 +27,14 @@ export function ProfilePanel() {
   const [renaming, setRenaming] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const renameInputRef = useRef<HTMLInputElement>(null);
+  const spaceButtons = useRef(new Map<string, HTMLButtonElement>());
+  const returnRenameFocus = useRef<string | null>(null);
   const inSettings = isSettingsRoute(useRoute());
 
   useEffect(() => {
-    if (renaming && renameInputRef.current) {
-      renameInputRef.current.focus();
-      renameInputRef.current.select();
+    if (!renaming && returnRenameFocus.current) {
+      spaceButtons.current.get(returnRenameFocus.current)?.focus();
+      returnRenameFocus.current = null;
     }
   }, [renaming]);
 
@@ -132,13 +134,14 @@ export function ProfilePanel() {
                   <Input
                     variant="inline"
                     ref={renameInputRef}
+                    aria-label="Space name"
                     type="text"
                     value={renameValue}
                     onChange={e => setRenameValue(e.target.value)}
                     onBlur={handleRenameSubmit}
                     onKeyDown={e => {
-                      if (e.key === "Enter") handleRenameSubmit();
-                      if (e.key === "Escape") setRenaming(null);
+                      if (e.key === "Enter") { e.preventDefault(); returnRenameFocus.current = space.id; handleRenameSubmit(); }
+                      if (e.key === "Escape") { e.preventDefault(); returnRenameFocus.current = space.id; setRenaming(null); }
                     }}
                     className="w-full text-xs"
                   />
@@ -146,9 +149,24 @@ export function ProfilePanel() {
               ) : null}
               <ContextMenu>
               <ContextMenuTrigger asChild>
-              <div
+              <button
+                type="button"
+                ref={node => { if (node) spaceButtons.current.set(space.id, node); else spaceButtons.current.delete(space.id); }}
+                aria-label={`Switch to ${space.name}`}
+                aria-pressed={!inSettings && activeSpaceId === space.id}
+                aria-keyshortcuts="Shift+F10"
+                onKeyDown={(event) => {
+                  if (event.key !== "ContextMenu" && !(event.shiftKey && event.key === "F10")) return;
+                  event.preventDefault();
+                  // Radix positions this menu from a contextmenu event. Some
+                  // browsers do not emit one for the keyboard shortcut.
+                  const rect = event.currentTarget.getBoundingClientRect();
+                  event.currentTarget.dispatchEvent(new MouseEvent("contextmenu", {
+                    bubbles: true, cancelable: true, clientX: rect.right, clientY: rect.top,
+                  }));
+                }}
                 onClick={() => { setActiveSpace(space.id); navigate("/"); }}
-                className={`w-10 h-10 rounded-full cursor-pointer transition-all flex items-center justify-center text-xs font-medium font-sans ${
+                className={`w-10 h-10 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-black-900 cursor-pointer transition-all flex items-center justify-center text-xs font-medium font-sans ${
                   !inSettings && activeSpaceId === space.id ? "ring-2 ring-white/50 text-white/90" : "hover:brightness-125 text-white/70"
                 }`}
                 style={{
@@ -160,9 +178,15 @@ export function ProfilePanel() {
                 title={space.name}
               >
                 {(space.abbreviation || space.name.slice(0, 2)).toUpperCase()}
-              </div>
+              </button>
               </ContextMenuTrigger>
-              <ContextMenuContent side="right">
+              <ContextMenuContent onCloseAutoFocus={event => {
+                if (renaming === space.id && renameInputRef.current) {
+                  event.preventDefault();
+                  renameInputRef.current.focus();
+                  renameInputRef.current.select();
+                }
+              }}>
                 <ContextMenuItem onSelect={() => handleRenameStart(space.id)}>Rename</ContextMenuItem>
                 {(() => {
                   const sorted = [...savedSpaces].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
@@ -184,14 +208,16 @@ export function ProfilePanel() {
         ))}
         <Tooltip>
           <TooltipTrigger asChild>
-            <div
+            <button
+              type="button"
+              aria-label="Add space"
               onClick={handleAddSpace}
-              className="w-10 h-10 rounded-full border border-white/30 border-dashed text-white/50 flex items-center justify-center cursor-pointer hover:border-white/50 hover:text-white/70 transition-colors"
+              className="w-10 h-10 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring border border-white/30 border-dashed text-white/50 flex items-center justify-center cursor-pointer hover:border-white/50 hover:text-white/70 transition-colors"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
               </svg>
-            </div>
+            </button>
           </TooltipTrigger>
           <TooltipContent side="right">Add space</TooltipContent>
         </Tooltip>
@@ -200,9 +226,12 @@ export function ProfilePanel() {
       <div className="flex flex-col gap-2 py-4 items-center">
         <Tooltip>
         <TooltipTrigger asChild>
-        <div
+        <button
+          type="button"
+          aria-label="Settings"
+          aria-pressed={inSettings}
           onClick={() => navigate(SETTINGS_ROUTE)}
-          className={`w-10 h-10 rounded-full cursor-pointer flex items-center justify-center transition-colors ${
+          className={`w-10 h-10 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-black-900 cursor-pointer flex items-center justify-center transition-colors ${
             inSettings ? "bg-black-700 ring-2 ring-white/50" : "bg-black-800 hover:bg-black-700"
           }`}
         >
@@ -210,7 +239,7 @@ export function ProfilePanel() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
           </svg>
-        </div>
+        </button>
         </TooltipTrigger>
         <TooltipContent side="right">Settings</TooltipContent>
         </Tooltip>
@@ -238,15 +267,17 @@ export function ProfilePanel() {
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
-          <div
+          <button
+            type="button"
+            aria-label="Sign in"
             onClick={loginWithGoogle}
-            className="w-10 h-10 rounded-full bg-black-800 hover:bg-black-700 cursor-pointer flex items-center justify-center transition-colors"
+            className="w-10 h-10 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring bg-black-800 hover:bg-black-700 cursor-pointer flex items-center justify-center transition-colors"
             title="Sign in"
           >
             <svg className="w-5 h-5 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
             </svg>
-          </div>
+          </button>
         )}
       </div>
     </div>
