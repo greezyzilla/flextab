@@ -98,5 +98,18 @@
   },
   "overrides": {
     "jiti": "^1.21.7"
+  },
+  "packageManager": "npm@11.9.0",
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "24.14.0",
+      "onFail": "error"
+    },
+    "packageManager": {
+      "name": "npm",
+      "version": "11.9.0",
+      "onFail": "error"
+    }
   }
 }

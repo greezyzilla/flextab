@@ -20,12 +20,13 @@ Runbook for cutting an extension release and uploading the ZIP to the CWS.
 
 ```bash
 # 0. Pre-flight
+#    - nvm install && nvm use, then npm ci (pinned Node/npm)
 #    - working tree clean (npm version requires it — commit other work first)
 #    - on the intended branch
 #    - prod env present: .env.production has PLASMO_PUBLIC_API_URL +
 #      PLASMO_PUBLIC_API_HOST pointing at the REAL backend (not localhost).
 #      build:zip runs scripts/check-env.mjs and fails otherwise.
-npm test                 # green
+npm test -- --run        # green; exits after one run
 npm run release:patch    # bump + commit "release: vX.Y.Z" + tag + build the zip
                          # (use release:minor for feature releases)
 
@@ -39,6 +40,28 @@ review. Each upload is reviewed (hours–days) even for beta. For the invite-onl
 beta keep visibility **Private/Unlisted** + the Google Group of trusted testers.
 
 If CWS rejects the version as not-higher, just run `release:patch` again.
+
+## GitHub manual submission
+
+Configure these repository **Actions variables** (public build configuration):
+
+- `PLASMO_PUBLIC_API_URL`: the deployed backend base URL.
+- `PLASMO_PUBLIC_API_HOST`: the scoped Chrome host match pattern ending in `/*`.
+
+Keep publisher credentials in the existing `SUBMIT_KEYS` **Actions secret**.
+Do not put these credentials in either public variable. Missing API variables
+fail validation; submission has no localhost or CI-fixture fallback.
+
+Run **Submit to Web Store** manually on the intended release commit. Its shared
+verification job selects Node from `.nvmrc`, installs with `npm ci`, runs all
+regression tests, and builds the production ZIP with the supplied API values.
+Only after success does the publish job download that exact artifact and submit
+it. It does not rebuild the extension. Submission runs are serialized and all
+external Actions are pinned to commit SHAs.
+
+PR/main CI uses the same verification job with `api.example.invalid`; those ZIPs
+are build fixtures and must not be uploaded to a store. Typecheck and coverage
+gate repair remains QA-01; these are not currently passing release guarantees.
 
 ## Prerequisites & related docs
 

@@ -1,0 +1,21 @@
+name: Extension CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: extension-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    uses: ./.github/workflows/verify.yml
+    with:
+      # CI artifacts use a non-routable fixture and are never published.
+      # Manual submit requires real repository variables instead.
+      api-url: https://api.example.invalid
+      api-host: https://api.example.invalid/*
