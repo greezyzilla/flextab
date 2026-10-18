@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { toast } from "sonner";
 import { SyncTab } from "./SyncTab";
 import { syncNow } from "~src/services/syncEngine";
@@ -18,6 +19,17 @@ beforeEach(() => {
 });
 
 describe("manual sync feedback", () => {
+  it("names and describes auto-sync and allows keyboard toggling", async () => {
+    const user = userEvent.setup();
+    render(<SyncTab />);
+    const control = screen.getByRole("switch", { name: "Auto-sync" });
+    expect(control).toHaveAccessibleDescription("Keep changes in sync across devices automatically. When off, use “Sync now”.");
+    expect(control).not.toBeChecked();
+    control.focus();
+    await user.keyboard(" ");
+    expect(control).toBeChecked();
+    expect(useSettingsStore.getState().autoSync).toBe(true);
+  });
   it.each([
     [{ status: "ok" }, "success", "Sync completed"],
     [{ status: "offline" }, "error", "Could not reach the server. Your changes are saved locally."],

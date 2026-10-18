@@ -86,10 +86,12 @@ export function SyncTab() {
       </SettingRow>
 
       <SettingRow label="Auto-sync" description="Keep changes in sync across devices automatically. When off, use “Sync now”.">
-        <div className="flex items-center gap-2">
-          <Switch checked={autoSync} onCheckedChange={setAutoSync} />
-          <span className="text-white/60 text-sm font-sans">{autoSync ? 'On' : 'Off'}</span>
-        </div>
+        {(controlProps) => (
+          <div className="flex items-center gap-2">
+            <Switch {...controlProps} checked={autoSync} onCheckedChange={setAutoSync} />
+            <span className="text-white/60 text-sm font-sans">{autoSync ? 'On' : 'Off'}</span>
+          </div>
+        )}
       </SettingRow>
 
       <DevicesSection refresh={devicesNonce} />

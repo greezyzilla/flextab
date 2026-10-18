@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useId, type AriaAttributes, type ReactNode } from "react";
 import { Progress } from "~src/components/ui/progress";
 import { ToggleGroup as ShadcnToggleGroup, ToggleGroupItem } from "~src/components/ui/toggle-group";
 
@@ -84,26 +84,37 @@ export const CONFIRM_POLL_DELAYS = [0, 2000, 3000, 5000, 8000, 12000, 4000];
 // the wide content rows (device/snapshot lists, usage bars, forms) alike — with
 // no floating controls, squished lists, or label/control height mismatch. Rows
 // are separated by the parent's gap.
-export function SettingRow({ label, description, children }: { label: string; description: string; children: ReactNode }) {
+export type SettingControlProps = Pick<AriaAttributes, 'aria-labelledby' | 'aria-describedby'>;
+
+// Render-prop children opt into the row's accessible name and description.
+// Plain content rows keep accepting ReactNode without labelling a container.
+export function SettingRow({ label, description, children }: {
+  label: string;
+  description: string;
+  children: ReactNode | ((props: SettingControlProps) => ReactNode);
+}) {
+  const id = useId();
+  const controlProps = { 'aria-labelledby': `${id}-label`, 'aria-describedby': `${id}-description` };
   return (
     <div className="flex flex-col gap-2.5">
       <div>
-        <div className="text-white/80 font-sans text-sm font-medium">{label}</div>
-        <div className="text-white/35 font-sans text-xs mt-0.5 leading-relaxed">{description}</div>
+        <div id={controlProps['aria-labelledby']} className="text-white/80 font-sans text-sm font-medium">{label}</div>
+        <div id={controlProps['aria-describedby']} className="text-white/35 font-sans text-xs mt-0.5 leading-relaxed">{description}</div>
       </div>
-      {children}
+      {typeof children === 'function' ? children(controlProps) : children}
     </div>
   );
 }
 
 /** Settings segmented control — shadcn ToggleGroup (single). */
-export function ToggleGroup<T extends string>({ value, onChange, options }: {
+export function ToggleGroup<T extends string>({ value, onChange, options, ...controlProps }: {
   value: T;
   onChange: (v: T) => void;
   options: { value: T; label: string; icon?: ReactNode }[];
-}) {
+} & SettingControlProps) {
   return (
     <ShadcnToggleGroup
+      {...controlProps}
       type="single"
       variant="outline"
       size="sm"
