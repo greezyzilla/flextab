@@ -225,7 +225,7 @@ function HistoryTab() {
 
   return (
     <div className="flex flex-col gap-7">
-      <SettingRow label="Version history" description="Each sync saves a version of your workspace. Preview one to see exactly what it holds, then restore to roll your tabs back — your current version stays in history, so a restore is undoable.">
+      <SettingRow label="Version history" description="Preview and restore retained cloud versions. Syncs within 30 minutes can share a version; older versions are removed at your plan’s history limit. Export JSON to keep a separate local backup.">
         <div className="flex flex-col gap-2.5">
           {failed && <div className="text-white/30 text-xs font-sans">Couldn't load history.</div>}
           {!failed && snapshots === null && <div className="text-white/30 text-xs font-sans">Loading…</div>}
@@ -265,7 +265,7 @@ function HistoryTab() {
         onOpenChange={(o) => { if (!o) setConfirming(null); }}
         title={confirmingSnap ? `Restore version v${confirmingSnap.revision}?` : 'Restore version?'}
         message={confirmingSnap
-          ? `This replaces your current tabs with this snapshot from ${formatRelativeTime(new Date(confirmingSnap.created_at).getTime())} (${confirmingSnap.space_count} space${confirmingSnap.space_count !== 1 ? 's' : ''} · ${confirmingSnap.tab_count} tab${confirmingSnap.tab_count !== 1 ? 's' : ''}). Your current version stays in history, so you can undo this.`
+          ? `This replaces your current tabs with this snapshot from ${formatRelativeTime(new Date(confirmingSnap.created_at).getTime())} (${confirmingSnap.space_count} space${confirmingSnap.space_count !== 1 ? 's' : ''} · ${confirmingSnap.tab_count} tab${confirmingSnap.tab_count !== 1 ? 's' : ''}). The current cloud version is saved first and can be restored while it remains in history. Export JSON first to keep any unsynced local changes.`
           : ''}
         confirmLabel="Restore"
         destructive={false}
