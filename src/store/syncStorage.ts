@@ -32,7 +32,7 @@ async function writeChunkedSync(name: string, value: string): Promise<void> {
   }
 
   // Remove stale chunks from previous (possibly larger) writes
-  const existing = await chrome.storage.sync.get(null);
+  const existing = await chrome.storage.sync.get();
   const staleKeys = Object.keys(existing).filter(
     (k) => k.startsWith(`${name}__`) && !(k in data),
   );
@@ -63,7 +63,7 @@ async function readChunkedSync(name: string): Promise<string | null> {
 }
 
 async function removeChunkedSync(name: string): Promise<void> {
-  const all = await chrome.storage.sync.get(null);
+  const all = await chrome.storage.sync.get();
   const keys = Object.keys(all).filter((k) => k.startsWith(`${name}__`));
   if (keys.length > 0) {
     await chrome.storage.sync.remove(keys);

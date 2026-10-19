@@ -96,7 +96,7 @@ describe('apiFetch', () => {
 
   it('non-ok falls back to statusText when body has no error', async () => {
     await validToken();
-    (global.fetch as any).mockResolvedValue({ ok: false, status: 503, statusText: 'Unavailable', json: async () => { throw new Error('no json'); } } as Response);
+    vi.mocked(global.fetch).mockResolvedValue(new Response('not json', { status: 503, statusText: 'Unavailable' }));
     await expect(apiFetch('/x')).rejects.toMatchObject({ message: 'Unavailable' });
   });
 

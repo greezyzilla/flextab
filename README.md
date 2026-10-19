@@ -29,7 +29,8 @@ and [Parcel targets](https://parceljs.org/features/targets/).
 ## Verification and production build
 
 ```bash
-npm test -- --run
+npm run typecheck
+npm run test:coverage -- --run
 # Set both variables to the deployed backend; values enter the public bundle.
 export PLASMO_PUBLIC_API_URL=https://api.example.com
 export PLASMO_PUBLIC_API_HOST='https://api.example.com/*'
@@ -41,11 +42,12 @@ local builds; CI injects them explicitly and does not require an untracked env
 file. Never put secrets in `PLASMO_PUBLIC_*` variables.
 
 PRs and pushes to `main` run the shared verification workflow: pinned runtime,
-`npm ci`, all regression tests, production ZIP build, and artifact upload. CI
+`npm ci`, typecheck, all regression tests with coverage gates, production ZIP
+build, and artifact upload. CI
 uses `api.example.invalid` so its artifact is only for build verification.
 
-Typecheck and coverage thresholds remain open under audit QA-01; a passing CI
-run currently guarantees the steps above, not those additional gates.
+See [the quality gate contract](docs/quality-gates.md) for scope, measured baseline,
+uncovered-code limits, stricter critical-file gates, and remaining test gaps.
 
 For release versions, repository configuration, and manual Web Store submission,
 see [RELEASING.md](RELEASING.md).

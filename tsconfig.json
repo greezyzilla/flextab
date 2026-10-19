@@ -5,8 +5,9 @@
   ],
   "include": [
     ".plasmo/index.d.ts",
-    "./**/*.ts",
-    "./**/*.tsx"
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "*.ts"
   ],
   "compilerOptions": {
     "jsx": "react-jsx",

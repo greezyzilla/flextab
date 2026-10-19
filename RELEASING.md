@@ -26,7 +26,8 @@ Runbook for cutting an extension release and uploading the ZIP to the CWS.
 #    - prod env present: .env.production has PLASMO_PUBLIC_API_URL +
 #      PLASMO_PUBLIC_API_HOST pointing at the REAL backend (not localhost).
 #      build:zip runs scripts/check-env.mjs and fails otherwise.
-npm test -- --run        # green; exits after one run
+npm run typecheck
+npm run test:coverage -- --run  # tests and coverage gates must pass
 npm run release:patch    # bump + commit "release: vX.Y.Z" + tag + build the zip
                          # (use release:minor for feature releases)
 
@@ -53,15 +54,17 @@ Do not put these credentials in either public variable. Missing API variables
 fail validation; submission has no localhost or CI-fixture fallback.
 
 Run **Submit to Web Store** manually on the intended release commit. Its shared
-verification job selects Node from `.nvmrc`, installs with `npm ci`, runs all
-regression tests, and builds the production ZIP with the supplied API values.
+verification job selects Node from `.nvmrc`, installs with `npm ci`, typechecks,
+runs all regression tests with coverage gates, and builds the production ZIP
+with the supplied API values.
 Only after success does the publish job download that exact artifact and submit
 it. It does not rebuild the extension. Submission runs are serialized and all
 external Actions are pinned to commit SHAs.
 
 PR/main CI uses the same verification job with `api.example.invalid`; those ZIPs
-are build fixtures and must not be uploaded to a store. Typecheck and coverage
-gate repair remains QA-01; these are not currently passing release guarantees.
+are build fixtures and must not be uploaded to a store. The
+[quality gate contract](docs/quality-gates.md) records the covered scope, baseline
+and remaining gaps; native extension E2E is not yet a release guarantee.
 
 ## Prerequisites & related docs
 

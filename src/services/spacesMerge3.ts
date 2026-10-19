@@ -186,7 +186,7 @@ function mergeList(
 export function merge3(base: SavedSpace[] | null, server: SavedSpace[], local: SavedSpace[], resolutions: Resolutions = {}): Merge3Result {
   const conflicts: Conflict[] = [];
   const merged = mergeList(
-    base as Node[] | undefined,
+    base as unknown as Node[] | undefined,
     server as unknown as Node[],
     local as unknown as Node[],
     spaceCfg,

@@ -33,8 +33,19 @@ jobs:
           PLASMO_PUBLIC_API_HOST: ${{ inputs.api-host }}
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund
-      - name: Run regression tests
-        run: npm test -- --run
+      - name: Typecheck source, tests, and configuration
+        run: npm run typecheck
+      - name: Run regression tests and coverage gates
+        id: coverage
+        run: npm run test:coverage -- --run
+      - name: Upload coverage report
+        if: ${{ !cancelled() && steps.coverage.outcome != 'skipped' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: extension-coverage
+          path: coverage/
+          if-no-files-found: warn
+          retention-days: 7
       - name: Build production ZIP
         run: npm run build:zip
         env:

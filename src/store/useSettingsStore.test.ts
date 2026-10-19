@@ -32,7 +32,7 @@ describe('useSettingsStore', () => {
   it("adopts another page's Off preference without writing a stale settings snapshot back", async () => {
     const read = vi.mocked(chrome.storage.local.get).getMockImplementation()!;
     const value = JSON.stringify({ state: { autoSync: false, hue: 262 }, version: 2 });
-    vi.mocked(chrome.storage.local.get).mockResolvedValue({ 'flextab-settings': value });
+    vi.mocked(chrome.storage.local.get).mockImplementation(async () => ({ 'flextab-settings': value }));
     vi.mocked(chrome.storage.local.set).mockClear();
     try {
       for (const [listener] of vi.mocked(chrome.storage.onChanged.addListener).mock.calls) {

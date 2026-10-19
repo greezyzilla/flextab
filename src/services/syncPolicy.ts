@@ -25,7 +25,7 @@ export async function automaticPushAllowed(): Promise<boolean> {
 // Manual page sync and automatic worker sync share revision/receipt storage.
 // Chrome Web Locks serialize the whole read/reconcile/write operation across
 // contexts. The fallback supports environments without the browser API.
-export function withSyncWriteLock<T>(work: () => Promise<T>): Promise<T> {
+export async function withSyncWriteLock<T>(work: () => Promise<T>): Promise<T> {
   return globalThis.navigator?.locks
     ? navigator.locks.request("flextab-structured-sync", work)
     : work();

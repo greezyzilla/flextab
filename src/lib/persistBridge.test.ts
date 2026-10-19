@@ -113,9 +113,9 @@ describe("persisted workspace origin", () => {
   });
 
   it("discards a legacy lookup whose storage value no longer matches its event", async () => {
-    vi.mocked(chrome.storage.local.get).mockResolvedValueOnce({
+    vi.mocked(chrome.storage.local.get).mockImplementationOnce(async () => ({
       [y.PERSIST_KEY]: y.encodeSpacesAsStorage([space("later")]), [y.PERSIST_ORIGIN_KEY]: "page",
-    });
+    }));
     await legacySnapshot("old");
     expect(y.getSpaces()).toEqual([]);
   });

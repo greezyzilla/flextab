@@ -25,13 +25,13 @@ describe("settings fieldMerge (field-level 3-way)", () => {
 
   it("adopts a field the other device changed (local untouched)", () => {
     const local = { ...base }; // this device didn't touch density
-    const remote = { ...base, density: "compact" }; // another device changed it
+    const remote = { ...base, density: "compact" as const }; // another device changed it
     expect(fieldMerge(base, remote, local).density).toBe("compact");
   });
 
   it("no clobber: local hue + remote density both survive", () => {
     const local = { ...base, hue: 30 };
-    const remote = { ...base, density: "compact" };
+    const remote = { ...base, density: "compact" as const };
     const merged = fieldMerge(base, remote, local);
     expect(merged.hue).toBe(30);
     expect(merged.density).toBe("compact");
@@ -39,7 +39,7 @@ describe("settings fieldMerge (field-level 3-way)", () => {
 
   it("null base → treat every field as locally changed (keep local)", () => {
     const local = { ...base, hue: 30 };
-    const remote = { ...base, hue: 200, density: "compact" };
+    const remote = { ...base, hue: 200, density: "compact" as const };
     const merged = fieldMerge(null, remote, local);
     expect(merged.hue).toBe(30);
     expect(merged.density).toBe("cozy"); // local value kept, not remote's
@@ -47,7 +47,7 @@ describe("settings fieldMerge (field-level 3-way)", () => {
 
   it("ignores remote fields that are undefined", () => {
     const local = { ...base };
-    const remote = { hue: 200 } as any; // partial payload
+    const remote = { hue: 200 }; // partial payload
     const merged = fieldMerge(base, remote, local);
     expect(merged.hue).toBe(200); // local unchanged → adopt remote
     expect(merged.autoSync).toBe(true); // absent remote field → keep local

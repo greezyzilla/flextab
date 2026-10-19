@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import * as y from './yjsDoc';
+import type * as Y from 'yjs';
 import type { SavedSpace } from '~src/types';
 
 const tab = (id: string) => ({ id, url: 'u' + id, title: id, favicon: '', order: 0 });
@@ -233,7 +234,7 @@ describe('binary state + persistence', () => {
 
   it.each([null, { version: 2, data: [0, 0] }, [255]])('rejects corrupt storage %j without applying it', async value => {
     const before = y.encodeState();
-    vi.mocked(chrome.storage.local.get).mockResolvedValue({ [y.PERSIST_KEY]: value });
+    vi.mocked(chrome.storage.local.get).mockImplementation(async () => ({ [y.PERSIST_KEY]: value }));
     await expect(y.loadPersistedState()).rejects.toThrow();
     expect(y.encodeState()).toEqual(before);
   });

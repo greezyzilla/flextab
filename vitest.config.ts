@@ -11,9 +11,10 @@ export default defineConfig({
     css: true,
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html'],
-      // Logic layers only — UI components, hooks, and entry shells are covered
-      // by behavior/integration/E2E tests, not unit line-coverage.
+      reporter: ['text', 'json', 'json-summary', 'html'],
+      reportOnFailure: true,
+      // Logic-layer denominator. Component/entry tests also run, but their
+      // coverage is not measured here. Native extension E2E remains QA-02.
       include: [
         'src/services/**/*.ts',
         'src/store/**/*.ts',
@@ -25,14 +26,33 @@ export default defineConfig({
         '**/*.test.*',
         'src/types/**',
       ],
-      // Lock in the coverage built up for the logic layers. `npm run test:coverage`
-      // (and CI) fails if it regresses below these. Slightly under current actuals
-      // (99.6% lines / 91% branch) so a legit refactor isn't blocked by noise.
+      // QA-01: cap uncovered code at the measured baseline (negative values),
+      // so adding covered code cannot dilute existing gaps. Critical files have
+      // additional per-file floors. See docs/quality-gates.md before changing.
       thresholds: {
-        statements: 99,
-        lines: 99,
-        functions: 99,
-        branches: 90,
+        statements: -328,
+        lines: -328,
+        functions: -23,
+        branches: -165,
+        'src/services/{importWorkspace,landedSnapshot,syncPolicy,workspaceBackup}.ts': {
+          statements: 100, lines: 100, functions: 100, branches: 100,
+        },
+        ...Object.fromEntries([
+          'services/mergeBase', 'services/revision', 'services/saveTabsAsGroup',
+          'services/settingsSync', 'services/spacesMerge3', 'services/structuredSync',
+          'store/syncStorage', 'store/useAuthStore',
+        ].map(file => [`src/${file}.ts`, {
+          statements: 100, lines: 100, functions: 100, branches: 90,
+        }])),
+        'src/lib/yjsDoc.ts': {
+          statements: 98, lines: 98, functions: 100, branches: 84,
+        },
+        'src/services/syncEngine.ts': {
+          statements: 85, lines: 85, functions: 95, branches: 83,
+        },
+        'src/services/oauthLogin.ts': {
+          statements: 96, lines: 96, functions: 100, branches: 93,
+        },
       },
     },
   },

@@ -368,7 +368,7 @@ function DroppableProjectItem({ spaceId, projectId, children }: {
 
   return (
     <div ref={setNodeRef} className={`transition-colors rounded ${isOver ? 'ring-1' : ''}`}
-      style={isOver ? { backgroundColor: 'var(--accent-subtle)', ringColor: 'var(--accent)' } : undefined}
+      style={isOver ? { backgroundColor: 'var(--accent-subtle)' } : undefined}
     >
       {children}
     </div>
@@ -384,7 +384,7 @@ function DroppableCategoryItem({ spaceId, projectId, categoryId, children }: {
 
   return (
     <div ref={setNodeRef} className={`transition-colors rounded-md ${isOver ? 'ring-1' : ''}`}
-      style={isOver ? { backgroundColor: 'var(--accent-subtle)', ringColor: 'var(--accent)' } : undefined}
+      style={isOver ? { backgroundColor: 'var(--accent-subtle)' } : undefined}
     >
       {children}
     </div>

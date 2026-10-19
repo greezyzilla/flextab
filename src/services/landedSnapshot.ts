@@ -37,7 +37,7 @@ export function applyPendingLandedSnapshot(): Promise<void> {
   const work = globalThis.navigator?.locks
     ? navigator.locks.request("flextab-landed-snapshot", consume)
     : consume();
-  inFlight = work.finally(() => { inFlight = null; });
+  inFlight = Promise.resolve(work).finally(() => { inFlight = null; });
   return inFlight;
 }
 

@@ -122,7 +122,8 @@ export const useSettingsStore = create<SettingsState>()(
           delete s.bgTint;
           if (typeof s.intensity !== 'number') s.intensity = 100;
         }
-        return s as SettingsState;
+        // Persist merges these stored fields with the live state/actions.
+        return s as unknown as SettingsState;
       },
       storage: {
         getItem: async (name) => {
