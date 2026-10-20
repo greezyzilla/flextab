@@ -1,6 +1,6 @@
 # Account settings sync lifecycle
 
-DAT-17, 2026-10-20. This service syncs the six account preferences (layout,
+DAT-17 and DAT-18, 2026-10-20. This service syncs the six account preferences (layout,
 columns, density, hue, intensity, Auto-sync), independently of workspace sync.
 
 ## Session ownership
@@ -25,6 +25,29 @@ columns, density, hue, intensity, Auto-sync), independently of workspace sync.
 - Empty-account seeding records its base only after a successful PUT belonging
   to the same session. A stale seed acknowledgement cannot replace a newer base.
 
+## Edits while requests are pending (DAT-18)
+
+- Startup pull captures the local snapshot before waiting for the lock/GET.
+  When the response arrives, fields changed since that snapshot keep their
+  current local values; untouched fields adopt the remote values.
+- Push reads the local snapshot again after GET, immediately before preparing
+  PUT. Edits made during GET are therefore included in the outgoing payload.
+- A PUT acknowledgement advances the merge base to the confirmed payload only.
+  It rebases that payload against the local snapshot used for PUT and the
+  current store, preserving edits (including reverts) made during the write.
+  Remaining local differences schedule another push while subscribed.
+- Dirty fields in an unconfirmed write retain local priority on retry. This
+  includes edits reverted to the previous base while a failed PUT may have
+  committed remotely. Unrelated remote fields can still merge normally.
+  These markers clear on confirmation or session stop.
+- A page-local promise queue serializes settings operations even without Web
+  Locks. It survives stop/restart so old requests cannot overlap newer ones;
+  session guards still reject obsolete work. Failed operations release the
+  queue. Web Locks continue to provide coordination with normal login/logout.
+- A debounce timer whose edits are already confirmed is cancelled. A queued
+  operation may still reconcile again; equality to the old base alone is not
+  grounds to skip recovery after a PUT with an unknown outcome.
+
 ## Verification
 
 `settingsSync.integration.test.ts` exercises the real settings store and service
@@ -39,14 +62,28 @@ change, no restart on same-ID refresh, and stop on logout/unmount.
 `useAuthStore.test.ts` verifies clearing old identity during successful and
 failed profile loads after accepting new login credentials.
 
+DAT-18 adds 11 settings service cases. Four initial cases failed before the
+repair: startup pull, edits during push GET, acknowledgement with independent
+remote changes, and local revert during PUT. Additional cases exercise
+acknowledgement without remote changes, queued writes without Web Locks,
+first-account seeding, edits while waiting for a lock, failed PUT with and
+without remote commit, and avoiding a redundant debounce after slow GET.
+The service tests use a mutable mock server to assert eventual uploaded values,
+not only the local store after a response.
+
 ## Limits
 
 The guard observes auth-store transitions in a page. It is not storage partitioning
 per account or proof of native Chrome multi-profile isolation. A PUT already sent
-cannot be recalled; its late completion is ignored locally. Token replacements
-not reflected in this page's auth store, stale competing `/me` responses, and
-same-session edits made during a settings response remain separate lifecycle
-concerns. Browser Web Locks coordinate normal login/logout paths; environments
+cannot be recalled; its late completion is ignored locally after a session
+change. Token replacements not reflected in this page's auth store and stale
+competing `/me` responses remain separate lifecycle concerns. Browser Web Locks
+coordinate normal login/logout paths; environments
 without Web Locks retain the existing fallback, with generation checks but no
-cross-context serialization. Tests use synthetic accounts and mocked HTTP,
-not production sign-in or a native two-account browser session.
+cross-context serialization (the new queue only serializes settings in one
+page). The merge base and unconfirmed-field markers are in memory, not a durable
+outbox across page closure/reload. Settings still use server last-write-wins;
+this does not add cross-device revision checks. Local edit detection compares
+field values at request boundaries, not a log of every intermediate gesture.
+Tests use synthetic accounts and mocked HTTP, not production sign-in or native
+multi-page browser sessions.

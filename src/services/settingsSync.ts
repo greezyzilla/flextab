@@ -29,6 +29,16 @@ let unsub: (() => void) | null = null;
 let base: Snap | null = null;
 let lastPushed = "";
 let generation = 0;
+let pending = Promise.resolve();
+const unconfirmedFields = new Set<keyof Snap>();
+
+// Also serialize within this page when Web Locks are unavailable. Never reset
+// the queue on stop: old work keeps its session guard and must finish first.
+function withSettingsLock(work: () => Promise<void>): Promise<void> {
+  const task = pending.then(() => withSyncWriteLock(work));
+  pending = task.catch(() => {});
+  return task;
+}
 
 // Capture before any timer, lock or I/O. A later login (even the same account)
 // must not authorize work that was started by an earlier session.
@@ -53,6 +63,14 @@ export function fieldMerge(baseSnap: Snap | null, remote: Partial<Snap>, local: 
   return out;
 }
 
+function mergePending(baseSnap: Snap, remote: Partial<Snap>, local: Snap): Snap {
+  const merged = fieldMerge(baseSnap, remote, local);
+  // A failed PUT may have committed. Keep local intent for its dirty fields,
+  // including a revert back to the old base, until a write is confirmed.
+  for (const k of unconfirmedFields) (merged as Record<string, unknown>)[k] = local[k];
+  return merged;
+}
+
 function applyLocally(snap: Snap) {
   useSettingsStore.setState(snap as Partial<ReturnType<typeof useSettingsStore.getState>>);
 }
@@ -62,6 +80,33 @@ function scheduleRetry(allowed: () => boolean) {
   retryTimer = setTimeout(() => { retryTimer = null; void pushNow(allowed); }, RETRY_MS);
 }
 
+function schedulePush(allowed: () => boolean) {
+  if (!allowed() || !unsub) return;
+  const snap = JSON.stringify(snapshot());
+  if (snap === lastPushed) return;
+  lastPushed = snap;
+  if (pushTimer) clearTimeout(pushTimer);
+  pushTimer = setTimeout(() => { pushTimer = null; void pushNow(allowed); }, 800);
+}
+
+// Record only what the server confirmed. Rebase against the local snapshot
+// used by this request so edits made while awaiting the response stay dirty.
+function adoptConfirmed(confirmed: Snap, rebased: Snap, allowed: () => boolean) {
+  const current = snapshot();
+  base = confirmed;
+  lastPushed = JSON.stringify(confirmed);
+  unconfirmedFields.clear();
+  // A pending debounce may already be included in this confirmation. Only
+  // cancel a timer, never skip a queued retry based solely on equality to base:
+  // a failed PUT could have committed remotely despite losing its response.
+  if (eq(rebased, confirmed) && pushTimer) {
+    clearTimeout(pushTimer);
+    pushTimer = null;
+  }
+  if (!eq(rebased, current)) applyLocally(rebased);
+  schedulePush(allowed);
+}
+
 /** Pull-merge the account settings, then push the reconciled result. Idempotent;
  *  used for the debounced change push, the failure retry, and reconnect catch-up. */
 async function pushNow(allowed: () => boolean): Promise<void> {
@@ -69,17 +114,19 @@ async function pushNow(allowed: () => boolean): Promise<void> {
   try {
     // Share the login/logout lock so credential changes cannot race the GET/PUT
     // sequence. Guards also handle auth changes observed outside that lock.
-    await withSyncWriteLock(async () => {
+    await withSettingsLock(async () => {
       if (!allowed()) return;
-      const local = snapshot();
       const remote = await apiGetSettings();
       if (!allowed()) return;
-      const merged = remote && Object.keys(remote).length ? fieldMerge(base, remote as Partial<Snap>, local) : local;
+      const local = snapshot(); // include edits made while GET was pending
+      const merged = remote && Object.keys(remote).length && base
+        ? mergePending(base, remote as Partial<Snap>, local) : local;
+      for (const k of KEYS) {
+        if (!base || !eq(local[k], base[k])) unconfirmedFields.add(k);
+      }
       await apiPutSettings(merged);
       if (!allowed()) return;
-      base = merged;
-      lastPushed = JSON.stringify(merged);
-      if (!eq(merged, local)) applyLocally(merged); // adopt fields another device changed
+      adoptConfirmed(merged, fieldMerge(local, merged, snapshot()), allowed);
     });
   } catch {
     scheduleRetry(allowed); // never retry an old session's failed request
@@ -90,28 +137,27 @@ async function pushNow(allowed: () => boolean): Promise<void> {
 export async function pullSettings(): Promise<void> {
   const allowed = captureSession();
   if (!allowed()) return;
+  const local = snapshot(); // preserve edits made while waiting for lock/GET
   try {
-    await withSyncWriteLock(async () => {
+    await withSettingsLock(async () => {
       if (!allowed()) return;
       const remote = await apiGetSettings();
       if (!allowed()) return;
       if (!remote || Object.keys(remote).length === 0) {
         // Account has none yet — seed it from this device's settings.
         const snap = snapshot();
+        for (const k of KEYS) unconfirmedFields.add(k);
         await apiPutSettings(snap);
         if (!allowed()) return;
-        base = snap;
-        lastPushed = JSON.stringify(snap);
+        adoptConfirmed(snap, snapshot(), allowed);
         return;
       }
       const patch: Partial<Snap> = {};
       for (const k of KEYS) {
         if (remote[k] !== undefined) (patch as Record<string, unknown>)[k] = remote[k];
       }
-      const merged = { ...snapshot(), ...patch };
-      base = merged;
-      lastPushed = JSON.stringify(merged);
-      if (Object.keys(patch).length) applyLocally(merged);
+      const confirmed = { ...local, ...patch };
+      adoptConfirmed(confirmed, mergePending(local, confirmed, snapshot()), allowed);
     });
   } catch {
     // offline / unauthorized — settings stay local; a later change will push-merge.
@@ -123,20 +169,14 @@ export function startSettingsSync(): void {
   if (unsub) return;
   const allowed = captureSession();
   if (!allowed()) return;
-  unsub = useSettingsStore.subscribe(() => {
-    if (!allowed()) return;
-    const snap = JSON.stringify(snapshot());
-    if (snap === lastPushed) return;
-    lastPushed = snap; // optimistic; pushNow re-reads and reconciles
-    if (pushTimer) clearTimeout(pushTimer);
-    pushTimer = setTimeout(() => { pushTimer = null; void pushNow(allowed); }, 800);
-  });
+  unsub = useSettingsStore.subscribe(() => schedulePush(allowed));
 }
 
 export function stopSettingsSync(): void {
   generation++;
   base = null;
   lastPushed = "";
+  unconfirmedFields.clear();
   if (unsub) { unsub(); unsub = null; }
   if (pushTimer) { clearTimeout(pushTimer); pushTimer = null; }
   if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }

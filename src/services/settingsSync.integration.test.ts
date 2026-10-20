@@ -235,6 +235,7 @@ describe('queued settings work and session bookkeeping', () => {
       store.getState().setHue(30);
       await vi.advanceTimersByTimeAsync(800);
     }
+    await vi.advanceTimersByTimeAsync(0);
     expect(request).toHaveBeenCalledWith('flextab-structured-sync', expect.any(Function));
     expect(queue).toHaveLength(1);
     auth.setState({ user: user('B') });
@@ -275,9 +276,10 @@ describe('queued settings work and session bookkeeping', () => {
     expect(api.put).toHaveBeenCalledTimes(1);
     auth.setState({ user: user('B') });
     api.get.mockResolvedValueOnce({ ...initial, hue: 280 });
-    await sync.pullSettings();
+    const nextPull = sync.pullSettings();
     pending.resolve();
     await pull;
+    await nextPull;
     sync.startSettingsSync();
     api.get.mockResolvedValue({ ...initial, hue: 300 });
     store.getState().setGridColumns(4);
@@ -328,7 +330,7 @@ describe('queued settings work and session bookkeeping', () => {
     expect(store.getState()).toMatchObject(initial);
   });
 
-  it('coalesces retry timers after overlapping failures in the no-Web-Locks fallback', async () => {
+  it('coalesces retry timers after queued failures in the no-Web-Locks fallback', async () => {
     const first = deferred<Record<string, unknown>>();
     const second = deferred<Record<string, unknown>>();
     api.get.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
@@ -337,10 +339,174 @@ describe('queued settings work and session bookkeeping', () => {
     await vi.advanceTimersByTimeAsync(800);
     store.getState().setHue(40);
     await vi.advanceTimersByTimeAsync(800);
+    expect(api.get).toHaveBeenCalledTimes(1);
     first.reject(new Error('offline'));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(api.get).toHaveBeenCalledTimes(2);
     second.reject(new Error('offline'));
     await vi.advanceTimersByTimeAsync(5000);
     expect(api.get).toHaveBeenCalledTimes(3);
     expect(api.put).toHaveBeenCalledExactlyOnceWith({ ...initial, hue: 40 });
+  });
+});
+
+describe('settings edits during network requests', () => {
+  it('preserves edits during startup pull and sends them without losing remote-only fields', async () => {
+    const pending = deferred<Record<string, unknown>>();
+    api.get.mockReturnValueOnce(pending.promise);
+    const pull = sync.pullSettings();
+    sync.startSettingsSync();
+    await vi.advanceTimersByTimeAsync(0);
+    store.getState().setAutoSync(false);
+    pending.resolve({ ...initial, hue: 300 });
+    await pull;
+    expect(store.getState()).toMatchObject({ autoSync: false, hue: 300 });
+    api.get.mockResolvedValue({ ...initial, hue: 300 });
+    await vi.advanceTimersByTimeAsync(800);
+    expect(api.put).toHaveBeenLastCalledWith({ ...initial, autoSync: false, hue: 300 });
+  });
+
+  it('includes edits made during push GET in the outgoing PUT', async () => {
+    await sync.pullSettings();
+    const pending = deferred<Record<string, unknown>>();
+    api.get.mockReturnValueOnce(pending.promise);
+    sync.startSettingsSync();
+    store.getState().setHue(30);
+    await vi.advanceTimersByTimeAsync(800);
+    store.getState().setAutoSync(false);
+    pending.resolve({ ...initial, density: 'compact' });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(api.put).toHaveBeenLastCalledWith({ ...initial, hue: 30, autoSync: false, density: 'compact' });
+    expect(store.getState()).toMatchObject({ autoSync: false, density: 'compact' });
+  });
+
+  it.each([false, true])('preserves edits during PUT and eventually sends them (remote change=%s)', async remoteChange => {
+    await sync.pullSettings();
+    let server = { ...initial, density: remoteChange ? 'compact' as const : initial.density };
+    api.get.mockImplementation(async () => ({ ...server }));
+    const pending = deferred<void>();
+    api.put.mockImplementationOnce(async value => { await pending.promise; server = { ...value }; });
+    api.put.mockImplementation(async value => { server = { ...value }; });
+    sync.startSettingsSync();
+    store.getState().setHue(30);
+    await vi.advanceTimersByTimeAsync(800);
+    store.getState().setAutoSync(false);
+    store.getState().setHue(40);
+    pending.resolve();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(store.getState()).toMatchObject({ hue: 40, autoSync: false, density: server.density });
+    await vi.advanceTimersByTimeAsync(6000);
+    expect(server).toMatchObject({ hue: 40, autoSync: false });
+    expect(api.put).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps a local revert during PUT instead of reapplying the sent value', async () => {
+    await sync.pullSettings();
+    const pending = deferred<void>();
+    api.get.mockResolvedValue({ ...initial, density: 'compact' });
+    api.put.mockReturnValueOnce(pending.promise);
+    sync.startSettingsSync();
+    store.getState().setHue(30);
+    await vi.advanceTimersByTimeAsync(800);
+    store.getState().setHue(initial.hue);
+    pending.resolve();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(store.getState()).toMatchObject({ hue: initial.hue, density: 'compact' });
+    await vi.advanceTimersByTimeAsync(800);
+    expect(api.put).toHaveBeenLastCalledWith({ ...initial, density: 'compact' });
+  });
+});
+
+describe('settings request serialization and recovery', () => {
+  it('serializes pushes without Web Locks while the earlier PUT is unresolved', async () => {
+    await sync.pullSettings();
+    let server = { ...initial, density: 'compact' as const };
+    api.get.mockClear().mockImplementation(async () => ({ ...server }));
+    const pending = deferred<void>();
+    api.put.mockImplementationOnce(async value => { await pending.promise; server = { ...value }; });
+    api.put.mockImplementation(async value => { server = { ...value }; });
+    sync.startSettingsSync();
+    store.getState().setHue(30);
+    await vi.advanceTimersByTimeAsync(800);
+    store.getState().setAutoSync(false);
+    store.getState().setHue(40);
+    await vi.advanceTimersByTimeAsync(1600);
+    expect(api.get).toHaveBeenCalledTimes(1);
+    expect(api.put).toHaveBeenCalledTimes(1);
+    pending.resolve();
+    await vi.advanceTimersByTimeAsync(6000);
+    expect(api.put).toHaveBeenCalledTimes(2);
+    expect(server).toEqual({ ...initial, density: 'compact', hue: 40, autoSync: false });
+    expect(store.getState()).toMatchObject(server);
+  });
+
+  it('keeps changes made during first-account seeding dirty until their own acknowledgement', async () => {
+    let server: Record<string, unknown> = {};
+    api.get.mockImplementation(async () => ({ ...server }));
+    const pending = deferred<void>();
+    api.put.mockImplementationOnce(async value => { await pending.promise; server = { ...value }; });
+    api.put.mockImplementation(async value => { server = { ...value }; });
+    const pull = sync.pullSettings();
+    sync.startSettingsSync();
+    await vi.advanceTimersByTimeAsync(0);
+    store.getState().setAutoSync(false);
+    await vi.advanceTimersByTimeAsync(800);
+    expect(api.put).toHaveBeenCalledTimes(1);
+    pending.resolve();
+    await pull;
+    expect(store.getState().autoSync).toBe(false);
+    await vi.advanceTimersByTimeAsync(6000);
+    expect(server.autoSync).toBe(false);
+    expect(api.put).toHaveBeenCalledTimes(2);
+  });
+
+  it('preserves edits made while a startup pull waits for the shared lock', async () => {
+    let release!: () => Promise<void>;
+    vi.stubGlobal('navigator', { locks: {
+      request: vi.fn((_name: string, work: () => Promise<void>) => new Promise<void>((resolve, reject) => {
+        release = async () => { try { await work(); resolve(); } catch (error) { reject(error); } };
+      })),
+    } });
+    api.get.mockResolvedValue({ ...initial, hue: 300 });
+    const pull = sync.pullSettings();
+    await vi.advanceTimersByTimeAsync(0);
+    store.getState().setAutoSync(false);
+    await release();
+    await pull;
+    expect(store.getState()).toMatchObject({ autoSync: false, hue: 300 });
+    expect(api.put).not.toHaveBeenCalled(); // no subscription was started
+  });
+
+  it.each([false, true])('preserves a local revert after a failed PUT (committed=%s)', async committed => {
+    await sync.pullSettings();
+    let server = { ...initial };
+    api.get.mockImplementation(async () => ({ ...server }));
+    const pending = deferred<void>();
+    api.put.mockImplementationOnce(async value => {
+      if (committed) server = { ...value };
+      await pending.promise;
+    });
+    api.put.mockImplementation(async value => { server = { ...value }; });
+    sync.startSettingsSync();
+    store.getState().setHue(30);
+    await vi.advanceTimersByTimeAsync(800);
+    store.getState().setHue(initial.hue);
+    pending.reject(new Error('response lost after server commit'));
+    await vi.advanceTimersByTimeAsync(6000);
+    expect(server.hue).toBe(initial.hue);
+    expect(store.getState().hue).toBe(initial.hue);
+  });
+
+  it('does not echo an edit already included after a slow GET', async () => {
+    await sync.pullSettings();
+    const pending = deferred<Record<string, unknown>>();
+    api.get.mockReturnValueOnce(pending.promise);
+    sync.startSettingsSync();
+    store.getState().setHue(30);
+    await vi.advanceTimersByTimeAsync(800);
+    store.getState().setAutoSync(false);
+    pending.resolve(initial);
+    await vi.advanceTimersByTimeAsync(6000);
+    expect(api.put).toHaveBeenCalledExactlyOnceWith({ ...initial, hue: 30, autoSync: false });
   });
 });
