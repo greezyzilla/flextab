@@ -153,6 +153,27 @@ it('does not replay a delayed token storage event over a newer session', async (
   expect(global.fetch).not.toHaveBeenCalled();
 });
 
+it.each([false, true])('clears the previous identity while accepted login loads its profile (failure=%s)', async fail => {
+  const previous = { id: 'A', email: 'a@example.invalid', name: 'A', avatar: '', provider: 'email', has_password: true };
+  useAuthStore.setState({ isAuthenticated: true, user: previous });
+  let resolve!: (response: Response) => void;
+  let reject!: (error: Error) => void;
+  vi.mocked(global.fetch).mockReturnValue(new Promise<Response>((yes, no) => { resolve = yes; reject = no; }));
+  const login = useAuthStore.getState().handleAuthCallback(tokens());
+  await vi.waitFor(() => expect(global.fetch).toHaveBeenCalled());
+  expect(useAuthStore.getState()).toMatchObject({ isAuthenticated: true, user: null });
+  if (fail) {
+    const rejected = expect(login).rejects.toThrow('profile unavailable');
+    reject(new Error('profile unavailable'));
+    await rejected;
+    expect(useAuthStore.getState().user).toBeNull();
+  } else {
+    resolve(jsonRes({ ...previous, id: 'B' }));
+    await login;
+    expect(useAuthStore.getState().user?.id).toBe('B');
+  }
+});
+
 describe('destructive logout authorization', () => {
   it.each([undefined, {}, { discardLocalData: false }, { type: 'click' }])('rejects missing confirmation %j before clearing data or tokens', async confirmation => {
     setSpaces([{ id: 'local', name: 'Not synced', projects: [] }]);

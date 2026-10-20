@@ -26,7 +26,7 @@ function LoadingScreen() {
 
 function NewTabPage() {
   const { hydrated, error: hydrationError } = useHydrated()
-  const { initialize, isAuthenticated, isLoading: authLoading, guestMode } = useAuthStore()
+  const { initialize, isAuthenticated, isLoading: authLoading, guestMode, user } = useAuthStore()
   const autoSync = useSettingsStore((s) => s.autoSync)
   // A previously-authenticated device whose session just dropped (e.g. the
   // refresh-token race, or any other involuntary logout) still has its real
@@ -59,11 +59,11 @@ function NewTabPage() {
 
   // Account settings (theme/layout/etc.): pull on sign-in, then push on change.
   useEffect(() => {
-    if (!isAuthenticated) return
+    if (!isAuthenticated || !user?.id) return
     pullSettings()
     startSettingsSync()
     return () => stopSettingsSync()
-  }, [isAuthenticated])
+  }, [isAuthenticated, user?.id])
 
   if (hydrationError) return <WorkspaceLoadError />
   if (authLoading) return <LoadingScreen />

@@ -9,7 +9,10 @@ vi.mock("~src/store/useSettingsStore", () => ({
     subscribe: vi.fn(() => () => {}),
   },
 }));
-vi.mock("~src/store/useAuthStore", () => ({ useAuthStore: { getState: () => ({ isAuthenticated: true }) } }));
+vi.mock("~src/store/useAuthStore", () => ({ useAuthStore: {
+  getState: () => ({ isAuthenticated: true, user: { id: 'A' } }),
+  subscribe: vi.fn(() => () => {}),
+} }));
 vi.mock("./api", () => ({ apiGetSettings: vi.fn(), apiPutSettings: vi.fn() }));
 
 import { fieldMerge } from "./settingsSync";

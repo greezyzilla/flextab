@@ -133,7 +133,9 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       await clearStoredRevision();
       try { await chrome.storage.local.set({ [FRESH_LOGIN_KEY]: true }); } catch (_) { /* ok */ }
       try { await chrome.storage.local.remove(SYNC_HYDRATED_KEY); } catch (_) { /* ok */ }
-      set({ isAuthenticated: true, guestMode: false });
+      // Invalidate the previous identity before releasing the login lock.
+      // Account-bound work must wait for /me for the newly accepted tokens.
+      set({ isAuthenticated: true, guestMode: false, user: null });
       return true;
     });
     if (accepted) await get().fetchUser();

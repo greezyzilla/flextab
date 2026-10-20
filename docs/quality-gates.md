@@ -36,9 +36,10 @@ baseline was stale.
 This repair adds 11 behavior tests using the production settings store and sync
 service: guest isolation, first-account seeding, remote field adoption, local
 and remote independent edits, debounce, GET/PUT failure retries, sign-out before
-a queued push, and stopping timers/subscriptions. Account settings sync now
-has 100% statements/lines/functions and 97.82% branches. These tests do not
-establish safety of an account switch during an already in-flight request.
+a queued push, and stopping timers/subscriptions. Account settings sync
+had 100% statements/lines/functions and 97.82% branches at the QA-01 baseline.
+The subsequent [DAT-17 session repair](settings-sync.md) adds deferred-response
+and account-switch cases, plus new-tab lifecycle and login-profile tests.
 
 Clean-install baseline: 620 tests in 48 files; 90.53% statements/lines, 93.35%
 functions, 89.64% branches. The denominator remains the same logic layers:
