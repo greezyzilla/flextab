@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { v7 as uuidv7 } from "uuid";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
-import { saveTabsAsGroup, defaultSavedGroupName, type SaveTabsTarget } from "~src/services/saveTabsAsGroup";
+import type { SaveTabsTarget } from "~src/services/saveTabsAsGroup";
 import { NEW_GROUP_NAME } from "~src/services/resolveSaveTarget";
 import { requestMissingLevel } from "~src/lib/structurePrompts";
 import { useUIStore } from "~src/store/useUIStore";
@@ -79,17 +79,10 @@ export function useKeyboardShortcuts() {
         return;
       }
 
-      // Ctrl+Shift+S / Cmd+Shift+S — save all open tabs into the current category
+      // Ctrl+Shift+S / Cmd+Shift+S — "Save all tabs" (preview, scope, destination)
       if (mod && e.shiftKey && e.key.toLowerCase() === "s") {
         e.preventDefault();
-        withActiveCategory(target => {
-          // Async — fire and forget
-          void (async () => {
-            const windows = await chrome.windows.getAll({ populate: true });
-            const allTabs = windows.flatMap((w) => w.tabs ?? []);
-            await saveTabsAsGroup({ target, name: defaultSavedGroupName(), tabs: allTabs });
-          })();
-        });
+        useUIStore.getState().setSaveAllOpen(true);
         return;
       }
 

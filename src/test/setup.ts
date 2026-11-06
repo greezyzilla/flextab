@@ -77,6 +77,20 @@ global.chrome = {
       removeListener: vi.fn(),
     },
   },
+  action: {
+    setBadgeText: vi.fn(async () => {}),
+    setBadgeBackgroundColor: vi.fn(async () => {}),
+    setTitle: vi.fn(async () => {}),
+    openPopup: vi.fn(async () => {}),
+  },
+  contextMenus: {
+    create: vi.fn(),
+    removeAll: vi.fn((callback?: () => void) => { callback?.(); }),
+    onClicked: { addListener: vi.fn(), removeListener: vi.fn() },
+  },
+  commands: {
+    onCommand: { addListener: vi.fn(), removeListener: vi.fn() },
+  },
   runtime: {
     getURL: vi.fn((path: string) => `chrome-extension://test/${path}`),
     id: 'test-extension-id',

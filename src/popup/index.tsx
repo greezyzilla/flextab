@@ -1,125 +1,158 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { WorkspaceLoadError } from "~src/components/WorkspaceLoadError"
 import "@fontsource-variable/inter"
 import "../../style.css"
 import { useSavedSpacesStore, useHydrated } from "~src/store/useSavedSpacesStore"
 import { useAuthStore } from "~src/store/useAuthStore"
-import { installExternalPersistBridge, persistState } from "~src/lib/yjsDoc"
+import { installExternalPersistBridge } from "~src/lib/yjsDoc"
 import { Button } from "~src/components/ui/button"
-import {
-  saveTabsAsGroup,
-  defaultSavedGroupName,
-} from "~src/services/saveTabsAsGroup"
-import type { SaveTabsTarget } from "~src/services/saveTabsAsGroup"
-import { resolveSaveTargetIds } from "~src/services/resolveSaveTarget"
-import { DestinationPicker, describeTarget } from "~src/components/DestinationPicker"
+import { Switch } from "~src/components/ui/switch"
+import { DestinationPicker, describeDestination, type PickerValue } from "~src/components/DestinationPicker"
 import { canUseWorkspace, signInPageUrl } from "~src/lib/workspaceAccess"
+import { isSavableTabUrl } from "~src/services/saveTabsAsGroup"
+import {
+  captureTabs, moveCapture, undoCapture, closeSavedTabs, persistCapture, isCaptureFailure,
+  loadDefaultDestination, loadCloseAfterSave, saveCloseAfterSave, loadLastCapture, storeLastCapture,
+  type CaptureReceipt, type CaptureFailure, type CaptureDestination,
+} from "~src/services/capture"
+
+/**
+ * Popup = instant save (TASK-2, Pocket/Raindrop pattern): opening it saves the
+ * current page to the last destination right away, then offers Change / Undo.
+ * The page you are on is never closed by this (closing it would also close
+ * the popup and its Undo); "Close tabs after saving" applies to the rest of
+ * the window and to the keyboard / right-click window saves.
+ */
+type Status =
+  | { kind: "saving" }
+  | { kind: "saved"; receipt: CaptureReceipt }
+  | { kind: "already"; destination: CaptureDestination }
+  | { kind: "unsavable" }
+  | { kind: "choose" }
+  | { kind: "removed" }
+  | { kind: "failed"; receipt: CaptureReceipt }
+  | { kind: "error"; message: string }
+
+const toDestination = (r: CaptureReceipt): CaptureDestination => ({ ...r.target })
 
 function IndexPopup() {
-  const { hydrated, error: hydrationError } = useHydrated();
-  const { initialize, isAuthenticated, isLoading: authLoading, guestMode } = useAuthStore();
-  const { savedSpaces, activeSpaceId, activeProjectId, activeCategoryId } = useSavedSpacesStore();
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [error, setError] = useState("");
-  const savingRef = useRef(false);
-  const mounted = useRef(true);
-  // A failed flush leaves the group in this popup's Y.Doc. Retry that same write,
-  // rather than creating a duplicate group or requiring another tabs query.
-  const pendingSave = useRef(false);
-  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { hydrated, error: hydrationError } = useHydrated()
+  const { initialize, isAuthenticated, isLoading: authLoading, guestMode } = useAuthStore()
+  const { savedSpaces, activeSpaceId, activeProjectId, activeCategoryId } = useSavedSpacesStore()
+  const usable = hydrated && canUseWorkspace({ isAuthenticated, guestMode, spaces: savedSpaces })
 
-  useEffect(() => { initialize(); }, []);
-  useEffect(() => {
-    if (hydrated) installExternalPersistBridge();
-  }, [hydrated]);
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-      if (savedTimer.current) clearTimeout(savedTimer.current);
-    };
-  }, []);
+  const [status, setStatus] = useState<Status>({ kind: "saving" })
+  const [destination, setDestination] = useState<CaptureDestination | null>(null)
+  const [picking, setPicking] = useState(false)
+  const [currentTab, setCurrentTab] = useState<chrome.tabs.Tab | null>(null)
+  const [others, setOthers] = useState<chrome.tabs.Tab[]>([])
+  const [windowReceipt, setWindowReceipt] = useState<CaptureReceipt | null>(null)
+  const [closeAfter, setCloseAfter] = useState(false)
+  const [lastBackground, setLastBackground] = useState<CaptureReceipt | null>(null)
+  const [busy, setBusy] = useState(false)
+  const started = useRef(false)
 
-  // Default: the category last used in the new tab page (same as before), so
-  // a plain save is still one click. Changing it is local to this popup.
-  const [chosen, setChosen] = useState<SaveTabsTarget | null>(null);
-  const [picking, setPicking] = useState(false);
-  const fallback = resolveSaveTargetIds(savedSpaces, {
-    spaceId: activeSpaceId, projectId: activeProjectId, categoryId: activeCategoryId,
-  });
-  const candidate = chosen ?? fallback;
-  const destination = describeTarget(savedSpaces, candidate);
-  const hasActiveCategory = !!destination;
+  useEffect(() => { initialize() }, [])
+  useEffect(() => { if (hydrated) installExternalPersistBridge() }, [hydrated])
+  useEffect(() => { void loadCloseAfterSave().then(setCloseAfter) }, [])
 
-  const flashSaved = () => {
-    if (!mounted.current) return;
-    setSaved(true);
-    savedTimer.current = setTimeout(() => setSaved(false), 2000);
-  };
-
-  const target = hasActiveCategory ? candidate : null;
-
-  const save = async (mode: "current" | "all" | "retry") => {
-    if (savingRef.current || (mode !== "retry" && (!target || pendingSave.current))) return;
-    savingRef.current = true;
-    setSaving(true);
-    setSaved(false);
-    setError("");
-    if (savedTimer.current) clearTimeout(savedTimer.current);
-    try {
-      if (mode !== "retry") {
-        const tabs = await chrome.tabs.query(mode === "current"
-          ? { active: true, currentWindow: true }
-          : { currentWindow: true });
-        const result = await saveTabsAsGroup({
-          target: target!,
-          name: mode === "current" ? tabs[0]?.title || "Saved Tab" : defaultSavedGroupName("Window"),
-          tabs: mode === "current" ? tabs.slice(0, 1) : tabs,
-        });
-        if (!result) {
-          setError("No tabs were saved. Check the destination and try a regular web page.");
-          return;
-        }
-        pendingSave.current = true;
-      }
-      // The popup owns a separate Y.Doc, and may be the only open extension UI.
-      // Await the shared persistence queue before acknowledging success. A
-      // new-tab observer or a running cloud sync worker is not required.
-      await persistState();
-      pendingSave.current = false;
-      flashSaved();
-    } catch (_) {
-      setError(pendingSave.current
-        ? "Could not save to this device. Keep this popup open and retry."
-        : "Could not read your tabs. Please try again.");
-    } finally {
-      savingRef.current = false;
-      setSaving(false);
+  const showCapture = useCallback((result: CaptureReceipt | CaptureFailure, dest: CaptureDestination) => {
+    if (isCaptureFailure(result)) {
+      setStatus(result.error === "nothing-savable" ? { kind: "unsavable" } : { kind: "choose" })
+      if (result.error === "no-destination") setPicking(true)
+      return
     }
-  };
+    setDestination(toDestination(result))
+    if (!result.persisted) setStatus({ kind: "failed", receipt: result })
+    else if (result.tabIds.length === 0 && result.duplicates > 0) setStatus({ kind: "already", destination: dest })
+    else setStatus({ kind: "saved", receipt: result })
+  }, [])
 
-  if (hydrationError) return <div className="w-72"><WorkspaceLoadError /></div>;
+  // Save the current page as soon as the popup opens.
+  useEffect(() => {
+    if (!usable || started.current) return
+    started.current = true
+    void (async () => {
+      try {
+        const tabs = await chrome.tabs.query({ currentWindow: true })
+        const current = tabs.find((t) => t.active) ?? null
+        setCurrentTab(current)
+        setOthers(tabs.filter((t) => t !== current && isSavableTabUrl(t.url)))
+        setLastBackground(await loadLastCapture())
+        if (!current || !isSavableTabUrl(current.url)) { setStatus({ kind: "unsavable" }); return }
+        const dest = await loadDefaultDestination({ spaceId: activeSpaceId, projectId: activeProjectId, categoryId: activeCategoryId })
+        if (!dest) { setStatus({ kind: "choose" }); setPicking(true); return }
+        showCapture(await captureTabs([current], dest, { dedupe: true }), dest)
+      } catch (_) {
+        setStatus({ kind: "error", message: "Could not read your tabs. Please try again." })
+      }
+    })()
+  }, [usable])
 
-  if (authLoading) {
-    return (
-      <div className="w-72 bg-black-900 p-4 font-sans">
-        <div className="text-white/50 text-xs text-center">Loading...</div>
-      </div>
-    );
+  const run = async (work: () => Promise<void>) => {
+    if (busy) return
+    setBusy(true)
+    try { await work() } finally { setBusy(false) }
   }
 
-  if (!hydrated) {
+  const pickDestination = (picked: PickerValue) => run(async () => {
+    setPicking(false)
+    const dest: CaptureDestination = { ...picked }
+    if (status.kind === "saved") {
+      showCapture(await moveCapture(status.receipt, dest), dest)
+    } else if (currentTab) {
+      showCapture(await captureTabs([currentTab], dest, { dedupe: true }), dest)
+    } else {
+      setDestination(dest)
+    }
+  })
+
+  const undo = () => run(async () => {
+    if (status.kind !== "saved") return
+    await undoCapture(status.receipt)
+    setStatus({ kind: "removed" })
+  })
+
+  const retry = () => run(async () => {
+    if (status.kind !== "failed") return
+    if (await persistCapture()) setStatus({ kind: "saved", receipt: { ...status.receipt, persisted: true } })
+  })
+
+  const saveOthers = () => run(async () => {
+    if (!destination || others.length === 0) return
+    const result = await captureTabs(others, destination, { dedupe: true })
+    if (isCaptureFailure(result)) return
+    const closed = closeAfter ? await closeSavedTabs(others) : []
+    setWindowReceipt({ ...result, closed })
+    setOthers([])
+  })
+
+  const undoOthers = () => run(async () => {
+    if (!windowReceipt) return
+    await undoCapture(windowReceipt)
+    setWindowReceipt(null)
+  })
+
+  const undoLastBackground = () => run(async () => {
+    if (!lastBackground) return
+    await undoCapture(lastBackground)
+    await storeLastCapture(null)
+    setLastBackground(null)
+  })
+
+  if (hydrationError) return <div className="w-72"><WorkspaceLoadError /></div>
+
+  if (authLoading || !hydrated) {
     return (
       <div className="w-72 bg-black-900 p-4 font-sans">
         <div className="text-white/50 text-xs text-center">Loading...</div>
       </div>
-    );
+    )
   }
 
   // Same rule as the new tab page (TASK-3): guests and signed-out devices
   // that still hold tabs can save; only a fresh install is sent to set up.
-  if (!canUseWorkspace({ isAuthenticated, guestMode, spaces: savedSpaces })) {
+  if (!usable) {
     return (
       <div className="w-72 bg-black-900 p-4 font-sans flex flex-col items-center gap-3">
         <h2 className="text-white/90 text-base font-medium">FlexTab</h2>
@@ -127,55 +160,101 @@ function IndexPopup() {
         <Button variant="secondary" onClick={() => chrome.tabs.create({ url: chrome.runtime.getURL("newtab.html") })} className="w-full">Get started</Button>
         <Button variant="ghost" size="sm" onClick={() => chrome.tabs.create({ url: signInPageUrl() })} className="w-full">Sign in</Button>
       </div>
-    );
+    )
   }
 
+  const where = destination ? describeDestination(savedSpaces, destination) : null
+
   return (
-    <div className="w-72 bg-black-900 p-4 font-sans">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-white/90 text-base font-medium">FlexTab</h2>
-        {saved && <span role="status" className="text-green-400 text-xs">Saved locally!</span>}
-      </div>
+    <div className="w-80 bg-black-900 p-4 font-sans flex flex-col gap-3">
+      <h2 className="text-white/90 text-base font-medium">FlexTab</h2>
 
-      <div className="mb-3 flex flex-col gap-2">
-        <button
-          type="button"
-          onClick={() => setPicking(p => !p)}
-          aria-expanded={picking}
-          className="w-full flex items-center justify-between gap-2 rounded-md border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-left text-xs hover:bg-white/[0.06] outline-none focus-visible:ring-1 focus-visible:ring-ring"
-        >
-          <span className="min-w-0 truncate text-white/75">
-            <span className="text-white/50">Save to </span>{destination ?? "Choose a destination"}
+      {lastBackground && (
+        <div className="flex items-center justify-between gap-2 rounded-md border border-white/10 px-2.5 py-1.5 text-xs text-white/70">
+          <span className="min-w-0 truncate">
+            Last shortcut save: {lastBackground.tabIds.length} tab{lastBackground.tabIds.length === 1 ? "" : "s"}
+            {lastBackground.closed.length > 0 ? `, ${lastBackground.closed.length} closed` : ""}
           </span>
-          <span aria-hidden className="text-white/50">{picking ? "▴" : "▾"}</span>
-        </button>
-        {picking && (
-          <DestinationPicker
-            value={candidate}
-            onChange={(t) => { setChosen(t); setPicking(false); }}
-            maxHeightClass="max-h-52"
-          />
+          <Button variant="ghost" size="sm" onClick={undoLastBackground} disabled={busy}>Undo</Button>
+        </div>
+      )}
+
+      <section role="status" aria-live="polite" className="rounded-lg border border-white/10 bg-white/[0.03] p-3 flex flex-col gap-2">
+        {status.kind === "saving" && <p className="text-white/60 text-xs">Saving this page…</p>}
+        {status.kind === "saved" && (
+          <>
+            <p className="text-xs text-white/90"><span className="text-green-400">✓ Saved</span> to</p>
+            <p className="text-xs text-white/70 break-words">{where}</p>
+          </>
         )}
-      </div>
+        {status.kind === "already" && (
+          <>
+            <p className="text-xs text-white/90">Already saved in</p>
+            <p className="text-xs text-white/70 break-words">{where}</p>
+          </>
+        )}
+        {status.kind === "unsavable" && (
+          <>
+            <p className="text-xs text-white/90">This page can't be saved</p>
+            <p className="text-xs text-white/55">Only web pages (http/https) can be saved. Browser, extension and local file pages are skipped.</p>
+          </>
+        )}
+        {status.kind === "choose" && <p className="text-xs text-white/90">Choose where to save this page</p>}
+        {status.kind === "removed" && <p className="text-xs text-white/80">Removed from FlexTab.</p>}
+        {status.kind === "failed" && (
+          <p role="alert" className="text-xs text-red-400">Could not save to this device. Keep this popup open and retry.</p>
+        )}
+        {status.kind === "error" && <p role="alert" className="text-xs text-red-400">{status.message}</p>}
 
-      <div className="flex flex-col gap-2 mb-3">
-        <Button variant="secondary" onClick={() => void save("current")} disabled={!hasActiveCategory || saving || pendingSave.current} className="w-full">
-          Save Current Tab
-        </Button>
-        <Button variant="secondary" onClick={() => void save("all")} disabled={!hasActiveCategory || saving || pendingSave.current} className="w-full">
-          {saving ? 'Saving…' : 'Save All Tabs'}
-        </Button>
-      </div>
-
-      {saving && <p role="status" className="text-white/50 text-xs mb-3">Saving to this device…</p>}
-      {error && (
-        <div className="mb-3">
-          <p role="alert" className="text-red-400 text-xs">{error}</p>
-          {pendingSave.current && (
-            <Button variant="secondary" onClick={() => void save("retry")} disabled={saving} className="w-full mt-2">
-              Retry Save
+        <div className="flex flex-wrap gap-2">
+          {status.kind === "saved" && (
+            <>
+              <Button variant="secondary" size="sm" onClick={() => setPicking((p) => !p)} aria-expanded={picking} disabled={busy}>Change</Button>
+              <Button variant="ghost" size="sm" onClick={undo} disabled={busy}>Undo</Button>
+            </>
+          )}
+          {status.kind === "already" && (
+            <Button variant="secondary" size="sm" onClick={() => setPicking((p) => !p)} aria-expanded={picking} disabled={busy}>Save elsewhere</Button>
+          )}
+          {status.kind === "removed" && destination && currentTab && (
+            <Button variant="secondary" size="sm" disabled={busy}
+              onClick={() => run(async () => showCapture(await captureTabs([currentTab], destination, { dedupe: true }), destination))}>
+              Save again
             </Button>
           )}
+          {status.kind === "failed" && <Button variant="secondary" size="sm" onClick={retry} disabled={busy}>Retry Save</Button>}
+        </div>
+      </section>
+
+      {picking && (
+        <DestinationPicker
+          groupLevel
+          value={destination ?? { spaceId: activeSpaceId ?? "", projectId: activeProjectId ?? "", categoryId: activeCategoryId ?? "" }}
+          onChange={pickDestination}
+          maxHeightClass="max-h-56"
+        />
+      )}
+
+      {destination && (others.length > 0 || windowReceipt) && (
+        <div className="flex flex-col gap-2">
+          {others.length > 0 && (
+            <Button variant="secondary" onClick={saveOthers} disabled={busy} className="w-full">
+              Save the other {others.length} tab{others.length === 1 ? "" : "s"} in this window
+            </Button>
+          )}
+          {windowReceipt && (
+            <div className="flex items-center justify-between gap-2 text-xs text-white/70">
+              <span>
+                Saved {windowReceipt.tabIds.length} more{windowReceipt.closed.length ? `, closed ${windowReceipt.closed.length}` : ""}
+              </span>
+              <Button variant="ghost" size="sm" onClick={undoOthers} disabled={busy}>Undo</Button>
+            </div>
+          )}
+          <label className="flex items-center justify-between gap-2 text-xs text-white/70">
+            <span>Close tabs after saving <span className="text-white/45">(pinned tabs stay open)</span></span>
+            <Switch checked={closeAfter} aria-label="Close tabs after saving"
+              onCheckedChange={(v) => { setCloseAfter(v); void saveCloseAfterSave(v) }} />
+          </label>
         </div>
       )}
 
@@ -187,7 +266,6 @@ function IndexPopup() {
           Sign in to sync across devices
         </Button>
       )}
-
     </div>
   )
 }

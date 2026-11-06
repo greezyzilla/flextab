@@ -36,6 +36,14 @@ describe("recent destination storage", () => {
     expect(stored[RECENT_DESTINATIONS_KEY]).toEqual([t("a"), t("b")])
   })
 
+  it("keeps one entry per category, remembering its latest group", async () => {
+    await rememberDestination({ ...t("a"), groupId: "g1" })
+    await rememberDestination({ ...t("a"), groupId: "g2" })
+    expect(await loadRecentDestinations()).toEqual([{ ...t("a"), groupId: "g2" }])
+    stored[RECENT_DESTINATIONS_KEY] = [{ ...t("a"), groupId: 5 }]
+    expect(await loadRecentDestinations()).toEqual([])
+  })
+
   it("ignores malformed stored data", async () => {
     stored[RECENT_DESTINATIONS_KEY] = [t("a"), { spaceId: 1 }, null, "x"]
     expect(await loadRecentDestinations()).toEqual([t("a")])

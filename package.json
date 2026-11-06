@@ -91,8 +91,19 @@
       "tabs",
       "storage",
       "unlimitedStorage",
-      "alarms"
+      "alarms",
+      "contextMenus"
     ],
+    "commands": {
+      "save-page": {
+        "suggested_key": { "default": "Alt+Shift+S" },
+        "description": "Save this page to FlexTab"
+      },
+      "save-window": {
+        "suggested_key": { "default": "Alt+Shift+W" },
+        "description": "Save all tabs in this window to FlexTab"
+      }
+    },
     "host_permissions": [
       "$PLASMO_PUBLIC_API_HOST"
     ]

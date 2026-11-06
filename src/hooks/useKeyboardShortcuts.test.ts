@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { renderHook, waitFor } from "@testing-library/react"
+import { renderHook } from "@testing-library/react"
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import { useUIStore } from "~src/store/useUIStore"
@@ -65,20 +65,9 @@ describe("keyboard shortcuts follow the destination policy", () => {
     expect(spaces().find(s => s.id === "s2")!.projects[0].categories[0].groups).toHaveLength(1)
   })
 
-  it("Cmd+Shift+S in a project without a category asks for one, then saves", async () => {
-    yjs.addProject("s1", { id: "p3", name: "Empty", order: 1, categories: [] })
-    useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces(), activeProjectId: "p3", activeCategoryId: null })
-    vi.mocked(chrome.windows.getAll).mockResolvedValue([{ tabs: [{ url: "https://a.com", title: "A" }] }] as chrome.windows.Window[])
+  it("Cmd+Shift+S opens the Save all dialog", () => {
+    useUIStore.setState({ saveAllOpen: false })
     press("S", true)
-    const req = useUIStore.getState().creating
-    expect(req).toMatchObject({ kind: "category", spaceId: "s1", projectId: "p3" })
-
-    yjs.addCategory("s1", "p3", { id: "c3", name: "Inbox", order: 0, groups: [] })
-    useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces(), activeCategoryId: "c3" })
-    req!.then!()
-    await waitFor(() => {
-      const c3 = spaces()[0].projects.find(p => p.id === "p3")!.categories[0]
-      expect(c3.groups[0]?.tabs.map(t => t.url)).toEqual(["https://a.com"])
-    })
+    expect(useUIStore.getState().saveAllOpen).toBe(true)
   })
 })

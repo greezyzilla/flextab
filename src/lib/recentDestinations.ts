@@ -1,28 +1,33 @@
 import type { SaveTabsTarget } from "~src/services/saveTabsAsGroup"
 
+/** A category, plus the group last saved into there (if any). */
+export type RecentDestination = SaveTabsTarget & { groupId?: string }
+
 /**
- * Where this device last saved tabs to, newest first. A per-device
+ * Where this device last saved tabs to, newest first, one entry per category
+ * (remembering the last group used in it). A per-device
  * convenience for the destination picker (not synced, not account data), kept
  * in chrome.storage.local so the popup and the new tab page share it.
  */
 export const RECENT_DESTINATIONS_KEY = "flextab_recent_destinations"
 export const MAX_RECENT_DESTINATIONS = 3
 
-const sameTarget = (a: SaveTabsTarget, b: SaveTabsTarget) =>
+const sameTarget = (a: RecentDestination, b: RecentDestination) =>
   a.spaceId === b.spaceId && a.projectId === b.projectId && a.categoryId === b.categoryId
 
-function isTarget(v: unknown): v is SaveTabsTarget {
+function isTarget(v: unknown): v is RecentDestination {
   if (!v || typeof v !== "object") return false
   const t = v as Record<string, unknown>
-  return typeof t.spaceId === "string" && typeof t.projectId === "string" && typeof t.categoryId === "string"
+  return typeof t.spaceId === "string" && typeof t.projectId === "string" && typeof t.categoryId === "string" &&
+    (t.groupId === undefined || typeof t.groupId === "string")
 }
 
 /** Move `target` to the front, drop duplicates, cap the list. Pure. */
-export function pushRecent(list: SaveTabsTarget[], target: SaveTabsTarget, max = MAX_RECENT_DESTINATIONS): SaveTabsTarget[] {
+export function pushRecent(list: RecentDestination[], target: RecentDestination, max = MAX_RECENT_DESTINATIONS): RecentDestination[] {
   return [target, ...list.filter((t) => !sameTarget(t, target))].slice(0, max)
 }
 
-export async function loadRecentDestinations(): Promise<SaveTabsTarget[]> {
+export async function loadRecentDestinations(): Promise<RecentDestination[]> {
   try {
     const stored = (await chrome.storage.local.get(RECENT_DESTINATIONS_KEY))[RECENT_DESTINATIONS_KEY]
     return Array.isArray(stored) ? stored.filter(isTarget) : []
@@ -32,12 +37,13 @@ export async function loadRecentDestinations(): Promise<SaveTabsTarget[]> {
 }
 
 /** Best effort: a failed write only loses the shortcut, never the save. */
-export async function rememberDestination(target: SaveTabsTarget): Promise<void> {
+export async function rememberDestination(target: RecentDestination): Promise<void> {
   try {
     const next = pushRecent(await loadRecentDestinations(), {
       spaceId: target.spaceId,
       projectId: target.projectId,
       categoryId: target.categoryId,
+      ...(target.groupId ? { groupId: target.groupId } : {}),
     })
     await chrome.storage.local.set({ [RECENT_DESTINATIONS_KEY]: next })
   } catch (_) {

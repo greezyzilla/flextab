@@ -11,7 +11,6 @@ import { useRef, useCallback, useEffect } from "react";
 import { v7 as uuidv7 } from "uuid";
 import { useSettingsStore, type GroupLayout } from "~src/store/useSettingsStore";
 import { useUIStore } from "~src/store/useUIStore";
-import { saveTabsAsGroup, defaultSavedGroupName } from "~src/services/saveTabsAsGroup";
 import { NEW_GROUP_NAME } from "~src/services/resolveSaveTarget";
 import type { GroupLocation } from "~src/services/dragDrop";
 import { CategoryIcon, ProjectIcon, SpaceAvatar } from "~src/components/levelIcons";
@@ -172,7 +171,7 @@ export function ContentPanel() {
   const activeCategory = useActiveCategory();
   const { setActiveCategory } = useSavedSpacesStore();
   const { groupLayout, setGroupLayout, gridColumns } = useSettingsStore();
-  const { startCreate, scrollTarget } = useUIStore();
+  const { startCreate, scrollTarget, setSaveAllOpen } = useUIStore();
   const scrollRef = useRef<HTMLDivElement>(null);
   // While a programmatic scroll runs, the scroll spy must not overwrite the
   // category the user just picked.
@@ -230,17 +229,6 @@ export function ContentPanel() {
     if (current && current !== useSavedSpacesStore.getState().activeCategoryId) setActiveCategory(current);
   };
 
-  const handleSaveAllTabs = useCallback(async () => {
-    if (!activeSpace || !activeProject || !activeCategory) return;
-    const windows = await chrome.windows.getAll({ populate: true });
-    const allTabs = windows.flatMap((w) => w.tabs ?? []);
-    await saveTabsAsGroup({
-      target: { spaceId: activeSpace.id, projectId: activeProject.id, categoryId: activeCategory.id },
-      name: defaultSavedGroupName(),
-      tabs: allTabs,
-    });
-    scrollToCategory(activeCategory.id);
-  }, [activeSpace, activeProject, activeCategory, scrollToCategory]);
 
   let body: React.ReactNode;
   if (!activeSpace) {
@@ -336,7 +324,7 @@ export function ContentPanel() {
             </div>
           )}
           {activeCategory && (
-            <Button variant="ghost" size="sm" onClick={handleSaveAllTabs} title={`Save all open tabs into ${activeCategory.name}`}>Save all tabs</Button>
+            <Button variant="ghost" size="sm" onClick={() => setSaveAllOpen(true)}>Save all tabs</Button>
           )}
         </div>
       </div>

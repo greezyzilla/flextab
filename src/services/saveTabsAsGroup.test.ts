@@ -116,7 +116,18 @@ describe("saveTabsAsGroup", () => {
       "https://a.com",
       "https://b.com",
     ]);
-    expect(rememberDestination).toHaveBeenCalledWith({ spaceId: "s1", projectId: "p1", categoryId: "c1" });
+    expect(rememberDestination).toHaveBeenCalledWith({ spaceId: "s1", projectId: "p1", categoryId: "c1", groupId: result!.groupId });
+  });
+
+  it("defaults an empty name and an untitled tab", async () => {
+    const result = await saveTabsAsGroup({
+      target: { spaceId: "s1", projectId: "p1", categoryId: "c1" },
+      name: "   ",
+      tabs: [{ url: "https://a.com" }],
+    });
+    const group = yjs.getSpaces()[0].projects[0].categories[0].groups.find((g) => g.id === result!.groupId)!;
+    expect(group.name).toMatch(/^Saved /);
+    expect(group.tabs[0].title).toBe("Untitled");
   });
 
   it("returns null when nothing savable or category missing", async () => {

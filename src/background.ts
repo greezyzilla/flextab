@@ -12,6 +12,7 @@ import {
 } from "~src/lib/yjsDoc";
 import { recordLandedSnapshot, LANDED_SNAPSHOT_KEY } from "~src/services/landedSnapshot";
 import type { SavedSpace } from "~src/types";
+import { captureFromBackground, commandKind, menuKind, registerCaptureMenus } from "~src/services/backgroundCapture";
 
 const API_BASE_URL = process.env.PLASMO_PUBLIC_API_URL || "http://localhost:3000";
 const AUTH_SUCCESS_PATH = "/auth/success";
@@ -43,6 +44,20 @@ const RETRY_ALARM = "flextab_push_retry";
 // generate one (which could register duplicate devices on a fresh install).
 chrome.runtime.onInstalled.addListener(() => { void getDeviceId(); });
 void getDeviceId();
+
+// =====================================================================
+// Capture from anywhere (TASK-2): keyboard commands + right-click menu
+// =====================================================================
+
+chrome.runtime.onInstalled.addListener(() => { registerCaptureMenus(); });
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  const kind = menuKind(info.menuItemId);
+  if (kind) void captureFromBackground(kind, { tab, linkUrl: info.linkUrl, linkText: info.selectionText });
+});
+chrome.commands.onCommand.addListener((command, tab) => {
+  const kind = commandKind(command);
+  if (kind) void captureFromBackground(kind, { tab });
+});
 
 // =====================================================================
 // Auth callback — complete only a correlated, PKCE-bound login

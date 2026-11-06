@@ -9,13 +9,17 @@ import type { SavedSpace } from "~src/types";
 const tree = (): SavedSpace[] => [{
   id: "s", name: "Space", order: 0,
   projects: [{ id: "p", name: "Project", order: 0,
-    categories: [{ id: "c", name: "Category", order: 0, groups: [] }],
+    categories: [
+      { id: "c", name: "Category", order: 0, groups: [] },
+      { id: "c2", name: "Other", order: 1, groups: [{ id: "g2", name: "Inbox", order: 0, tabs: [] }] },
+    ],
   }],
 }];
 let disk: Record<string, any>;
 let writeWorkspace: (items: Record<string, any>) => Promise<void>;
-const groups = () => yjs.getSpaces()[0].projects[0].categories[0].groups;
-const storedGroups = () => yjs.decodeSpacesFromStorage(disk[yjs.PERSIST_KEY])[0].projects[0].categories[0].groups;
+const groups = (cat = 0) => yjs.getSpaces()[0].projects[0].categories[cat].groups;
+const storedGroups = (cat = 0) => yjs.decodeSpacesFromStorage(disk[yjs.PERSIST_KEY])[0].projects[0].categories[cat].groups;
+const windowTabs = (tabs: Partial<chrome.tabs.Tab>[]) => vi.mocked(chrome.tabs.query).mockResolvedValue(tabs as chrome.tabs.Tab[]);
 
 beforeEach(async () => {
   vi.clearAllMocks();
@@ -32,40 +36,31 @@ beforeEach(async () => {
   await yjs.persistState();
   resetYjsHydration();
   useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces(), activeSpaceId: "s", activeProjectId: "p", activeCategoryId: "c" });
-  useAuthStore.setState({ isAuthenticated: true, isLoading: false, initialize: vi.fn(async () => {}) });
-  vi.mocked(chrome.tabs.query).mockResolvedValue([{ id: 1, title: "Example", url: "https://example.com" }] as chrome.tabs.Tab[]);
+  useAuthStore.setState({ isAuthenticated: true, isLoading: false, guestMode: false, initialize: vi.fn(async () => {}) });
+  windowTabs([{ id: 1, windowId: 9, index: 0, active: true, title: "Example", url: "https://example.com" }]);
 });
 
-async function openPopup() {
-  const view = render(<Popup />);
-  await waitFor(() => expect(screen.getByRole("button", { name: "Save Current Tab" })).toBeEnabled());
-  return view;
-}
-
-describe("popup durable save without a new-tab or sync engine", () => {
-  it("shows recovery instead of editing controls when workspace storage is corrupt", async () => {
+describe("popup instant save", () => {
+  it("shows recovery instead of saving when workspace storage is corrupt", async () => {
     disk[yjs.PERSIST_KEY] = [255];
     render(<Popup />);
     expect(await screen.findByRole("alert")).toHaveTextContent("Could not load your saved workspace");
     expect(screen.getByRole("button", { name: "Reload workspace" })).toBeEnabled();
-    expect(screen.queryByRole("button", { name: "Save Current Tab" })).not.toBeInTheDocument();
     expect(disk[yjs.PERSIST_KEY]).toEqual([255]);
   });
 
-  it("does not acknowledge success until storage resolves; reopens from saved bytes", async () => {
+  it("saves the current page on open, acknowledging only once storage resolves", async () => {
     let finish!: () => void;
     writeWorkspace = items => new Promise<void>(resolve => {
       finish = () => { Object.assign(disk, structuredClone(items)); resolve(); };
     });
-    const view = await openPopup();
-    fireEvent.click(screen.getByRole("button", { name: "Save Current Tab" }));
+    const view = render(<Popup />);
     await waitFor(() => expect(groups()).toHaveLength(1));
     expect(storedGroups()).toHaveLength(0);
-    expect(screen.queryByText("Saved locally!")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Save Current Tab" })).toBeDisabled();
-    expect(screen.getByRole("status")).toHaveTextContent("Saving to this device");
+    expect(screen.getByRole("status")).toHaveTextContent("Saving this page");
     await act(async () => { finish(); });
-    expect(await screen.findByText("Saved locally!")).toBeInTheDocument();
+    expect(await screen.findByText("✓ Saved")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Space › Project › Category › New Group");
     const savedId = storedGroups()[0].id;
     view.unmount();
     // A reopened popup has a fresh Y.Doc, not the old document with tombstones.
@@ -73,93 +68,153 @@ describe("popup durable save without a new-tab or sync engine", () => {
     const reopened = await import("~src/lib/yjsDoc");
     expect(await reopened.loadPersistedState()).toBe(true);
     const restored = reopened.getSpaces()[0].projects[0].categories[0].groups;
-    expect(restored).toHaveLength(1);
-    expect(restored[0].id).toBe(savedId);
+    expect(restored.map(g => g.id)).toEqual([savedId]);
     expect(restored[0].tabs[0].url).toBe("https://example.com");
     reopened.doc.destroy();
   });
 
-  it("completes an issued storage write even if the popup unmounts before its acknowledgement", async () => {
+  it("completes an issued storage write even if the popup closes first", async () => {
     let finish!: () => void;
     writeWorkspace = items => new Promise<void>(resolve => {
       finish = () => { Object.assign(disk, structuredClone(items)); resolve(); };
     });
-    const view = await openPopup();
-    fireEvent.click(screen.getByRole("button", { name: "Save Current Tab" }));
+    const view = render(<Popup />);
     await waitFor(() => expect(finish).toBeDefined());
     view.unmount();
     await act(async () => { finish(); });
     expect(storedGroups()).toHaveLength(1);
   });
 
-  it("reports storage failure and retries the same group without duplicates", async () => {
+  it("reports a refused write and retries the same save without duplicates", async () => {
     writeWorkspace = async () => { throw new Error("quota exceeded"); };
-    await openPopup();
-    fireEvent.click(screen.getByRole("button", { name: "Save Current Tab" }));
+    render(<Popup />);
     expect(await screen.findByRole("alert")).toHaveTextContent("Could not save to this device");
-    expect(screen.queryByText("Saved locally!")).not.toBeInTheDocument();
-    expect(storedGroups()).toHaveLength(0);
     expect(groups()).toHaveLength(1);
     const groupId = groups()[0].id;
     writeWorkspace = async items => { Object.assign(disk, structuredClone(items)); };
     fireEvent.click(screen.getByRole("button", { name: "Retry Save" }));
-    await screen.findByText("Saved locally!");
-    expect(storedGroups()).toHaveLength(1);
-    expect(storedGroups()[0].id).toBe(groupId);
+    await screen.findByText("✓ Saved");
+    expect(storedGroups().map(g => g.id)).toEqual([groupId]);
     expect(chrome.tabs.query).toHaveBeenCalledTimes(1);
   });
 
-  it("persists all savable tabs in one group", async () => {
-    vi.mocked(chrome.tabs.query).mockResolvedValue([
-      { url: "https://a.example", title: "A" }, { url: "chrome://newtab", title: "Skip" }, { url: "https://b.example", title: "B" },
-    ] as chrome.tabs.Tab[]);
-    await openPopup();
-    fireEvent.click(screen.getByRole("button", { name: "Save All Tabs" }));
-    await screen.findByText("Saved locally!");
+  it("appends repeated saves into the last group and says when a page is already there", async () => {
+    const first = render(<Popup />);
+    await screen.findByText("✓ Saved");
+    first.unmount();
+    windowTabs([{ id: 2, windowId: 9, index: 0, active: true, title: "Second", url: "https://second.example" }]);
+    const second = render(<Popup />);
+    await screen.findByText("✓ Saved");
     expect(storedGroups()).toHaveLength(1);
-    expect(storedGroups()[0].tabs.map(t => t.url)).toEqual(["https://a.example", "https://b.example"]);
+    expect(storedGroups()[0].tabs.map(t => t.url)).toEqual(["https://example.com", "https://second.example"]);
+    second.unmount();
+    render(<Popup />);
+    expect(await screen.findByText("Already saved in")).toBeInTheDocument();
+    expect(storedGroups()[0].tabs).toHaveLength(2);
   });
 
-  it("coalesces repeated clicks while querying tabs", async () => {
-    let answer!: (tabs: chrome.tabs.Tab[]) => void;
-    vi.mocked(chrome.tabs.query).mockImplementation(() => new Promise(resolve => { answer = resolve; }) as any);
-    await openPopup();
-    const button = screen.getByRole("button", { name: "Save Current Tab" });
-    fireEvent.click(button);
-    fireEvent.click(button);
-    expect(chrome.tabs.query).toHaveBeenCalledTimes(1);
-    await act(async () => { answer([{ url: "https://example.com" }] as chrome.tabs.Tab[]); });
-    await screen.findByText("Saved locally!");
-    expect(storedGroups()).toHaveLength(1);
+  it("undo removes the save; change moves it to another group", async () => {
+    const view = render(<Popup />);
+    await screen.findByText("✓ Saved");
+    fireEvent.click(screen.getByRole("button", { name: "Change" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Inbox" }));
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Other › Inbox"));
+    expect(storedGroups(0)).toHaveLength(0);
+    expect(storedGroups(1)[0].tabs.map(t => t.url)).toEqual(["https://example.com"]);
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+    await screen.findByText("Removed from FlexTab.");
+    expect(storedGroups(1)[0].tabs).toEqual([]);
+    fireEvent.click(screen.getByRole("button", { name: "Save again" }));
+    await screen.findByText("✓ Saved");
+    view.unmount();
   });
 
-  it("handles query failure without mutating the workspace", async () => {
-    vi.mocked(chrome.tabs.query).mockRejectedValue(new Error("tabs unavailable"));
-    await openPopup();
-    fireEvent.click(screen.getByRole("button", { name: "Save Current Tab" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("Could not read your tabs");
-    expect(groups()).toHaveLength(0);
+  it("saves the rest of the window, closes them when asked, and undo reopens", async () => {
+    windowTabs([
+      { id: 1, windowId: 9, index: 0, active: true, url: "https://example.com", title: "Example" },
+      { id: 2, windowId: 9, index: 1, url: "https://b.example", title: "B" },
+      { id: 3, windowId: 9, index: 2, url: "chrome://settings" },
+    ]);
+    render(<Popup />);
+    await screen.findByText("✓ Saved");
+    fireEvent.click(screen.getByRole("switch", { name: "Close tabs after saving" }));
+    await waitFor(() => expect(disk.flextab_close_after_save).toBe(true));
+    fireEvent.click(screen.getByRole("button", { name: "Save the other 1 tab in this window" }));
+    await screen.findByText(/Saved 1 more, closed 1/);
+    expect(storedGroups()[0].tabs.map(t => t.url)).toEqual(["https://example.com", "https://b.example"]);
+    expect(chrome.tabs.remove).toHaveBeenCalledWith([2]);
+    fireEvent.click(screen.getAllByRole("button", { name: "Undo" })[1]);
+    await waitFor(() => expect(storedGroups()[0].tabs.map(t => t.url)).toEqual(["https://example.com"]));
+    expect(chrome.tabs.create).toHaveBeenCalledWith({ windowId: 9, index: 1, url: "https://b.example", active: false });
+  });
+
+  it("offers Undo for the last shortcut save", async () => {
+    const view = render(<Popup />);
+    await screen.findByText("✓ Saved");
+    view.unmount();
+    // A background capture stored its receipt for the popup.
+    const groupId = storedGroups()[0].id;
+    const tabId = storedGroups()[0].tabs[0].id;
+    disk.flextab_last_capture = {
+      target: { spaceId: "s", projectId: "p", categoryId: "c", groupId }, tabIds: [tabId], createdGroup: true,
+      duplicates: 0, skipped: 0, closed: [], persisted: true, at: Date.now(),
+    };
+    windowTabs([{ id: 3, windowId: 9, index: 0, active: true, url: "chrome://newtab" }]);
+    render(<Popup />);
+    fireEvent.click(await screen.findByRole("button", { name: "Undo" }));
+    await waitFor(() => expect(storedGroups()).toHaveLength(0));
+    expect(disk.flextab_last_capture).toBeUndefined();
+  });
+
+  it("explains an unsavable page and writes nothing", async () => {
+    windowTabs([{ id: 1, active: true, url: "chrome://settings" }]);
+    render(<Popup />);
+    expect(await screen.findByText("This page can't be saved")).toBeInTheDocument();
     expect(storedGroups()).toHaveLength(0);
-    expect(screen.queryByRole("button", { name: "Retry Save" })).not.toBeInTheDocument();
   });
 
-  it("lets a guest save from the popup", async () => {
+  it("falls back to the first category when the remembered one is gone", async () => {
+    yjs.setSpaces([{ id: "s", name: "Space", order: 0, projects: [{ id: "p", name: "Project", order: 0, categories: [{
+      id: "c", name: "Category", order: 0, groups: [{ id: "g", name: "Old", order: 0, tabs: [{ id: "t", url: "https://old.example", title: "Old", favicon: "", order: 0 }] }],
+    }] }] }]);
+    await yjs.persistState();
+    resetYjsHydration();
+    useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces(), activeSpaceId: "s", activeProjectId: "p", activeCategoryId: "c" });
+    yjs.removeCategory("s", "p", "c");
+    yjs.addCategory("s", "p", { id: "c9", name: "Kept", order: 0, groups: [{ id: "g9", name: "Old", order: 0, tabs: [{ id: "t", url: "https://old.example", title: "Old", favicon: "", order: 0 }] }] });
+    await yjs.persistState();
+    // No recent destination and an active category that no longer exists → falls back to the first one.
+    render(<Popup />);
+    await screen.findByText("✓ Saved");
+    expect(screen.getByRole("status")).toHaveTextContent("Kept › Old");
+  });
+
+  it("handles a tab query failure without writing", async () => {
+    vi.mocked(chrome.tabs.query).mockRejectedValue(new Error("tabs unavailable"));
+    render(<Popup />);
+    expect(await screen.findByRole("alert")).toHaveTextContent("Could not read your tabs");
+    expect(storedGroups()).toHaveLength(0);
+  });
+});
+
+describe("popup access (TASK-3)", () => {
+  it("lets a guest save", async () => {
     useAuthStore.setState({ isAuthenticated: false, guestMode: true });
-    await openPopup();
+    render(<Popup />);
+    await screen.findByText("✓ Saved");
     expect(screen.getByRole("button", { name: "Sign in to sync across devices" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Save Current Tab" }));
-    await waitFor(() => expect(storedGroups()).toHaveLength(1));
+    expect(storedGroups()).toHaveLength(1);
   });
 
-  it("lets a signed-out device that still holds tabs save from the popup", async () => {
+  it("lets a signed-out device that still holds tabs save", async () => {
     yjs.setSpaces([{ ...tree()[0], projects: [{ ...tree()[0].projects[0], categories: [{ id: "c", name: "Category", order: 0,
       groups: [{ id: "g0", name: "Old", order: 0, tabs: [{ id: "t0", url: "https://old.example", title: "Old", favicon: "", order: 0 }] }] }] }] }]);
     await yjs.persistState();
     resetYjsHydration();
     useAuthStore.setState({ isAuthenticated: false, guestMode: false });
-    await openPopup();
-    fireEvent.click(screen.getByRole("button", { name: "Save Current Tab" }));
-    await waitFor(() => expect(storedGroups()).toHaveLength(2));
+    render(<Popup />);
+    await screen.findByText("✓ Saved");
+    expect(storedGroups()[0].tabs.map(t => t.url)).toEqual(["https://old.example", "https://example.com"]);
   });
 
   it("sends a fresh signed-out install to set up, with sign-in opening the full screen", async () => {
@@ -169,15 +224,6 @@ describe("popup durable save without a new-tab or sync engine", () => {
     expect(chrome.tabs.create).toHaveBeenCalledWith({ url: "chrome-extension://test/newtab.html#/signin" });
     fireEvent.click(screen.getByRole("button", { name: "Get started" }));
     expect(chrome.tabs.create).toHaveBeenCalledWith({ url: "chrome-extension://test/newtab.html" });
-    expect(screen.queryByRole("button", { name: "Save Current Tab" })).not.toBeInTheDocument();
-  });
-
-  it("does not acknowledge unsavable tabs", async () => {
-    vi.mocked(chrome.tabs.query).mockResolvedValue([{ url: "chrome://settings" }] as chrome.tabs.Tab[]);
-    await openPopup();
-    fireEvent.click(screen.getByRole("button", { name: "Save Current Tab" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("No tabs were saved");
     expect(storedGroups()).toHaveLength(0);
-    expect(screen.queryByText("Saved locally!")).not.toBeInTheDocument();
   });
 });

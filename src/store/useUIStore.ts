@@ -40,6 +40,10 @@ interface UIState {
    */
   scrollTarget: { categoryId: string; nonce: number; mode: ScrollMode } | null
   requestScrollToCategory: (categoryId: string, mode?: ScrollMode) => void
+
+  /** The "Save all tabs" dialog (button + keyboard shortcut). */
+  saveAllOpen: boolean
+  setSaveAllOpen: (open: boolean) => void
 }
 
 export type ScrollMode = "top" | "ifNeeded"
@@ -61,4 +65,7 @@ export const useUIStore = create<UIState>((set) => ({
   scrollTarget: null,
   requestScrollToCategory: (categoryId, mode = "top") =>
     set((s) => ({ scrollTarget: { categoryId, nonce: (s.scrollTarget?.nonce ?? 0) + 1, mode } })),
+
+  saveAllOpen: false,
+  setSaveAllOpen: (saveAllOpen) => set({ saveAllOpen }),
 }))

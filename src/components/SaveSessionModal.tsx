@@ -16,15 +16,8 @@ import { isSavableTabUrl, saveTabsAsGroup } from "~src/services/saveTabsAsGroup"
 import { resolveSaveTargetIds } from "~src/services/resolveSaveTarget"
 import type { SaveTabsTarget } from "~src/services/saveTabsAsGroup"
 import { DestinationPicker, describeTarget } from "~src/components/DestinationPicker"
+import { windowGroupName } from "~src/services/capture"
 
-function defaultSessionName() {
-  const now = new Date()
-  return `${now.toLocaleDateString()} ${now.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  })}`
-}
 
 export function SaveSessionModal({
   tabs,
@@ -40,7 +33,7 @@ export function SaveSessionModal({
     activeCategoryId,
   } = useSavedSpacesStore()
 
-  const [name, setName] = useState(defaultSessionName)
+  const [name, setName] = useState(windowGroupName)
   const [target, setTarget] = useState<SaveTabsTarget>(() =>
     resolveSaveTargetIds(savedSpaces, {
       spaceId: activeSpaceId,

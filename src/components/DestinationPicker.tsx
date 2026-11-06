@@ -5,20 +5,26 @@ import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import type { SavedSpace } from "~src/types"
 import type { SaveTabsTarget } from "~src/services/saveTabsAsGroup"
 import { Input } from "~src/components/ui/input"
-import { CategoryIcon, ProjectIcon, SpaceAvatar } from "~src/components/levelIcons"
-import { loadRecentDestinations } from "~src/lib/recentDestinations"
+import { CategoryIcon, GroupIcon, ProjectIcon, SpaceAvatar } from "~src/components/levelIcons"
+import { loadRecentDestinations, type RecentDestination } from "~src/lib/recentDestinations"
+
+/** A picked destination. With `groupLevel`, it names a group, or a new group to create. */
+export type PickerValue = SaveTabsTarget & { groupId?: string; newGroupName?: string }
 
 /**
  * One destination picker for every save/move surface. It mirrors the sidebar
  * tree (same order, same level icons) so the structure reads the same
  * everywhere, and the destination is a single choice instead of three
- * dependent dropdowns. A category is the destination; missing structure is
- * created right here by naming it — never invented.
+ * dependent dropdowns. A category is the destination; with `groupLevel` the
+ * choice goes one level deeper to a group (used for single-tab captures, so
+ * repeated saves land in one group). Missing structure is created right here
+ * by naming it — never invented.
  */
-export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60" }: {
-  value: SaveTabsTarget
-  onChange: (target: SaveTabsTarget) => void
+export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60", groupLevel = false }: {
+  value: PickerValue
+  onChange: (target: PickerValue) => void
   maxHeightClass?: string
+  groupLevel?: boolean
 }) {
   const savedSpaces = useSavedSpacesStore((s) => s.savedSpaces)
   const activeSpaceId = useSavedSpacesStore((s) => s.activeSpaceId)
@@ -26,24 +32,31 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
   const [creating, setCreating] = useState<
     | { kind: "project"; spaceId: string }
     | { kind: "category"; spaceId: string; projectId: string }
+    | { kind: "group"; spaceId: string; projectId: string; categoryId: string }
     | null
   >(null)
   const groupName = useId()
 
   const q = query.trim().toLowerCase()
-  const visible = useMemo(() => filterTree(savedSpaces, q), [savedSpaces, q])
+  const visible = useMemo(() => filterTree(savedSpaces, q, groupLevel), [savedSpaces, q, groupLevel])
 
   // Where this device saved last: one click for the common "same place again"
   // case. Entries whose category no longer exists are skipped.
-  const [recentTargets, setRecentTargets] = useState<SaveTabsTarget[]>([])
+  const [recentTargets, setRecentTargets] = useState<RecentDestination[]>([])
   useEffect(() => {
     let active = true
     void loadRecentDestinations().then((r) => { if (active) setRecentTargets(r) })
     return () => { active = false }
   }, [])
   const recent = recentTargets
-    .map((t) => ({ target: t, parts: resolveParts(savedSpaces, t) }))
-    .filter((r): r is { target: SaveTabsTarget; parts: NonNullable<ReturnType<typeof resolveParts>> } => !!r.parts)
+    .map((t) => {
+      const parts = resolveParts(savedSpaces, t)
+      const group = groupLevel && t.groupId ? parts?.category.groups.find((g) => g.id === t.groupId) : undefined
+      // In group mode a recent entry is its last group (if it still exists).
+      const target: PickerValue = groupLevel && group ? { ...t, groupId: group.id } : { spaceId: t.spaceId, projectId: t.projectId, categoryId: t.categoryId }
+      return { target, parts, group }
+    })
+    .filter((r): r is { target: PickerValue; parts: NonNullable<ReturnType<typeof resolveParts>>; group: typeof r.group } => !!r.parts)
 
   const createProject = (spaceId: string, name: string) => {
     const store = useSavedSpacesStore.getState()
@@ -77,26 +90,27 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
         <div className="flex flex-col gap-1">
           <span className="text-[11px] font-medium text-white/55">Recent</span>
           <div className="flex flex-wrap gap-1.5">
-            {recent.map(({ target, parts }) => {
+            {recent.map(({ target, parts, group }) => {
               const selected =
                 value.spaceId === target.spaceId &&
                 value.projectId === target.projectId &&
-                value.categoryId === target.categoryId
+                value.categoryId === target.categoryId &&
+                (!groupLevel || value.groupId === target.groupId)
               return (
                 <button
                   key={`${target.spaceId}:${target.projectId}:${target.categoryId}`}
                   type="button"
                   aria-pressed={selected}
-                  title={`${parts.space.name} › ${parts.project.name} › ${parts.category.name}`}
+                  title={describeDestination(savedSpaces, target) ?? undefined}
                   onClick={() => onChange(target)}
                   className={`flex max-w-full items-center gap-1.5 rounded-md border px-2 py-1 text-xs outline-none transition-colors focus-visible:ring-1 focus-visible:ring-ring ${
                     selected ? "border-[var(--accent)] text-white/95" : "border-white/10 text-white/75 hover:bg-white/[0.05]"
                   }`}
                   style={selected ? { backgroundColor: "var(--accent-subtle)" } : undefined}
                 >
-                  <CategoryIcon className="h-3 w-3 shrink-0" />
-                  <span className="truncate">{parts.category.name}</span>
-                  <span className="truncate text-white/50">{parts.project.name}</span>
+                  {group ? <GroupIcon className="h-3 w-3 shrink-0" /> : <CategoryIcon className="h-3 w-3 shrink-0" />}
+                  <span className="truncate">{group ? group.name : parts.category.name}</span>
+                  <span className="truncate text-white/50">{group ? parts.category.name : parts.project.name}</span>
                 </button>
               )
             })}
@@ -124,29 +138,71 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
                   <span className="truncate font-medium">{project.name}</span>
                 </div>
                 {project.categories.map((category) => {
-                  const selected =
-                    value.spaceId === space.id &&
-                    value.projectId === project.id &&
-                    value.categoryId === category.id
-                  return (
-                    <label
-                      key={category.id}
-                      className={`flex cursor-pointer items-center gap-2 pl-10 pr-3 py-1.5 text-xs transition-colors focus-within:ring-1 focus-within:ring-inset focus-within:ring-ring ${
-                        selected ? "text-white/95" : "text-white/70 hover:bg-white/[0.05]"
-                      }`}
-                      style={selected ? { backgroundColor: "var(--accent-subtle)" } : undefined}
-                    >
-                      <input
-                        type="radio"
+                  const at = { spaceId: space.id, projectId: project.id, categoryId: category.id }
+                  const inCategory =
+                    value.spaceId === at.spaceId && value.projectId === at.projectId && value.categoryId === at.categoryId
+                  if (!groupLevel) {
+                    return (
+                      <Choice
+                        key={category.id}
                         name={groupName}
-                        className="sr-only"
-                        checked={selected}
-                        onChange={() => onChange({ spaceId: space.id, projectId: project.id, categoryId: category.id })}
+                        indentClass="pl-10"
+                        selected={inCategory}
+                        icon={<CategoryIcon className="h-3 w-3 shrink-0" />}
+                        label={category.name}
+                        onSelect={() => onChange(at)}
                       />
-                      <CategoryIcon className="h-3 w-3 shrink-0" />
-                      <span className="flex-1 truncate">{category.name}</span>
-                      {selected && <Check className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--accent)" }} aria-hidden />}
-                    </label>
+                    )
+                  }
+                  const groups = [...category.groups].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+                  const pendingNew = inCategory && !value.groupId && value.newGroupName
+                  return (
+                    <div key={category.id}>
+                      <div className="flex items-center gap-2 pl-10 pr-3 py-1 text-xs text-white/70">
+                        <CategoryIcon className="h-3 w-3 shrink-0" />
+                        <span className="truncate">{category.name}</span>
+                      </div>
+                      {groups.map((group) => (
+                        <Choice
+                          key={group.id}
+                          name={groupName}
+                          indentClass="pl-14"
+                          selected={inCategory && value.groupId === group.id}
+                          icon={<GroupIcon className="h-3 w-3 shrink-0" />}
+                          label={group.name}
+                          onSelect={() => onChange({ ...at, groupId: group.id })}
+                        />
+                      ))}
+                      {pendingNew && (
+                        <Choice
+                          name={groupName}
+                          indentClass="pl-14"
+                          selected
+                          icon={<GroupIcon className="h-3 w-3 shrink-0" />}
+                          label={`New group: ${value.newGroupName}`}
+                          onSelect={() => {}}
+                        />
+                      )}
+                      {!q && (
+                        creating?.kind === "group" && creating.categoryId === category.id ? (
+                          <NameRow
+                            indentClass="pl-14"
+                            label="New group name"
+                            placeholder="Group name"
+                            onCommit={(name) => { setCreating(null); onChange({ ...at, newGroupName: name }) }}
+                            onCancel={() => setCreating(null)}
+                          />
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setCreating({ kind: "group", ...at })}
+                            className="w-full pl-14 pr-3 py-1 text-left text-[11px] text-white/55 hover:text-white/80"
+                          >
+                            + New group in {category.name}
+                          </button>
+                        )
+                      )}
+                    </div>
                   )
                 })}
                 {!q && (
@@ -196,6 +252,25 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
   )
 }
 
+/** One selectable row (a radio, visually a list item). */
+function Choice({ name, indentClass, selected, icon, label, onSelect }: {
+  name: string; indentClass: string; selected: boolean; icon: React.ReactNode; label: string; onSelect: () => void
+}) {
+  return (
+    <label
+      className={`flex cursor-pointer items-center gap-2 ${indentClass} pr-3 py-1.5 text-xs transition-colors focus-within:ring-1 focus-within:ring-inset focus-within:ring-ring ${
+        selected ? "text-white/95" : "text-white/70 hover:bg-white/[0.05]"
+      }`}
+      style={selected ? { backgroundColor: "var(--accent-subtle)" } : undefined}
+    >
+      <input type="radio" name={name} className="sr-only" checked={selected} onChange={onSelect} />
+      {icon}
+      <span className="flex-1 truncate">{label}</span>
+      {selected && <Check className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--accent)" }} aria-hidden />}
+    </label>
+  )
+}
+
 /** Inline name entry; Enter commits, Escape or an empty name cancels. */
 function NameRow({ indentClass, label, placeholder, onCommit, onCancel }: {
   indentClass: string; label: string; placeholder: string
@@ -231,7 +306,7 @@ function NameRow({ indentClass, label, placeholder, onCommit, onCancel }: {
 }
 
 /** Keep the tree shape; drop branches with no match. Space/project name matches keep their children. */
-function filterTree(spaces: SavedSpace[], q: string): SavedSpace[] {
+function filterTree(spaces: SavedSpace[], q: string, matchGroups = false): SavedSpace[] {
   if (!q) return spaces
   const hit = (s: string) => s.toLowerCase().includes(q)
   const out: SavedSpace[] = []
@@ -240,7 +315,7 @@ function filterTree(spaces: SavedSpace[], q: string): SavedSpace[] {
     const projects = []
     for (const project of space.projects) {
       if (hit(project.name)) { projects.push(project); continue }
-      const categories = project.categories.filter((c) => hit(c.name))
+      const categories = project.categories.filter((c) => hit(c.name) || (matchGroups && c.groups.some((g) => hit(g.name))))
       if (categories.length) projects.push({ ...project, categories })
     }
     if (projects.length) out.push({ ...space, projects })
@@ -253,6 +328,15 @@ function resolveParts(spaces: SavedSpace[], t: SaveTabsTarget) {
   const project = space?.projects.find((p) => p.id === t.projectId)
   const category = project?.categories.find((c) => c.id === t.categoryId)
   return space && project && category ? { space, project, category } : null
+}
+
+/** "Space › Project › Category › Group" for a picked destination, or null when incomplete. */
+export function describeDestination(spaces: SavedSpace[], d: PickerValue): string | null {
+  const base = describeTarget(spaces, d)
+  if (!base) return null
+  const group = d.groupId ? resolveParts(spaces, d)?.category.groups.find((g) => g.id === d.groupId) : undefined
+  if (group) return `${base} › ${group.name}`
+  return d.newGroupName ? `${base} › ${d.newGroupName} (new)` : base
 }
 
 /** "Space › Project › Category" for a target, or null when incomplete. */

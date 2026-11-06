@@ -2,6 +2,7 @@ import { ContentPanel, LeftPanel, ProfilePanel, RightPanel, Drawer, DragOverlayC
 import { SearchBar } from "~src/components/SearchBar"
 import { SyncStatusIndicator } from "~src/components/SyncStatusIndicator"
 import { Toaster } from "~src/components/ui/sonner"
+import { SaveAllDialog } from "~src/components/SaveAllDialog"
 import { SettingsNav, SettingsContent, isSettingsRoute } from "~src/components/SettingsPage"
 import { useRoute } from "~src/lib/route"
 import { IconButton } from "~src/components/ui/button"
@@ -123,6 +124,7 @@ export function AppShell() {
         />
       </DragOverlay>
 
+      <SaveAllDialog />
       <Toaster />
     </DndContext>
   )

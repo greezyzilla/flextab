@@ -107,7 +107,7 @@ export async function saveTabsAsGroup(args: {
     order: args.order ?? category.groups.length,
   });
   // Feeds the destination picker's "Recent" row; never blocks the save.
-  void rememberDestination(target);
+  void rememberDestination({ ...target, groupId });
 
   return { groupId, tabCount: savedTabs.length };
 }
