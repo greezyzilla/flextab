@@ -50,6 +50,21 @@ function SortableGroup({ group, location, layout, gridColumns }: {
   );
 }
 
+/**
+ * The current section is the first one still visible at the top edge: the one
+ * whose header is pinned or being pushed out, or (between two sections) the
+ * next one, so the breadcrumb always names the header the user sees at the
+ * top. +1: sections overlap by their 1px top line (-mt-px), which must not
+ * keep the previous section current.
+ */
+function sectionAtTop(container: HTMLElement): string | null {
+  const line = container.scrollTop + 1;
+  for (const section of container.querySelectorAll<HTMLElement>("[data-category-id]")) {
+    if (section.offsetTop + section.offsetHeight > line) return section.dataset.categoryId ?? null;
+  }
+  return null;
+}
+
 /** Empty states name the level and say what it is for, once, where it is empty. */
 function LevelEmptyState({ icon, title, body, action }: {
   icon: React.ReactNode; title: string; body: string; action?: React.ReactNode;
@@ -325,7 +340,14 @@ export function ContentPanel() {
       const visible =
         section.offsetTop >= container.scrollTop &&
         section.offsetTop + headerHeight <= container.scrollTop + container.clientHeight;
-      if (visible) return;
+      if (visible) {
+        // No scroll happens, so the section at the top stays the current one
+        // (TASK-23): the breadcrumb and save target follow what is pinned at
+        // the top, not the just-created section further down.
+        const top = sectionAtTop(container);
+        if (top && top !== useSavedSpacesStore.getState().activeCategoryId) useSavedSpacesStore.getState().setActiveCategory(top);
+        return;
+      }
     }
     spyLockedUntil.current = Date.now() + 900;
     // The scroll container is `relative`, so offsetTop is already relative to it.
@@ -353,18 +375,7 @@ export function ContentPanel() {
     const container = scrollRef.current;
     if (!container) return;
     if (Date.now() < spyLockedUntil.current) return;
-    const sections = container.querySelectorAll<HTMLElement>("[data-category-id]");
-    // The current section is the first one still visible at the top edge:
-    // the one whose header is pinned or being pushed out, or (between two
-    // sections) the next one. So the breadcrumb always names the header the
-    // user sees at the top.
-    // +1: sections overlap by their 1px top line (-mt-px), which must not
-    // keep the previous section current.
-    const line = container.scrollTop + 1;
-    let current: string | null = null;
-    for (const section of sections) {
-      if (section.offsetTop + section.offsetHeight > line) { current = section.dataset.categoryId ?? null; break; }
-    }
+    const current = sectionAtTop(container);
     if (current && current !== useSavedSpacesStore.getState().activeCategoryId) setActiveCategory(current);
   };
 
