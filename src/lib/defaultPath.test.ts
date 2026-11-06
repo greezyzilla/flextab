@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest"
 import * as yjs from "~src/lib/yjsDoc"
-import { ensureCategoryPath, ensureUnsortedGroup, ensureUnsortedPath, findUnsorted, isUnsortedGroup, orderedGroups } from "./defaultPath"
+import { ensureCategoryPath, ensureUnsortedGroup, ensureUnsortedPath, findUnsorted, firstGroupOrder, isUnsortedGroup, orderedGroups } from "./defaultPath"
 
 beforeEach(async () => {
   await yjs.clearState()
@@ -38,5 +38,11 @@ describe("default path", () => {
     ]
     expect(orderedGroups(groups).map((g) => g.id)).toEqual(["u", "a", "z", "b"])
     expect(isUnsortedGroup(undefined)).toBe(false)
+  })
+
+  it("puts a new group before the user's groups, ignoring Unsorted", () => {
+    expect(firstGroupOrder([])).toBe(0)
+    expect(firstGroupOrder([{ order: -1, config: { kind: "unsorted" } }])).toBe(0)
+    expect(firstGroupOrder([{ order: 3 }, { order: 1 }, {}, { order: -1, config: { kind: "unsorted" } }])).toBe(-1)
   })
 })

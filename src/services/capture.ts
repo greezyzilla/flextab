@@ -8,7 +8,7 @@ import * as yjs from "~src/lib/yjsDoc"
 import { rememberDestination, loadRecentDestinations, type RecentDestination } from "~src/lib/recentDestinations"
 import { isSavableTabUrl, toSavedTabs, defaultSavedGroupName } from "~src/services/saveTabsAsGroup"
 import { resolveSaveTargetIds } from "~src/services/resolveSaveTarget"
-import { ensureCategoryPath, ensureUnsortedGroup, findUnsorted } from "~src/lib/defaultPath"
+import { ensureCategoryPath, ensureUnsortedGroup, findUnsorted, firstGroupOrder } from "~src/lib/defaultPath"
 import type { SavedSpace, SavedTab } from "~src/types"
 
 export type ChromeTabLike = { id?: number; url?: string; title?: string; favIconUrl?: string; pinned?: boolean; windowId?: number; index?: number }
@@ -109,7 +109,7 @@ export async function captureTabs(
       id: groupId,
       name: destination.newGroupName!.trim(),
       tabs: converted,
-      order: category.groups.length,
+      order: firstGroupOrder(category.groups),
     })
   }
   const persisted = await persistCapture()

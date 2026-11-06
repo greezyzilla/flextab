@@ -7,6 +7,7 @@ import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { faviconToDataUrl } from "~src/utils/favicon";
 import type { SavedTab } from "~src/types";
 import { rememberDestination } from "~src/lib/recentDestinations";
+import { firstGroupOrder } from "~src/lib/defaultPath";
 
 export type SaveTabsTarget = {
   spaceId: string;
@@ -104,7 +105,7 @@ export async function saveTabsAsGroup(args: {
     id: groupId,
     name: name.trim() || defaultSavedGroupName(),
     tabs: savedTabs,
-    order: args.order ?? category.groups.length,
+    order: args.order ?? firstGroupOrder(category.groups),
   });
   // Feeds the destination picker's "Recent" row; never blocks the save.
   void rememberDestination({ ...target, groupId });

@@ -75,6 +75,12 @@ export function ensureUnsortedPath(
   return { ...path, groupId: ensureUnsortedGroup(path)! }
 }
 
+/** Order for a new user group so it shows first, right below Unsorted. */
+export function firstGroupOrder(groups: Pick<SavedGroup, "config" | "order">[]): number {
+  const orders = groups.filter((g) => !isUnsortedGroup(g)).map((g) => g.order ?? 0)
+  return orders.length ? Math.min(...orders) - 1 : 0
+}
+
 /** Groups in display order: Unsorted first, then the user's groups by order. */
 export function orderedGroups<T extends Pick<SavedGroup, "config" | "order">>(groups: T[]): T[] {
   return [...groups].sort((a, b) =>
