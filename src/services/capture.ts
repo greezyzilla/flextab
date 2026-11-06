@@ -7,17 +7,21 @@ import { v7 as uuidv7 } from "uuid"
 import * as yjs from "~src/lib/yjsDoc"
 import { rememberDestination, loadRecentDestinations, type RecentDestination } from "~src/lib/recentDestinations"
 import { isSavableTabUrl, toSavedTabs, defaultSavedGroupName } from "~src/services/saveTabsAsGroup"
-import { resolveSaveTargetIds, NEW_GROUP_NAME } from "~src/services/resolveSaveTarget"
+import { resolveSaveTargetIds } from "~src/services/resolveSaveTarget"
+import { ensureCategoryPath, ensureUnsortedGroup, findUnsorted } from "~src/lib/defaultPath"
 import type { SavedSpace, SavedTab } from "~src/types"
 
 export type ChromeTabLike = { id?: number; url?: string; title?: string; favIconUrl?: string; pinned?: boolean; windowId?: number; index?: number }
 
-/** Where to capture: a category plus an existing group, or a new group to create. */
+/**
+ * Where to capture. Project/category may be empty: missing levels get the
+ * default items (TASK-20). Group: an existing one, a new named one, or —
+ * when neither is given (or the group is gone) — the category's Unsorted.
+ */
 export type CaptureDestination = {
   spaceId: string
   projectId: string
   categoryId: string
-  /** Existing group to append to. Absent (or gone) → a new group is created. */
   groupId?: string
   /** Name for a newly created group. */
   newGroupName?: string
@@ -71,20 +75,31 @@ export async function captureTabs(
   const skipped = tabs.length - savable.length
   if (savable.length === 0) return { error: "nothing-savable", skipped }
 
-  const category = findCategory(yjs.getSpaces(), destination)
-  if (!category) return { error: "no-destination", skipped }
-
-  const existing = destination.groupId ? category.groups.find((g) => g.id === destination.groupId) : undefined
+  const path = ensureCategoryPath(destination.spaceId, destination)
+  if (!path) return { error: "no-destination", skipped }
+  const { spaceId, projectId, categoryId } = path
+  // No group chosen (and no new name) → the category's Unsorted group.
+  const before = findCategory(yjs.getSpaces(), path)!
+  let wantedGroupId: string | undefined
+  let createdUnsorted = false
+  if (destination.groupId && before.groups.some((g) => g.id === destination.groupId)) {
+    wantedGroupId = destination.groupId
+  } else if (!destination.newGroupName?.trim()) {
+    createdUnsorted = !findUnsorted(before)
+    wantedGroupId = ensureUnsortedGroup(path)!
+  }
+  const category = findCategory(yjs.getSpaces(), path)!
+  const existing = wantedGroupId ? category.groups.find((g) => g.id === wantedGroupId) : undefined
   const already = new Set((existing?.tabs ?? []).map((t) => normalizeUrl(t.url)))
   const fresh = opts.dedupe ? savable.filter((t) => !already.has(normalizeUrl(t.url!))) : savable
   const duplicates = savable.length - fresh.length
 
   const converted = await toSavedTabs(fresh)
-  const { spaceId, projectId, categoryId } = destination
   let groupId: string
   if (existing) {
     groupId = existing.id
     const start = existing.tabs.length
+    // A just-created Unsorted is empty, so dedupe can't leave it with nothing.
     if (converted.length) {
       yjs.addTabsBatch(spaceId, projectId, categoryId, groupId, converted.map((t, i) => ({ ...t, order: start + i })))
     }
@@ -92,7 +107,7 @@ export async function captureTabs(
     groupId = uuidv7()
     yjs.addGroup(spaceId, projectId, categoryId, {
       id: groupId,
-      name: destination.newGroupName?.trim() || NEW_GROUP_NAME,
+      name: destination.newGroupName!.trim(),
       tabs: converted,
       order: category.groups.length,
     })
@@ -103,7 +118,7 @@ export async function captureTabs(
   return {
     target: { spaceId, projectId, categoryId, groupId },
     tabIds: converted.map((t) => t.id),
-    createdGroup: !existing,
+    createdGroup: !existing || createdUnsorted,
     duplicates,
     skipped,
     closed: [],
@@ -148,7 +163,7 @@ export async function moveCapture(
   receipt: CaptureReceipt,
   destination: CaptureDestination,
 ): Promise<CaptureReceipt | CaptureFailure> {
-  if (!findCategory(yjs.getSpaces(), destination)) return { error: "no-destination", skipped: 0 }
+  if (!yjs.getSpaces().some((s) => s.id === destination.spaceId)) return { error: "no-destination", skipped: 0 }
   const taken = detach(receipt)
   const moved = await captureTabs(
     taken.map((t) => ({ url: t.url, title: t.title, favIconUrl: t.favicon })),
@@ -200,8 +215,8 @@ export async function reopenTabs(closed: ClosedTab[]): Promise<void> {
 
 /**
  * Where a quick capture goes: the last group saved into (if it still exists),
- * else that category as a new group, else the preferred/first category with
- * its first group. Null when the workspace has no category yet.
+ * else that category's Unsorted, else the preferred/first space's category
+ * (created by default if missing) and its Unsorted. Null only with no space.
  */
 export function defaultDestination(
   spaces: SavedSpace[],
@@ -215,10 +230,8 @@ export function defaultDestination(
     return { spaceId: r.spaceId, projectId: r.projectId, categoryId: r.categoryId, groupId: group?.id }
   }
   const ids = resolveSaveTargetIds(spaces, preferred)
-  const category = ids.categoryId ? findCategory(spaces, ids) : undefined
-  if (!category) return null
-  const first = [...category.groups].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))[0]
-  return { ...ids, groupId: first?.id }
+  if (!ids.spaceId) return null
+  return { ...ids, groupId: undefined }
 }
 
 export async function loadDefaultDestination(

@@ -32,6 +32,16 @@ describe("parseWorkspaceBackup", () => {
     ]);
   });
 
+  it("keeps the Unsorted group marker and drops any other group config", () => {
+    const input = backup();
+    const [group] = input[0].projects[0].categories[0].groups;
+    input[0].projects[0].categories[0].groups.push({ ...group, id: "u", name: "Unsorted", tabs: [], config: { kind: "unsorted" } });
+    Object.assign(group, { config: { kind: "evil", script: "x" } });
+    const parsed = parseWorkspaceBackup(input)[0].projects[0].categories[0].groups;
+    expect(parsed.map(g => g.config)).toEqual([undefined, { kind: "unsorted" }]);
+    expect("config" in parsed[0]).toBe(false);
+  });
+
   it("discards unknown fields rather than importing them into the workspace", () => {
     const input = backup();
     Object.assign(input[0], { unexpected: { privileged: true } });

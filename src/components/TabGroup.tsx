@@ -14,9 +14,11 @@ import { IconButton } from "./ui/button";
 import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
 import { GroupIcon } from "./levelIcons";
+import { CircleDashed } from "lucide-react";
+import { ensureUnsortedGroup, isUnsortedGroup } from "~src/lib/defaultPath";
 import type { GroupLayout } from "~src/store/useSettingsStore";
 
-function SavedTabItem({ tab, groupId, location, isDuplicate }: { tab: SavedTab; groupId: string; location: GroupLocation; isDuplicate?: boolean }) {
+function SavedTabItem({ tab, groupId, location, isDuplicate, unsorted }: { tab: SavedTab; groupId: string; location: GroupLocation; isDuplicate?: boolean; unsorted?: boolean }) {
   const {
     attributes,
     listeners,
@@ -47,7 +49,9 @@ function SavedTabItem({ tab, groupId, location, isDuplicate }: { tab: SavedTab; 
     e.stopPropagation();
     removeSavedTab(spaceId, projectId, categoryId, groupId, tab);
     showUndoToast(`Removed "${tab.title}"`, () => {
-      addSavedTab(spaceId, projectId, categoryId, groupId, tab);
+      // Removing Unsorted's last tab removes Unsorted itself; undo brings it back.
+      const target = unsorted ? ensureUnsortedGroup(location) ?? groupId : groupId;
+      addSavedTab(spaceId, projectId, categoryId, target, tab);
     });
   };
 
@@ -170,10 +174,23 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: 
     setIsRenaming(false);
   };
 
+  // Unsorted (TASK-20): the category's system group for tabs saved without a
+  // group. Same list and card as groups (it sits among them), but it is not
+  // the user's grouping: its own icon, no rename, no delete, a sorting hint.
+  const unsorted = isUnsortedGroup(group);
+
   return (
     <div className="flex flex-col gap-2" style={{ padding: 'var(--density-p-section)' }}>
       <div className="flex items-center justify-between pl-7 group/header">
-        {isRenaming ? (
+        {unsorted ? (
+          <div className="flex items-center gap-2.5 min-w-0">
+            <CircleDashed className="h-3.5 w-3.5 shrink-0 text-white/55" strokeWidth={1.75} aria-hidden />
+            <h3 className="text-white/60 font-sans text-sm">Unsorted</h3>
+            <span className="text-white/45 text-xs font-sans shrink-0">
+              {sortedTabs.length} tab{sortedTabs.length !== 1 ? 's' : ''} · not in a group yet
+            </span>
+          </div>
+        ) : isRenaming ? (
           <Input
             variant="inline"
             ref={renameRef}
@@ -218,7 +235,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: 
               <TooltipContent>Open all in a new window</TooltipContent>
             </Tooltip>
           )}
-          <Tooltip>
+          {!unsorted && <Tooltip>
             <TooltipTrigger asChild>
               <IconButton aria-label={`Delete ${group.name}`} danger onClick={() => setShowDeleteConfirm(true)} className="opacity-0 group-hover/header:opacity-100 group-focus-within/header:opacity-100">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -227,7 +244,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: 
               </IconButton>
             </TooltipTrigger>
             <TooltipContent>Delete group</TooltipContent>
-          </Tooltip>
+          </Tooltip>}
         </div>
       </div>
       <div ref={setDroppableRef}>
@@ -251,7 +268,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: 
               }}
             >
               {sortedTabs.map((tab) => (
-                <SavedTabItem key={tab.id} tab={tab} groupId={group.id} location={location} isDuplicate={duplicateUrls.has(tab.url?.replace(/\/$/, '') || '')} />
+                <SavedTabItem key={tab.id} tab={tab} groupId={group.id} location={location} unsorted={unsorted} isDuplicate={duplicateUrls.has(tab.url?.replace(/\/$/, '') || '')} />
               ))}
             </div>
           </SortableContext>

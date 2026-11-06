@@ -56,12 +56,29 @@ describe("captureTabs", () => {
     expect(groupsOf("c")[0].tabs).toHaveLength(1)
   })
 
-  it("creates a named group when none is given", async () => {
+  it("creates a named group, and falls back to Unsorted when the group is gone", async () => {
     const r = receipt(await captureTabs([{ url: "https://b.com" }], { spaceId: "s", projectId: "p", categoryId: "c2", newGroupName: "Moodboard" }))
     expect(r.createdGroup).toBe(true)
     expect(groupsOf("c2")).toMatchObject([{ id: r.target.groupId, name: "Moodboard" }])
     const unnamed = receipt(await captureTabs([{ url: "https://c.com" }], { spaceId: "s", projectId: "p", categoryId: "c2", groupId: "gone" }))
-    expect(groupsOf("c2").find(g => g.id === unnamed.target.groupId)!.name).toBe("New Group")
+    expect(groupsOf("c2").find(g => g.id === unnamed.target.groupId)).toMatchObject({ name: "Unsorted", config: { kind: "unsorted" } })
+  })
+
+  it("saves into the category's Unsorted when no group is chosen, reusing it", async () => {
+    const a = receipt(await captureTabs([{ url: "https://b.com" }], { spaceId: "s", projectId: "p", categoryId: "c" }))
+    const b = receipt(await captureTabs([{ url: "https://c.com" }], { spaceId: "s", projectId: "p", categoryId: "c" }))
+    expect(a.createdGroup).toBe(true)
+    expect(b).toMatchObject({ createdGroup: false, target: { groupId: a.target.groupId } })
+    expect(groupsOf("c").filter(g => g.config?.kind === "unsorted").map(g => g.tabs.length)).toEqual([2])
+    expect(groupsOf("c").find(g => g.id === "g")!.tabs).toHaveLength(1)
+  })
+
+  it("creates the default path inside a space that has no projects", async () => {
+    yjs.setSpaces([...tree(), { id: "e", name: "Empty", order: 1, projects: [] }])
+    const r = receipt(await captureTabs([{ url: "https://b.com" }], { spaceId: "e", projectId: "", categoryId: "" }))
+    const [project] = yjs.getSpaces().find(s => s.id === "e")!.projects
+    expect(r.target).toMatchObject({ spaceId: "e", projectId: project.id, categoryId: project.categories[0].id })
+    expect([project.name, project.categories[0].name, project.categories[0].groups[0].name]).toEqual(["General", "Uncategorized", "Unsorted"])
   })
 
   it("reports a refused storage write so the caller can retry", async () => {
@@ -74,9 +91,9 @@ describe("captureTabs", () => {
     expect(groupsOf("c")[0].tabs).toHaveLength(2)
   })
 
-  it("fails without writing when nothing is savable or the category is gone", async () => {
+  it("fails without writing when nothing is savable or the space is gone", async () => {
     expect(await captureTabs([{ url: "about:blank" }], { spaceId: "s", projectId: "p", categoryId: "c" })).toEqual({ error: "nothing-savable", skipped: 1 })
-    expect(await captureTabs([{ url: "https://b.com" }], { spaceId: "s", projectId: "p", categoryId: "nope" })).toEqual({ error: "no-destination", skipped: 0 })
+    expect(await captureTabs([{ url: "https://b.com" }], { spaceId: "nope", projectId: "p", categoryId: "c" })).toEqual({ error: "no-destination", skipped: 0 })
     expect(disk[yjs.PERSIST_KEY]).toBeUndefined()
   })
 })
@@ -104,7 +121,7 @@ describe("undo and change", () => {
     expect(moved).toMatchObject({ skipped: 1, target: { categoryId: "c", groupId: "g" } })
     // Nothing left to move (already undone elsewhere) → reported, not invented.
     expect(await moveCapture({ ...moved, tabIds: ["gone"] }, { spaceId: "s", projectId: "p", categoryId: "c2" })).toEqual({ error: "nothing-savable", skipped: 0 })
-    expect(await moveCapture(moved, { spaceId: "s", projectId: "p", categoryId: "nope" })).toEqual({ error: "no-destination", skipped: 0 })
+    expect(await moveCapture(moved, { spaceId: "nope", projectId: "p", categoryId: "c" })).toEqual({ error: "no-destination", skipped: 0 })
   })
 })
 
@@ -137,11 +154,11 @@ describe("closing and reopening tabs", () => {
 })
 
 describe("defaults and settings", () => {
-  it("picks the last group, else its category as a new group, else the first category", () => {
+  it("picks the last group, else that category's Unsorted, else the first category's Unsorted", () => {
     const spaces = yjs.getSpaces()
     expect(defaultDestination(spaces, [{ spaceId: "s", projectId: "p", categoryId: "c", groupId: "g" }])).toMatchObject({ categoryId: "c", groupId: "g" })
     expect(defaultDestination(spaces, [{ spaceId: "s", projectId: "p", categoryId: "c2", groupId: "gone" }])).toEqual({ spaceId: "s", projectId: "p", categoryId: "c2", groupId: undefined })
-    expect(defaultDestination(spaces, [{ spaceId: "x", projectId: "p", categoryId: "c" }])).toMatchObject({ categoryId: "c", groupId: "g" })
+    expect(defaultDestination(spaces, [{ spaceId: "x", projectId: "p", categoryId: "c" }])).toEqual({ spaceId: "s", projectId: "p", categoryId: "c", groupId: undefined })
     expect(defaultDestination([], [])).toBeNull()
   })
 

@@ -1,4 +1,4 @@
-import type { SavedCategory, SavedGroup, SavedProject, SavedSpace, SavedTab } from "~src/types";
+import type { GroupConfig, SavedCategory, SavedGroup, SavedProject, SavedSpace, SavedTab } from "~src/types";
 
 /**
  * Validate the complete exported JSON tree before offering a destructive import.
@@ -68,7 +68,15 @@ export function parseWorkspaceBackup(input: unknown): SavedSpace[] {
       name: text(node.name, path + ".name"),
       tabs: collection(node.tabs, path + ".tabs", tab),
       ...order(node.order, path + ".order"),
+      ...groupConfig(node.config),
     };
+  }
+
+  // Only the known marker survives; anything else in `config` is dropped.
+  function groupConfig(value: unknown): { config?: GroupConfig } {
+    return value && typeof value === "object" && (value as { kind?: unknown }).kind === "unsorted"
+      ? { config: { kind: "unsorted" } }
+      : {};
   }
 
   function category(value: unknown, path: string): SavedCategory {

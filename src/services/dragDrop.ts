@@ -5,12 +5,9 @@ import type { SavedTab, SavedGroup, SavedSpace } from "~src/types"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import { faviconToDataUrl } from "~src/utils/favicon"
 import { isSavableTabUrl } from "~src/services/saveTabsAsGroup"
-import {
-  ensureSaveTargetPath,
-  isMissingLevel,
-  resolveSaveTargetIds,
-  type MissingLevel,
-} from "~src/services/resolveSaveTarget"
+import { ensureSaveTargetPath } from "~src/services/resolveSaveTarget"
+import { ensureCategoryPath, isUnsortedGroup } from "~src/lib/defaultPath"
+import * as yjs from "~src/lib/yjsDoc"
 
 export type TabLocation = {
   spaceId: string
@@ -185,12 +182,12 @@ function resolveOverGroupId(spaces: SavedSpace[], overId: string): string | null
  * a project's categories at once), so targets are located in the tree rather
  * than assumed to be in the active category.
  *
- * Returns a MissingLevel when the drop needs a project/category the user has
- * not created yet, so the UI can ask for it instead of inventing one, and
- * `{ unsavable }` when an open tab isn't a savable web page (checked before
- * anything is created, so a rejected drop leaves no empty group behind).
+ * A drop onto a space / project / category always lands (TASK-20): missing
+ * levels get default items and tabs go to that category's Unsorted group.
+ * Returns `{ unsavable }` when an open tab isn't a savable web page (checked
+ * before anything is created, so a rejected drop leaves nothing behind).
  */
-export type DropOutcome = MissingLevel | { unsavable: string } | void
+export type DropOutcome = { unsavable: string } | void
 
 export async function applyDragEnd(args: {
   activeId: string | number
@@ -210,6 +207,11 @@ export async function applyDragEnd(args: {
   const spaces = store.savedSpaces
   const draggingGroup =
     args.wasDraggingGroup || (typeof activeId === "string" && !!findGroupLocation(spaces, activeId))
+  // Unsorted is a fixed system group: it is never dragged itself.
+  if (draggingGroup && typeof activeId === "string") {
+    const loc = findGroupLocation(spaces, activeId)
+    if (loc && isUnsortedGroup(findGroup(spaces, loc, activeId))) return
+  }
 
   // --- Cross-boundary drop targets (sidebar, rail, project-page sections) ---
   const boundary = parseBoundaryDrop(overId)
@@ -218,16 +220,10 @@ export async function applyDragEnd(args: {
     const hintProjectId = boundary.kind === "space" ? undefined : boundary.projectId
     const hintCategoryId = boundary.kind === "category" ? boundary.categoryId : undefined
 
-    // A group only needs a category; it must not spawn an empty group there.
+    // A group only needs a category (no Unsorted is created for it).
     if (draggingGroup && typeof activeId === "string") {
-      const ids = resolveSaveTargetIds(spaces, {
-        spaceId: tgtSpaceId,
-        projectId: hintProjectId,
-        categoryId: hintCategoryId,
-      })
-      if (ids.spaceId !== tgtSpaceId) return
-      if (!ids.projectId) return { missing: "project", spaceId: tgtSpaceId }
-      if (!ids.categoryId) return { missing: "category", spaceId: tgtSpaceId, projectId: ids.projectId }
+      const ids = ensureCategoryPath(tgtSpaceId, { projectId: hintProjectId, categoryId: hintCategoryId })
+      if (!ids) return
       const src = findGroupLocation(spaces, activeId)
       if (!src || sameCategory(src, ids)) return
       store.moveGroupToCategory(
@@ -242,11 +238,10 @@ export async function applyDragEnd(args: {
       categoryId: hintCategoryId,
     })
     if (!target) return
-    if (isMissingLevel(target)) return target
 
-    // Re-read: ensure may have created the receiving group.
+    // Re-read from the doc: ensure may have created levels and the Unsorted group.
     const fresh = useSavedSpacesStore.getState()
-    const freshSpaces = fresh.savedSpaces
+    const freshSpaces = yjs.getSpaces()
 
     if (typeof activeId === "string") {
       const src = findTabLocation(freshSpaces, activeId)
@@ -280,6 +275,8 @@ export async function applyDragEnd(args: {
         tgt.spaceId, tgt.projectId, tgt.categoryId,
       )
     }
+    // Unsorted stays first: a drop on it only re-files, never reorders.
+    if (isUnsortedGroup(findGroup(spaces, tgt, overGroupId))) return
     // Land at the position of the group it was dropped on.
     const category = useSavedSpacesStore
       .getState()

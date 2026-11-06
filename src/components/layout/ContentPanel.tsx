@@ -7,13 +7,15 @@ import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-
 import { useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { DragHandleIcon } from "../icons/DragHandleIcon";
-import { useRef, useCallback, useEffect } from "react";
+import { useRef, useCallback, useEffect, useState } from "react";
+import { Input } from "~src/components/ui/input";
 import { v7 as uuidv7 } from "uuid";
 import { useSettingsStore, type GroupLayout } from "~src/store/useSettingsStore";
 import { useUIStore } from "~src/store/useUIStore";
 import { NEW_GROUP_NAME } from "~src/services/resolveSaveTarget";
 import type { GroupLocation } from "~src/services/dragDrop";
 import { CategoryIcon, ProjectIcon, SpaceAvatar } from "~src/components/levelIcons";
+import { findUnsorted, isUnsortedGroup, orderedGroups } from "~src/lib/defaultPath";
 
 /**
  * The project page. A project is one page; its categories are sections on it
@@ -65,6 +67,54 @@ function LevelEmptyState({ icon, title, body, action }: {
   );
 }
 
+/**
+ * Empty-state "New project… / New category…": the name input opens right
+ * where the button was, so the result of the click shows at the point of
+ * attention (not in the far-left sidebar). Enter creates, Esc / an empty name
+ * puts the button back.
+ */
+function InlineCreate({ label, placeholder, inputLabel, startEditing = false, onCommit, onCancel }: {
+  label: string; placeholder: string; inputLabel: string; startEditing?: boolean;
+  onCommit: (name: string) => void; onCancel?: () => void;
+}) {
+  const [editing, setEditing] = useState(startEditing);
+  const [value, setValue] = useState("");
+  useEffect(() => { if (startEditing) setEditing(true); }, [startEditing]);
+
+  const finish = (commit: boolean) => {
+    const name = value.trim();
+    setEditing(false);
+    setValue("");
+    if (commit && name) onCommit(name); else onCancel?.();
+  };
+  // Both states take the same space (fixed control row, hint line always
+  // reserved), so swapping button ↔ input doesn't shift the centred block.
+  return (
+    <div className="flex w-64 flex-col items-center gap-1.5">
+      <div className="flex h-9 w-full items-center justify-center">
+        {editing ? (
+          <Input
+            autoFocus
+            aria-label={inputLabel}
+            placeholder={placeholder}
+            value={value}
+            onChange={e => setValue(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === "Enter") { e.preventDefault(); finish(true); }
+              if (e.key === "Escape") { e.preventDefault(); finish(false); }
+            }}
+            onBlur={() => finish(true)}
+            className="w-full text-center"
+          />
+        ) : (
+          <Button variant="default" size="sm" onClick={() => setEditing(true)}>{label}…</Button>
+        )}
+      </div>
+      <span className={`text-[11px] text-white/50 font-sans ${editing ? "" : "invisible"}`}>Enter to create · Esc to cancel</span>
+    </div>
+  );
+}
+
 /** Drop zone for a category that has no groups yet (tabs or whole groups). */
 function EmptySectionDrop({ location, onNewGroup }: { location: GroupLocation; onNewGroup: () => void }) {
   const { setNodeRef, isOver } = useDroppable({
@@ -90,7 +140,9 @@ function CategorySection({ space, project, category, layout, gridColumns, isCurr
 }) {
   const { addSavedGroup, setActiveCategory } = useSavedSpacesStore();
   const location: GroupLocation = { spaceId: space.id, projectId: project.id, categoryId: category.id };
-  const groups = [...category.groups].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  // Unsorted (if any) is first and fixed; the user's groups follow, sortable.
+  const unsorted = findUnsorted(category);
+  const groups = orderedGroups(category.groups).filter(g => !isUnsortedGroup(g));
 
   const newGroup = () => {
     setActiveCategory(category.id);
@@ -111,17 +163,18 @@ function CategorySection({ space, project, category, layout, gridColumns, isCurr
             {groups.length} group{groups.length !== 1 ? 's' : ''}
           </span>
         </h3>
-        {groups.length > 0 && (
+        {(groups.length > 0 || unsorted) && (
           <Button variant="ghost" size="sm" onClick={newGroup} aria-label={`New group in ${category.name}`}>+ New group</Button>
         )}
       </div>
+      {unsorted && <TabGroup group={unsorted} location={location} layout={layout} gridColumns={gridColumns} />}
       {groups.length > 0 ? (
         <SortableContext items={groups.map(g => g.id)} strategy={verticalListSortingStrategy}>
           {groups.map((group) => (
             <SortableGroup key={group.id} group={group} location={location} layout={layout} gridColumns={gridColumns} />
           ))}
         </SortableContext>
-      ) : (
+      ) : !unsorted && (
         <div className="px-6 pt-3 pb-2">
           <EmptySectionDrop location={location} onNewGroup={newGroup} />
         </div>
@@ -169,9 +222,9 @@ export function ContentPanel() {
   const activeSpace = useActiveSpace();
   const activeProject = useActiveProject();
   const activeCategory = useActiveCategory();
-  const { setActiveCategory } = useSavedSpacesStore();
+  const { setActiveCategory, setActiveProject, addSavedProject, addSavedCategory, toggleExpandedProject } = useSavedSpacesStore();
   const { groupLayout, setGroupLayout, gridColumns } = useSettingsStore();
-  const { startCreate, scrollTarget, setSaveAllOpen } = useUIStore();
+  const { scrollTarget, setSaveAllOpen } = useUIStore();
   const scrollRef = useRef<HTMLDivElement>(null);
   // While a programmatic scroll runs, the scroll spy must not overwrite the
   // category the user just picked.
@@ -239,16 +292,40 @@ export function ContentPanel() {
         icon={<ProjectIcon className="h-6 w-6" />}
         title={`${activeSpace.name} has no projects yet`}
         body="A project is one thing you work on — a client, a course, a trip. Each project gets its own page."
-        action={<Button variant="default" size="sm" onClick={() => startCreate({ kind: "project", spaceId: activeSpace.id })}>New project</Button>}
+        action={
+          <InlineCreate
+            label="New project"
+            placeholder="Project name"
+            inputLabel="New project name"
+            onCommit={name => {
+              const id = uuidv7();
+              addSavedProject(activeSpace.id, { id, name, categories: [], order: activeSpace.projects.length });
+              if (!useSavedSpacesStore.getState().expandedProjectIds.includes(id)) toggleExpandedProject(id);
+              setActiveProject(id);
+            }}
+          />
+        }
       />
     );
   } else if (categories.length === 0) {
     body = (
       <LevelEmptyState
         icon={<CategoryIcon className="h-6 w-6" />}
-        title={`Add a category to ${activeProject.name}`}
+        title={`${activeProject.name} has no categories yet`}
         body="Categories split a project into parts — e.g. Research, Design, Admin. Groups of saved tabs live inside a category."
-        action={<Button variant="default" size="sm" onClick={() => startCreate({ kind: "category", spaceId: activeSpace.id, projectId: activeProject.id })}>Add category</Button>}
+        action={
+          <InlineCreate
+            key={activeProject.id}
+            label="New category"
+            placeholder="Category name"
+            inputLabel="New category name"
+            onCommit={name => {
+              const id = uuidv7();
+              addSavedCategory(activeSpace.id, activeProject.id, { id, name, groups: [], order: 0 });
+              setActiveCategory(id);
+            }}
+          />
+        }
       />
     );
   } else {

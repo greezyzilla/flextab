@@ -158,6 +158,20 @@ describe('startSyncEngine', () => {
     expect(getSpaces().map(s => s.id)).toEqual(['srv']);
   });
 
+  it('keeps the Unsorted marker from the server and drops unknown config', async () => {
+    const srv: any = beSpace('srv', [{ id: 't1' }]);
+    srv.projects[0].categories[0].groups.push(
+      { id: 'u', name: 'Unsorted', order: -1, config: { kind: 'unsorted' }, tabs: [] },
+      { id: 'x', name: 'X', order: 1, config: { kind: 'other', extra: 1 }, tabs: [] },
+    );
+    (apiFetch as any).mockResolvedValue({ spaces: [srv], revision: 2 });
+    await startSyncEngine();
+    await flush();
+    const gs = getSpaces()[0].projects[0].categories[0].groups;
+    expect(gs.find(g => g.id === 'u')!.config).toEqual({ kind: 'unsorted' });
+    expect(gs.find(g => g.id === 'x')!.config).toBeUndefined();
+  });
+
   it('advances merge-base when applied tree equals the GET server (FE-B1 serverConfirmed)', async () => {
     await clearMergeBase();
     (apiFetch as any).mockResolvedValue({ spaces: [beSpace('srv', [{ id: 't1' }])], revision: 2 });

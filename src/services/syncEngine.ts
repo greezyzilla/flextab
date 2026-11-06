@@ -70,7 +70,7 @@ const FRESH_LOGIN_KEY = "flextab_fresh_login";
 // --- BE → local mapping ---
 
 interface BeTab { id: string; url: string; title: string; favicon: string; order: number; }
-interface BeGroup { id: string; name: string; order: number; tabs: BeTab[]; }
+interface BeGroup { id: string; name: string; order: number; tabs: BeTab[]; config?: { kind?: unknown } | null; }
 interface BeCategory { id: string; name: string; order: number; groups: BeGroup[]; }
 interface BeProject { id: string; name: string; order: number; categories: BeCategory[]; }
 interface BeSpace { id: string; name: string; icon: string; color?: string; abbreviation?: string; order: number; projects: BeProject[]; }
@@ -85,6 +85,7 @@ function mapBeToLocal(spaces: BeSpace[]): SavedSpace[] {
         id: c.id, name: c.name, order: c.order,
         groups: (c.groups || []).map(g => ({
           id: g.id, name: g.name, order: g.order,
+          ...(g.config?.kind === "unsorted" ? { config: { kind: "unsorted" as const } } : {}),
           tabs: (g.tabs || []).map(t => ({
             id: t.id, url: t.url, title: t.title, favicon: t.favicon, order: t.order,
           })),

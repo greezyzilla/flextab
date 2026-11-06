@@ -13,7 +13,6 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "~src/components/ui/tool
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from "~src/components/ui/context-menu";
 import { Input } from "~src/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "~src/components/ui/avatar";
-import { useUIStore } from "~src/store/useUIStore";
 import { spaceAvatarColors } from "~src/components/levelIcons";
 import { SIGN_IN_ROUTE } from "~src/lib/workspaceAccess";
 
@@ -42,11 +41,11 @@ export function ProfilePanel() {
   }, [renaming]);
 
   // Name-first, like projects/categories: nothing is created until the user
-  // commits a name; then the sidebar asks for the space's first project.
+  // commits a name. No chained project prompt: saving into the new space
+  // works right away (default project/category + Unsorted, TASK-20).
   const [creatingSpace, setCreatingSpace] = useState(false);
   const [newSpaceName, setNewSpaceName] = useState("");
   const newSpaceDone = useRef(false);
-  const startCreate = useUIStore(s => s.startCreate);
 
   const handleAddSpace = () => {
     newSpaceDone.current = false;
@@ -64,7 +63,6 @@ export function ProfilePanel() {
     addSavedSpace({ id, name, projects: [], order: savedSpaces.length });
     setActiveSpace(id);
     navigate("/");
-    startCreate({ kind: "project", spaceId: id });
   };
 
 

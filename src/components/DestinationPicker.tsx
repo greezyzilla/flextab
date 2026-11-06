@@ -1,12 +1,13 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react"
 import { v7 as uuidv7 } from "uuid"
-import { Check } from "lucide-react"
+import { Check, CircleDashed, Plus } from "lucide-react"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import type { SavedSpace } from "~src/types"
 import type { SaveTabsTarget } from "~src/services/saveTabsAsGroup"
 import { Input } from "~src/components/ui/input"
 import { CategoryIcon, GroupIcon, ProjectIcon, SpaceAvatar } from "~src/components/levelIcons"
 import { loadRecentDestinations, type RecentDestination } from "~src/lib/recentDestinations"
+import { ensureCategoryPath, findUnsorted, isUnsortedGroup, orderedGroups, UNSORTED_NAME } from "~src/lib/defaultPath"
 
 /** A picked destination. With `groupLevel`, it names a group, or a new group to create. */
 export type PickerValue = SaveTabsTarget & { groupId?: string; newGroupName?: string }
@@ -63,8 +64,11 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
     const space = store.savedSpaces.find((s) => s.id === spaceId)
     const id = uuidv7()
     store.addSavedProject(spaceId, { id, name, categories: [], order: space?.projects.length ?? 0 })
-    // A project alone can't receive tabs: go straight on to its first category.
-    setCreating({ kind: "category", spaceId, projectId: id })
+    // One name per action (TASK-20): no chained category prompt. The new
+    // project gets the default category so it is a valid destination at once.
+    setCreating(null)
+    const path = ensureCategoryPath(spaceId, { projectId: id })
+    if (path) onChange(path)
   }
 
   const createCategory = (spaceId: string, projectId: string, name: string) => {
@@ -154,14 +158,27 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
                       />
                     )
                   }
-                  const groups = [...category.groups].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+                  // Unsorted is the category's default bucket: always offered
+                  // first (no groupId = save into Unsorted, created on demand).
+                  const unsorted = findUnsorted(category)
+                  const groups = orderedGroups(category.groups).filter((g) => !isUnsortedGroup(g))
                   const pendingNew = inCategory && !value.groupId && value.newGroupName
+                  const unsortedSelected = inCategory && !value.newGroupName &&
+                    (!value.groupId || value.groupId === unsorted?.id)
                   return (
                     <div key={category.id}>
                       <div className="flex items-center gap-2 pl-10 pr-3 py-1 text-xs text-white/70">
                         <CategoryIcon className="h-3 w-3 shrink-0" />
                         <span className="truncate">{category.name}</span>
                       </div>
+                      <Choice
+                        name={groupName}
+                        indentClass="pl-14"
+                        selected={unsortedSelected}
+                        icon={<CircleDashed className="h-3 w-3 shrink-0" strokeWidth={1.75} aria-hidden />}
+                        label={UNSORTED_NAME}
+                        onSelect={() => onChange(unsorted ? { ...at, groupId: unsorted.id } : at)}
+                      />
                       {groups.map((group) => (
                         <Choice
                           key={group.id}
@@ -187,19 +204,20 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
                         creating?.kind === "group" && creating.categoryId === category.id ? (
                           <NameRow
                             indentClass="pl-14"
+                            icon={<GroupIcon className="h-3 w-3 shrink-0 text-white/70" />}
                             label="New group name"
                             placeholder="Group name"
                             onCommit={(name) => { setCreating(null); onChange({ ...at, newGroupName: name }) }}
                             onCancel={() => setCreating(null)}
                           />
                         ) : (
-                          <button
-                            type="button"
+                          <CreateChoice
+                            indentClass="pl-12"
+                            iconClass="h-3 w-3"
+                            label="New group"
+                            ariaLabel={`New group in ${category.name}`}
                             onClick={() => setCreating({ kind: "group", ...at })}
-                            className="w-full pl-14 pr-3 py-1 text-left text-[11px] text-white/55 hover:text-white/80"
-                          >
-                            + New group in {category.name}
-                          </button>
+                          />
                         )
                       )}
                     </div>
@@ -209,19 +227,20 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
                   creating?.kind === "category" && creating.projectId === project.id ? (
                     <NameRow
                       indentClass="pl-10"
+                      icon={<CategoryIcon className="h-3 w-3 shrink-0 text-white/70" />}
                       label="New category name"
                       placeholder="Category name"
                       onCommit={(name) => createCategory(space.id, project.id, name)}
                       onCancel={() => setCreating(null)}
                     />
                   ) : (
-                    <button
-                      type="button"
+                    <CreateChoice
+                      indentClass="pl-8"
+                      iconClass="h-3 w-3"
+                      label="New category"
+                      ariaLabel={`New category in ${project.name}`}
                       onClick={() => setCreating({ kind: "category", spaceId: space.id, projectId: project.id })}
-                      className="w-full pl-10 pr-3 py-1 text-left text-[11px] text-white/55 hover:text-white/80"
-                    >
-                      + New category in {project.name}
-                    </button>
+                    />
                   )
                 )}
               </div>
@@ -230,19 +249,20 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
               creating?.kind === "project" && creating.spaceId === space.id ? (
                 <NameRow
                   indentClass="pl-5"
+                  icon={<ProjectIcon className="h-3.5 w-3.5 shrink-0 text-white/70" />}
                   label="New project name"
                   placeholder="Project name"
                   onCommit={(name) => createProject(space.id, name)}
                   onCancel={() => setCreating(null)}
                 />
               ) : (
-                <button
-                  type="button"
+                <CreateChoice
+                  indentClass="pl-3"
+                  iconClass="h-3.5 w-3.5"
+                  label="New project"
+                  ariaLabel={`New project in ${space.name}`}
                   onClick={() => setCreating({ kind: "project", spaceId: space.id })}
-                  className="w-full pl-5 pr-3 py-1 text-left text-[11px] text-white/55 hover:text-white/80"
-                >
-                  + New project in {space.name}
-                </button>
+                />
               )
             )}
           </div>
@@ -272,8 +292,36 @@ function Choice({ name, indentClass, selected, icon, label, onSelect }: {
 }
 
 /** Inline name entry; Enter commits, Escape or an empty name cancels. */
-function NameRow({ indentClass, label, placeholder, onCommit, onCancel }: {
-  indentClass: string; label: string; placeholder: string
+/**
+ * "Create" slot. It opens a name input instead of selecting, so it must not
+ * look like a choice (Law of Similarity) — but without stealing emphasis from
+ * the choices (Von Restorff) or using colour as the cue (accent already means
+ * "selected" here; WCAG 1.4.1). It differs by shape: a dashed outline, the
+ * app's existing "empty slot / add here" language (rail "add space", empty
+ * section drop row), muted text and an ellipsis (more input follows). The
+ * slot's own padding is subtracted from the indent so its + still sits in the
+ * icon column of the items it would create (7px + the 1px border = 8px).
+ */
+function CreateChoice({ indentClass, iconClass, label, ariaLabel, onClick }: {
+  indentClass: string; iconClass: string; label: string; ariaLabel: string; onClick: () => void
+}) {
+  return (
+    <div className={`${indentClass} pr-3 py-0.5`}>
+      <button
+        type="button"
+        aria-label={ariaLabel}
+        onClick={onClick}
+        className="flex w-full items-center gap-2 rounded-md border border-dashed border-white/15 px-[7px] py-1 text-left text-xs text-white/55 transition-colors hover:border-white/35 hover:bg-white/[0.03] hover:text-white/85 outline-none focus-visible:ring-1 focus-visible:ring-ring"
+      >
+        <Plus className={`${iconClass} shrink-0`} aria-hidden />
+        <span className="truncate">{label}…</span>
+      </button>
+    </div>
+  )
+}
+
+function NameRow({ indentClass, icon, label, placeholder, onCommit, onCancel }: {
+  indentClass: string; icon: React.ReactNode; label: string; placeholder: string
   onCommit: (name: string) => void; onCancel: () => void
 }) {
   const [value, setValue] = useState("")
@@ -285,7 +333,8 @@ function NameRow({ indentClass, label, placeholder, onCommit, onCancel }: {
     if (commit && name) onCommit(name); else onCancel()
   }
   return (
-    <div className={`${indentClass} pr-3 py-1`}>
+    <div className={`flex items-center gap-2 ${indentClass} pr-3 py-1`}>
+      {icon}
       <Input
         variant="inline"
         autoFocus
@@ -299,7 +348,7 @@ function NameRow({ indentClass, label, placeholder, onCommit, onCancel }: {
           if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); finish(false) }
         }}
         onBlur={() => finish(true)}
-        className="w-full text-xs"
+        className="min-w-0 flex-1 text-xs"
       />
     </div>
   )

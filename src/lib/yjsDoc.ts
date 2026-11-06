@@ -1,7 +1,7 @@
 import * as Y from "yjs";
 import { spacesSignature } from "./spacesSignature";
 export { spacesSignature as lightSpacesSig } from "./spacesSignature";
-import type { SavedSpace, SavedProject, SavedCategory, SavedGroup, SavedTab } from "~src/types";
+import type { SavedSpace, SavedProject, SavedCategory, SavedGroup, SavedTab, GroupConfig } from "~src/types";
 
 export const doc = new Y.Doc();
 export const spacesArray = doc.getArray<Y.Map<unknown>>("spaces");
@@ -250,11 +250,13 @@ function yMapToTab(m: Y.Map<unknown>): SavedTab {
 
 function yMapToGroup(m: Y.Map<unknown>): SavedGroup {
   const tabs = m.get("tabs") as Y.Array<Y.Map<unknown>>;
+  const kind = m.get("kind") as GroupConfig["kind"] | undefined;
   return {
     id: m.get("id") as string,
     name: m.get("name") as string,
     tabs: tabs ? tabs.toArray().map(yMapToTab) : [],
     order: m.get("order") as number,
+    ...(kind ? { config: { kind } } : {}),
   };
 }
 
@@ -317,6 +319,7 @@ function groupToYMap(g: SavedGroup): Y.Map<unknown> {
   m.set("id", g.id);
   m.set("name", g.name);
   m.set("order", g.order ?? 0);
+  if (g.config?.kind) m.set("kind", g.config.kind);
   const tabs = new Y.Array<Y.Map<unknown>>();
   tabs.push(g.tabs.map(tabToYMap));
   m.set("tabs", tabs);
@@ -581,6 +584,17 @@ export function addTabsBatch(spaceId: string, projectId: string, categoryId: str
   });
 }
 
+/** An Unsorted group (TASK-20) exists only while it holds tabs. */
+function pruneIfEmptyUnsorted(spaceId: string, projectId: string, categoryId: string, groupId: string) {
+  const category = findCategory(spaceId, projectId, categoryId);
+  if (!category) return;
+  const groups = category.map.get("groups") as Y.Array<Y.Map<unknown>>;
+  const found = findInArray(groups, groupId);
+  if (!found || found.map.get("kind") !== "unsorted") return;
+  const tabs = found.map.get("tabs") as Y.Array<Y.Map<unknown>> | undefined;
+  if (!tabs || tabs.length === 0) groups.delete(found.index, 1);
+}
+
 export function removeTab(spaceId: string, projectId: string, categoryId: string, groupId: string, tabId: string) {
   doc.transact(() => {
     const group = findGroup(spaceId, projectId, categoryId, groupId);
@@ -588,6 +602,7 @@ export function removeTab(spaceId: string, projectId: string, categoryId: string
     const tabs = group.map.get("tabs") as Y.Array<Y.Map<unknown>>;
     const found = findInArray(tabs, tabId);
     if (found) tabs.delete(found.index, 1);
+    pruneIfEmptyUnsorted(spaceId, projectId, categoryId, groupId);
   });
 }
 
@@ -634,6 +649,7 @@ export function moveTabBetweenGroups(
     const idx = insertIndex ?? tgtTabs.length;
     tgtTabs.insert(idx, [tabToYMap(tabData)]);
     for (let i = 0; i < tgtTabs.length; i++) tgtTabs.get(i).set("order", i);
+    pruneIfEmptyUnsorted(spaceId, projectId, categoryId, sourceGroupId);
   });
 }
 
@@ -697,6 +713,7 @@ export function moveTabCrossBoundary(
     const idx = insertIndex ?? tgtTabs.length;
     tgtTabs.insert(idx, [tabToYMap(tabData)]);
     for (let i = 0; i < tgtTabs.length; i++) tgtTabs.get(i).set("order", i);
+    pruneIfEmptyUnsorted(srcSpaceId, srcProjectId, srcCategoryId, srcGroupId);
   });
 }
 

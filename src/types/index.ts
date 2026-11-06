@@ -8,11 +8,21 @@ export interface SavedTab {
   order?: number;
 }
 
+/**
+ * Group metadata, stored in the API's existing group `config` field.
+ * `kind: "unsorted"` marks the one system group per category that holds tabs
+ * saved without a chosen group (TASK-20).
+ */
+export interface GroupConfig {
+  kind?: "unsorted";
+}
+
 export interface SavedGroup {
   id: string;
   name: string;
   tabs: SavedTab[];
   order?: number;
+  config?: GroupConfig;
 }
 
 export interface SavedCategory {

@@ -60,7 +60,7 @@ describe("popup instant save", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Saving this page");
     await act(async () => { finish(); });
     expect(await screen.findByText("✓ Saved")).toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent("Space › Project › Category › New Group");
+    expect(screen.getByRole("status")).toHaveTextContent("Space › Project › Category › Unsorted");
     const savedId = storedGroups()[0].id;
     view.unmount();
     // A reopened popup has a fresh Y.Doc, not the old document with tombstones.
@@ -173,7 +173,7 @@ describe("popup instant save", () => {
     expect(storedGroups()).toHaveLength(0);
   });
 
-  it("falls back to the first category when the remembered one is gone", async () => {
+  it("falls back to the first category's Unsorted when the remembered one is gone", async () => {
     yjs.setSpaces([{ id: "s", name: "Space", order: 0, projects: [{ id: "p", name: "Project", order: 0, categories: [{
       id: "c", name: "Category", order: 0, groups: [{ id: "g", name: "Old", order: 0, tabs: [{ id: "t", url: "https://old.example", title: "Old", favicon: "", order: 0 }] }],
     }] }] }]);
@@ -186,7 +186,7 @@ describe("popup instant save", () => {
     // No recent destination and an active category that no longer exists → falls back to the first one.
     render(<Popup />);
     await screen.findByText("✓ Saved");
-    expect(screen.getByRole("status")).toHaveTextContent("Kept › Old");
+    expect(screen.getByRole("status")).toHaveTextContent("Project › Kept › Unsorted");
   });
 
   it("handles a tab query failure without writing", async () => {
@@ -214,7 +214,9 @@ describe("popup access (TASK-3)", () => {
     useAuthStore.setState({ isAuthenticated: false, guestMode: false });
     render(<Popup />);
     await screen.findByText("✓ Saved");
-    expect(storedGroups()[0].tabs.map(t => t.url)).toEqual(["https://old.example", "https://example.com"]);
+    const saved = storedGroups();
+    expect(saved.find(g => g.id === "g0")!.tabs.map(t => t.url)).toEqual(["https://old.example"]);
+    expect(saved.find(g => g.config?.kind === "unsorted")!.tabs.map(t => t.url)).toEqual(["https://example.com"]);
   });
 
   it("sends a fresh signed-out install to set up, with sign-in opening the full screen", async () => {

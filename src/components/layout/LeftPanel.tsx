@@ -14,17 +14,57 @@ import { Label } from "~src/components/ui/label";
 import type { SavedProject, SavedCategory } from "~src/types";
 import { useUIStore, type CreateRequest, type ScrollMode } from "~src/store/useUIStore";
 import { ProjectIcon, CategoryIcon } from "~src/components/levelIcons";
+import { Plus } from "lucide-react";
+import { isUnsortedGroup } from "~src/lib/defaultPath";
+
+/**
+ * Row geometry shared with the project and category rows, so "new" rows and
+ * name inputs line up with the items of their level: a project row is
+ * mx-2 pl-1 + chevron (w-5) + gap-1 before its icon; a category row is
+ * mx-2 pl-7 before its icon. Both icons land in the same column.
+ */
+const ROW_LEAD = {
+  project: "mx-2 pl-1 pr-2",
+  category: "mx-2 pl-7 pr-2",
+} as const;
+
+/** Spacer standing in for the project chevron, so project-level icons align. */
+function ChevronSlot() {
+  return <span aria-hidden className="w-5 shrink-0 mr-1" />;
+}
+
+/**
+ * "New project…" slot at the end of the project list. It creates rather than
+ * selects, so it differs from rows by shape — the dashed "add here" outline
+ * the rail's add-space button already uses — with muted text and an ellipsis,
+ * not by colour. It starts where project rows start (the chevron column) and
+ * its + sits in the project icon column (1px border + 23px = 24px). New
+ * categories have one affordance of their own: the + on each project row.
+ */
+function NewProjectSlot({ onClick }: { onClick: () => void }) {
+  return (
+    <div className="mx-2 pl-1 pr-2 mt-3">
+      <button
+        type="button"
+        onClick={onClick}
+        className="w-full flex items-center gap-2 rounded-md border border-dashed border-white/15 pl-[23px] pr-[7px] py-1 text-left text-[13px] font-sans text-white/55 hover:border-white/35 hover:bg-white/[0.03] hover:text-white/85 transition-colors outline-none focus-visible:ring-1 focus-visible:ring-ring"
+      >
+        <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden />
+        <span className="truncate">New project…</span>
+      </button>
+    </div>
+  );
+}
 
 /**
  * Inline "name it first" row: nothing is written until the user commits a
  * name, so there are no placeholder "New Project"/"New Category" nodes.
  * Enter commits, Escape (or leaving it empty) cancels.
  */
-function CreateRow({ kind, onCommit, onCancel, indent }: {
+function CreateRow({ kind, onCommit, onCancel }: {
   kind: CreateRequest["kind"];
   onCommit: (name: string) => void;
   onCancel: () => void;
-  indent?: boolean;
 }) {
   const [value, setValue] = useState("");
   const done = useRef(false);
@@ -34,11 +74,13 @@ function CreateRow({ kind, onCommit, onCancel, indent }: {
     const name = value.trim();
     if (commit && name) onCommit(name); else onCancel();
   };
-  const Icon = kind === "project" ? ProjectIcon : CategoryIcon;
   return (
-    <div className={`flex flex-col gap-1 ${indent ? "mx-2 pl-4 pr-2" : "px-3"} py-1`}>
-      <div className="flex items-center gap-2 text-white/60">
-        <Icon className="h-3.5 w-3.5 shrink-0" />
+    <div className={`flex flex-col gap-1 ${ROW_LEAD[kind]} py-1`}>
+      <div className="flex items-center text-white/60">
+        {kind === "project" && <ChevronSlot />}
+        {kind === "project"
+          ? <ProjectIcon className="h-3.5 w-3.5 shrink-0 mr-2" />
+          : <CategoryIcon className="h-3 w-3 shrink-0 mr-2" />}
         <Input
           variant="inline"
           autoFocus
@@ -54,7 +96,7 @@ function CreateRow({ kind, onCommit, onCancel, indent }: {
           className="flex-1 text-[13px] min-w-0"
         />
       </div>
-      <span className="pl-5 text-[11px] text-white/50 font-sans">Enter to create · Esc to cancel</span>
+      <span className={`${kind === "project" ? "pl-[46px]" : "pl-5"} text-[11px] text-white/50 font-sans`}>Enter to create · Esc to cancel</span>
     </div>
   );
 }
@@ -180,9 +222,10 @@ export function LeftPanel() {
     addSavedProject(spaceId, { id, name, categories: [], order: space?.projects.length ?? 0 });
     if (!expandedProjectIds.includes(id)) toggleExpandedProject(id);
     setActiveProject(id);
-    // A project is only useful with a category; ask for the first one right
-    // away (Esc skips it and leaves the project empty).
-    startCreate({ kind: "category", spaceId, projectId: id, then });
+    // One name per action: no chained "now name its category" prompt. Saving
+    // into an empty project still works (default category + Unsorted).
+    endCreate();
+    then?.();
   };
 
   const commitCategory = (spaceId: string, projectId: string, name: string, then?: () => void) => {
@@ -324,16 +367,16 @@ export function LeftPanel() {
                         <TooltipTrigger asChild>
                           <IconButton
                             variant="subtle"
-                            aria-label={`Add category to ${project.name}`}
+                            aria-label={`New category in ${project.name}`}
                             onClick={e => { e.stopPropagation(); handleAddCategory(project.id); }}
-                            className="shrink-0 opacity-0 group-hover/proj:opacity-100 focus-visible:opacity-100"
+                            className="shrink-0"
                           >
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                             </svg>
                           </IconButton>
                         </TooltipTrigger>
-                        <TooltipContent side="right">Add category</TooltipContent>
+                        <TooltipContent side="right">New category</TooltipContent>
                       </Tooltip>
                     </div>
                     </ContextMenuTrigger>
@@ -381,9 +424,9 @@ export function LeftPanel() {
                               >
                                 <CategoryIcon className="h-3 w-3 shrink-0" />
                                 <span className="flex-1 font-sans text-[13px] truncate">{category.name}</span>
-                                {category.groups.length > 0 && (
+                                {category.groups.some(g => !isUnsortedGroup(g)) && (
                                   <span className={`text-[10px] font-sans shrink-0 ${isActive ? 'text-white/60' : 'text-white/45'}`}>
-                                    {category.groups.length}
+                                    {category.groups.filter(g => !isUnsortedGroup(g)).length}
                                   </span>
                                 )}
                               </button>
@@ -402,19 +445,10 @@ export function LeftPanel() {
                         <CreateRow
                           key={`create-category-${project.id}`}
                           kind="category"
-                          indent
                           onCommit={name => commitCategory(currentSpace.id, project.id, name, creating.then)}
                           onCancel={endCreate}
                         />
-                      ) : project.categories.length === 0 && (
-                        <button
-                          type="button"
-                          onClick={() => handleAddCategory(project.id)}
-                          className="mx-2 w-[calc(100%-16px)] text-white/55 hover:text-white/80 text-xs font-sans py-1.5 pl-7 pr-2 rounded-md hover:bg-white/[0.04] transition-colors text-left"
-                        >
-                          + Add category
-                        </button>
-                      )}
+                      ) : null}
                     </div>
                   )}
                 </div>
@@ -429,15 +463,8 @@ export function LeftPanel() {
                 onCancel={endCreate}
               />
             ) : (
-              <div className="px-3 mt-2">
-                <button
-                  type="button"
-                  onClick={() => startCreate({ kind: "project", spaceId: currentSpace.id })}
-                  className="w-full flex items-center gap-2 text-white/55 hover:text-white/80 hover:bg-white/[0.04] rounded-md text-[13px] font-sans py-1.5 px-2 transition-colors text-left"
-                >
-                  <ProjectIcon className="h-3.5 w-3.5" />
-                  New project
-                </button>
+              <div>
+                <NewProjectSlot onClick={() => startCreate({ kind: "project", spaceId: currentSpace.id })} />
               </div>
             )}
           </>

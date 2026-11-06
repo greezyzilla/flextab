@@ -8,7 +8,6 @@ import {
   findSavedDragItem,
   isDropTargetId,
 } from "~src/services/dragDrop"
-import { requestMissingLevel } from "~src/lib/structurePrompts"
 import { toast } from "sonner"
 
 /**
@@ -81,16 +80,11 @@ export function useDragAndDrop() {
       wasDraggingGroup,
     }
     const outcome = await applyDragEnd(args)
-    if (!outcome) return
-    if ("unsavable" in outcome) {
+    if (outcome) {
       toast(`Can't save “${outcome.unsavable}”`, {
         description: "Only web pages (http/https) can be saved. Browser, extension and local file pages are skipped.",
       })
-      return
     }
-    // Dropped into a space/project with no category yet: ask the user to name
-    // it, then finish the same drop instead of making them repeat it.
-    requestMissingLevel(outcome, () => { void applyDragEnd(args) })
   }
 
   return {

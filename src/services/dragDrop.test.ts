@@ -206,16 +206,23 @@ describe("applyDragEnd", () => {
     expect(c2.groups.find((g) => g.id === "g1")).toBeTruthy()
   })
 
-  it("reports a missing project for a drop on an empty space and moves nothing", async () => {
-    const result = await applyDragEnd({
-      activeId: "t1",
-      overId: "space-drop:s2",
-      wasDraggingGroup: false,
-    })
-    expect(result).toEqual({ missing: "project", spaceId: "s2" })
-    expect(yjs.getSpaces().find((s) => s.id === "s2")!.projects).toEqual([])
+  it("leaves a group in place when dropped on a space that no longer exists", async () => {
+    const before = JSON.stringify(yjs.getSpaces())
+    await applyDragEnd({ activeId: "g1", overId: "space-drop:gone", wasDraggingGroup: true })
+    expect(JSON.stringify(yjs.getSpaces())).toBe(before)
+  })
+
+  it("saves a tab dropped on an empty space into General › Uncategorized › Unsorted", async () => {
+    const result = await applyDragEnd({ activeId: "t1", overId: "space-drop:s2", wasDraggingGroup: false })
+    expect(result).toBeUndefined()
+    const project = yjs.getSpaces().find((s) => s.id === "s2")!.projects[0]
+    expect(project.name).toBe("General")
+    expect(project.categories.map((c) => c.name)).toEqual(["Uncategorized"])
+    const [unsorted] = project.categories[0].groups
+    expect(unsorted).toMatchObject({ name: "Unsorted", config: { kind: "unsorted" } })
+    expect(unsorted.tabs.map((t) => t.id)).toEqual(["t1"])
     const g1 = yjs.getSpaces()[0].projects[0].categories[0].groups.find((g) => g.id === "g1")!
-    expect(g1.tabs.map((t) => t.id)).toContain("t1")
+    expect(g1.tabs.map((t) => t.id)).not.toContain("t1")
   })
 
   it("re-files a group into another category section by dropping it on a group there", async () => {
@@ -255,26 +262,49 @@ describe("applyDragEnd", () => {
     expect(g3.tabs.map((t) => t.url)).toEqual(["https://d.com", "https://e.com"])
   })
 
-  it("saves an opened tab into an empty section by creating its first group", async () => {
+  it("saves an opened tab into an empty section's Unsorted", async () => {
     yjs.addCategory("s1", "p1", { id: "c3", name: "C3", order: 2, groups: [] })
     useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces() })
     vi.mocked(chrome.tabs.get).mockResolvedValueOnce({ id: 8, url: "https://f.com", title: "F", favIconUrl: "" } as chrome.tabs.Tab)
     await applyDragEnd({ activeId: 8, overId: "section-drop:s1:p1:c3", wasDraggingGroup: false })
     const c3 = yjs.getSpaces()[0].projects[0].categories.find((c) => c.id === "c3")!
     expect(c3.groups).toHaveLength(1)
-    expect(c3.groups[0].name).toBe("New Group")
+    expect(c3.groups[0]).toMatchObject({ name: "Unsorted", config: { kind: "unsorted" } })
     expect(c3.groups[0].tabs.map((t) => t.url)).toEqual(["https://f.com"])
   })
 
-  it("reports a missing category for a drop on a project without categories", async () => {
+  it("never drags the Unsorted group itself, and a group dropped on it doesn't reorder", async () => {
+    await applyDragEnd({ activeId: "t3", overId: "section-drop:s1:p1:c1", wasDraggingGroup: false })
+    const c1 = () => yjs.getSpaces()[0].projects[0].categories.find((c) => c.id === "c1")!
+    const unsorted = c1().groups.find((g) => g.config?.kind === "unsorted")!
+    expect(unsorted.tabs.map((t) => t.id)).toEqual(["t3"])
+    // g2 lost its only tab to Unsorted; it is a user group, so it stays.
+    expect(c1().groups.find((g) => g.id === "g2")!.tabs).toEqual([])
+    const before = c1().groups.map((g) => [g.id, g.order])
+    await applyDragEnd({ activeId: unsorted.id, overId: "g1", wasDraggingGroup: true })
+    await applyDragEnd({ activeId: unsorted.id, overId: "proj-drop:s1:p1", wasDraggingGroup: true })
+    await applyDragEnd({ activeId: "g2", overId: unsorted.id, wasDraggingGroup: true })
+    expect(c1().groups.map((g) => [g.id, g.order])).toEqual(before)
+  })
+
+  it("removes Unsorted once its last tab is moved out", async () => {
+    await applyDragEnd({ activeId: "t3", overId: "section-drop:s1:p1:c1", wasDraggingGroup: false })
+    await applyDragEnd({ activeId: "t3", overId: "droppable-g1", wasDraggingGroup: false })
+    const groups = yjs.getSpaces()[0].projects[0].categories.find((c) => c.id === "c1")!.groups
+    expect(groups.some((g) => g.config?.kind === "unsorted")).toBe(false)
+  })
+
+  it("gives a project without categories its default category on drop", async () => {
     yjs.addProject("s1", { id: "p2", name: "P2", order: 1, categories: [] })
     useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces() })
-    expect(await applyDragEnd({ activeId: "t1", overId: "proj-drop:s1:p2", wasDraggingGroup: false }))
-      .toEqual({ missing: "category", spaceId: "s1", projectId: "p2" })
-    expect(await applyDragEnd({ activeId: "g1", overId: "proj-drop:s1:p2", wasDraggingGroup: true }))
-      .toEqual({ missing: "category", spaceId: "s1", projectId: "p2" })
-    expect(await applyDragEnd({ activeId: "g1", overId: "space-drop:s2", wasDraggingGroup: true }))
-      .toEqual({ missing: "project", spaceId: "s2" })
+    await applyDragEnd({ activeId: "t1", overId: "proj-drop:s1:p2", wasDraggingGroup: false })
+    const p2 = () => yjs.getSpaces()[0].projects.find((p) => p.id === "p2")!
+    expect(p2().categories.map((c) => c.name)).toEqual(["Uncategorized"])
+    expect(p2().categories[0].groups[0].tabs.map((t) => t.id)).toEqual(["t1"])
+    // A group needs only the category: no Unsorted is created for it.
+    await applyDragEnd({ activeId: "g2", overId: "space-drop:s2", wasDraggingGroup: true })
+    const s2 = yjs.getSpaces().find((s) => s.id === "s2")!
+    expect(s2.projects[0].categories[0].groups.map((g) => g.id)).toEqual(["g2"])
   })
 
   it("moves a saved tab next to a tab in another category", async () => {

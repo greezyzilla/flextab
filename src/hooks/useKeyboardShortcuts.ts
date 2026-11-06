@@ -3,29 +3,19 @@ import { v7 as uuidv7 } from "uuid";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import type { SaveTabsTarget } from "~src/services/saveTabsAsGroup";
 import { NEW_GROUP_NAME } from "~src/services/resolveSaveTarget";
-import { requestMissingLevel } from "~src/lib/structurePrompts";
+import { ensureCategoryPath } from "~src/lib/defaultPath";
 import { useUIStore } from "~src/store/useUIStore";
 
 /**
- * Run `action` against the current category, following the same destination
- * policy as every other save path (TASK-1): a missing project/category is
- * asked for inline (never invented), then the shortcut finishes on its own.
+ * Run `action` against the current category, following the same rule as
+ * every other save path (TASK-20): if the active space has no project or
+ * category yet, the default ones are created so the shortcut always works.
  */
 export function withActiveCategory(action: (target: SaveTabsTarget) => void): void {
   const state = useSavedSpacesStore.getState();
-  const space = state.savedSpaces.find(s => s.id === state.activeSpaceId);
-  if (!space) return;
-  const project = space.projects.find(p => p.id === state.activeProjectId) ?? space.projects[0];
-  if (!project) {
-    requestMissingLevel({ missing: "project", spaceId: space.id }, () => withActiveCategory(action));
-    return;
-  }
-  const category = project.categories.find(c => c.id === state.activeCategoryId) ?? project.categories[0];
-  if (!category) {
-    requestMissingLevel({ missing: "category", spaceId: space.id, projectId: project.id }, () => withActiveCategory(action));
-    return;
-  }
-  action({ spaceId: space.id, projectId: project.id, categoryId: category.id });
+  if (!state.activeSpaceId) return;
+  const path = ensureCategoryPath(state.activeSpaceId, { projectId: state.activeProjectId, categoryId: state.activeCategoryId });
+  if (path) action(path);
 }
 
 function isEditableTarget(target: EventTarget | null): boolean {

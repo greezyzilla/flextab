@@ -50,19 +50,14 @@ describe("keyboard shortcuts follow the destination policy", () => {
     expect(groups[0].name).toBe("New Group")
   })
 
-  it("Cmd+N in a space without a project asks for one and finishes afterwards", () => {
+  it("Cmd+N in a space without a project adds the group along the default path", () => {
     useSavedSpacesStore.setState({ activeSpaceId: "s2", activeProjectId: null, activeCategoryId: null })
     press("n")
-    const req = useUIStore.getState().creating
-    expect(req).toMatchObject({ kind: "project", spaceId: "s2" })
-    expect(spaces().find(s => s.id === "s2")!.projects).toEqual([])
-
-    // The user names the project and its first category; the shortcut then completes.
-    yjs.addProject("s2", { id: "p2", name: "Chores", order: 0, categories: [] })
-    yjs.addCategory("s2", "p2", { id: "c2", name: "Bills", order: 0, groups: [] })
-    useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces(), activeSpaceId: "s2", activeProjectId: "p2", activeCategoryId: "c2" })
-    req!.then!()
-    expect(spaces().find(s => s.id === "s2")!.projects[0].categories[0].groups).toHaveLength(1)
+    expect(useUIStore.getState().creating).toBeNull()
+    const [project] = spaces().find(s => s.id === "s2")!.projects
+    expect(project.name).toBe("General")
+    expect(project.categories.map(c => c.name)).toEqual(["Uncategorized"])
+    expect(project.categories[0].groups.map(g => g.name)).toEqual(["New Group"])
   })
 
   it("Cmd+Shift+S opens the Save all dialog", () => {

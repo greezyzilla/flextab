@@ -77,36 +77,40 @@ describe("resolveSaveTargetIds (select-existing)", () => {
   });
 });
 
-describe("ensureSaveTargetPath (never invents projects/categories)", () => {
-  it("reuses existing project/category/group", () => {
-    const t = ensureSaveTargetPath("s1", { projectId: "p1", categoryId: "c1" });
-    expect(t).toEqual({
-      spaceId: "s1",
-      projectId: "p1",
-      categoryId: "c1",
-      groupId: "g1",
-    });
+describe("ensureSaveTargetPath (default path down to Unsorted, TASK-20)", () => {
+  const groupsOf = (spaceId: string) => yjs.getSpaces().find((s) => s.id === spaceId)!.projects[0].categories[0].groups;
+
+  it("saves into the preferred category's Unsorted, never into a user group", () => {
+    const t = ensureSaveTargetPath("s1", { projectId: "p1", categoryId: "c1" })!;
+    expect(t).toMatchObject({ spaceId: "s1", projectId: "p1", categoryId: "c1" });
+    const unsorted = groupsOf("s1").find((g) => g.id === t.groupId)!;
+    expect(unsorted).toMatchObject({ name: "Unsorted", config: { kind: "unsorted" } });
+    expect(t.groupId).not.toBe("g1");
   });
 
-  it("reports a missing project on an empty space and creates nothing", () => {
-    expect(ensureSaveTargetPath("s2")).toEqual({ missing: "project", spaceId: "s2" });
-    expect(yjs.getSpaces().find((s) => s.id === "s2")!.projects).toEqual([]);
+  it("reuses the existing Unsorted instead of adding a second one", () => {
+    const a = ensureSaveTargetPath("s1", { projectId: "p1", categoryId: "c1" })!;
+    const b = ensureSaveTargetPath("s1", { projectId: "p1", categoryId: "c1" })!;
+    expect(b.groupId).toBe(a.groupId);
+    expect(groupsOf("s1").filter((g) => g.config?.kind === "unsorted")).toHaveLength(1);
   });
 
-  it("reports a missing category and creates nothing", () => {
+  it("creates General › Uncategorized › Unsorted on an empty space", () => {
+    const t = ensureSaveTargetPath("s2")!;
+    const project = yjs.getSpaces().find((s) => s.id === "s2")!.projects[0];
+    expect(project.name).toBe("General");
+    expect(project.categories.map((c) => c.name)).toEqual(["Uncategorized"]);
+    expect(t).toMatchObject({ spaceId: "s2", projectId: project.id, categoryId: project.categories[0].id });
+    expect(project.categories[0].groups.map((g) => g.name)).toEqual(["Unsorted"]);
+  });
+
+  it("keeps the user's project and only adds the missing category", () => {
     yjs.addProject("s2", { id: "p9", name: "P9", order: 0, categories: [] });
-    useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces() });
-    expect(ensureSaveTargetPath("s2")).toEqual({ missing: "category", spaceId: "s2", projectId: "p9" });
-    expect(yjs.getSpaces().find((s) => s.id === "s2")!.projects[0].categories).toEqual([]);
-  });
-
-  it("creates only the receiving group when the category has none", () => {
-    const t = ensureSaveTargetPath("s1", { projectId: "p1", categoryId: "c2" });
-    expect(t).toMatchObject({ spaceId: "s1", projectId: "p1", categoryId: "c2" });
-    const c2 = yjs.getSpaces()[0].projects[0].categories.find((c) => c.id === "c2")!;
-    expect(c2.groups).toHaveLength(1);
-    expect(c2.groups[0].name).toBe("New Group");
-    expect(yjs.getSpaces()[0].projects).toHaveLength(2);
+    const t = ensureSaveTargetPath("s2")!;
+    const projects = yjs.getSpaces().find((s) => s.id === "s2")!.projects;
+    expect(projects.map((p) => p.name)).toEqual(["P9"]);
+    expect(t.projectId).toBe("p9");
+    expect(projects[0].categories.map((c) => c.name)).toEqual(["Uncategorized"]);
   });
 
   it("returns null for unknown space", () => {

@@ -70,8 +70,8 @@ async function openForChoice(): Promise<void> {
 
 /**
  * Save the page / link / window behind a command or menu click.
- * Never invents structure: with no workspace or no category yet, it opens
- * FlexTab for the user to set one up instead of saving.
+ * With no workspace it opens FlexTab instead of saving. Inside a workspace a
+ * save always lands: missing levels follow the default path (TASK-20).
  */
 export async function captureFromBackground(
   kind: BackgroundCaptureKind,
