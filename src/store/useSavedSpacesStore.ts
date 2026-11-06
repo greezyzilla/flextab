@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { DEFAULT_CATEGORY_NAME, DEFAULT_PROJECT_NAME } from "~src/lib/defaultPath";
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { SavedSpace, SavedProject, SavedCategory, SavedGroup, SavedTab } from "../types";
@@ -87,14 +88,16 @@ const defaultSpaceId = uuidv7();
 const defaultProjectId = uuidv7();
 const defaultCategoryId = uuidv7();
 
+// The seed uses the same names as the default path (TASK-20/TASK-24), so
+// "General" only ever names a project, never a category in another place.
 export function ensureDefaultData() {
   if (yjs.spacesArray.length === 0) {
     yjs.setSpaces([{
       id: defaultSpaceId, name: "Personal", order: 0,
       projects: [{
-        id: defaultProjectId, name: "My Project", order: 0,
+        id: defaultProjectId, name: DEFAULT_PROJECT_NAME, order: 0,
         categories: [{
-          id: defaultCategoryId, name: "General", order: 0,
+          id: defaultCategoryId, name: DEFAULT_CATEGORY_NAME, order: 0,
           groups: [],
         }],
       }],
