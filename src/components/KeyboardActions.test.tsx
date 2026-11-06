@@ -106,6 +106,7 @@ describe("primary keyboard actions", () => {
   });
 
   it("opens a saved tab with Enter without starting a drag", async () => {
+    vi.mocked(chrome.tabs.query).mockResolvedValue([]);
     const drag = vi.fn();
     const user = setup(<GroupHarness />, drag);
     const link = screen.getByRole("link", { name: "Open Documentation" });
@@ -113,7 +114,8 @@ describe("primary keyboard actions", () => {
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
     await tabTo(user, link);
     await user.keyboard("{Enter}");
-    expect(chrome.tabs.create).toHaveBeenCalledExactlyOnceWith({ url: "https://example.com" });
+    // Not open anywhere, so it opens in a new tab (an open one would be focused).
+    await waitFor(() => expect(chrome.tabs.create).toHaveBeenCalledExactlyOnceWith({ url: "https://example.com" }));
     expect(drag).not.toHaveBeenCalled();
     await user.tab({ shift: true });
     expect(screen.getByRole("button", { name: "Reorder Documentation" })).toHaveFocus();
@@ -137,11 +139,17 @@ describe("primary keyboard actions", () => {
     expect(chrome.tabs.create).not.toHaveBeenCalled();
   });
 
-  it("opens the group in a new window from its named action", async () => {
+  it("opens the group in a new window or in this window from its named action", async () => {
     const user = setup(<GroupHarness />);
     await tabTo(user, screen.getByRole("button", { name: "Open all tabs in Reading" }));
     await user.keyboard("{Enter}");
+    await user.click(await screen.findByRole("menuitem", { name: "Open in new window" }));
     expect(chrome.windows.create).toHaveBeenCalledExactlyOnceWith({ url: ["https://example.com"] });
+
+    vi.mocked(chrome.windows.getCurrent).mockResolvedValue({ id: 7 } as chrome.windows.Window);
+    await user.click(screen.getByRole("button", { name: "Open all tabs in Reading" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Open in this window" }));
+    await waitFor(() => expect(chrome.tabs.create).toHaveBeenCalledWith({ url: "https://example.com", windowId: 7, active: false }));
   });
 
   it("saves a rename on Tab without pulling focus back from the next action", async () => {

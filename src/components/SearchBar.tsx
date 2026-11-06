@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
+import { openOrFocus } from "~src/services/openTab";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { Input } from "~src/components/ui/input";
 import { Button } from "~src/components/ui/button";
@@ -65,7 +66,8 @@ export function SearchBar() {
   }, [query, savedSpaces]);
 
   const handleResultClick = (result: SearchResult) => {
-    chrome.tabs.create({ url: result.url });
+    // Go to the tab if it is already open, else open it (TASK-4).
+    void openOrFocus(result.url);
     setQuery("");
     inputRef.current?.blur();
   };

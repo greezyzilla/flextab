@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { describeAlsoSaved } from "~src/lib/savedUrlIndex"
 import { rectIntersection, pointerWithin } from "@dnd-kit/core"
 import type { DragStartEvent, DragEndEvent, CollisionDetection } from "@dnd-kit/core"
 import type { SavedTab, SavedGroup } from "~src/types"
@@ -80,10 +81,13 @@ export function useDragAndDrop() {
       wasDraggingGroup,
     }
     const outcome = await applyDragEnd(args)
-    if (outcome) {
+    if (outcome && "unsavable" in outcome) {
       toast(`Can't save “${outcome.unsavable}”`, {
         description: "Only web pages (http/https) can be saved. Browser, extension and local file pages are skipped.",
       })
+    } else if (outcome && "alsoIn" in outcome) {
+      const notice = describeAlsoSaved(outcome.alsoIn)
+      if (notice) toast(notice)
     }
   }
 

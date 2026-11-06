@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react"
+import { describeAlsoSaved } from "~src/lib/savedUrlIndex"
 import { WorkspaceLoadError } from "~src/components/WorkspaceLoadError"
 import "@fontsource-variable/inter"
 import "../../style.css"
@@ -185,6 +186,10 @@ function IndexPopup() {
           <>
             <p className="text-xs text-white/90"><span className="text-green-400">✓ Saved</span> to</p>
             <p className="text-xs text-white/70 break-words">{where}</p>
+            {/* Same page already saved elsewhere (TASK-4): say where, don't block. */}
+            {describeAlsoSaved(status.receipt.alsoIn ?? []) && (
+              <p className="text-xs text-white/55 break-words">{describeAlsoSaved(status.receipt.alsoIn ?? [])}</p>
+            )}
           </>
         )}
         {status.kind === "already" && (

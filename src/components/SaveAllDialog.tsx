@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { describeAlsoSaved } from "~src/lib/savedUrlIndex"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "~src/components/ui/dialog"
 import { Button } from "~src/components/ui/button"
 import { Label } from "~src/components/ui/label"
@@ -70,9 +71,10 @@ export function SaveAllDialog() {
       }
       const saved = receipts.reduce((n, r) => n + r.tabIds.length, 0)
       setOpen(false)
+      const alsoIn = [...new Set(receipts.flatMap((r) => r.alsoIn ?? []))]
       showUndoToast(`Saved ${saved} tab${saved === 1 ? "" : "s"} to ${destination}`, () => {
         void Promise.all(receipts.map((r) => undoCapture(r)))
-      })
+      }, 5000, describeAlsoSaved(alsoIn) ?? undefined)
     } finally {
       setSaving(false)
     }

@@ -1,4 +1,5 @@
 // DnD domain: tree location, drop-ID protocol, and mutation matrix (FE-B9).
+import { savedElsewhere } from "~src/lib/savedUrlIndex"
 // UI hook stays a thin dnd-kit adapter; keyboard/save can reuse finders/moves.
 import { v7 as uuidv7 } from "uuid"
 import type { SavedTab, SavedGroup, SavedSpace } from "~src/types"
@@ -136,7 +137,9 @@ async function saveOpenBrowserTab(
   categoryId: string,
   groupId: string,
   order: number,
-) {
+): Promise<string[]> {
+  // Other places this URL is already saved, read before saving (TASK-4).
+  const alsoIn = savedElsewhere(useSavedSpacesStore.getState().savedSpaces, [tab.url], groupId).map((l) => l.path)
   const favicon = await faviconToDataUrl(tab.favIconUrl || "")
   const savedTab: SavedTab = {
     id: uuidv7(),
@@ -148,6 +151,7 @@ async function saveOpenBrowserTab(
   useSavedSpacesStore
     .getState()
     .addSavedTab(spaceId, projectId, categoryId, groupId, savedTab)
+  return alsoIn
 }
 
 function sortedByOrder<T extends { order?: number }>(items: T[]): T[] {
@@ -187,7 +191,7 @@ function resolveOverGroupId(spaces: SavedSpace[], overId: string): string | null
  * Returns `{ unsavable }` when an open tab isn't a savable web page (checked
  * before anything is created, so a rejected drop leaves nothing behind).
  */
-export type DropOutcome = { unsavable: string } | void
+export type DropOutcome = { unsavable: string } | { alsoIn: string[] } | void
 
 export async function applyDragEnd(args: {
   activeId: string | number
@@ -254,11 +258,11 @@ export async function applyDragEnd(args: {
     }
 
     const tgtGroup = findGroup(freshSpaces, target, target.groupId)
-    await saveOpenBrowserTab(
+    const alsoIn = await saveOpenBrowserTab(
       openTab!, tgtSpaceId, target.projectId, target.categoryId, target.groupId,
       tgtGroup?.tabs.length ?? 0,
     )
-    return
+    return alsoIn.length ? { alsoIn } : undefined
   }
 
   // --- Group dropped on a group (or a tab inside it): reorder or re-file ---
@@ -299,11 +303,11 @@ export async function applyDragEnd(args: {
     if (!groupId) return
     const loc = findGroupLocation(spaces, groupId)
     if (!loc) return
-    await saveOpenBrowserTab(
+    const alsoIn = await saveOpenBrowserTab(
       openTab, loc.spaceId, loc.projectId, loc.categoryId, groupId,
       findGroup(spaces, loc, groupId)?.tabs.length ?? 0,
     )
-    return
+    return alsoIn.length ? { alsoIn } : undefined
   }
 
   // --- Saved tab operations ---

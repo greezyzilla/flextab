@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react"
+import { describeAlsoSaved, savedElsewhere } from "~src/lib/savedUrlIndex"
 import { toast } from "sonner"
 import {
   Dialog,
@@ -55,6 +56,8 @@ export function SaveSessionModal({
   const handleSave = useCallback(async () => {
     if (!canSave) return
     setSaving(true)
+    // Where these URLs already were, read before saving (TASK-4).
+    const alsoIn = savedElsewhere(useSavedSpacesStore.getState().savedSpaces, savableTabs.map((t) => t.url)).map((l) => l.path)
     try {
       const result = await saveTabsAsGroup({
         target: {
@@ -71,6 +74,8 @@ export function SaveSessionModal({
         })
         return
       }
+      const notice = describeAlsoSaved(alsoIn)
+      if (notice) toast(notice)
       onClose()
     } catch (err) {
       console.error("Save session failed", err)

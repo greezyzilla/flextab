@@ -6,8 +6,12 @@ import { SaveSessionModal } from "../SaveSessionModal"
 import { useWindows } from "~src/hooks/useWindows"
 import { IconButton } from "~src/components/ui/button"
 import { Tooltip, TooltipTrigger, TooltipContent } from "~src/components/ui/tooltip"
+import { BookmarkCheck } from "lucide-react"
+import { useSavedUrlIndex } from "~src/hooks/useSavedUrlIndex"
+import { describeSaved, normalizeUrl, type SavedLocation } from "~src/lib/savedUrlIndex"
 
-const OpenedTab = ({ tab, windowId }: { tab: chrome.tabs.Tab, windowId: number }) => {
+const OpenedTab = ({ tab, windowId, saved }: { tab: chrome.tabs.Tab, windowId: number, saved?: SavedLocation[] }) => {
+  const savedLabel = describeSaved(saved)
   const onTabClick = (tab: chrome.tabs.Tab, windowId: number) => {
     chrome.tabs.update(tab.id!, { active: true })
     chrome.windows.update(windowId, { focused: true })
@@ -45,6 +49,18 @@ const OpenedTab = ({ tab, windowId }: { tab: chrome.tabs.Tab, windowId: number }
           <span className="text-white/30 text-[10px] font-sans truncate">{tab.url?.replace(/^https?:\/\//, '')}</span>
         </div>
       </div>
+
+      {/* Already saved somewhere (TASK-4): a quiet mark, where it lives on hover. */}
+      {savedLabel && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span role="img" aria-label={savedLabel} tabIndex={0} className="shrink-0 rounded text-white/45 outline-none focus-visible:ring-1 focus-visible:ring-ring">
+              <BookmarkCheck className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{savedLabel}</TooltipContent>
+        </Tooltip>
+      )}
     </div>
   )
 }
@@ -54,6 +70,7 @@ export function RightPanel() {
   const parentRef = useRef<HTMLDivElement>(null)
   const [collapsed, setCollapsed] = useState<Set<number>>(new Set())
   const [saveModal, setSaveModal] = useState<{ tabs: chrome.tabs.Tab[] } | null>(null)
+  const savedIndex = useSavedUrlIndex()
 
   const toggleWindow = useCallback((windowId: number) => {
     setCollapsed(prev => {
@@ -114,7 +131,7 @@ export function RightPanel() {
               {!isCollapsed && (
                 <div className="flex flex-col gap-1.5 p-3">
                   {tabs.map(tab => (
-                    <OpenedTab key={tab.id} tab={tab} windowId={windowId} />
+                    <OpenedTab key={tab.id} tab={tab} windowId={windowId} saved={savedIndex.get(normalizeUrl(tab.url))} />
                   ))}
                 </div>
               )}

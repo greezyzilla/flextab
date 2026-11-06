@@ -262,6 +262,20 @@ describe("applyDragEnd", () => {
     expect(g3.tabs.map((t) => t.url)).toEqual(["https://d.com", "https://e.com"])
   })
 
+  it("tells where a dropped open tab's URL is already saved, and still saves it", async () => {
+    vi.mocked(chrome.tabs.get).mockResolvedValueOnce({ id: 9, url: "https://d.com/", title: "D", favIconUrl: "" } as chrome.tabs.Tab)
+    const outcome = await applyDragEnd({ activeId: 9, overId: "droppable-g1", wasDraggingGroup: false })
+    expect(outcome).toEqual({ alsoIn: ["S1 › P1 › C2 › G3"] })
+    const g1 = yjs.getSpaces()[0].projects[0].categories[0].groups.find((g) => g.id === "g1")!
+    expect(g1.tabs.map((t) => t.url)).toContain("https://d.com/")
+  })
+
+  it("tells where an open tab dropped on a space is already saved", async () => {
+    vi.mocked(chrome.tabs.get).mockResolvedValueOnce({ id: 10, url: "https://d.com", title: "D", favIconUrl: "" } as chrome.tabs.Tab)
+    const outcome = await applyDragEnd({ activeId: 10, overId: "space-drop:s2", wasDraggingGroup: false })
+    expect(outcome).toEqual({ alsoIn: ["S1 › P1 › C2 › G3"] })
+  })
+
   it("saves an opened tab into an empty section's Unsorted", async () => {
     yjs.addCategory("s1", "p1", { id: "c3", name: "C3", order: 2, groups: [] })
     useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces() })

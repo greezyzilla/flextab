@@ -15,6 +15,9 @@ import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
 import { GroupIcon, UnsortedIcon } from "./levelIcons";
 import { ensureUnsortedGroup, isUnsortedGroup } from "~src/lib/defaultPath";
+import { normalizeUrl } from "~src/lib/savedUrlIndex";
+import { openInCurrentWindow, openOrFocus } from "~src/services/openTab";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import type { GroupLayout } from "~src/store/useSettingsStore";
 
 function SavedTabItem({ tab, groupId, location, isDuplicate, unsorted }: { tab: SavedTab; groupId: string; location: GroupLocation; isDuplicate?: boolean; unsorted?: boolean }) {
@@ -37,11 +40,11 @@ function SavedTabItem({ tab, groupId, location, isDuplicate, unsorted }: { tab: 
   const { spaceId, projectId, categoryId } = location;
 
   const onClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
-    // Preserve native modified-click/link actions; plain click and Enter retain
-    // the extension's existing open-in-new-tab behavior.
+    // Modified/middle clicks keep the native "always open a new tab" link
+    // behaviour. A plain click goes to the tab if it is already open (TASK-4).
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
-    chrome.tabs.create({ url: tab.url });
+    void openOrFocus(tab.url);
   }
 
   const handleDelete = (e: React.MouseEvent) => {
@@ -159,6 +162,11 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: 
   const renameButtonRef = useRef<HTMLButtonElement>(null);
   const returnRenameFocus = useRef(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  // While the "open all" menu is open, the header actions stay visible: the
+  // trigger shows as active and the other actions as neutral. (Read from our
+  // own state: Tooltip and DropdownMenu both write data-state on the trigger.)
+  const [openAllMenu, setOpenAllMenu] = useState(false);
+  const revealActions = openAllMenu ? 'opacity-100' : 'opacity-0 group-hover/header:opacity-100 group-focus-within/header:opacity-100';
 
   useEffect(() => {
     if (isRenaming && renameRef.current) {
@@ -180,16 +188,14 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: 
   // Detect duplicate URLs within this group
   const urlCounts = new Map<string, number>();
   for (const t of sortedTabs) {
-    const norm = t.url?.replace(/\/$/, '') || '';
+    const norm = normalizeUrl(t.url);
     urlCounts.set(norm, (urlCounts.get(norm) || 0) + 1);
   }
   const duplicateUrls = new Set([...urlCounts.entries()].filter(([, c]) => c > 1).map(([u]) => u));
 
-  const handleOpenAll = () => {
-    const urls = sortedTabs.map(t => t.url).filter(Boolean);
-    if (urls.length === 0) return;
-    chrome.windows.create({ url: urls });
-  };
+  const urls = sortedTabs.map(t => t.url).filter(Boolean);
+  const openAllInNewWindow = () => { if (urls.length) chrome.windows.create({ url: urls }); };
+  const openAllHere = () => { if (urls.length) void openInCurrentWindow(urls); };
 
   const handleDeleteGroup = () => {
     removeSavedGroup(spaceId, projectId, categoryId, group);
@@ -271,20 +277,29 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: 
         )}
         <div className="flex items-center gap-0.5">
           {sortedTabs.length > 0 && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <IconButton aria-label={`Open all tabs in ${group.name}`} onClick={handleOpenAll} className="opacity-0 group-hover/header:opacity-100 group-focus-within/header:opacity-100">
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 5h6v6M19 5l-8 8M11 5H6a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1v-5" />
-                  </svg>
-                </IconButton>
-              </TooltipTrigger>
-              <TooltipContent>Open all in a new window</TooltipContent>
-            </Tooltip>
+            // One "open all" control, two destinations (TASK-4).
+            <DropdownMenu open={openAllMenu} onOpenChange={setOpenAllMenu}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <IconButton aria-label={`Open all tabs in ${group.name}`} className={`${revealActions} ${openAllMenu ? 'bg-white/10 text-white/80' : ''}`}>
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 5h6v6M19 5l-8 8M11 5H6a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1v-5" />
+                      </svg>
+                    </IconButton>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent>Open all</TooltipContent>
+              </Tooltip>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onSelect={openAllHere}>Open in this window</DropdownMenuItem>
+                <DropdownMenuItem onSelect={openAllInNewWindow}>Open in new window</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
           {!unsorted && <Tooltip>
             <TooltipTrigger asChild>
-              <IconButton aria-label={`Delete ${group.name}`} danger onClick={() => setShowDeleteConfirm(true)} className="opacity-0 group-hover/header:opacity-100 group-focus-within/header:opacity-100">
+              <IconButton aria-label={`Delete ${group.name}`} danger onClick={() => setShowDeleteConfirm(true)} className={revealActions}>
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m-1 0v11m-4-11v11M7 7l1 12a1 1 0 001 1h6a1 1 0 001-1l1-12" />
                 </svg>
@@ -312,7 +327,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: 
               }}
             >
               {sortedTabs.map((tab) => (
-                <SavedTabItem key={tab.id} tab={tab} groupId={group.id} location={location} unsorted={unsorted} isDuplicate={duplicateUrls.has(tab.url?.replace(/\/$/, '') || '')} />
+                <SavedTabItem key={tab.id} tab={tab} groupId={group.id} location={location} unsorted={unsorted} isDuplicate={duplicateUrls.has(normalizeUrl(tab.url))} />
               ))}
             </div>
           </SortableContext>

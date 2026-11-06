@@ -56,6 +56,14 @@ describe("captureTabs", () => {
     expect(groupsOf("c")[0].tabs).toHaveLength(1)
   })
 
+  it("reports where a saved URL already exists elsewhere, without blocking the save", async () => {
+    const r = receipt(await captureTabs([{ url: "https://A.com" }], { spaceId: "s", projectId: "p", categoryId: "c2", newGroupName: "Again" }))
+    expect(r.tabIds).toHaveLength(1)
+    expect(r.alsoIn).toEqual(["Work › Site › Research › Reading"])
+    const fresh = receipt(await captureTabs([{ url: "https://new.com" }], { spaceId: "s", projectId: "p", categoryId: "c", groupId: "g" }))
+    expect(fresh.alsoIn).toEqual([])
+  })
+
   it("creates a named group, and falls back to Unsorted when the group is gone", async () => {
     const r = receipt(await captureTabs([{ url: "https://b.com" }], { spaceId: "s", projectId: "p", categoryId: "c2", newGroupName: "Moodboard" }))
     expect(r.createdGroup).toBe(true)

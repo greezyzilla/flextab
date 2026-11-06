@@ -1,9 +1,10 @@
 import { Toaster as SonnerToaster, toast } from "sonner";
 
 /** Fire a toast with an Undo action. */
-export function showUndoToast(message: string, onUndo: () => void, timeout = 5000) {
+export function showUndoToast(message: string, onUndo: () => void, timeout = 5000, description?: string) {
   toast(message, {
     duration: timeout,
+    description,
     action: { label: "Undo", onClick: onUndo },
   });
 }

@@ -4,6 +4,7 @@
 // whatever context it runs in and persists before returning, so a caller can
 // acknowledge "Saved" only once the write is durable.
 import { v7 as uuidv7 } from "uuid"
+import { normalizeUrl, savedElsewhere } from "~src/lib/savedUrlIndex"
 import * as yjs from "~src/lib/yjsDoc"
 import { rememberDestination, loadRecentDestinations, type RecentDestination } from "~src/lib/recentDestinations"
 import { isSavableTabUrl, toSavedTabs, defaultSavedGroupName } from "~src/services/saveTabsAsGroup"
@@ -40,6 +41,8 @@ export type CaptureReceipt = {
   duplicates: number
   /** Tabs skipped because they aren't savable web pages. */
   skipped: number
+  /** Other places the saved URLs already existed in (TASK-4), as "Space › … › Group". */
+  alsoIn?: string[]
   /** Browser tabs closed after saving ("Close after saving"), for Undo to reopen. */
   closed: ClosedTab[]
   /** False if the write is in this context's doc but storage refused it: retry with `persistCapture`. */
@@ -53,7 +56,6 @@ export function isCaptureFailure(r: CaptureReceipt | CaptureFailure): r is Captu
   return "error" in r
 }
 
-const normalizeUrl = (url: string) => url.replace(/\/$/, "")
 
 function findCategory(spaces: SavedSpace[], d: { spaceId: string; projectId: string; categoryId: string }) {
   return spaces.find((s) => s.id === d.spaceId)
@@ -93,6 +95,8 @@ export async function captureTabs(
   const already = new Set((existing?.tabs ?? []).map((t) => normalizeUrl(t.url)))
   const fresh = opts.dedupe ? savable.filter((t) => !already.has(normalizeUrl(t.url!))) : savable
   const duplicates = savable.length - fresh.length
+  // Before writing, so the copy saved now isn't counted (TASK-4).
+  const alsoIn = savedElsewhere(yjs.getSpaces(), fresh.map((t) => t.url), existing?.id).map((l) => l.path)
 
   const converted = await toSavedTabs(fresh)
   let groupId: string
@@ -121,6 +125,7 @@ export async function captureTabs(
     createdGroup: !existing || createdUnsorted,
     duplicates,
     skipped,
+    alsoIn,
     closed: [],
     persisted,
     at: Date.now(),

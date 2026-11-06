@@ -41,7 +41,8 @@ describe("SaveAllDialog", () => {
     expect(groups()).toHaveLength(1)
     expect(groups()[0].name).toMatch(/^Window /)
     expect(groups()[0].tabs.map(t => t.url)).toEqual(["https://a.example"])
-    expect(undoToast).toHaveBeenCalledWith("Saved 1 tab to Work › Site › Research", expect.any(Function))
+    // No "also saved in" description: the page wasn't saved anywhere else.
+    expect(undoToast).toHaveBeenCalledWith("Saved 1 tab to Work › Site › Research", expect.any(Function), 5000, undefined)
     await undoToast.mock.calls[0][1]()
     await waitFor(() => expect(groups()).toHaveLength(0))
   })
