@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { commitOnBlur } from "~src/lib/inlineEdit";
 import { useDroppable } from "@dnd-kit/core";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { v7 as uuidv7 } from "uuid";
@@ -92,7 +93,7 @@ function CreateRow({ kind, onCommit, onCancel }: {
             if (e.key === "Enter") { e.preventDefault(); finish(true); }
             if (e.key === "Escape") { e.preventDefault(); finish(false); }
           }}
-          onBlur={() => finish(true)}
+          onBlur={commitOnBlur(() => finish(true))}
           className="flex-1 text-[13px] min-w-0"
         />
       </div>

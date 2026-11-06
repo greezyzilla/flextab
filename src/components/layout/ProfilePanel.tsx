@@ -1,4 +1,5 @@
 import { SignOutDialog } from "~src/components/SignOutDialog";
+import { commitOnBlur } from "~src/lib/inlineEdit";
 import { useState, useRef, useEffect } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
@@ -234,7 +235,7 @@ export function ProfilePanel() {
                 placeholder="Space name"
                 value={newSpaceName}
                 onChange={e => setNewSpaceName(e.target.value)}
-                onBlur={() => finishCreateSpace(true)}
+                onBlur={commitOnBlur(() => finishCreateSpace(true))}
                 onKeyDown={e => {
                   if (e.key === "Enter") { e.preventDefault(); finishCreateSpace(true); }
                   if (e.key === "Escape") { e.preventDefault(); finishCreateSpace(false); }

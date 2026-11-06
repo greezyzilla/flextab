@@ -109,7 +109,10 @@ describe("empty states create in place", () => {
     await user.click(screen.getByRole("button", { name: "+ New group" }))
     expect(screen.queryByText("Empty — drag tabs or groups here.")).not.toBeInTheDocument()
     await user.keyboard("Ideas")
+    // Focus moves elsewhere in the page (window still focused) → the name commits.
+    const hasFocus = vi.spyOn(document, "hasFocus").mockReturnValue(true)
     await user.tab()
+    hasFocus.mockRestore()
     expect(groupNames().map(g => [g.name, g.order])).toEqual([["Ideas", 0]])
   })
 })

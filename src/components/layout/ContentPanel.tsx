@@ -1,4 +1,5 @@
 import { useActiveCategory, useActiveSpace, useActiveProject, useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
+import { commitOnBlur } from "~src/lib/inlineEdit";
 import type { SavedCategory, SavedGroup, SavedProject, SavedSpace } from "~src/types";
 import { GROUP_INLINE, TabGroup } from "../TabGroup";
 import { Tooltip, TooltipTrigger, TooltipContent } from "~src/components/ui/tooltip";
@@ -105,7 +106,7 @@ function InlineCreate({ label, placeholder, inputLabel, startEditing = false, on
               if (e.key === "Enter") { e.preventDefault(); finish(true); }
               if (e.key === "Escape") { e.preventDefault(); finish(false); }
             }}
-            onBlur={() => finish(true)}
+            onBlur={commitOnBlur(() => finish(true))}
             className="w-full text-center"
           />
         ) : (
@@ -151,7 +152,7 @@ function NewGroupRow({ categoryName, onCommit, onCancel }: {
             if (e.key === "Enter") { e.preventDefault(); finish(true); }
             if (e.key === "Escape") { e.preventDefault(); finish(false); }
           }}
-          onBlur={() => finish(true)}
+          onBlur={commitOnBlur(() => finish(true))}
         />
       </div>
       <span className="text-[11px] text-white/50 font-sans" style={{ paddingLeft: 'calc(var(--density-px-tab) + 1.25rem + 0.625rem)' }}>Enter to create · Esc to cancel</span>

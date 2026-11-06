@@ -1,4 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react"
+import { commitOnBlur } from "~src/lib/inlineEdit";
 import { v7 as uuidv7 } from "uuid"
 import { Check, Plus } from "lucide-react"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
@@ -347,7 +348,7 @@ function NameRow({ indentClass, icon, label, placeholder, onCommit, onCancel }: 
           if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); finish(true) }
           if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); finish(false) }
         }}
-        onBlur={() => finish(true)}
+        onBlur={commitOnBlur(() => finish(true))}
         className="min-w-0 flex-1 text-xs"
       />
     </div>
