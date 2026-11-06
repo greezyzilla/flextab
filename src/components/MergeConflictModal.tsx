@@ -86,7 +86,7 @@ export function MergeConflictModal() {
           </AlertDialogTitle>
           <AlertDialogDescription className="text-white/45 text-sm leading-relaxed">
             {conflicts.length} item{conflicts.length !== 1 ? "s" : ""} changed on both this device and your account.
-            Everything else was merged automatically. Pick which to keep — nothing changes until you apply.
+            Everything else was merged automatically. Pick which to keep. Nothing changes until you apply.
           </AlertDialogDescription>
         </AlertDialogHeader>
 
@@ -123,7 +123,7 @@ export function MergeConflictModal() {
                             >
                               <span className="text-[11px] font-medium">{opt.label}</span>
                               <span className="max-w-full truncate text-[11px] font-normal text-white/40">
-                                {opt.detail || "—"}
+                                {opt.detail || "No details"}
                               </span>
                             </ToggleGroupItem>
                           ))}

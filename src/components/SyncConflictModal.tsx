@@ -63,7 +63,7 @@ export function SyncConflictModal() {
           </AlertDialogTitle>
           <AlertDialogDescription className="text-white/45 text-sm leading-relaxed">
             This device has local tabs and your account already has saved tabs.
-            Pick an option — nothing changes until you apply.
+            Pick an option. Nothing changes until you apply.
           </AlertDialogDescription>
         </AlertDialogHeader>
 
@@ -103,7 +103,7 @@ export function SyncConflictModal() {
         </div>
         <div className="px-6 flex-1 overflow-y-auto min-h-[80px]">
           {result.length === 0 ? (
-            <div className="text-white/30 text-xs py-4">Nothing — an empty workspace.</div>
+            <div className="text-white/30 text-xs py-4">Nothing here. The workspace is empty.</div>
           ) : (
             <div className="flex flex-col gap-2.5 pb-2">
               {result.map((s) => {

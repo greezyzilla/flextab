@@ -53,7 +53,7 @@ function applyPushPending(pending: unknown) {
 function showSessionExpired(expired: unknown) {
   if (expired !== true) return
   toast.error("Your session expired", {
-    description: "Sign in again to keep syncing — your tabs are still saved on this device.",
+    description: "Sign in again to keep syncing. Your tabs are still saved on this device.",
   })
   try { void chrome.storage.local.remove(SESSION_EXPIRED_KEY) } catch (_) { /* ok */ }
 }

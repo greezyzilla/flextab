@@ -96,7 +96,7 @@ export function AccountTab() {
       loadIdentities();
     } catch (err) {
       setIdError(err instanceof ApiError && err.status === 409
-        ? "Can't unlink your only sign-in method — set a password or link another provider first."
+        ? "Can't unlink your only sign-in method. Set a password or link another provider first."
         : "Couldn't unlink that provider.");
     } finally {
       setUnlinking(null);
@@ -198,7 +198,7 @@ export function AccountTab() {
         <form onSubmit={handleChangePassword} className="flex flex-col gap-2.5">
           {!hasPassword && (
             <p className="text-white/30 text-xs leading-relaxed">
-              Adding a password lets you sign in with {user?.email ?? 'your email'} too — your linked providers keep working.
+              Adding a password lets you sign in with {user?.email ?? 'your email'} too. Your linked providers keep working.
             </p>
           )}
           {hasPassword && (

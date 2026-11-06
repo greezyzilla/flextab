@@ -51,14 +51,14 @@ export function TransactionsTab() {
                 <div className="flex flex-wrap items-center justify-between gap-2 px-4 sm:px-5 py-3">
                   <div className="flex flex-col gap-0.5 min-w-0">
                     <span className="text-white/70 text-sm font-sans">
-                      {TXN_TYPE_LABEL[t.type] ?? t.type} — {t.plan === "plus" ? "Plus" : "Pro"}
+                      {TXN_TYPE_LABEL[t.type] ?? t.type} · {t.plan === "plus" ? "Plus" : "Pro"}
                     </span>
                     <span className="text-white/35 text-xs font-sans capitalize">
                       {formatDate(t.created_at)} · via {t.provider} · {t.status}
                     </span>
                   </div>
                   <span className="text-white/60 text-sm font-sans tabular-nums">
-                    {t.amount_idr > 0 ? formatIDR(t.amount_idr) : "—"}
+                    {t.amount_idr > 0 ? formatIDR(t.amount_idr) : "Free"}
                   </span>
                 </div>
               </div>

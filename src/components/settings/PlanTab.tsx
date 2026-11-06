@@ -130,7 +130,7 @@ export function PlanTab() {
 
   return (
     <div className="flex flex-col gap-7">
-      <SettingRow label="Plan" description="FlexTab is in beta — limits are generous while we're in preview.">
+      <SettingRow label="Plan" description="FlexTab is in beta, so limits are generous while we're in preview.">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
           <PlanCard
             name="Free" price="Free" active={currentPlan === 'free'}
@@ -150,7 +150,7 @@ export function PlanTab() {
           />
         </div>
         {upgradeError && <div className="text-amber-300/80 text-xs font-sans mt-1.5">{upgradeError}</div>}
-        {confirming && <div className="text-white/40 text-xs font-sans mt-1.5">Confirming your payment — this can take a few seconds…</div>}
+        {confirming && <div className="text-white/40 text-xs font-sans mt-1.5">Confirming your payment. This can take a few seconds…</div>}
       </SettingRow>
 
       {billing?.active && (
@@ -159,7 +159,7 @@ export function PlanTab() {
             <div className="flex flex-col gap-0.5">
               <span className="text-white/70 text-sm font-sans">
                 {billing.status === 'cancelled' && billing.ends_at
-                  ? `${currentPlan === 'plus' ? 'Plus' : 'Pro'} until ${formatDate(billing.ends_at)} — won't renew`
+                  ? `${currentPlan === 'plus' ? 'Plus' : 'Pro'} until ${formatDate(billing.ends_at)} (won't renew)`
                   : billing.renews_at
                     ? `Renews on ${formatDate(billing.renews_at)}`
                     : 'Active subscription'}
@@ -186,7 +186,7 @@ export function PlanTab() {
           <div className="flex flex-col gap-3">
             <UsageBar label="Total tabs" used={status.usage.total_tabs} cap={status.limits.max_tabs_total} />
             <UsageBar label="Storage" used={status.usage.tree_bytes} cap={status.limits.max_tree_bytes} format={formatBytes} />
-            <UsageBar label="Version history" used={status.usage.snapshots} cap={status.limits.max_snapshots} tone="rolling" hint="Restore points kept — the oldest drop off automatically." />
+            <UsageBar label="Version history" used={status.usage.snapshots} cap={status.limits.max_snapshots} tone="rolling" hint="Restore points kept. The oldest drop off automatically." />
           </div>
         )}
       </SettingRow>

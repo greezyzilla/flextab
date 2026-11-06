@@ -36,7 +36,7 @@ export function SyncTab() {
         >
           <Card className="px-5 py-4 text-white/50 text-sm font-sans leading-relaxed shadow-none">
             {guestMode
-              ? "You're in guest mode — not offline. Tabs save locally on this device. Sign in to back up and sync across devices."
+              ? "You're in guest mode, not offline. Tabs save locally on this device. Sign in to back up and sync across devices."
               : "You're using FlexTab locally on this device. Sign in to back up and sync your tabs across devices."}
           </Card>
         </SettingRow>

@@ -31,8 +31,8 @@ export function SyncStatusIndicator() {
     cls = guestMode ? "text-white/30" : "text-white/25"
     label = guestMode ? "Guest" : "Local only"
     detail = guestMode
-      ? "Local only on this device — sign in anytime to sync"
-      : "Not signed in — tabs stay on this device"
+      ? "Local only on this device. Sign in anytime to sync"
+      : "Not signed in. Tabs stay on this device"
   } else if (status === "online") {
     Icon = Cloud
     cls = "text-white/45"
@@ -54,12 +54,12 @@ export function SyncStatusIndicator() {
     Icon = CloudOff
     cls = "text-white/40"
     label = "Offline"
-    detail = "No connection — changes stay on this device until you reconnect"
+    detail = "No connection. Changes stay on this device until you reconnect"
   } else if (status === "error") {
     Icon = CloudOff
     cls = "text-red-400/70"
     label = "Sync error"
-    detail = "Last sync failed — changes are still saved locally"
+    detail = "Last sync failed. Changes are still saved locally"
   }
 
   const idle =
@@ -74,8 +74,8 @@ export function SyncStatusIndicator() {
   } else if (showDirty) {
     detail =
       status === "paused"
-        ? "Unsynced changes — turn on sync or use Sync now"
-        : "Unsynced changes — will sync when reconnected"
+        ? "Unsynced changes. Turn on sync or use Sync now"
+        : "Unsynced changes. They will sync when reconnected"
   }
 
   return (

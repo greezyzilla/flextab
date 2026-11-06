@@ -102,7 +102,7 @@ export function OnboardingScreen({ onBack }: {
               <div className="rounded-lg bg-white/[0.03] border border-white/5 p-2.5">
                 <div className="text-white/50 text-[10px] font-medium mb-2">Sprint Planning</div>
                 <div className="flex flex-col gap-1.5">
-                  {["Linear — Current Sprint", "Figma — Design System", "GitHub — Pull Requests"].map((t, i) => (
+                  {["Linear · Current Sprint", "Figma · Design System", "GitHub · Pull Requests"].map((t, i) => (
                     <div key={i} className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded bg-white/10 shrink-0" />
                       <div className="text-white/30 text-[10px] truncate">{t}</div>
@@ -113,7 +113,7 @@ export function OnboardingScreen({ onBack }: {
               <div className="rounded-lg bg-white/[0.03] border border-white/5 p-2.5">
                 <div className="text-white/50 text-[10px] font-medium mb-2">API Docs</div>
                 <div className="flex flex-col gap-1.5">
-                  {["Stripe — Webhooks", "Vercel — Deployments"].map((t, i) => (
+                  {["Stripe · Webhooks", "Vercel · Deployments"].map((t, i) => (
                     <div key={i} className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded bg-white/10 shrink-0" />
                       <div className="text-white/30 text-[10px] truncate">{t}</div>
@@ -148,7 +148,7 @@ export function OnboardingScreen({ onBack }: {
           )}
           {sessionExpired && (
             <div className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-amber-200/90 text-xs leading-relaxed">
-              Your session expired. Sign in again to keep syncing — your tabs are still saved on this device.
+              Your session expired. Sign in again to keep syncing. Your tabs are still saved on this device.
             </div>
           )}
 
@@ -159,7 +159,7 @@ export function OnboardingScreen({ onBack }: {
             <p className="text-white/35 text-sm leading-relaxed">
               {mode === 'login'
                 ? 'Sign in to sync your tabs across devices.'
-                : 'Get started with FlexTab — organize and sync your tabs.'}
+                : 'Get started with FlexTab. Organize and sync your tabs.'}
             </p>
           </div>
 

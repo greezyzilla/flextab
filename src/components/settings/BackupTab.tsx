@@ -229,7 +229,7 @@ function HistoryTab() {
         <div className="flex flex-col gap-2.5">
           {failed && <div className="text-white/30 text-xs font-sans">Couldn't load history.</div>}
           {!failed && snapshots === null && <div className="text-white/30 text-xs font-sans">Loading…</div>}
-          {!failed && snapshots?.length === 0 && <div className="text-white/30 text-xs font-sans">No snapshots yet — they appear after your tabs sync.</div>}
+          {!failed && snapshots?.length === 0 && <div className="text-white/30 text-xs font-sans">No snapshots yet. They appear after your tabs sync.</div>}
           {restoring && <div className="text-white/40 text-xs font-sans">Restoring…</div>}
           {restoreError && <div role="alert" className="text-red-400 text-xs font-sans">{restoreError}</div>}
           {pendingPull && (
