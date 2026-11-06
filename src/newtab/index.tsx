@@ -10,7 +10,8 @@ import "@fontsource-variable/inter"
 import "../../style.css"
 
 import { useHydrated, useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
-import { spaceTabCount } from "~src/services/spacesTree"
+import { canUseWorkspace, SIGN_IN_ROUTE } from "~src/lib/workspaceAccess"
+import { navigate, useRoute } from "~src/lib/route"
 import { useAuthStore } from "~src/store/useAuthStore"
 import { startSyncEngine, stopSyncEngine, startLocalPersistence, stopLocalPersistence } from "~src/services/syncEngine"
 import { pullSettings, startSettingsSync, stopSettingsSync } from "~src/services/settingsSync"
@@ -36,7 +37,13 @@ function NewTabPage() {
   // asked to see. Checking actual tab content (not just space count) matters
   // because a fresh/logged-out account still seeds one empty default space.
   const savedSpaces = useSavedSpacesStore((s) => s.savedSpaces)
-  const hasSavedTabs = savedSpaces.some((s) => spaceTabCount(s) > 0)
+  const workspaceUsable = canUseWorkspace({ isAuthenticated, guestMode, spaces: savedSpaces })
+  const onSignInRoute = useRoute() === SIGN_IN_ROUTE
+
+  // Signing in from the sign-in screen lands back in the workspace.
+  useEffect(() => {
+    if (isAuthenticated && onSignInRoute) navigate("/")
+  }, [isAuthenticated, onSignInRoute])
 
   useEffect(() => {
     initialize()
@@ -68,7 +75,10 @@ function NewTabPage() {
   if (hydrationError) return <WorkspaceLoadError />
   if (authLoading) return <LoadingScreen />
   if (!hydrated) return <LoadingScreen />
-  if (!isAuthenticated && !guestMode && !hasSavedTabs) return <OnboardingScreen />
+  if (!workspaceUsable) return <OnboardingScreen />
+  // Explicit "Sign in" (rail, popup) while already using FlexTab locally:
+  // the full sign-in screen, with a way back to the tabs.
+  if (onSignInRoute && !isAuthenticated) return <OnboardingScreen onBack={() => navigate("/")} />
 
   return (
     <TooltipProvider delayDuration={300}>

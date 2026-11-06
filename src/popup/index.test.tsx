@@ -143,6 +143,35 @@ describe("popup durable save without a new-tab or sync engine", () => {
     expect(screen.queryByRole("button", { name: "Retry Save" })).not.toBeInTheDocument();
   });
 
+  it("lets a guest save from the popup", async () => {
+    useAuthStore.setState({ isAuthenticated: false, guestMode: true });
+    await openPopup();
+    expect(screen.getByRole("button", { name: "Sign in to sync across devices" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Save Current Tab" }));
+    await waitFor(() => expect(storedGroups()).toHaveLength(1));
+  });
+
+  it("lets a signed-out device that still holds tabs save from the popup", async () => {
+    yjs.setSpaces([{ ...tree()[0], projects: [{ ...tree()[0].projects[0], categories: [{ id: "c", name: "Category", order: 0,
+      groups: [{ id: "g0", name: "Old", order: 0, tabs: [{ id: "t0", url: "https://old.example", title: "Old", favicon: "", order: 0 }] }] }] }] }]);
+    await yjs.persistState();
+    resetYjsHydration();
+    useAuthStore.setState({ isAuthenticated: false, guestMode: false });
+    await openPopup();
+    fireEvent.click(screen.getByRole("button", { name: "Save Current Tab" }));
+    await waitFor(() => expect(storedGroups()).toHaveLength(2));
+  });
+
+  it("sends a fresh signed-out install to set up, with sign-in opening the full screen", async () => {
+    useAuthStore.setState({ isAuthenticated: false, guestMode: false });
+    render(<Popup />);
+    fireEvent.click(await screen.findByRole("button", { name: "Sign in" }));
+    expect(chrome.tabs.create).toHaveBeenCalledWith({ url: "chrome-extension://test/newtab.html#/signin" });
+    fireEvent.click(screen.getByRole("button", { name: "Get started" }));
+    expect(chrome.tabs.create).toHaveBeenCalledWith({ url: "chrome-extension://test/newtab.html" });
+    expect(screen.queryByRole("button", { name: "Save Current Tab" })).not.toBeInTheDocument();
+  });
+
   it("does not acknowledge unsavable tabs", async () => {
     vi.mocked(chrome.tabs.query).mockResolvedValue([{ url: "chrome://settings" }] as chrome.tabs.Tab[]);
     await openPopup();

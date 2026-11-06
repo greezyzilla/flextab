@@ -100,7 +100,9 @@ describe("primary keyboard actions", () => {
     expect(settings).toHaveAttribute("aria-pressed", "true");
     await tabTo(user, screen.getByRole("button", { name: "Sign in" }));
     await user.keyboard("{Enter}");
-    expect(login).toHaveBeenCalledTimes(1);
+    // Opens the full sign-in screen (every provider), not one provider directly.
+    await waitFor(() => expect(window.location.hash).toBe("#/signin"));
+    expect(login).not.toHaveBeenCalled();
   });
 
   it("opens a saved tab with Enter without starting a drag", async () => {

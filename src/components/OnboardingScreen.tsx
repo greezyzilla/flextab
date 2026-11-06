@@ -9,7 +9,10 @@ import { useAuthStore } from "~src/store/useAuthStore"
 // /privacy.html).
 const LEGAL_BASE_URL = "https://flextabmanager.com"
 
-export function OnboardingScreen() {
+export function OnboardingScreen({ onBack }: {
+  /** Set when opened on purpose from a usable workspace (rail/popup "Sign in"). */
+  onBack?: () => void
+} = {}) {
   const { loginWithGoogle, loginWithGithub, loginWithEmail, register, continueAsGuest } = useAuthStore()
   // Only show OAuth buttons for providers the server has configured (Google is
   // required; GitHub is optional). Default to Google if the check fails.
@@ -138,6 +141,11 @@ export function OnboardingScreen() {
       {/* Right — sign in */}
       <div className="w-full lg:w-[420px] shrink-0 flex flex-col justify-center border-t lg:border-t-0 lg:border-l border-black-800 p-6 sm:p-10" style={{ backgroundColor: 'color-mix(in srgb, var(--color-black-950) 50%, transparent)' }}>
         <div className="flex flex-col gap-6">
+          {onBack && (
+            <Button variant="link" onClick={onBack} className="self-start !px-0 !text-sm !text-white/60 hover:!text-white/85">
+              ← Back to my tabs
+            </Button>
+          )}
           {sessionExpired && (
             <div className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-amber-200/90 text-xs leading-relaxed">
               Your session expired. Sign in again to keep syncing — your tabs are still saved on this device.
@@ -228,12 +236,12 @@ export function OnboardingScreen() {
           </div>
 
           {/* Try without an account — local-only until you sign in */}
-          <div className="flex flex-col items-center gap-1.5 pt-1">
+          {!onBack && <div className="flex flex-col items-center gap-1.5 pt-1">
             <Button variant="link" onClick={() => continueAsGuest()} className="!text-sm !text-white/55 hover:!text-white/80">
               Continue without an account →
             </Button>
             <span className="text-white/25 text-[11px]">Saved locally on this device. Sign in anytime to sync.</span>
-          </div>
+          </div>}
 
           <p className="text-white/15 text-[11px] leading-relaxed">
             By continuing, you agree to FlexTab's{' '}

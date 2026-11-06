@@ -15,10 +15,11 @@ import { Input } from "~src/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "~src/components/ui/avatar";
 import { useUIStore } from "~src/store/useUIStore";
 import { spaceAvatarColors } from "~src/components/levelIcons";
+import { SIGN_IN_ROUTE } from "~src/lib/workspaceAccess";
 
 export function ProfilePanel() {
   const { savedSpaces, activeSpaceId, setActiveSpace, addSavedSpace, updateSavedSpace, removeSavedSpace, reorderSpaces } = useSavedSpacesStore();
-  const { user, isAuthenticated, loginWithGoogle } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
   const manifestIcon = typeof chrome !== "undefined" && chrome.runtime?.getManifest
     ? chrome.runtime.getManifest().icons?.["128"]
     : undefined;
@@ -310,7 +311,7 @@ export function ProfilePanel() {
           <button
             type="button"
             aria-label="Sign in"
-            onClick={loginWithGoogle}
+            onClick={() => navigate(SIGN_IN_ROUTE)}
             className="w-10 h-10 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring bg-black-800 hover:bg-black-700 cursor-pointer flex items-center justify-center transition-colors"
             title="Sign in"
           >

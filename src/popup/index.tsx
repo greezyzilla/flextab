@@ -13,10 +13,11 @@ import {
 import type { SaveTabsTarget } from "~src/services/saveTabsAsGroup"
 import { resolveSaveTargetIds } from "~src/services/resolveSaveTarget"
 import { DestinationPicker, describeTarget } from "~src/components/DestinationPicker"
+import { canUseWorkspace, signInPageUrl } from "~src/lib/workspaceAccess"
 
 function IndexPopup() {
   const { hydrated, error: hydrationError } = useHydrated();
-  const { initialize, isAuthenticated, isLoading: authLoading, loginWithGoogle } = useAuthStore();
+  const { initialize, isAuthenticated, isLoading: authLoading, guestMode } = useAuthStore();
   const { savedSpaces, activeSpaceId, activeProjectId, activeCategoryId } = useSavedSpacesStore();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -108,20 +109,23 @@ function IndexPopup() {
     );
   }
 
-  if (!isAuthenticated) {
-    return (
-      <div className="w-72 bg-black-900 p-4 font-sans flex flex-col items-center gap-3">
-        <h2 className="text-white/90 text-base font-medium">FlexTab</h2>
-        <p className="text-white/40 text-xs text-center">Sign in to save and sync your tabs.</p>
-        <Button variant="secondary" onClick={loginWithGoogle} className="w-full">Sign in</Button>
-      </div>
-    );
-  }
-
   if (!hydrated) {
     return (
       <div className="w-72 bg-black-900 p-4 font-sans">
         <div className="text-white/50 text-xs text-center">Loading...</div>
+      </div>
+    );
+  }
+
+  // Same rule as the new tab page (TASK-3): guests and signed-out devices
+  // that still hold tabs can save; only a fresh install is sent to set up.
+  if (!canUseWorkspace({ isAuthenticated, guestMode, spaces: savedSpaces })) {
+    return (
+      <div className="w-72 bg-black-900 p-4 font-sans flex flex-col items-center gap-3">
+        <h2 className="text-white/90 text-base font-medium">FlexTab</h2>
+        <p className="text-white/55 text-xs text-center">Start saving tabs: use FlexTab on this device, or sign in to sync.</p>
+        <Button variant="secondary" onClick={() => chrome.tabs.create({ url: chrome.runtime.getURL("newtab.html") })} className="w-full">Get started</Button>
+        <Button variant="ghost" size="sm" onClick={() => chrome.tabs.create({ url: signInPageUrl() })} className="w-full">Sign in</Button>
       </div>
     );
   }
@@ -178,6 +182,11 @@ function IndexPopup() {
       <Button variant="ghost" size="sm" onClick={() => chrome.tabs.create({ url: "chrome://newtab" })} className="w-full">
         Open FlexTab Dashboard
       </Button>
+      {!isAuthenticated && (
+        <Button variant="link" size="sm" onClick={() => chrome.tabs.create({ url: signInPageUrl() })} className="w-full !text-xs !text-white/55 hover:!text-white/80">
+          Sign in to sync across devices
+        </Button>
+      )}
 
     </div>
   )
