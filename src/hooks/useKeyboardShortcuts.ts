@@ -1,8 +1,6 @@
 import { useEffect } from "react";
-import { v7 as uuidv7 } from "uuid";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import type { SaveTabsTarget } from "~src/services/saveTabsAsGroup";
-import { NEW_GROUP_NAME } from "~src/services/resolveSaveTarget";
 import { ensureCategoryPath } from "~src/lib/defaultPath";
 import { useUIStore } from "~src/store/useUIStore";
 
@@ -54,17 +52,12 @@ export function useKeyboardShortcuts() {
       // Ctrl+N / Cmd+N — create new group in the current category
       if (mod && !e.shiftKey && e.key.toLowerCase() === "n") {
         e.preventDefault();
-        withActiveCategory(({ spaceId, projectId, categoryId }) => {
+        // Same as "+ New group": name it first, it is created at the top.
+        withActiveCategory(({ projectId, categoryId }) => {
           const state = useSavedSpacesStore.getState();
-          const category = state.savedSpaces.find(s => s.id === spaceId)
-            ?.projects.find(p => p.id === projectId)
-            ?.categories.find(c => c.id === categoryId);
-          state.addSavedGroup(spaceId, projectId, categoryId, {
-            id: uuidv7(),
-            name: NEW_GROUP_NAME,
-            tabs: [],
-            order: category?.groups.length ?? 0,
-          });
+          if (state.activeProjectId !== projectId) state.setActiveProject(projectId);
+          state.setActiveCategory(categoryId);
+          useUIStore.getState().startNamingGroup(categoryId);
         });
         return;
       }

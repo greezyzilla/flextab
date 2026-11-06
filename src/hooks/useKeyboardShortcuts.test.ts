@@ -32,7 +32,7 @@ beforeEach(async () => {
     activeCategoryId: "c1",
     expandedProjectIds: [],
   })
-  useUIStore.setState({ creating: null, leftDrawerOpen: false })
+  useUIStore.setState({ creating: null, leftDrawerOpen: false, namingGroupIn: null })
   renderHook(() => useKeyboardShortcuts())
 })
 
@@ -43,21 +43,23 @@ describe("keyboard shortcuts follow the destination policy", () => {
     expect(spaces()[0].projects).toHaveLength(1)
   })
 
-  it("Cmd+N adds a group to the current category", () => {
+  it("Cmd+N opens the group name row in the current category, without writing a group", () => {
     press("n")
-    const groups = spaces()[0].projects[0].categories[0].groups
-    expect(groups).toHaveLength(1)
-    expect(groups[0].name).toBe("New Group")
+    expect(useUIStore.getState().namingGroupIn).toBe("c1")
+    expect(spaces()[0].projects[0].categories[0].groups).toHaveLength(0)
   })
 
-  it("Cmd+N in a space without a project adds the group along the default path", () => {
+  it("Cmd+N in a space without a project opens the name row on the default path", () => {
     useSavedSpacesStore.setState({ activeSpaceId: "s2", activeProjectId: null, activeCategoryId: null })
     press("n")
     expect(useUIStore.getState().creating).toBeNull()
     const [project] = spaces().find(s => s.id === "s2")!.projects
     expect(project.name).toBe("General")
     expect(project.categories.map(c => c.name)).toEqual(["Uncategorized"])
-    expect(project.categories[0].groups.map(g => g.name)).toEqual(["New Group"])
+    const state = useSavedSpacesStore.getState()
+    expect([state.activeProjectId, state.activeCategoryId]).toEqual([project.id, project.categories[0].id])
+    expect(useUIStore.getState().namingGroupIn).toBe(project.categories[0].id)
+    expect(project.categories[0].groups).toHaveLength(0)
   })
 
   it("Cmd+Shift+S opens the Save all dialog", () => {

@@ -12,9 +12,6 @@ export type PreferredTarget = {
   categoryId?: string | null;
 };
 
-/** Same name the "+ New group" button uses, so auto and manual groups match. */
-export const NEW_GROUP_NAME = "New Group";
-
 /**
  * Pure cascade: walk preferred ids when valid, else first child at each level.
  * Never mutates. Missing levels → empty string ids (caller blocks save).

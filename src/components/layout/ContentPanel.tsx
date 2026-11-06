@@ -1,6 +1,6 @@
 import { useActiveCategory, useActiveSpace, useActiveProject, useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import type { SavedCategory, SavedGroup, SavedProject, SavedSpace } from "~src/types";
-import { TabGroup } from "../TabGroup";
+import { GROUP_INLINE, TabGroup } from "../TabGroup";
 import { Tooltip, TooltipTrigger, TooltipContent } from "~src/components/ui/tooltip";
 import { Button } from "~src/components/ui/button";
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
@@ -12,10 +12,9 @@ import { Input } from "~src/components/ui/input";
 import { v7 as uuidv7 } from "uuid";
 import { useSettingsStore, type GroupLayout } from "~src/store/useSettingsStore";
 import { useUIStore } from "~src/store/useUIStore";
-import { NEW_GROUP_NAME } from "~src/services/resolveSaveTarget";
 import type { GroupLocation } from "~src/services/dragDrop";
-import { CategoryIcon, ProjectIcon, SpaceAvatar } from "~src/components/levelIcons";
-import { findUnsorted, isUnsortedGroup, orderedGroups } from "~src/lib/defaultPath";
+import { CategoryIcon, GroupIcon, ProjectIcon, SpaceAvatar } from "~src/components/levelIcons";
+import { findUnsorted, firstGroupOrder, isUnsortedGroup, orderedGroups } from "~src/lib/defaultPath";
 
 /**
  * The project page. A project is one page; its categories are sections on it
@@ -39,7 +38,10 @@ function SortableGroup({ group, location, layout, gridColumns }: {
 
   return (
     <div ref={setNodeRef} style={style} className="relative group/sortable">
-      <div className="absolute top-5 left-5 z-10 opacity-0 group-hover/sortable:opacity-30 hover:!opacity-80 transition-opacity cursor-grab active:cursor-grabbing" {...attributes} {...listeners}>
+      {/* The handle sits in the left gutter, level with the title row inside the card
+          (block top padding + card padding + half of the 26px title row - half the icon). */}
+      <div className="absolute left-1 z-10 opacity-0 group-hover/sortable:opacity-30 hover:!opacity-80 transition-opacity cursor-grab active:cursor-grabbing"
+        style={{ top: 'calc(var(--density-p-section) + var(--density-p-group) + 5px)' }} {...attributes} {...listeners}>
         <DragHandleIcon className="w-4 h-4 text-white/50" />
       </div>
       <TabGroup group={group} location={location} layout={layout} gridColumns={gridColumns} />
@@ -115,6 +117,49 @@ function InlineCreate({ label, placeholder, inputLabel, startEditing = false, on
   );
 }
 
+/**
+ * "+ New group": the name row opens at the top of the section, where the new
+ * group will be (below Unsorted), so the result shows where the user looks.
+ * Enter creates, Esc / an empty name cancels; nothing is written before.
+ */
+function NewGroupRow({ categoryName, onCommit, onCancel }: {
+  categoryName: string; onCommit: (name: string) => void; onCancel: () => void;
+}) {
+  const [value, setValue] = useState("");
+  const done = useRef(false);
+  const finish = (commit: boolean) => {
+    if (done.current) return;
+    done.current = true;
+    const name = value.trim();
+    if (commit && name) onCommit(name); else onCancel();
+  };
+  return (
+    // Same card shell as the group it will become (title row inside the card),
+    // so the row doesn't change shape or position when Enter creates it.
+    <div style={{ paddingTop: 'var(--density-p-section)', paddingInline: GROUP_INLINE }}>
+    <div className="flex flex-col gap-1 rounded-xl border border-white/[0.08] bg-white/[0.015]" style={{ padding: 'var(--density-p-group)' }}>
+      <div className="flex items-center gap-2.5" style={{ paddingInline: 'var(--density-px-tab)' }}>
+        <span className="w-5 flex justify-center shrink-0"><GroupIcon className="h-3.5 w-3.5 text-white/55" /></span>
+        <Input
+          variant="inline"
+          autoFocus
+          aria-label={`New group name in ${categoryName}`}
+          placeholder="Group name"
+          value={value}
+          onChange={e => setValue(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === "Enter") { e.preventDefault(); finish(true); }
+            if (e.key === "Escape") { e.preventDefault(); finish(false); }
+          }}
+          onBlur={() => finish(true)}
+        />
+      </div>
+      <span className="text-[11px] text-white/50 font-sans" style={{ paddingLeft: 'calc(var(--density-px-tab) + 1.25rem + 0.625rem)' }}>Enter to create · Esc to cancel</span>
+    </div>
+    </div>
+  );
+}
+
 /** Drop zone for a category that has no groups yet (tabs or whole groups). */
 function EmptySectionDrop({ location, onNewGroup }: { location: GroupLocation; onNewGroup: () => void }) {
   const { setNodeRef, isOver } = useDroppable({
@@ -134,11 +179,13 @@ function EmptySectionDrop({ location, onNewGroup }: { location: GroupLocation; o
   );
 }
 
-function CategorySection({ space, project, category, layout, gridColumns, isCurrent, isLast }: {
+function CategorySection({ space, project, category, layout, gridColumns, isCurrent, isFirst, isLast }: {
   space: SavedSpace; project: SavedProject; category: SavedCategory;
-  layout: GroupLayout; gridColumns: number; isCurrent: boolean; isLast: boolean;
+  layout: GroupLayout; gridColumns: number; isCurrent: boolean; isFirst: boolean; isLast: boolean;
 }) {
   const { addSavedGroup, setActiveCategory } = useSavedSpacesStore();
+  const naming = useUIStore(s => s.namingGroupIn === category.id);
+  const { startNamingGroup, endNamingGroup } = useUIStore();
   const location: GroupLocation = { spaceId: space.id, projectId: project.id, categoryId: category.id };
   // Unsorted (if any) is first and fixed; the user's groups follow, sortable.
   const unsorted = findUnsorted(category);
@@ -146,21 +193,47 @@ function CategorySection({ space, project, category, layout, gridColumns, isCurr
 
   const newGroup = () => {
     setActiveCategory(category.id);
+    startNamingGroup(category.id);
+  };
+  // A new group goes first, right below Unsorted (not to the bottom).
+  const createGroup = (name: string) => {
+    endNamingGroup();
     addSavedGroup(space.id, project.id, category.id, {
-      id: uuidv7(), name: NEW_GROUP_NAME, tabs: [], order: category.groups.length,
+      id: uuidv7(), name, tabs: [], order: firstGroupOrder(category.groups),
     });
   };
+  const unsortedCount = unsorted?.tabs.length ?? 0;
+  const counts = [
+    ...(groups.length > 0 || !unsorted ? [`${groups.length} group${groups.length !== 1 ? 's' : ''}`] : []),
+    ...(unsorted ? [`${unsortedCount} unsorted`] : []),
+  ].join(' · ');
 
   return (
-    // The last section is at least one viewport tall, so jumping to it from the
-    // sidebar can bring its header to the top like every other section.
-    <section data-category-id={category.id} aria-labelledby={`section-${category.id}`} className={`pb-2 ${isLast ? 'min-h-full' : ''}`}>
-      <div className="sticky top-0 z-20 bg-black-900 border-b border-black-800 h-11 px-6 flex items-center justify-between gap-3">
-        <h3 id={`section-${category.id}`} className={`flex items-center gap-2 min-w-0 font-sans text-sm ${isCurrent ? 'text-white/90' : 'text-white/70'}`}>
-          <CategoryIcon className="h-3.5 w-3.5 shrink-0" />
-          <span className="truncate font-medium">{category.name}</span>
+    // Ownership on a page with several categories:
+    // - The header looks the same in every state (bar + its own bottom line),
+    //   resting or pinned, so it always reads as the head of what is below it.
+    // - The header is a closed band: a line on top (the section's own start
+    //   edge; for the first section the page header's line plays this role)
+    //   and its own line below. So a header never blends into the previous
+    //   section's trailing space; that space (2G) ends at the next top line.
+    // - Sections touch: the next header pushes the pinned one out directly,
+    //   so while scrolling (even slowly) there is always exactly one pinned
+    //   header and it always belongs to the content right under it.
+    // - The last section is at least one viewport tall, so the last category
+    //   can be pinned (owned) like every other one.
+    // Left edge: category icon, group headers and group cards all start at the
+    // same 1.5rem line; levels differ by type size, not by indentation.
+    <section data-category-id={category.id} aria-labelledby={`section-${category.id}`}
+      // -mt-px: the top line overlaps the previous section's last pixel, so
+      // while the previous header is pushed out its bottom line and this top
+      // line coincide (one line, never a double line).
+      className={`${isFirst ? '' : '-mt-px border-t border-white/[0.12]'} ${isLast ? 'min-h-full' : ''}`}>
+      <div className="sticky top-0 z-20 bg-black-900 h-12 px-6 flex items-center justify-between gap-3 border-b border-white/[0.12]">
+        <h3 id={`section-${category.id}`} className={`flex items-center gap-2 min-w-0 font-sans text-base ${isCurrent ? 'text-white/95' : 'text-white/80'}`}>
+          <CategoryIcon className="h-4 w-4 shrink-0" />
+          <span className="truncate font-semibold">{category.name}</span>
           <span className="text-white/45 text-xs font-normal shrink-0">
-            {groups.length} group{groups.length !== 1 ? 's' : ''}
+            {counts}
           </span>
         </h3>
         {(groups.length > 0 || unsorted) && (
@@ -168,17 +241,22 @@ function CategorySection({ space, project, category, layout, gridColumns, isCurr
         )}
       </div>
       {unsorted && <TabGroup group={unsorted} location={location} layout={layout} gridColumns={gridColumns} />}
+      {naming && <NewGroupRow categoryName={category.name} onCommit={createGroup} onCancel={endNamingGroup} />}
       {groups.length > 0 ? (
         <SortableContext items={groups.map(g => g.id)} strategy={verticalListSortingStrategy}>
           {groups.map((group) => (
             <SortableGroup key={group.id} group={group} location={location} layout={layout} gridColumns={gridColumns} />
           ))}
         </SortableContext>
-      ) : !unsorted && (
-        <div className="px-6 pt-3 pb-2">
+      ) : !unsorted && !naming && (
+        <div className="px-6" style={{ paddingTop: 'var(--density-p-section)' }}>
           <EmptySectionDrop location={location} onNewGroup={newGroup} />
         </div>
       )}
+      {/* Section end space (2G) as content, not padding: sticky stays within
+          the content box, so padding would push the header out early and
+          leave a moment with no header at the top. */}
+      {!isLast && <div aria-hidden style={{ height: 'calc(var(--density-p-section) * 2)' }} />}
     </section>
   );
 }
@@ -242,7 +320,7 @@ export function ContentPanel() {
       : undefined;
     if (!container || !section) return;
     if (onlyIfHidden) {
-      const headerHeight = 44;
+      const headerHeight = 48; // h-12 section header
       const visible =
         section.offsetTop >= container.scrollTop &&
         section.offsetTop + headerHeight <= container.scrollTop + container.clientHeight;
@@ -272,13 +350,20 @@ export function ContentPanel() {
   // category (sidebar highlight, breadcrumb, default save destination).
   const handleScroll = () => {
     const container = scrollRef.current;
-    if (!container || Date.now() < spyLockedUntil.current) return;
+    if (!container) return;
+    if (Date.now() < spyLockedUntil.current) return;
     const sections = container.querySelectorAll<HTMLElement>("[data-category-id]");
-    const top = container.scrollTop + 48;
+    // The current section is the first one still visible at the top edge:
+    // the one whose header is pinned or being pushed out, or (between two
+    // sections) the next one. So the breadcrumb always names the header the
+    // user sees at the top.
+    // +1: sections overlap by their 1px top line (-mt-px), which must not
+    // keep the previous section current.
+    const line = container.scrollTop + 1;
     let current: string | null = null;
-    sections.forEach(section => {
-      if (section.offsetTop <= top) current = section.dataset.categoryId ?? null;
-    });
+    for (const section of sections) {
+      if (section.offsetTop + section.offsetHeight > line) { current = section.dataset.categoryId ?? null; break; }
+    }
     if (current && current !== useSavedSpacesStore.getState().activeCategoryId) setActiveCategory(current);
   };
 
@@ -345,6 +430,7 @@ export function ContentPanel() {
             layout={groupLayout}
             gridColumns={gridColumns}
             isCurrent={category.id === activeCategory?.id}
+            isFirst={i === 0}
             isLast={i === categories.length - 1}
           />
         ))}

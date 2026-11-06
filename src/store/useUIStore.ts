@@ -41,6 +41,14 @@ interface UIState {
   scrollTarget: { categoryId: string; nonce: number; mode: ScrollMode } | null
   requestScrollToCategory: (categoryId: string, mode?: ScrollMode) => void
 
+  /**
+   * The category whose section shows the inline "name the new group" row.
+   * A group is named first and then created at the top, below Unsorted.
+   */
+  namingGroupIn: string | null
+  startNamingGroup: (categoryId: string) => void
+  endNamingGroup: () => void
+
   /** The "Save all tabs" dialog (button + keyboard shortcut). */
   saveAllOpen: boolean
   setSaveAllOpen: (open: boolean) => void
@@ -65,6 +73,10 @@ export const useUIStore = create<UIState>((set) => ({
   scrollTarget: null,
   requestScrollToCategory: (categoryId, mode = "top") =>
     set((s) => ({ scrollTarget: { categoryId, nonce: (s.scrollTarget?.nonce ?? 0) + 1, mode } })),
+
+  namingGroupIn: null,
+  startNamingGroup: (namingGroupIn) => set({ namingGroupIn }),
+  endNamingGroup: () => set({ namingGroupIn: null }),
 
   saveAllOpen: false,
   setSaveAllOpen: (saveAllOpen) => set({ saveAllOpen }),

@@ -5,6 +5,7 @@ import { DndContext } from "@dnd-kit/core"
 import { ContentPanel } from "./ContentPanel"
 import { TooltipProvider } from "~src/components/ui/tooltip"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
+import { useUIStore } from "~src/store/useUIStore"
 import * as yjs from "~src/lib/yjsDoc"
 
 vi.mock("~src/components/ui/sonner", () => ({ showUndoToast: vi.fn() }))
@@ -13,6 +14,7 @@ beforeEach(async () => {
   await yjs.clearState()
   yjs.setSpaces([{ id: "s", name: "Work", order: 0, projects: [] }])
   useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces(), activeSpaceId: "s", activeProjectId: null, activeCategoryId: null, expandedProjectIds: [] })
+  useUIStore.setState({ namingGroupIn: null })
 })
 
 const setup = () => {
@@ -56,9 +58,58 @@ describe("empty states create in place", () => {
     setup()
     const headings = screen.getAllByText(/^(Unsorted|Reading)$/).map(el => el.textContent)
     expect(headings).toEqual(["Unsorted", "Reading"])
-    expect(screen.getByText("1 tab · not in a group yet")).toBeInTheDocument()
-    expect(screen.getByText("1 group")).toBeInTheDocument()
+    expect(screen.getByText("1 tab · drag into a group to file them")).toBeInTheDocument()
+    expect(screen.getByText("1 group · 1 unsorted")).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: /Delete Unsorted|Rename Unsorted/i })).not.toBeInTheDocument()
     expect(screen.getByRole("button", { name: /Delete Reading/i })).toBeInTheDocument()
+  })
+
+  const withGroups = () => {
+    yjs.setSpaces([{ id: "s", name: "Work", order: 0, projects: [{ id: "p", name: "Site", order: 0, categories: [
+      { id: "c", name: "Research", order: 0, groups: [
+        { id: "g", name: "Reading", order: 0, tabs: [] },
+        { id: "u", name: "Unsorted", order: -1, config: { kind: "unsorted" }, tabs: [{ id: "t2", url: "https://b.com", title: "B", favicon: "", order: 0 }] },
+      ] },
+    ] }] }])
+    useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces(), activeSpaceId: "s", activeProjectId: "p", activeCategoryId: "c", expandedProjectIds: ["p"] })
+  }
+  const groupNames = () => yjs.getSpaces()[0].projects[0].categories[0].groups
+
+  it("New group asks for a name first and creates it at the top, below Unsorted", async () => {
+    withGroups()
+    const user = setup()
+    await user.click(screen.getByRole("button", { name: "New group in Research" }))
+    expect(groupNames()).toHaveLength(2)
+    await user.keyboard("Seasonal{Enter}")
+    const created = groupNames().find(g => g.name === "Seasonal")!
+    expect(created.order).toBeLessThan(0)
+    const headings = screen.getAllByText(/^(Unsorted|Reading|Seasonal)$/).map(el => el.textContent)
+    expect(headings).toEqual(["Unsorted", "Seasonal", "Reading"])
+    expect(screen.getByText("2 groups · 1 unsorted")).toBeInTheDocument()
+  })
+
+  it("Escape or an empty group name creates nothing", async () => {
+    withGroups()
+    const user = setup()
+    await user.click(screen.getByRole("button", { name: "New group in Research" }))
+    await user.keyboard("{Escape}")
+    expect(screen.queryByRole("textbox", { name: "New group name in Research" })).not.toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "New group in Research" }))
+    await user.keyboard("   {Enter}")
+    expect(groupNames()).toHaveLength(2)
+  })
+
+  it("an empty section's New group opens the name row in place of the drop row", async () => {
+    yjs.setSpaces([{ id: "s", name: "Work", order: 0, projects: [{ id: "p", name: "Site", order: 0, categories: [
+      { id: "c", name: "Research", order: 0, groups: [] },
+    ] }] }])
+    useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces(), activeSpaceId: "s", activeProjectId: "p", activeCategoryId: "c", expandedProjectIds: ["p"] })
+    const user = setup()
+    expect(screen.getByText("0 groups")).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "+ New group" }))
+    expect(screen.queryByText("Empty — drag tabs or groups here.")).not.toBeInTheDocument()
+    await user.keyboard("Ideas")
+    await user.tab()
+    expect(groupNames().map(g => [g.name, g.order])).toEqual([["Ideas", 0]])
   })
 })

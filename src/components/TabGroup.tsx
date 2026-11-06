@@ -13,8 +13,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "./ui/tooltip";
 import { IconButton } from "./ui/button";
 import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
-import { GroupIcon } from "./levelIcons";
-import { CircleDashed } from "lucide-react";
+import { GroupIcon, UnsortedIcon } from "./levelIcons";
 import { ensureUnsortedGroup, isUnsortedGroup } from "~src/lib/defaultPath";
 import type { GroupLayout } from "~src/store/useSettingsStore";
 
@@ -62,16 +61,21 @@ function SavedTabItem({ tab, groupId, location, isDuplicate, unsorted }: { tab: 
       className={`flex flex-col gap-1 rounded-lg transition-colors group ${isDuplicate ? 'bg-yellow-500/[0.06] ring-1 ring-yellow-500/20' : 'bg-white/[0.03] hover:bg-white/[0.06]'}`}
     >
       <div className="flex items-center gap-2.5">
-        <button
-          type="button"
-          {...attributes}
-          {...listeners}
-          aria-label={`Reorder ${tab.title}`}
-          className="opacity-0 group-hover:opacity-30 group-focus-within:opacity-100 focus-visible:!opacity-100 focus-visible:ring-1 focus-visible:ring-ring outline-none hover:!opacity-80 cursor-grab active:cursor-grabbing p-0.5 rounded transition-opacity shrink-0"
-          title="Drag to reorder"
-        >
-          <DragHandleIcon className="w-3.5 h-3.5 text-white" />
-        </button>
+        {/* Favicon slot doubles as the drag handle on hover/focus, so no empty
+            gutter pushes the favicon in: favicons line up with the group icon. */}
+        <span className="relative w-5 h-5 shrink-0">
+          <FaviconImg src={tab.favicon} alt="" />
+          <button
+            type="button"
+            {...attributes}
+            {...listeners}
+            aria-label={`Reorder ${tab.title}`}
+            className="absolute -inset-0.5 flex items-center justify-center rounded bg-black-800 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-1 focus-visible:ring-ring outline-none cursor-grab active:cursor-grabbing transition-opacity"
+            title="Drag to reorder"
+          >
+            <DragHandleIcon className="w-3.5 h-3.5 text-white/70" />
+          </button>
+        </span>
 
         <a
           href={tab.url}
@@ -81,7 +85,6 @@ function SavedTabItem({ tab, groupId, location, isDuplicate, unsorted }: { tab: 
           className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer overflow-hidden rounded outline-none focus-visible:ring-1 focus-visible:ring-ring"
           onClick={onClick}
         >
-          <FaviconImg src={tab.favicon} alt="" />
           <div className="flex flex-col min-w-0">
             <span className="text-white/80 text-xs font-sans truncate">{tab.title}</span>
             <span className="text-white/30 text-[10px] font-sans truncate">{tab.url?.replace(/^https?:\/\//, '')}</span>
@@ -106,6 +109,10 @@ function SavedTabItem({ tab, groupId, location, isDuplicate, unsorted }: { tab: 
     </div>
   )
 }
+
+/** Side padding of a group block: the same 1.5rem (px-6) as the category
+ * header, so headers and cards share one left edge at every density. */
+export const GROUP_INLINE = '1.5rem';
 
 export interface TabGroupProps {
   group: SavedGroup;
@@ -174,20 +181,36 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: 
     setIsRenaming(false);
   };
 
-  // Unsorted (TASK-20): the category's system group for tabs saved without a
-  // group. Same list and card as groups (it sits among them), but it is not
-  // the user's grouping: its own icon, no rename, no delete, a sorting hint.
+  // Unsorted (TASK-20): the category's system tray for tabs saved without a
+  // group. It reads as the system's, not the user's: a fixed uppercase label
+  // (not an editable name), a borderless tinted tray (not a bordered card),
+  // no rename, no delete, and a hint saying what to do with it.
   const unsorted = isUnsortedGroup(group);
 
   return (
-    <div className="flex flex-col gap-2" style={{ padding: 'var(--density-p-section)' }}>
-      <div className="flex items-center justify-between pl-7 group/header">
+    // Space only ABOVE each group: a section then ends exactly at its last
+    // card, so its sticky header leaves together with its last content.
+    // One vertical rhythm G (--density-p-section): header→first card and
+    // card→card are both G.
+    <div style={{ paddingTop: 'var(--density-p-section)', paddingInline: GROUP_INLINE }}>
+    {/* One region per group: its title, actions and tabs share one boundary
+        (bordered card for user groups, borderless tinted tray for Unsorted). */}
+    <div
+      ref={setDroppableRef}
+      className={`flex flex-col rounded-xl border transition-colors ${isOver ? '' : unsorted ? 'border-transparent bg-white/[0.04]' : 'border-white/[0.08] bg-white/[0.015]'}`}
+      style={{
+        padding: 'var(--density-p-group)',
+        gap: 'var(--density-p-group)',
+        ...(isOver ? { borderColor: 'var(--accent)', backgroundColor: 'var(--accent-subtle)' } : {}),
+      }}
+    >
+      <div className="flex items-center justify-between gap-2 min-h-[26px] group/header" style={{ paddingInline: 'var(--density-px-tab)' }}>
         {unsorted ? (
           <div className="flex items-center gap-2.5 min-w-0">
-            <CircleDashed className="h-3.5 w-3.5 shrink-0 text-white/55" strokeWidth={1.75} aria-hidden />
-            <h3 className="text-white/60 font-sans text-sm">Unsorted</h3>
-            <span className="text-white/45 text-xs font-sans shrink-0">
-              {sortedTabs.length} tab{sortedTabs.length !== 1 ? 's' : ''} · not in a group yet
+            <span className="w-5 flex justify-center shrink-0"><UnsortedIcon className="h-3.5 w-3.5 text-white/55" /></span>
+            <h3 className="text-white/60 font-sans text-[11px] font-medium uppercase tracking-wider">Unsorted</h3>
+            <span className="min-w-0 truncate text-white/45 text-xs font-sans">
+              {sortedTabs.length} tab{sortedTabs.length !== 1 ? 's' : ''} · drag into a group to file them
             </span>
           </div>
         ) : isRenaming ? (
@@ -206,8 +229,8 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: 
           />
         ) : (
           <div className="flex items-center gap-2.5 min-w-0">
-            <GroupIcon className="h-3.5 w-3.5 shrink-0 text-white/55" />
-            <h3 className="min-w-0 text-white/60 font-sans text-sm">
+            <span className="w-5 flex justify-center shrink-0"><GroupIcon className="h-3.5 w-3.5 text-white/55" /></span>
+            <h3 className="min-w-0 text-white/75 font-sans text-[13px] font-medium">
               <button
                 ref={renameButtonRef}
                 type="button"
@@ -219,7 +242,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: 
                 {group.name}
               </button>
             </h3>
-            <span className="text-white/20 text-xs font-sans shrink-0">{sortedTabs.length} tab{sortedTabs.length !== 1 ? 's' : ''}</span>
+            <span className="text-white/40 text-xs font-sans shrink-0">{sortedTabs.length} tab{sortedTabs.length !== 1 ? 's' : ''}</span>
           </div>
         )}
         <div className="flex items-center gap-0.5">
@@ -247,15 +270,11 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: 
           </Tooltip>}
         </div>
       </div>
-      <div ref={setDroppableRef}>
         {sortedTabs.length > 0 ? (
           <SortableContext items={sortedTabs.map((tab) => tab.id)}>
             <div
-              className={`rounded-xl border transition-colors ${isOver ? '' : 'border-white/[0.07] bg-white/[0.012]'} ${
-                layout === 'grid' ? 'grid' : 'flex flex-col'
-              }`}
+              className={layout === 'grid' ? 'grid' : 'flex flex-col'}
               style={{
-                padding: 'var(--density-p-group)',
                 gap: 'var(--density-gap-group)',
                 // Fluid grid: render up to `gridColumns` columns, but collapse to
                 // fewer when the container gets too narrow to keep cells >= 150px.
@@ -264,7 +283,6 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: 
                       gridTemplateColumns: `repeat(auto-fill, minmax(max(150px, calc((100% - ${gridColumns - 1} * var(--density-gap-group)) / ${gridColumns})), 1fr))`,
                     }
                   : {}),
-                ...(isOver ? { borderColor: 'var(--accent)', backgroundColor: 'var(--accent-subtle)' } : {}),
               }}
             >
               {sortedTabs.map((tab) => (
@@ -273,14 +291,15 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: 
             </div>
           </SortableContext>
         ) : (
+          // Same one-line dashed drop row as an empty category (one empty pattern).
           <div
-            className={`text-white/30 font-sans text-xs py-8 text-center rounded-xl border border-dashed transition-colors ${isOver ? '' : 'border-black-800'}`}
-            style={isOver ? { borderColor: 'var(--accent)', backgroundColor: 'var(--accent-subtle)', color: 'var(--accent)' } : undefined}
+            className={`px-3 py-2 font-sans text-xs rounded-lg border border-dashed transition-colors ${isOver ? 'border-transparent' : 'border-white/[0.12] text-white/55'}`}
+            style={isOver ? { color: 'var(--accent)' } : undefined}
           >
-            {isOver ? 'Drop tab here' : 'Drag tabs here to save'}
+            {isOver ? 'Drop here' : 'Empty — drag tabs here.'}
           </div>
         )}
-      </div>
+    </div>
 
       <ConfirmDialog
         open={showDeleteConfirm}
