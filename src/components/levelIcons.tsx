@@ -1,4 +1,4 @@
-import { Folder, Layers, ListTree } from "lucide-react"
+import { Folder, Inbox, Layers, ListTree } from "lucide-react"
 
 /**
  * One distinct shape per organisational level (TASK-1, option B), used
@@ -22,6 +22,14 @@ export function CategoryIcon({ className = "h-3.5 w-3.5" }: IconProps) {
 /** A group is a stack of saved tabs. */
 export function GroupIcon({ className = "h-3.5 w-3.5" }: IconProps) {
   return <Layers className={className} strokeWidth={1.75} aria-hidden />
+}
+
+/**
+ * Unsorted (TASK-20) is the system's tray for tabs saved without a group:
+ * a tray shape, not a dashed one (dashed means "empty / create" in this app).
+ */
+export function UnsortedIcon({ className = "h-3.5 w-3.5" }: IconProps) {
+  return <Inbox className={className} strokeWidth={1.75} aria-hidden />
 }
 
 const RAIL_TEXT_RATIO = 12 / 40;

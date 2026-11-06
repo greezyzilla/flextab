@@ -1,11 +1,11 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react"
 import { v7 as uuidv7 } from "uuid"
-import { Check, CircleDashed, Plus } from "lucide-react"
+import { Check, Plus } from "lucide-react"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import type { SavedSpace } from "~src/types"
 import type { SaveTabsTarget } from "~src/services/saveTabsAsGroup"
 import { Input } from "~src/components/ui/input"
-import { CategoryIcon, GroupIcon, ProjectIcon, SpaceAvatar } from "~src/components/levelIcons"
+import { CategoryIcon, GroupIcon, ProjectIcon, SpaceAvatar, UnsortedIcon } from "~src/components/levelIcons"
 import { loadRecentDestinations, type RecentDestination } from "~src/lib/recentDestinations"
 import { ensureCategoryPath, findUnsorted, isUnsortedGroup, orderedGroups, UNSORTED_NAME } from "~src/lib/defaultPath"
 
@@ -112,7 +112,7 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
                   }`}
                   style={selected ? { backgroundColor: "var(--accent-subtle)" } : undefined}
                 >
-                  {group ? <GroupIcon className="h-3 w-3 shrink-0" /> : <CategoryIcon className="h-3 w-3 shrink-0" />}
+                  {group ? (isUnsortedGroup(group) ? <UnsortedIcon className="h-3 w-3 shrink-0" /> : <GroupIcon className="h-3 w-3 shrink-0" />) : <CategoryIcon className="h-3 w-3 shrink-0" />}
                   <span className="truncate">{group ? group.name : parts.category.name}</span>
                   <span className="truncate text-white/50">{group ? parts.category.name : parts.project.name}</span>
                 </button>
@@ -175,7 +175,7 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
                         name={groupName}
                         indentClass="pl-14"
                         selected={unsortedSelected}
-                        icon={<CircleDashed className="h-3 w-3 shrink-0" strokeWidth={1.75} aria-hidden />}
+                        icon={<UnsortedIcon className="h-3 w-3 shrink-0" />}
                         label={UNSORTED_NAME}
                         onSelect={() => onChange(unsorted ? { ...at, groupId: unsorted.id } : at)}
                       />
