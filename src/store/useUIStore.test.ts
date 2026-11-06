@@ -27,7 +27,20 @@ describe('useUIStore', () => {
     expect(useUIStore.getState().rightDrawerOpen).toBe(false);
   });
 
+  const stubWidth = (wide: boolean) => {
+    window.matchMedia = ((q: string) => ({ matches: wide && q.includes('min-width'), media: q, addEventListener() {}, removeEventListener() {} })) as unknown as typeof window.matchMedia;
+  };
+
+  it('opens the navigation drawer for an inline create only while the sidebar is a drawer', () => {
+    stubWidth(true);
+    useUIStore.getState().startCreate({ kind: 'project', spaceId: 's' });
+    expect(useUIStore.getState().leftDrawerOpen).toBe(false);
+    useUIStore.getState().endCreate();
+    stubWidth(false);
+  });
+
   it('tracks one inline create request at a time and opens the navigation drawer', () => {
+    stubWidth(false);
     const then = () => {};
     useUIStore.getState().startCreate({ kind: 'category', spaceId: 's', projectId: 'p', then });
     expect(useUIStore.getState().creating).toEqual({ kind: 'category', spaceId: 's', projectId: 'p', then });

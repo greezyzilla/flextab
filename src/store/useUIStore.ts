@@ -1,4 +1,5 @@
 import { create } from "zustand"
+import { LEFT_INLINE_QUERY } from "~src/hooks/useMediaQuery"
 
 /**
  * An inline "name the new node" row the sidebar should show. `then` resumes
@@ -56,6 +57,11 @@ interface UIState {
 
 export type ScrollMode = "top" | "ifNeeded"
 
+function leftPanelIsDrawer(): boolean {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return true
+  return !window.matchMedia(LEFT_INLINE_QUERY).matches
+}
+
 export const useUIStore = create<UIState>((set) => ({
   leftDrawerOpen: false,
   rightDrawerOpen: false,
@@ -66,8 +72,10 @@ export const useUIStore = create<UIState>((set) => ({
   closeDrawers: () => set({ leftDrawerOpen: false, rightDrawerOpen: false }),
 
   creating: null,
-  // Creating happens in the sidebar, so on narrow viewports open its drawer.
-  startCreate: (creating) => set({ creating, leftDrawerOpen: true }),
+  // Creating happens in the sidebar, so open its drawer, but only while the
+  // sidebar IS a drawer (TASK-21): set at a wide width, the flag would linger
+  // and pop the drawer open the moment the window is narrowed.
+  startCreate: (creating) => set({ creating, ...(leftPanelIsDrawer() ? { leftDrawerOpen: true } : {}) }),
   endCreate: () => set({ creating: null }),
 
   scrollTarget: null,

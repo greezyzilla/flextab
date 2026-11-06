@@ -24,8 +24,11 @@ export function useMediaQuery(query: string): boolean {
  * - Left (navigation) panel docks inline at >= md (768px), drawer below.
  * The narrow ProfilePanel (64px) stays inline at every size.
  */
+export const RIGHT_INLINE_QUERY = "(min-width: 1024px)"
+export const LEFT_INLINE_QUERY = "(min-width: 768px)"
+
 export function useShellLayout() {
-  const rightInline = useMediaQuery("(min-width: 1024px)")
-  const leftInline = useMediaQuery("(min-width: 768px)")
+  const rightInline = useMediaQuery(RIGHT_INLINE_QUERY)
+  const leftInline = useMediaQuery(LEFT_INLINE_QUERY)
   return { leftInline, rightInline }
 }
