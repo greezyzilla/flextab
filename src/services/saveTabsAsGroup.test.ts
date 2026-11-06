@@ -53,10 +53,17 @@ beforeEach(async () => {
 });
 
 describe("isSavableTabUrl", () => {
-  it("rejects chrome:// and empty", () => {
-    expect(isSavableTabUrl(undefined)).toBe(false);
-    expect(isSavableTabUrl("chrome://extensions")).toBe(false);
+  it("accepts only http(s) web pages", () => {
     expect(isSavableTabUrl("https://example.com")).toBe(true);
+    expect(isSavableTabUrl("http://localhost:3000/x")).toBe(true);
+    for (const url of [
+      undefined, null, "", "not a url",
+      "chrome://extensions", "about:blank", "chrome-extension://abc/newtab.html",
+      "edge://settings", "brave://rewards", "devtools://devtools/x",
+      "view-source:https://a.com", "data:text/html,hi", "blob:https://a.com/1", "file:///Users/me/a.pdf",
+    ]) {
+      expect(isSavableTabUrl(url), String(url)).toBe(false);
+    }
   });
 });
 

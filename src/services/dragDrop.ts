@@ -4,6 +4,7 @@ import { v7 as uuidv7 } from "uuid"
 import type { SavedTab, SavedGroup, SavedSpace } from "~src/types"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import { faviconToDataUrl } from "~src/utils/favicon"
+import { isSavableTabUrl } from "~src/services/saveTabsAsGroup"
 import {
   ensureSaveTargetPath,
   isMissingLevel,
@@ -132,29 +133,24 @@ export function parseGroupDroppable(overId: string): string | null {
 }
 
 async function saveOpenBrowserTab(
-  chromeTabId: number,
+  tab: chrome.tabs.Tab,
   spaceId: string,
   projectId: string,
   categoryId: string,
   groupId: string,
   order: number,
 ) {
-  try {
-    const tab = await chrome.tabs.get(chromeTabId)
-    const favicon = await faviconToDataUrl(tab.favIconUrl || "")
-    const savedTab: SavedTab = {
-      id: uuidv7(),
-      url: tab.url || "",
-      title: tab.title || "Untitled",
-      favicon,
-      order,
-    }
-    useSavedSpacesStore
-      .getState()
-      .addSavedTab(spaceId, projectId, categoryId, groupId, savedTab)
-  } catch (_) {
-    /* Tab closed */
+  const favicon = await faviconToDataUrl(tab.favIconUrl || "")
+  const savedTab: SavedTab = {
+    id: uuidv7(),
+    url: tab.url || "",
+    title: tab.title || "Untitled",
+    favicon,
+    order,
   }
+  useSavedSpacesStore
+    .getState()
+    .addSavedTab(spaceId, projectId, categoryId, groupId, savedTab)
 }
 
 function sortedByOrder<T extends { order?: number }>(items: T[]): T[] {
@@ -190,14 +186,26 @@ function resolveOverGroupId(spaces: SavedSpace[], overId: string): string | null
  * than assumed to be in the active category.
  *
  * Returns a MissingLevel when the drop needs a project/category the user has
- * not created yet, so the UI can ask for it instead of inventing one.
+ * not created yet, so the UI can ask for it instead of inventing one, and
+ * `{ unsavable }` when an open tab isn't a savable web page (checked before
+ * anything is created, so a rejected drop leaves no empty group behind).
  */
+export type DropOutcome = MissingLevel | { unsavable: string } | void
+
 export async function applyDragEnd(args: {
   activeId: string | number
   overId: string
   wasDraggingGroup: boolean
-}): Promise<MissingLevel | void> {
+}): Promise<DropOutcome> {
   const { activeId, overId } = args
+
+  let openTab: chrome.tabs.Tab | null = null
+  if (typeof activeId === "number") {
+    openTab = await chrome.tabs.get(activeId).catch(() => null)
+    if (!openTab) return // closed while dragging
+    if (!isSavableTabUrl(openTab.url)) return { unsavable: openTab.title || openTab.url || "This page" }
+  }
+
   const store = useSavedSpacesStore.getState()
   const spaces = store.savedSpaces
   const draggingGroup =
@@ -252,7 +260,7 @@ export async function applyDragEnd(args: {
 
     const tgtGroup = findGroup(freshSpaces, target, target.groupId)
     await saveOpenBrowserTab(
-      activeId, tgtSpaceId, target.projectId, target.categoryId, target.groupId,
+      openTab!, tgtSpaceId, target.projectId, target.categoryId, target.groupId,
       tgtGroup?.tabs.length ?? 0,
     )
     return
@@ -289,19 +297,20 @@ export async function applyDragEnd(args: {
   }
 
   // --- Drop opened tab onto a group zone ---
-  if (typeof activeId === "number") {
+  if (openTab) {
     const groupId = parseGroupDroppable(overId)
     if (!groupId) return
     const loc = findGroupLocation(spaces, groupId)
     if (!loc) return
     await saveOpenBrowserTab(
-      activeId, loc.spaceId, loc.projectId, loc.categoryId, groupId,
+      openTab, loc.spaceId, loc.projectId, loc.categoryId, groupId,
       findGroup(spaces, loc, groupId)?.tabs.length ?? 0,
     )
     return
   }
 
   // --- Saved tab operations ---
+  if (typeof activeId !== "string") return
   const src = findTabLocation(spaces, activeId)
   if (!src) return
   const srcGroup = findGroup(spaces, src, src.groupId)

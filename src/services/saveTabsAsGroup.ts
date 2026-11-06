@@ -14,9 +14,21 @@ export type SaveTabsTarget = {
   categoryId: string;
 };
 
-/** Chrome internal pages are never saved into a group. */
+/**
+ * The one rule for what can be saved (TASK-19), used by every save path:
+ * only web pages. Browser/extension pages (about:, chrome:, chrome-extension:,
+ * edge:, brave:, devtools:, view-source:…), data:/blob: URLs and local file:
+ * pages are skipped: they don't reopen on another device, and FlexTab's own
+ * new tab page would just be saved into itself.
+ */
 export function isSavableTabUrl(url: string | undefined | null): boolean {
-  return !!url && !url.startsWith("chrome://");
+  if (!url) return false;
+  try {
+    const { protocol } = new URL(url);
+    return protocol === "http:" || protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 export function defaultSavedGroupName(prefix = "Saved"): string {

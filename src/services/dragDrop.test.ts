@@ -284,6 +284,28 @@ describe("applyDragEnd", () => {
     expect(ids).toEqual(["t1", "t4"])
   })
 
+  it("refuses an unsavable open tab before creating anything", async () => {
+    yjs.addCategory("s1", "p1", { id: "c3", name: "C3", order: 2, groups: [] })
+    useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces() })
+    vi.mocked(chrome.tabs.get).mockResolvedValueOnce({ id: 9, url: "chrome-extension://abc/newtab.html", title: "Flextab" } as chrome.tabs.Tab)
+    const outcome = await applyDragEnd({ activeId: 9, overId: "section-drop:s1:p1:c3", wasDraggingGroup: false })
+    expect(outcome).toEqual({ unsavable: "Flextab" })
+    expect(yjs.getSpaces()[0].projects[0].categories.find((c) => c.id === "c3")!.groups).toEqual([])
+  })
+
+  it("names an unsavable tab by title, then URL, then a generic label", async () => {
+    vi.mocked(chrome.tabs.get)
+      .mockResolvedValueOnce({ id: 11, url: "about:blank" } as chrome.tabs.Tab)
+      .mockResolvedValueOnce({ id: 12 } as chrome.tabs.Tab)
+    expect(await applyDragEnd({ activeId: 11, overId: "droppable-g1", wasDraggingGroup: false })).toEqual({ unsavable: "about:blank" })
+    expect(await applyDragEnd({ activeId: 12, overId: "droppable-g1", wasDraggingGroup: false })).toEqual({ unsavable: "This page" })
+  })
+
+  it("ignores a drop of an open tab that was closed mid-drag", async () => {
+    vi.mocked(chrome.tabs.get).mockRejectedValueOnce(new Error("No tab"))
+    expect(await applyDragEnd({ activeId: 10, overId: "droppable-g1", wasDraggingGroup: false })).toBeUndefined()
+  })
+
   it("no-ops when over target missing (caller already guards null over)", async () => {
     await applyDragEnd({
       activeId: "t1",

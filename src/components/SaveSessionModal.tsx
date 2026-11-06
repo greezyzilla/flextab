@@ -98,8 +98,12 @@ export function SaveSessionModal({
           </DialogTitle>
           <DialogDescription>
             {savableTabs.length === 0
-              ? "No savable tabs in this window (chrome:// pages are skipped)."
-              : `${savableTabs.length} tab${savableTabs.length === 1 ? "" : "s"} will be saved as a group.`}
+              ? "No savable tabs in this window. Browser, extension and local file pages are skipped."
+              : `${savableTabs.length} tab${savableTabs.length === 1 ? "" : "s"} will be saved as a group.${
+                  tabs.length > savableTabs.length
+                    ? ` ${tabs.length - savableTabs.length} browser or extension page${tabs.length - savableTabs.length === 1 ? " is" : "s are"} skipped.`
+                    : ""
+                }`}
           </DialogDescription>
         </DialogHeader>
 

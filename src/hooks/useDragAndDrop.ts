@@ -9,6 +9,7 @@ import {
   isDropTargetId,
 } from "~src/services/dragDrop"
 import { requestMissingLevel } from "~src/lib/structurePrompts"
+import { toast } from "sonner"
 
 /**
  * Thin dnd-kit adapter (FE-B9). Domain mutations live in services/dragDrop.
@@ -79,10 +80,17 @@ export function useDragAndDrop() {
       overId: over.id.toString(),
       wasDraggingGroup,
     }
-    const missing = await applyDragEnd(args)
+    const outcome = await applyDragEnd(args)
+    if (!outcome) return
+    if ("unsavable" in outcome) {
+      toast(`Can't save “${outcome.unsavable}”`, {
+        description: "Only web pages (http/https) can be saved. Browser, extension and local file pages are skipped.",
+      })
+      return
+    }
     // Dropped into a space/project with no category yet: ask the user to name
     // it, then finish the same drop instead of making them repeat it.
-    if (missing) requestMissingLevel(missing, () => { void applyDragEnd(args) })
+    requestMissingLevel(outcome, () => { void applyDragEnd(args) })
   }
 
   return {
