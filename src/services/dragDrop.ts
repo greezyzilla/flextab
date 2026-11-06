@@ -4,7 +4,12 @@ import { v7 as uuidv7 } from "uuid"
 import type { SavedTab, SavedGroup, SavedSpace } from "~src/types"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import { faviconToDataUrl } from "~src/utils/favicon"
-import { ensureSaveTargetPath } from "~src/services/resolveSaveTarget"
+import {
+  ensureSaveTargetPath,
+  isMissingLevel,
+  resolveSaveTargetIds,
+  type MissingLevel,
+} from "~src/services/resolveSaveTarget"
 
 export type TabLocation = {
   spaceId: string
@@ -83,6 +88,7 @@ export function isDropTargetId(id: string): boolean {
   return (
     id.startsWith("droppable-") ||
     id.startsWith("cat-drop:") ||
+    id.startsWith("section-drop:") ||
     id.startsWith("proj-drop:") ||
     id.startsWith("space-drop:")
   )
@@ -93,9 +99,13 @@ export type BoundaryDropTarget =
   | { kind: "project"; spaceId: string; projectId: string }
   | { kind: "space"; spaceId: string }
 
-/** Parse cross-boundary drop ids from LeftPanel / ProfilePanel. */
+/**
+ * Parse cross-boundary drop ids from LeftPanel / ProfilePanel, plus the
+ * project page's category sections (`section-drop:`), which behave like a
+ * category drop but need their own id (dnd-kit ids must be unique).
+ */
 export function parseBoundaryDrop(overId: string): BoundaryDropTarget | null {
-  const cat = overId.match(/^cat-drop:(.+):(.+):(.+)$/)
+  const cat = overId.match(/^(?:cat|section)-drop:(.+):(.+):(.+)$/)
   if (cat) {
     return {
       kind: "category",
@@ -119,16 +129,6 @@ export function parseBoundaryDrop(overId: string): BoundaryDropTarget | null {
 export function parseGroupDroppable(overId: string): string | null {
   if (!overId.startsWith("droppable-")) return null
   return overId.slice("droppable-".length)
-}
-
-/** Active space/project/category from store selection. */
-export function getActiveContext() {
-  const s = useSavedSpacesStore.getState()
-  const spaces = s.savedSpaces
-  const currentSpace = spaces.find((sp) => sp.id === s.activeSpaceId)
-  const currentProject = currentSpace?.projects.find((p) => p.id === s.activeProjectId)
-  const currentCategory = currentProject?.categories.find((c) => c.id === s.activeCategoryId)
-  return { spaces, currentSpace, currentProject, currentCategory }
 }
 
 async function saveOpenBrowserTab(
@@ -157,261 +157,203 @@ async function saveOpenBrowserTab(
   }
 }
 
+function sortedByOrder<T extends { order?: number }>(items: T[]): T[] {
+  return [...items].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+}
+
+function findGroup(spaces: SavedSpace[], loc: GroupLocation, groupId: string): SavedGroup | undefined {
+  return spaces
+    .find((s) => s.id === loc.spaceId)
+    ?.projects.find((p) => p.id === loc.projectId)
+    ?.categories.find((c) => c.id === loc.categoryId)
+    ?.groups.find((g) => g.id === groupId)
+}
+
+function sameCategory(a: GroupLocation, b: GroupLocation): boolean {
+  return a.spaceId === b.spaceId && a.projectId === b.projectId && a.categoryId === b.categoryId
+}
+
+/** The group an over-id points at: a group zone, a group card, or a tab inside one. */
+function resolveOverGroupId(spaces: SavedSpace[], overId: string): string | null {
+  const zone = parseGroupDroppable(overId)
+  if (zone) return zone
+  if (findGroupLocation(spaces, overId)) return overId
+  return findTabLocation(spaces, overId)?.groupId ?? null
+}
+
 /**
  * Apply a completed drag: reorder / cross-group / cross-boundary / save open tab.
  * Reads fresh store state; mutations go through useSavedSpacesStore.
+ *
+ * Every saved group on screen can be a target (the project page shows all of
+ * a project's categories at once), so targets are located in the tree rather
+ * than assumed to be in the active category.
+ *
+ * Returns a MissingLevel when the drop needs a project/category the user has
+ * not created yet, so the UI can ask for it instead of inventing one.
  */
 export async function applyDragEnd(args: {
   activeId: string | number
   overId: string
   wasDraggingGroup: boolean
-}): Promise<void> {
-  const { activeId, overId, wasDraggingGroup } = args
-  const { spaces, currentSpace, currentProject, currentCategory } = getActiveContext()
+}): Promise<MissingLevel | void> {
+  const { activeId, overId } = args
   const store = useSavedSpacesStore.getState()
-  const {
-    reorderGroups,
-    reorderTabsInGroup,
-    moveTabBetweenGroups,
-    moveGroupToCategory,
-    moveTabCrossBoundary,
-  } = store
+  const spaces = store.savedSpaces
+  const draggingGroup =
+    args.wasDraggingGroup || (typeof activeId === "string" && !!findGroupLocation(spaces, activeId))
 
-  // --- Cross-boundary drop targets ---
+  // --- Cross-boundary drop targets (sidebar, rail, project-page sections) ---
   const boundary = parseBoundaryDrop(overId)
   if (boundary) {
     const tgtSpaceId = boundary.spaceId
     const hintProjectId = boundary.kind === "space" ? undefined : boundary.projectId
     const hintCategoryId = boundary.kind === "category" ? boundary.categoryId : undefined
 
+    // A group only needs a category; it must not spawn an empty group there.
+    if (draggingGroup && typeof activeId === "string") {
+      const ids = resolveSaveTargetIds(spaces, {
+        spaceId: tgtSpaceId,
+        projectId: hintProjectId,
+        categoryId: hintCategoryId,
+      })
+      if (ids.spaceId !== tgtSpaceId) return
+      if (!ids.projectId) return { missing: "project", spaceId: tgtSpaceId }
+      if (!ids.categoryId) return { missing: "category", spaceId: tgtSpaceId, projectId: ids.projectId }
+      const src = findGroupLocation(spaces, activeId)
+      if (!src || sameCategory(src, ids)) return
+      store.moveGroupToCategory(
+        src.spaceId, src.projectId, src.categoryId, activeId,
+        ids.spaceId, ids.projectId, ids.categoryId,
+      )
+      return
+    }
+
     const target = ensureSaveTargetPath(tgtSpaceId, {
       projectId: hintProjectId,
       categoryId: hintCategoryId,
     })
     if (!target) return
+    if (isMissingLevel(target)) return target
 
-    // Re-read after ensure may have created nodes
-    const freshStore = useSavedSpacesStore.getState()
-    const freshSpaces = freshStore.savedSpaces
+    // Re-read: ensure may have created the receiving group.
+    const fresh = useSavedSpacesStore.getState()
+    const freshSpaces = fresh.savedSpaces
 
-    if (wasDraggingGroup && typeof activeId === "string") {
-      const src = findGroupLocation(freshSpaces, activeId)
-      if (!src || src.categoryId === target.categoryId) return
-      freshStore.moveGroupToCategory(
-        src.spaceId,
-        src.projectId,
-        src.categoryId,
-        activeId,
-        tgtSpaceId,
-        target.projectId,
-        target.categoryId,
-      )
-      return
-    }
-
-    if (typeof activeId === "string" && !wasDraggingGroup) {
+    if (typeof activeId === "string") {
       const src = findTabLocation(freshSpaces, activeId)
       if (!src || src.groupId === target.groupId) return
-      freshStore.moveTabCrossBoundary(
-        src.spaceId,
-        src.projectId,
-        src.categoryId,
-        src.groupId,
-        activeId,
-        tgtSpaceId,
-        target.projectId,
-        target.categoryId,
-        target.groupId,
+      fresh.moveTabCrossBoundary(
+        src.spaceId, src.projectId, src.categoryId, src.groupId, activeId,
+        tgtSpaceId, target.projectId, target.categoryId, target.groupId,
       )
       return
     }
 
-    if (typeof activeId === "number") {
-      const freshCategory = useSavedSpacesStore
-        .getState()
-        .savedSpaces.find((s) => s.id === tgtSpaceId)
-        ?.projects.find((p) => p.id === target.projectId)
-        ?.categories.find((c) => c.id === target.categoryId)
-      const tgtGroup = freshCategory?.groups.find((g) => g.id === target.groupId)
-      await saveOpenBrowserTab(
-        activeId,
-        tgtSpaceId,
-        target.projectId,
-        target.categoryId,
-        target.groupId,
-        tgtGroup?.tabs.length ?? 0,
+    const tgtGroup = findGroup(freshSpaces, target, target.groupId)
+    await saveOpenBrowserTab(
+      activeId, tgtSpaceId, target.projectId, target.categoryId, target.groupId,
+      tgtGroup?.tabs.length ?? 0,
+    )
+    return
+  }
+
+  // --- Group dropped on a group (or a tab inside it): reorder or re-file ---
+  if (draggingGroup && typeof activeId === "string") {
+    const overGroupId = resolveOverGroupId(spaces, overId)
+    if (!overGroupId || overGroupId === activeId) return
+    const src = findGroupLocation(spaces, activeId)
+    const tgt = findGroupLocation(spaces, overGroupId)
+    if (!src || !tgt) return
+
+    if (!sameCategory(src, tgt)) {
+      store.moveGroupToCategory(
+        src.spaceId, src.projectId, src.categoryId, activeId,
+        tgt.spaceId, tgt.projectId, tgt.categoryId,
       )
-      return
+    }
+    // Land at the position of the group it was dropped on.
+    const category = useSavedSpacesStore
+      .getState()
+      .savedSpaces.find((s) => s.id === tgt.spaceId)
+      ?.projects.find((p) => p.id === tgt.projectId)
+      ?.categories.find((c) => c.id === tgt.categoryId)
+    if (!category) return
+    const sorted = sortedByOrder(category.groups)
+    const fromIndex = sorted.findIndex((g) => g.id === activeId)
+    const toIndex = sorted.findIndex((g) => g.id === overGroupId)
+    if (fromIndex !== -1 && toIndex !== -1 && fromIndex !== toIndex) {
+      store.reorderGroups(tgt.spaceId, tgt.projectId, tgt.categoryId, fromIndex, toIndex)
     }
     return
   }
 
-  // === Drops within current category context ===
-  if (!currentCategory || !currentSpace || !currentProject) return
-
-  const spaceId = currentSpace.id
-  const projectId = currentProject.id
-  const categoryId = currentCategory.id
-
-  // --- Group reordering (within same category) ---
-  if (typeof activeId === "string") {
-    const activeGroup = currentCategory.groups.find((g) => g.id === activeId)
-    const overGroup = currentCategory.groups.find((g) => g.id === overId)
-
-    if (activeGroup && overGroup && activeId !== overId) {
-      const sortedGroups = [...currentCategory.groups].sort(
-        (a, b) => (a.order ?? 0) - (b.order ?? 0),
-      )
-      const fromIndex = sortedGroups.findIndex((g) => g.id === activeId)
-      const toIndex = sortedGroups.findIndex((g) => g.id === overId)
-      if (fromIndex !== -1 && toIndex !== -1) {
-        reorderGroups(spaceId, projectId, categoryId, fromIndex, toIndex)
-      }
-      return
-    }
-
-    // Group from another category dropped onto a group in current category
-    if (wasDraggingGroup && !activeGroup && overGroup) {
-      const src = findGroupLocation(spaces, activeId)
-      if (src) {
-        moveGroupToCategory(
-          src.spaceId,
-          src.projectId,
-          src.categoryId,
-          activeId,
-          spaceId,
-          projectId,
-          categoryId,
-        )
-      }
-      return
-    }
-  }
-
-  // --- Drop opened tab onto group droppable ---
+  // --- Drop opened tab onto a group zone ---
   if (typeof activeId === "number") {
     const groupId = parseGroupDroppable(overId)
-    if (groupId) {
-      const targetGroup = currentCategory.groups.find((g) => g.id === groupId)
-      await saveOpenBrowserTab(
-        activeId,
-        spaceId,
-        projectId,
-        categoryId,
-        groupId,
-        targetGroup ? targetGroup.tabs.length : 0,
-      )
-    }
+    if (!groupId) return
+    const loc = findGroupLocation(spaces, groupId)
+    if (!loc) return
+    await saveOpenBrowserTab(
+      activeId, loc.spaceId, loc.projectId, loc.categoryId, groupId,
+      findGroup(spaces, loc, groupId)?.tabs.length ?? 0,
+    )
     return
   }
 
   // --- Saved tab operations ---
-  if (typeof activeId !== "string") return
-
   const src = findTabLocation(spaces, activeId)
   if (!src) return
+  const srcGroup = findGroup(spaces, src, src.groupId)
+  const draggedTabRef = srcGroup?.tabs.find((t) => t.id === activeId)
+  if (!srcGroup || !draggedTabRef) return
 
-  const srcSpace = spaces.find((s) => s.id === src.spaceId)
-  const srcProject = srcSpace?.projects.find((p) => p.id === src.projectId)
-  const srcCategory = srcProject?.categories.find((c) => c.id === src.categoryId)
-  const srcGroup = srcCategory?.groups.find((g) => g.id === src.groupId)
-  const draggedTabRef = srcGroup?.tabs.find((t) => t.id === activeId) ?? null
-  if (!draggedTabRef) return
-
-  // Case 1: Drop on another saved tab (reorder or cross-group move)
   const dropGroupId = parseGroupDroppable(overId)
+
+  // Case 1: dropped on another saved tab (reorder or move next to it)
   if (!dropGroupId) {
     const tgt = findTabLocation(spaces, overId)
     if (!tgt) return
 
     if (src.groupId === tgt.groupId) {
-      const sortedTabs = [...srcGroup!.tabs].sort(
-        (a, b) => (a.order ?? 0) - (b.order ?? 0),
-      )
+      const sortedTabs = sortedByOrder(srcGroup.tabs)
       const fromIndex = sortedTabs.findIndex((tab) => tab.id === activeId)
       const toIndex = sortedTabs.findIndex((tab) => tab.id === overId)
       if (fromIndex !== -1 && toIndex !== -1) {
-        reorderTabsInGroup(
-          src.spaceId,
-          src.projectId,
-          src.categoryId,
-          src.groupId,
-          fromIndex,
-          toIndex,
-        )
+        store.reorderTabsInGroup(src.spaceId, src.projectId, src.categoryId, src.groupId, fromIndex, toIndex)
       }
-    } else if (
-      src.spaceId === tgt.spaceId &&
-      src.projectId === tgt.projectId &&
-      src.categoryId === tgt.categoryId
-    ) {
-      const targetGroup = srcCategory!.groups.find((g) => g.id === tgt.groupId)
-      if (!targetGroup) return
-      const sortedTargetTabs = [...targetGroup.tabs].sort(
-        (a, b) => (a.order ?? 0) - (b.order ?? 0),
-      )
-      const insertIndex = sortedTargetTabs.findIndex((tab) => tab.id === overId)
-      moveTabBetweenGroups(
-        src.spaceId,
-        src.projectId,
-        src.categoryId,
-        src.groupId,
-        tgt.groupId,
-        draggedTabRef.id,
-        insertIndex,
+      return
+    }
+
+    const targetGroup = findGroup(spaces, tgt, tgt.groupId)
+    if (!targetGroup) return
+    const insertIndex = sortedByOrder(targetGroup.tabs).findIndex((tab) => tab.id === overId)
+    if (sameCategory(src, tgt)) {
+      store.moveTabBetweenGroups(
+        src.spaceId, src.projectId, src.categoryId, src.groupId, tgt.groupId,
+        draggedTabRef.id, insertIndex,
       )
     } else {
-      const tgtSpace = spaces.find((s) => s.id === tgt.spaceId)
-      const tgtProject = tgtSpace?.projects.find((p) => p.id === tgt.projectId)
-      const tgtCategory = tgtProject?.categories.find((c) => c.id === tgt.categoryId)
-      const targetGroup = tgtCategory?.groups.find((g) => g.id === tgt.groupId)
-      if (!targetGroup) return
-      const sortedTargetTabs = [...targetGroup.tabs].sort(
-        (a, b) => (a.order ?? 0) - (b.order ?? 0),
-      )
-      const insertIndex = sortedTargetTabs.findIndex((tab) => tab.id === overId)
-      moveTabCrossBoundary(
-        src.spaceId,
-        src.projectId,
-        src.categoryId,
-        src.groupId,
-        draggedTabRef.id,
-        tgt.spaceId,
-        tgt.projectId,
-        tgt.categoryId,
-        tgt.groupId,
-        insertIndex,
+      store.moveTabCrossBoundary(
+        src.spaceId, src.projectId, src.categoryId, src.groupId, draggedTabRef.id,
+        tgt.spaceId, tgt.projectId, tgt.categoryId, tgt.groupId, insertIndex,
       )
     }
+    return
   }
-  // Case 2: Drop on group droppable zone (append to end)
-  else {
-    const targetGroupId = dropGroupId
-    if (src.groupId === targetGroupId) return
 
-    if (currentCategory?.groups.find((g) => g.id === targetGroupId)) {
-      if (src.categoryId === categoryId) {
-        moveTabBetweenGroups(
-          spaceId,
-          projectId,
-          categoryId,
-          src.groupId,
-          targetGroupId,
-          draggedTabRef.id,
-        )
-      } else {
-        moveTabCrossBoundary(
-          src.spaceId,
-          src.projectId,
-          src.categoryId,
-          src.groupId,
-          draggedTabRef.id,
-          spaceId,
-          projectId,
-          categoryId,
-          targetGroupId,
-        )
-      }
-    }
+  // Case 2: dropped on a group zone (append to end)
+  if (src.groupId === dropGroupId) return
+  const tgt = findGroupLocation(spaces, dropGroupId)
+  if (!tgt) return
+  if (sameCategory(src, tgt)) {
+    store.moveTabBetweenGroups(
+      src.spaceId, src.projectId, src.categoryId, src.groupId, dropGroupId, draggedTabRef.id,
+    )
+  } else {
+    store.moveTabCrossBoundary(
+      src.spaceId, src.projectId, src.categoryId, src.groupId, draggedTabRef.id,
+      tgt.spaceId, tgt.projectId, tgt.categoryId, dropGroupId,
+    )
   }
 }

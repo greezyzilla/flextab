@@ -77,7 +77,7 @@ describe("resolveSaveTargetIds (select-existing)", () => {
   });
 });
 
-describe("ensureSaveTargetPath (ensure-or-create)", () => {
+describe("ensureSaveTargetPath (never invents projects/categories)", () => {
   it("reuses existing project/category/group", () => {
     const t = ensureSaveTargetPath("s1", { projectId: "p1", categoryId: "c1" });
     expect(t).toEqual({
@@ -88,19 +88,25 @@ describe("ensureSaveTargetPath (ensure-or-create)", () => {
     });
   });
 
-  it("creates Default Project/Category/Group on empty space", () => {
-    const t = ensureSaveTargetPath("s2");
-    expect(t).not.toBeNull();
-    expect(t!.spaceId).toBe("s2");
-    expect(t!.projectId).toBeTruthy();
-    expect(t!.categoryId).toBeTruthy();
-    expect(t!.groupId).toBeTruthy();
+  it("reports a missing project on an empty space and creates nothing", () => {
+    expect(ensureSaveTargetPath("s2")).toEqual({ missing: "project", spaceId: "s2" });
+    expect(yjs.getSpaces().find((s) => s.id === "s2")!.projects).toEqual([]);
+  });
 
-    const space = yjs.getSpaces().find((s) => s.id === "s2")!;
-    expect(space.projects).toHaveLength(1);
-    expect(space.projects[0].name).toBe("Default Project");
-    expect(space.projects[0].categories[0].name).toBe("Default Category");
-    expect(space.projects[0].categories[0].groups[0].name).toBe("Default Group");
+  it("reports a missing category and creates nothing", () => {
+    yjs.addProject("s2", { id: "p9", name: "P9", order: 0, categories: [] });
+    useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces() });
+    expect(ensureSaveTargetPath("s2")).toEqual({ missing: "category", spaceId: "s2", projectId: "p9" });
+    expect(yjs.getSpaces().find((s) => s.id === "s2")!.projects[0].categories).toEqual([]);
+  });
+
+  it("creates only the receiving group when the category has none", () => {
+    const t = ensureSaveTargetPath("s1", { projectId: "p1", categoryId: "c2" });
+    expect(t).toMatchObject({ spaceId: "s1", projectId: "p1", categoryId: "c2" });
+    const c2 = yjs.getSpaces()[0].projects[0].categories.find((c) => c.id === "c2")!;
+    expect(c2.groups).toHaveLength(1);
+    expect(c2.groups[0].name).toBe("New Group");
+    expect(yjs.getSpaces()[0].projects).toHaveLength(2);
   });
 
   it("returns null for unknown space", () => {

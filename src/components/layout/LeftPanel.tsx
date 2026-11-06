@@ -12,6 +12,52 @@ import { Button, IconButton } from "~src/components/ui/button";
 import { Input } from "~src/components/ui/input"
 import { Label } from "~src/components/ui/label";
 import type { SavedProject, SavedCategory } from "~src/types";
+import { useUIStore, type CreateRequest, type ScrollMode } from "~src/store/useUIStore";
+import { ProjectIcon, CategoryIcon } from "~src/components/levelIcons";
+
+/**
+ * Inline "name it first" row: nothing is written until the user commits a
+ * name, so there are no placeholder "New Project"/"New Category" nodes.
+ * Enter commits, Escape (or leaving it empty) cancels.
+ */
+function CreateRow({ kind, onCommit, onCancel, indent }: {
+  kind: CreateRequest["kind"];
+  onCommit: (name: string) => void;
+  onCancel: () => void;
+  indent?: boolean;
+}) {
+  const [value, setValue] = useState("");
+  const done = useRef(false);
+  const finish = (commit: boolean) => {
+    if (done.current) return;
+    done.current = true;
+    const name = value.trim();
+    if (commit && name) onCommit(name); else onCancel();
+  };
+  const Icon = kind === "project" ? ProjectIcon : CategoryIcon;
+  return (
+    <div className={`flex flex-col gap-1 ${indent ? "mx-2 pl-4 pr-2" : "px-3"} py-1`}>
+      <div className="flex items-center gap-2 text-white/60">
+        <Icon className="h-3.5 w-3.5 shrink-0" />
+        <Input
+          variant="inline"
+          autoFocus
+          aria-label={kind === "project" ? "New project name" : "New category name"}
+          placeholder={kind === "project" ? "Project name" : "Category name"}
+          value={value}
+          onChange={e => setValue(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === "Enter") { e.preventDefault(); finish(true); }
+            if (e.key === "Escape") { e.preventDefault(); finish(false); }
+          }}
+          onBlur={() => finish(true)}
+          className="flex-1 text-[13px] min-w-0"
+        />
+      </div>
+      <span className="pl-5 text-[11px] text-white/50 font-sans">Enter to create · Esc to cancel</span>
+    </div>
+  );
+}
 
 const SPACE_COLORS = [
   "", "#2274F0", "#8b5cf6", "#ec4899", "#ef4444",
@@ -96,11 +142,6 @@ export function LeftPanel() {
     }
   }, [renamingId]);
 
-  const toggleProject = (projectId: string) => {
-    toggleExpandedProject(projectId);
-    setActiveProject(projectId);
-  };
-
   const startRename = (id: string, currentName: string) => {
     setRenameValue(currentName);
     setRenamingId(id);
@@ -120,19 +161,44 @@ export function LeftPanel() {
     setRenamingId(null);
   };
 
-  const handleAddProject = () => {
-    if (!currentSpace) return;
+  const { creating, startCreate, endCreate, requestScrollToCategory } = useUIStore();
+
+  const selectProject = (projectId: string) => {
+    if (activeProjectId !== projectId) setActiveProject(projectId);
+    if (!expandedProjectIds.includes(projectId)) toggleExpandedProject(projectId);
+  };
+
+  const selectCategory = (projectId: string, categoryId: string, scrollMode: ScrollMode = "top") => {
+    if (activeProjectId !== projectId) setActiveProject(projectId);
+    setActiveCategory(categoryId);
+    requestScrollToCategory(categoryId, scrollMode);
+  };
+
+  const commitProject = (spaceId: string, name: string, then?: () => void) => {
+    const space = savedSpaces.find(s => s.id === spaceId);
     const id = uuidv7();
-    addSavedProject(currentSpace.id, { id, name: "New Project", categories: [] });
+    addSavedProject(spaceId, { id, name, categories: [], order: space?.projects.length ?? 0 });
     if (!expandedProjectIds.includes(id)) toggleExpandedProject(id);
-    setTimeout(() => startRename(id, "New Project"), 50);
+    setActiveProject(id);
+    // A project is only useful with a category; ask for the first one right
+    // away (Esc skips it and leaves the project empty).
+    startCreate({ kind: "category", spaceId, projectId: id, then });
+  };
+
+  const commitCategory = (spaceId: string, projectId: string, name: string, then?: () => void) => {
+    const project = savedSpaces.find(s => s.id === spaceId)?.projects.find(p => p.id === projectId);
+    const id = uuidv7();
+    addSavedCategory(spaceId, projectId, { id, name, groups: [], order: project?.categories.length ?? 0 });
+    endCreate();
+    // Only scroll if the new section is off-screen; don't yank the page away.
+    selectCategory(projectId, id, "ifNeeded");
+    then?.();
   };
 
   const handleAddCategory = (projectId: string) => {
     if (!currentSpace) return;
-    const id = uuidv7();
-    addSavedCategory(currentSpace.id, projectId, { id, name: "New Category", groups: [] });
-    setTimeout(() => startRename(id, "New Category"), 50);
+    if (!expandedProjectIds.includes(projectId)) toggleExpandedProject(projectId);
+    startCreate({ kind: "category", spaceId: currentSpace.id, projectId });
   };
 
   const [confirmDelete, setConfirmDelete] = useState<{ kind: string; name: string; run: () => void } | null>(null);
@@ -213,40 +279,54 @@ export function LeftPanel() {
 
               return (
                 <div key={project.id} className="mb-1">
-                  {/* Project — section label style */}
+                  {/* Project — tree node: chevron toggles, name selects the project page */}
                   <DroppableProjectItem
                     spaceId={currentSpace.id}
                     projectId={project.id}
                   >
                     <ContextMenu>
                     <ContextMenuTrigger asChild>
-                    <div
-                      className="group/proj flex items-center gap-1 px-4 py-1.5 cursor-pointer"
-                      onClick={() => toggleProject(project.id)}
-                    >
-                      <svg className={`w-3 h-3 text-white/20 transition-transform shrink-0 ${isExpanded ? 'rotate-90' : ''}`}
-                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                      </svg>
+                    <div className={`group/proj flex items-center gap-1 mx-2 pl-1 pr-1 rounded-md transition-colors ${
+                      activeProjectId === project.id ? 'text-white/90' : 'text-white/70 hover:bg-white/[0.04]'
+                    }`}>
+                      <button
+                        type="button"
+                        onClick={() => toggleExpandedProject(project.id)}
+                        aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${project.name}`}
+                        aria-expanded={isExpanded}
+                        className="h-6 w-5 shrink-0 flex items-center justify-center rounded text-white/50 hover:text-white/80 outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      >
+                        <svg className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                          fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
 
                       {renamingId === project.id ? (
                         <Input variant="inline" ref={renameRef} type="text" value={renameValue}
+                          aria-label="Project name"
                           onChange={e => setRenameValue(e.target.value)} onBlur={submitRename}
                           onKeyDown={e => { if (e.key === "Enter") submitRename(); if (e.key === "Escape") setRenamingId(null); }}
-                          onClick={e => e.stopPropagation()}
-                          className="flex-1 text-xs min-w-0" />
+                          className="flex-1 text-[13px] min-w-0" />
                       ) : (
-                        <span className="flex-1 text-white/40 font-sans text-[11px] font-semibold uppercase tracking-wider truncate">
-                          {project.name}
-                        </span>
+                        <button
+                          type="button"
+                          onClick={() => selectProject(project.id)}
+                          aria-current={activeProjectId === project.id ? "page" : undefined}
+                          className="flex-1 min-w-0 flex items-center gap-2 py-1.5 text-left rounded outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        >
+                          <ProjectIcon className="h-3.5 w-3.5 shrink-0 text-white/55" />
+                          <span className="flex-1 font-sans text-[13px] font-medium truncate">{project.name}</span>
+                        </button>
                       )}
 
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <IconButton
                             variant="subtle"
+                            aria-label={`Add category to ${project.name}`}
                             onClick={e => { e.stopPropagation(); handleAddCategory(project.id); }}
-                            className="shrink-0 opacity-0 group-hover/proj:opacity-100"
+                            className="shrink-0 opacity-0 group-hover/proj:opacity-100 focus-visible:opacity-100"
                           >
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -268,7 +348,7 @@ export function LeftPanel() {
                   {isExpanded && (
                     <div className="mt-0.5">
                       {project.categories.map((category) => {
-                        const isActive = activeCategoryId === category.id;
+                        const isActive = activeProjectId === project.id && activeCategoryId === category.id;
                         return (
                           <DroppableCategoryItem
                             key={category.id}
@@ -278,34 +358,36 @@ export function LeftPanel() {
                           >
                             <ContextMenu>
                             <ContextMenuTrigger asChild>
-                            <div
-                              className={`flex items-center gap-2 mx-2 px-4 py-[7px] rounded-md cursor-pointer transition-colors ${
-                                isActive
-                                  ? 'text-white/80'
-                                  : 'text-white/45 hover:text-white/65 hover:bg-white/[0.03]'
-                              }`}
-                              style={isActive ? { backgroundColor: 'var(--accent-subtle)' } : undefined}
-                              onClick={() => {
-                                if (activeProjectId !== project.id) setActiveProject(project.id);
-                                setActiveCategory(category.id);
-                              }}
-                            >
-                              <span className={`w-1 h-1 rounded-full shrink-0 ${isActive ? '' : 'bg-white/20'}`} style={isActive ? { backgroundColor: 'var(--accent)' } : undefined} />
-                              {renamingId === category.id ? (
+                            {renamingId === category.id ? (
+                              <div className="flex items-center gap-2 mx-2 pl-7 pr-2 py-[5px]">
+                                <CategoryIcon className="h-3 w-3 shrink-0 text-white/50" />
                                 <Input variant="inline" ref={renameRef} type="text" value={renameValue}
+                                  aria-label="Category name"
                                   onChange={e => setRenameValue(e.target.value)} onBlur={submitRename}
                                   onKeyDown={e => { if (e.key === "Enter") submitRename(); if (e.key === "Escape") setRenamingId(null); }}
-                                  onClick={e => e.stopPropagation()}
                                   className="flex-1 text-xs min-w-0" />
-                              ) : (
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                aria-current={isActive ? "location" : undefined}
+                                className={`w-[calc(100%-16px)] flex items-center gap-2 mx-2 pl-7 pr-2 py-[6px] rounded-md text-left transition-colors outline-none focus-visible:ring-1 focus-visible:ring-ring ${
+                                  isActive
+                                    ? 'text-white/90'
+                                    : 'text-white/60 hover:text-white/80 hover:bg-white/[0.04]'
+                                }`}
+                                style={isActive ? { backgroundColor: 'var(--accent-subtle)' } : undefined}
+                                onClick={() => selectCategory(project.id, category.id)}
+                              >
+                                <CategoryIcon className="h-3 w-3 shrink-0" />
                                 <span className="flex-1 font-sans text-[13px] truncate">{category.name}</span>
-                              )}
-                              {category.groups.length > 0 && (
-                                <span className={`text-[10px] font-sans shrink-0 ${isActive ? 'text-white/30' : 'text-white/15'}`}>
-                                  {category.groups.length}
-                                </span>
-                              )}
-                            </div>
+                                {category.groups.length > 0 && (
+                                  <span className={`text-[10px] font-sans shrink-0 ${isActive ? 'text-white/60' : 'text-white/45'}`}>
+                                    {category.groups.length}
+                                  </span>
+                                )}
+                              </button>
+                            )}
                             </ContextMenuTrigger>
                             <ContextMenuContent>
                               <ContextMenuItem onSelect={() => startRename(category.id, category.name)}>Rename</ContextMenuItem>
@@ -316,10 +398,19 @@ export function LeftPanel() {
                         );
                       })}
 
-                      {project.categories.length === 0 && (
+                      {creating?.kind === "category" && creating.projectId === project.id ? (
+                        <CreateRow
+                          key={`create-category-${project.id}`}
+                          kind="category"
+                          indent
+                          onCommit={name => commitCategory(currentSpace.id, project.id, name, creating.then)}
+                          onCancel={endCreate}
+                        />
+                      ) : project.categories.length === 0 && (
                         <button
+                          type="button"
                           onClick={() => handleAddCategory(project.id)}
-                          className="mx-2 w-[calc(100%-16px)] text-white/20 hover:text-white/40 text-xs font-sans py-2 px-4 rounded-md hover:bg-white/[0.03] transition-colors text-left"
+                          className="mx-2 w-[calc(100%-16px)] text-white/55 hover:text-white/80 text-xs font-sans py-1.5 pl-7 pr-2 rounded-md hover:bg-white/[0.04] transition-colors text-left"
                         >
                           + Add category
                         </button>
@@ -330,14 +421,25 @@ export function LeftPanel() {
               );
             })}
 
-            <div className="px-4 mt-3">
-              <button
-                onClick={handleAddProject}
-                className="w-full text-white/20 hover:text-white/40 text-[11px] font-sans font-semibold uppercase tracking-wider py-2 px-1 transition-colors text-left"
-              >
-                + New Project
-              </button>
-            </div>
+            {creating?.kind === "project" && creating.spaceId === currentSpace.id ? (
+              <CreateRow
+                key={`create-project-${currentSpace.id}`}
+                kind="project"
+                onCommit={name => commitProject(currentSpace.id, name, creating.then)}
+                onCancel={endCreate}
+              />
+            ) : (
+              <div className="px-3 mt-2">
+                <button
+                  type="button"
+                  onClick={() => startCreate({ kind: "project", spaceId: currentSpace.id })}
+                  className="w-full flex items-center gap-2 text-white/55 hover:text-white/80 hover:bg-white/[0.04] rounded-md text-[13px] font-sans py-1.5 px-2 transition-colors text-left"
+                >
+                  <ProjectIcon className="h-3.5 w-3.5" />
+                  New project
+                </button>
+              </div>
+            )}
           </>
         ) : (
           <div className="text-white/40 font-sans text-xs p-8 text-center">Select a space</div>

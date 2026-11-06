@@ -8,6 +8,7 @@ import {
   findSavedDragItem,
   isDropTargetId,
 } from "~src/services/dragDrop"
+import { requestMissingLevel } from "~src/lib/structurePrompts"
 
 /**
  * Thin dnd-kit adapter (FE-B9). Domain mutations live in services/dragDrop.
@@ -73,11 +74,15 @@ export function useDragAndDrop() {
 
     if (!over) return
 
-    await applyDragEnd({
+    const args = {
       activeId: active.id as string | number,
       overId: over.id.toString(),
       wasDraggingGroup,
-    })
+    }
+    const missing = await applyDragEnd(args)
+    // Dropped into a space/project with no category yet: ask the user to name
+    // it, then finish the same drop instead of making them repeat it.
+    if (missing) requestMissingLevel(missing, () => { void applyDragEnd(args) })
   }
 
   return {

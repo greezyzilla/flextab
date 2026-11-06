@@ -13,6 +13,8 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "~src/components/ui/tool
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from "~src/components/ui/context-menu";
 import { Input } from "~src/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "~src/components/ui/avatar";
+import { useUIStore } from "~src/store/useUIStore";
+import { spaceAvatarColors } from "~src/components/levelIcons";
 
 export function ProfilePanel() {
   const { savedSpaces, activeSpaceId, setActiveSpace, addSavedSpace, updateSavedSpace, removeSavedSpace, reorderSpaces } = useSavedSpacesStore();
@@ -38,14 +40,30 @@ export function ProfilePanel() {
     }
   }, [renaming]);
 
+  // Name-first, like projects/categories: nothing is created until the user
+  // commits a name; then the sidebar asks for the space's first project.
+  const [creatingSpace, setCreatingSpace] = useState(false);
+  const [newSpaceName, setNewSpaceName] = useState("");
+  const newSpaceDone = useRef(false);
+  const startCreate = useUIStore(s => s.startCreate);
+
   const handleAddSpace = () => {
+    newSpaceDone.current = false;
+    setNewSpaceName("");
+    setCreatingSpace(true);
+  };
+
+  const finishCreateSpace = (commit: boolean) => {
+    if (newSpaceDone.current) return;
+    newSpaceDone.current = true;
+    setCreatingSpace(false);
+    const name = newSpaceName.trim();
+    if (!commit || !name) return;
     const id = uuidv7();
-    addSavedSpace({
-      id,
-      name: `Space ${savedSpaces.length + 1}`,
-      projects: [],
-    });
+    addSavedSpace({ id, name, projects: [], order: savedSpaces.length });
     setActiveSpace(id);
+    navigate("/");
+    startCreate({ kind: "project", spaceId: id });
   };
 
 
@@ -166,13 +184,11 @@ export function ProfilePanel() {
                   }));
                 }}
                 onClick={() => { setActiveSpace(space.id); navigate("/"); }}
-                className={`w-10 h-10 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-black-900 cursor-pointer transition-all flex items-center justify-center text-xs font-medium font-sans ${
-                  !inSettings && activeSpaceId === space.id ? "ring-2 ring-white/50 text-white/90" : "hover:brightness-125 text-white/70"
+                className={`w-10 h-10 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-black-900 cursor-pointer transition-all flex items-center justify-center text-xs font-normal font-sans ${
+                  !inSettings && activeSpaceId === space.id ? "ring-2 ring-white/50" : "hover:brightness-125"
                 }`}
                 style={{
-                  backgroundColor: space.color
-                    ? `${space.color}${!inSettings && activeSpaceId === space.id ? '40' : '25'}`
-                    : !inSettings && activeSpaceId === space.id ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)',
+                  ...spaceAvatarColors(space, !inSettings && activeSpaceId === space.id),
                   ...(space.color && !inSettings && activeSpaceId === space.id ? { borderColor: space.color, ringColor: space.color } : {}),
                 }}
                 title={space.name}
@@ -206,6 +222,30 @@ export function ProfilePanel() {
             </div>
           </DroppableSpace>
         ))}
+        {creatingSpace && (
+          <div className="relative">
+            <div aria-hidden className="w-10 h-10 rounded-full border border-dashed border-white/50 flex items-center justify-center text-xs font-medium text-white/70">
+              {(newSpaceName.trim().slice(0, 2) || "··").toUpperCase()}
+            </div>
+            <div className="absolute left-14 top-0 z-50 bg-black-800 border border-black-700 rounded-lg shadow-xl p-2 w-48 flex flex-col gap-1">
+              <Input
+                variant="inline"
+                autoFocus
+                aria-label="New space name"
+                placeholder="Space name"
+                value={newSpaceName}
+                onChange={e => setNewSpaceName(e.target.value)}
+                onBlur={() => finishCreateSpace(true)}
+                onKeyDown={e => {
+                  if (e.key === "Enter") { e.preventDefault(); finishCreateSpace(true); }
+                  if (e.key === "Escape") { e.preventDefault(); finishCreateSpace(false); }
+                }}
+                className="w-full text-xs"
+              />
+              <span className="text-[11px] text-white/50 font-sans">Enter to create · Esc to cancel</span>
+            </div>
+          </div>
+        )}
         <Tooltip>
           <TooltipTrigger asChild>
             <button

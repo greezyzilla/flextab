@@ -26,4 +26,22 @@ describe('useUIStore', () => {
     expect(useUIStore.getState().leftDrawerOpen).toBe(false);
     expect(useUIStore.getState().rightDrawerOpen).toBe(false);
   });
+
+  it('tracks one inline create request at a time and opens the navigation drawer', () => {
+    const then = () => {};
+    useUIStore.getState().startCreate({ kind: 'category', spaceId: 's', projectId: 'p', then });
+    expect(useUIStore.getState().creating).toEqual({ kind: 'category', spaceId: 's', projectId: 'p', then });
+    expect(useUIStore.getState().leftDrawerOpen).toBe(true);
+    useUIStore.getState().endCreate();
+    expect(useUIStore.getState().creating).toBeNull();
+  });
+
+  it('re-requests a scroll to the same category with a new nonce', () => {
+    useUIStore.getState().requestScrollToCategory('c1');
+    const first = useUIStore.getState().scrollTarget!;
+    useUIStore.getState().requestScrollToCategory('c1');
+    expect(useUIStore.getState().scrollTarget).toEqual({ categoryId: 'c1', nonce: first.nonce + 1, mode: 'top' });
+    useUIStore.getState().requestScrollToCategory('c2', 'ifNeeded');
+    expect(useUIStore.getState().scrollTarget).toMatchObject({ categoryId: 'c2', mode: 'ifNeeded' });
+  });
 });

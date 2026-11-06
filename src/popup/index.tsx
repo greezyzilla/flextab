@@ -10,6 +10,9 @@ import {
   saveTabsAsGroup,
   defaultSavedGroupName,
 } from "~src/services/saveTabsAsGroup"
+import type { SaveTabsTarget } from "~src/services/saveTabsAsGroup"
+import { resolveSaveTargetIds } from "~src/services/resolveSaveTarget"
+import { DestinationPicker, describeTarget } from "~src/components/DestinationPicker"
 
 function IndexPopup() {
   const { hydrated, error: hydrationError } = useHydrated();
@@ -37,10 +40,16 @@ function IndexPopup() {
     };
   }, []);
 
-  const activeSpace = savedSpaces.find(s => s.id === activeSpaceId);
-  const activeProject = activeSpace?.projects.find(p => p.id === activeProjectId);
-  const activeCategory = activeProject?.categories.find(c => c.id === activeCategoryId);
-  const hasActiveCategory = !!activeCategory;
+  // Default: the category last used in the new tab page (same as before), so
+  // a plain save is still one click. Changing it is local to this popup.
+  const [chosen, setChosen] = useState<SaveTabsTarget | null>(null);
+  const [picking, setPicking] = useState(false);
+  const fallback = resolveSaveTargetIds(savedSpaces, {
+    spaceId: activeSpaceId, projectId: activeProjectId, categoryId: activeCategoryId,
+  });
+  const candidate = chosen ?? fallback;
+  const destination = describeTarget(savedSpaces, candidate);
+  const hasActiveCategory = !!destination;
 
   const flashSaved = () => {
     if (!mounted.current) return;
@@ -48,13 +57,7 @@ function IndexPopup() {
     savedTimer.current = setTimeout(() => setSaved(false), 2000);
   };
 
-  const target = hasActiveCategory
-    ? {
-        spaceId: activeSpace!.id,
-        projectId: activeProject!.id,
-        categoryId: activeCategory!.id,
-      }
-    : null;
+  const target = hasActiveCategory ? candidate : null;
 
   const save = async (mode: "current" | "all" | "retry") => {
     if (savingRef.current || (mode !== "retry" && (!target || pendingSave.current))) return;
@@ -74,7 +77,7 @@ function IndexPopup() {
           tabs: mode === "current" ? tabs.slice(0, 1) : tabs,
         });
         if (!result) {
-          setError("No tabs were saved. Check the selected category and try a regular web page.");
+          setError("No tabs were saved. Check the destination and try a regular web page.");
           return;
         }
         pendingSave.current = true;
@@ -130,11 +133,26 @@ function IndexPopup() {
         {saved && <span role="status" className="text-green-400 text-xs">Saved locally!</span>}
       </div>
 
-      {hasActiveCategory && (
-        <div className="text-white/40 text-xs mb-3 truncate">
-          {activeSpace?.name} / {activeProject?.name} / {activeCategory?.name}
-        </div>
-      )}
+      <div className="mb-3 flex flex-col gap-2">
+        <button
+          type="button"
+          onClick={() => setPicking(p => !p)}
+          aria-expanded={picking}
+          className="w-full flex items-center justify-between gap-2 rounded-md border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-left text-xs hover:bg-white/[0.06] outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        >
+          <span className="min-w-0 truncate text-white/75">
+            <span className="text-white/50">Save to </span>{destination ?? "Choose a destination"}
+          </span>
+          <span aria-hidden className="text-white/50">{picking ? "▴" : "▾"}</span>
+        </button>
+        {picking && (
+          <DestinationPicker
+            value={candidate}
+            onChange={(t) => { setChosen(t); setPicking(false); }}
+            maxHeightClass="max-h-52"
+          />
+        )}
+      </div>
 
       <div className="flex flex-col gap-2 mb-3">
         <Button variant="secondary" onClick={() => void save("current")} disabled={!hasActiveCategory || saving || pendingSave.current} className="w-full">
@@ -161,11 +179,6 @@ function IndexPopup() {
         Open FlexTab Dashboard
       </Button>
 
-      {!hasActiveCategory && (
-        <p className="text-white/30 text-xs mt-2 text-center">
-          Open FlexTab and select a category to enable saving.
-        </p>
-      )}
     </div>
   )
 }

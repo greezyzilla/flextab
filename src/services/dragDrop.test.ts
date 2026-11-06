@@ -127,6 +127,7 @@ describe("drop ID protocol", () => {
   it("isDropTargetId recognizes zone prefixes", () => {
     expect(isDropTargetId("droppable-g1")).toBe(true)
     expect(isDropTargetId("cat-drop:s:p:c")).toBe(true)
+    expect(isDropTargetId("section-drop:s:p:c")).toBe(true)
     expect(isDropTargetId("proj-drop:s:p")).toBe(true)
     expect(isDropTargetId("space-drop:s")).toBe(true)
     expect(isDropTargetId("t1")).toBe(false)
@@ -147,6 +148,12 @@ describe("drop ID protocol", () => {
     expect(parseBoundaryDrop("space-drop:s2")).toEqual({
       kind: "space",
       spaceId: "s2",
+    })
+    expect(parseBoundaryDrop("section-drop:s1:p1:c2")).toEqual({
+      kind: "category",
+      spaceId: "s1",
+      projectId: "p1",
+      categoryId: "c2",
     })
     expect(parseBoundaryDrop("droppable-g1")).toBeNull()
   })
@@ -199,18 +206,82 @@ describe("applyDragEnd", () => {
     expect(c2.groups.find((g) => g.id === "g1")).toBeTruthy()
   })
 
-  it("moves tab cross-boundary and ensures path on empty space", async () => {
-    await applyDragEnd({
+  it("reports a missing project for a drop on an empty space and moves nothing", async () => {
+    const result = await applyDragEnd({
       activeId: "t1",
       overId: "space-drop:s2",
       wasDraggingGroup: false,
     })
-    const s2 = yjs.getSpaces().find((s) => s.id === "s2")!
-    expect(s2.projects.length).toBeGreaterThan(0)
-    const allTabs = s2.projects.flatMap((p) =>
-      p.categories.flatMap((c) => c.groups.flatMap((g) => g.tabs)),
-    )
-    expect(allTabs.map((t) => t.id)).toContain("t1")
+    expect(result).toEqual({ missing: "project", spaceId: "s2" })
+    expect(yjs.getSpaces().find((s) => s.id === "s2")!.projects).toEqual([])
+    const g1 = yjs.getSpaces()[0].projects[0].categories[0].groups.find((g) => g.id === "g1")!
+    expect(g1.tabs.map((t) => t.id)).toContain("t1")
+  })
+
+  it("re-files a group into another category section by dropping it on a group there", async () => {
+    await applyDragEnd({ activeId: "g1", overId: "g3", wasDraggingGroup: true })
+    const c2 = yjs.getSpaces()[0].projects[0].categories.find((c) => c.id === "c2")!
+    const ids = [...c2.groups].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).map((g) => g.id)
+    expect(ids).toEqual(["g1", "g3"])
+    const c1 = yjs.getSpaces()[0].projects[0].categories.find((c) => c.id === "c1")!
+    expect(c1.groups.map((g) => g.id)).toEqual(["g2"])
+  })
+
+  it("moves a group into an empty section without creating an extra group", async () => {
+    yjs.addCategory("s1", "p1", { id: "c3", name: "C3", order: 2, groups: [] })
+    useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces() })
+    await applyDragEnd({ activeId: "g2", overId: "section-drop:s1:p1:c3", wasDraggingGroup: true })
+    const c3 = yjs.getSpaces()[0].projects[0].categories.find((c) => c.id === "c3")!
+    expect(c3.groups.map((g) => g.id)).toEqual(["g2"])
+  })
+
+  it("moves a tab to a group in another category of the project page", async () => {
+    await applyDragEnd({ activeId: "t3", overId: "droppable-g3", wasDraggingGroup: false })
+    const c2 = yjs.getSpaces()[0].projects[0].categories.find((c) => c.id === "c2")!
+    expect(c2.groups[0].tabs.map((t) => t.id)).toEqual(["t4", "t3"])
+  })
+
+  it("works on groups outside the active category", async () => {
+    useSavedSpacesStore.setState({ activeCategoryId: "c1" })
+    await applyDragEnd({ activeId: "t4", overId: "droppable-g1", wasDraggingGroup: false })
+    const g1 = yjs.getSpaces()[0].projects[0].categories[0].groups.find((g) => g.id === "g1")!
+    expect(g1.tabs.map((t) => t.id)).toContain("t4")
+  })
+
+  it("saves an opened browser tab into a group of another category", async () => {
+    vi.mocked(chrome.tabs.get).mockResolvedValueOnce({ id: 7, url: "https://e.com", title: "E", favIconUrl: "" } as chrome.tabs.Tab)
+    await applyDragEnd({ activeId: 7, overId: "droppable-g3", wasDraggingGroup: false })
+    const g3 = yjs.getSpaces()[0].projects[0].categories.find((c) => c.id === "c2")!.groups[0]
+    expect(g3.tabs.map((t) => t.url)).toEqual(["https://d.com", "https://e.com"])
+  })
+
+  it("saves an opened tab into an empty section by creating its first group", async () => {
+    yjs.addCategory("s1", "p1", { id: "c3", name: "C3", order: 2, groups: [] })
+    useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces() })
+    vi.mocked(chrome.tabs.get).mockResolvedValueOnce({ id: 8, url: "https://f.com", title: "F", favIconUrl: "" } as chrome.tabs.Tab)
+    await applyDragEnd({ activeId: 8, overId: "section-drop:s1:p1:c3", wasDraggingGroup: false })
+    const c3 = yjs.getSpaces()[0].projects[0].categories.find((c) => c.id === "c3")!
+    expect(c3.groups).toHaveLength(1)
+    expect(c3.groups[0].name).toBe("New Group")
+    expect(c3.groups[0].tabs.map((t) => t.url)).toEqual(["https://f.com"])
+  })
+
+  it("reports a missing category for a drop on a project without categories", async () => {
+    yjs.addProject("s1", { id: "p2", name: "P2", order: 1, categories: [] })
+    useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces() })
+    expect(await applyDragEnd({ activeId: "t1", overId: "proj-drop:s1:p2", wasDraggingGroup: false }))
+      .toEqual({ missing: "category", spaceId: "s1", projectId: "p2" })
+    expect(await applyDragEnd({ activeId: "g1", overId: "proj-drop:s1:p2", wasDraggingGroup: true }))
+      .toEqual({ missing: "category", spaceId: "s1", projectId: "p2" })
+    expect(await applyDragEnd({ activeId: "g1", overId: "space-drop:s2", wasDraggingGroup: true }))
+      .toEqual({ missing: "project", spaceId: "s2" })
+  })
+
+  it("moves a saved tab next to a tab in another category", async () => {
+    await applyDragEnd({ activeId: "t1", overId: "t4", wasDraggingGroup: false })
+    const g3 = yjs.getSpaces()[0].projects[0].categories.find((c) => c.id === "c2")!.groups[0]
+    const ids = [...g3.tabs].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).map((t) => t.id)
+    expect(ids).toEqual(["t1", "t4"])
   })
 
   it("no-ops when over target missing (caller already guards null over)", async () => {

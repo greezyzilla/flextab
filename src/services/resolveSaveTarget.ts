@@ -1,7 +1,7 @@
-// Destination cascade for space → project → category (+ optional group).
-// Two explicit policies (FE-B6):
-//   select-existing  — pick first existing node; never create (Save Session modal)
-//   ensure-or-create — create Default Project/Category/Group when missing (DnD drop)
+// Destination cascade for space → project → category (+ group).
+// One policy everywhere (TASK-1): projects and categories are only created by
+// the user naming them (inline in the sidebar or the destination picker);
+// resolution never invents them. A missing level is surfaced, not papered over.
 import { v7 as uuidv7 } from "uuid";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import type { SavedSpace } from "~src/types";
@@ -13,9 +13,8 @@ export type PreferredTarget = {
   categoryId?: string | null;
 };
 
-const DEFAULT_PROJECT = "Default Project";
-const DEFAULT_CATEGORY = "Default Category";
-const DEFAULT_GROUP = "Default Group";
+/** Same name the "+ New group" button uses, so auto and manual groups match. */
+export const NEW_GROUP_NAME = "New Group";
 
 /**
  * Pure cascade: walk preferred ids when valid, else first child at each level.
@@ -44,69 +43,64 @@ export function resolveSaveTargetIds(
   };
 }
 
+/** A ready drop/save destination, down to the group that receives tabs. */
+export type SaveTargetPath = {
+  spaceId: string;
+  projectId: string;
+  categoryId: string;
+  groupId: string;
+};
+
 /**
- * Ensure space has at least one project, category, and group for drop targets.
- * Creates "Default *" nodes when missing. Returns null if spaceId is unknown.
+ * Why a destination could not be resolved: the user still has to name the
+ * project or category. Structure is never invented on their behalf.
+ */
+export type MissingLevel =
+  | { missing: "project"; spaceId: string }
+  | { missing: "category"; spaceId: string; projectId: string };
+
+export function isMissingLevel(r: SaveTargetPath | MissingLevel): r is MissingLevel {
+  return "missing" in r;
+}
+
+/**
+ * Resolve a drop target down to a group. Walks the preferred project/category
+ * (else the first existing one). Projects and categories are named structure,
+ * so they are never auto-created: a missing level is reported back for the UI
+ * to ask the user. Only the group (the tab container) is created on demand,
+ * because dropping tabs into a category is itself the request for one.
+ * Returns null if spaceId is unknown.
  */
 export function ensureSaveTargetPath(
   spaceId: string,
   preferred: { projectId?: string; categoryId?: string } = {},
-): { spaceId: string; projectId: string; categoryId: string; groupId: string } | null {
+): SaveTargetPath | MissingLevel | null {
   const store = useSavedSpacesStore.getState();
   const space = store.savedSpaces.find((s) => s.id === spaceId);
   if (!space) return null;
 
-  // Project
-  let projectId = preferred.projectId;
-  if (!projectId || !space.projects.some((p) => p.id === projectId)) {
-    if (space.projects.length > 0) {
-      projectId = space.projects[0].id;
-    } else {
-      projectId = uuidv7();
-      store.addSavedProject(spaceId, {
-        id: projectId,
-        name: DEFAULT_PROJECT,
-        categories: [],
-      });
-    }
-  }
+  const project =
+    (preferred.projectId && space.projects.find((p) => p.id === preferred.projectId)) ||
+    space.projects[0];
+  if (!project) return { missing: "project", spaceId };
 
-  // Category (re-read after possible create)
-  let project = useSavedSpacesStore
-    .getState()
-    .savedSpaces.find((s) => s.id === spaceId)
-    ?.projects.find((p) => p.id === projectId);
-  let categoryId = preferred.categoryId;
-  if (!categoryId || !project?.categories.some((c) => c.id === categoryId)) {
-    if (project && project.categories.length > 0) {
-      categoryId = project.categories[0].id;
-    } else {
-      categoryId = uuidv7();
-      store.addSavedCategory(spaceId, projectId, {
-        id: categoryId,
-        name: DEFAULT_CATEGORY,
-        groups: [],
-      });
-    }
-  }
+  const category =
+    (preferred.categoryId && project.categories.find((c) => c.id === preferred.categoryId)) ||
+    project.categories[0];
+  if (!category) return { missing: "category", spaceId, projectId: project.id };
 
-  // Group
-  const category = useSavedSpacesStore
-    .getState()
-    .savedSpaces.find((s) => s.id === spaceId)
-    ?.projects.find((p) => p.id === projectId)
-    ?.categories.find((c) => c.id === categoryId);
   let groupId: string;
-  if (category && category.groups.length > 0) {
-    groupId = category.groups[0].id;
+  if (category.groups.length > 0) {
+    groupId = [...category.groups].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))[0].id;
   } else {
     groupId = uuidv7();
-    store.addSavedGroup(spaceId, projectId, categoryId, {
+    store.addSavedGroup(spaceId, project.id, category.id, {
       id: groupId,
-      name: DEFAULT_GROUP,
+      name: NEW_GROUP_NAME,
       tabs: [],
+      order: 0,
     });
   }
 
-  return { spaceId, projectId, categoryId, groupId };
+  return { spaceId, projectId: project.id, categoryId: category.id, groupId };
 }

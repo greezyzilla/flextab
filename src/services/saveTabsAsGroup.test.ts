@@ -9,6 +9,9 @@ import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import * as yjs from "~src/lib/yjsDoc";
 import type { SavedSpace } from "~src/types";
 
+const { rememberDestination } = vi.hoisted(() => ({ rememberDestination: vi.fn(async () => {}) }));
+vi.mock("~src/lib/recentDestinations", () => ({ rememberDestination }));
+
 vi.mock("~src/utils/favicon", () => ({
   faviconToDataUrl: vi.fn(async (u: string) => u || "data:empty"),
 }));
@@ -106,6 +109,7 @@ describe("saveTabsAsGroup", () => {
       "https://a.com",
       "https://b.com",
     ]);
+    expect(rememberDestination).toHaveBeenCalledWith({ spaceId: "s1", projectId: "p1", categoryId: "c1" });
   });
 
   it("returns null when nothing savable or category missing", async () => {
@@ -124,5 +128,6 @@ describe("saveTabsAsGroup", () => {
         tabs: [{ url: "https://a.com" }],
       }),
     ).toBeNull();
+    expect(rememberDestination).not.toHaveBeenCalled();
   });
 });

@@ -24,7 +24,7 @@ beforeEach(() => {
 
 function GroupHarness() {
   const groups = useActiveGroups();
-  return <>{groups.map(group => <TabGroup key={group.id} group={group} />)}</>;
+  return <>{groups.map(group => <TabGroup key={group.id} group={group} location={{ spaceId: "personal", projectId: "project", categoryId: "category" }} />)}</>;
 }
 function setup(content: React.ReactNode, onDragStart = vi.fn()) {
   render(<TooltipProvider><DndContext onDragStart={onDragStart}>{content}</DndContext></TooltipProvider>);
@@ -86,7 +86,13 @@ describe("primary keyboard actions", () => {
     const user = setup(<ProfilePanel />);
     await tabTo(user, screen.getByRole("button", { name: "Add space" }));
     await user.keyboard("{Enter}");
+    // Name-first: nothing is created until a name is committed.
+    expect(useSavedSpacesStore.getState().savedSpaces).toHaveLength(2);
+    const nameInput = screen.getByRole("textbox", { name: "New space name" });
+    expect(nameInput).toHaveFocus();
+    await user.keyboard("Side project{Enter}");
     expect(useSavedSpacesStore.getState().savedSpaces).toHaveLength(3);
+    expect(useSavedSpacesStore.getState().savedSpaces.map(s => s.name)).toContain("Side project");
     const settings = screen.getByRole("button", { name: "Settings" });
     await tabTo(user, settings);
     await user.keyboard(" ");

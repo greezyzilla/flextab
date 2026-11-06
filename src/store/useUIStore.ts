@@ -1,6 +1,15 @@
 import { create } from "zustand"
 
 /**
+ * An inline "name the new node" row the sidebar should show. `then` resumes
+ * the action that needed the node (e.g. a drop onto an empty space) once a
+ * category exists; a project request carries it into its category step.
+ */
+export type CreateRequest =
+  | { kind: "project"; spaceId: string; then?: () => void }
+  | { kind: "category"; spaceId: string; projectId: string; then?: () => void }
+
+/**
  * Ephemeral UI state for the responsive shell. Intentionally NOT persisted —
  * drawer open/close should reset on reload and is purely presentational.
  */
@@ -12,7 +21,28 @@ interface UIState {
   toggleLeftDrawer: () => void
   toggleRightDrawer: () => void
   closeDrawers: () => void
+
+  /**
+   * Structure is created by naming it first: the sidebar renders an inline
+   * input for this request and only writes a node once the user commits a
+   * name (no placeholder "New Project" / "Default Category" nodes).
+   */
+  creating: CreateRequest | null
+  startCreate: (request: CreateRequest) => void
+  endCreate: () => void
+
+  /**
+   * A category section the project page should scroll to. The nonce makes
+   * repeated clicks on the same category scroll again. "top" = navigation
+   * (bring the section to the top); "ifNeeded" = only scroll when the section
+   * header is off-screen (e.g. right after creating it), so the page doesn't
+   * jump away from what the user was looking at.
+   */
+  scrollTarget: { categoryId: string; nonce: number; mode: ScrollMode } | null
+  requestScrollToCategory: (categoryId: string, mode?: ScrollMode) => void
 }
+
+export type ScrollMode = "top" | "ifNeeded"
 
 export const useUIStore = create<UIState>((set) => ({
   leftDrawerOpen: false,
@@ -22,4 +52,13 @@ export const useUIStore = create<UIState>((set) => ({
   toggleLeftDrawer: () => set((s) => ({ leftDrawerOpen: !s.leftDrawerOpen })),
   toggleRightDrawer: () => set((s) => ({ rightDrawerOpen: !s.rightDrawerOpen })),
   closeDrawers: () => set({ leftDrawerOpen: false, rightDrawerOpen: false }),
+
+  creating: null,
+  // Creating happens in the sidebar, so on narrow viewports open its drawer.
+  startCreate: (creating) => set({ creating, leftDrawerOpen: true }),
+  endCreate: () => set({ creating: null }),
+
+  scrollTarget: null,
+  requestScrollToCategory: (categoryId, mode = "top") =>
+    set((s) => ({ scrollTarget: { categoryId, nonce: (s.scrollTarget?.nonce ?? 0) + 1, mode } })),
 }))

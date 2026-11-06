@@ -1,0 +1,262 @@
+import { useEffect, useId, useMemo, useRef, useState } from "react"
+import { v7 as uuidv7 } from "uuid"
+import { Check } from "lucide-react"
+import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
+import type { SavedSpace } from "~src/types"
+import type { SaveTabsTarget } from "~src/services/saveTabsAsGroup"
+import { Input } from "~src/components/ui/input"
+import { CategoryIcon, ProjectIcon, SpaceAvatar } from "~src/components/levelIcons"
+import { loadRecentDestinations } from "~src/lib/recentDestinations"
+
+/**
+ * One destination picker for every save/move surface. It mirrors the sidebar
+ * tree (same order, same level icons) so the structure reads the same
+ * everywhere, and the destination is a single choice instead of three
+ * dependent dropdowns. A category is the destination; missing structure is
+ * created right here by naming it — never invented.
+ */
+export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60" }: {
+  value: SaveTabsTarget
+  onChange: (target: SaveTabsTarget) => void
+  maxHeightClass?: string
+}) {
+  const savedSpaces = useSavedSpacesStore((s) => s.savedSpaces)
+  const activeSpaceId = useSavedSpacesStore((s) => s.activeSpaceId)
+  const [query, setQuery] = useState("")
+  const [creating, setCreating] = useState<
+    | { kind: "project"; spaceId: string }
+    | { kind: "category"; spaceId: string; projectId: string }
+    | null
+  >(null)
+  const groupName = useId()
+
+  const q = query.trim().toLowerCase()
+  const visible = useMemo(() => filterTree(savedSpaces, q), [savedSpaces, q])
+
+  // Where this device saved last: one click for the common "same place again"
+  // case. Entries whose category no longer exists are skipped.
+  const [recentTargets, setRecentTargets] = useState<SaveTabsTarget[]>([])
+  useEffect(() => {
+    let active = true
+    void loadRecentDestinations().then((r) => { if (active) setRecentTargets(r) })
+    return () => { active = false }
+  }, [])
+  const recent = recentTargets
+    .map((t) => ({ target: t, parts: resolveParts(savedSpaces, t) }))
+    .filter((r): r is { target: SaveTabsTarget; parts: NonNullable<ReturnType<typeof resolveParts>> } => !!r.parts)
+
+  const createProject = (spaceId: string, name: string) => {
+    const store = useSavedSpacesStore.getState()
+    const space = store.savedSpaces.find((s) => s.id === spaceId)
+    const id = uuidv7()
+    store.addSavedProject(spaceId, { id, name, categories: [], order: space?.projects.length ?? 0 })
+    // A project alone can't receive tabs: go straight on to its first category.
+    setCreating({ kind: "category", spaceId, projectId: id })
+  }
+
+  const createCategory = (spaceId: string, projectId: string, name: string) => {
+    const store = useSavedSpacesStore.getState()
+    const project = store.savedSpaces.find((s) => s.id === spaceId)?.projects.find((p) => p.id === projectId)
+    const id = uuidv7()
+    store.addSavedCategory(spaceId, projectId, { id, name, groups: [], order: project?.categories.length ?? 0 })
+    setCreating(null)
+    onChange({ spaceId, projectId, categoryId: id })
+  }
+
+  return (
+    <div className="flex flex-col gap-2 min-w-0">
+      <Input
+        type="search"
+        aria-label="Find a destination"
+        placeholder="Find a space, project or category…"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        className="w-full"
+      />
+      {!q && recent.length > 0 && (
+        <div className="flex flex-col gap-1">
+          <span className="text-[11px] font-medium text-white/55">Recent</span>
+          <div className="flex flex-wrap gap-1.5">
+            {recent.map(({ target, parts }) => {
+              const selected =
+                value.spaceId === target.spaceId &&
+                value.projectId === target.projectId &&
+                value.categoryId === target.categoryId
+              return (
+                <button
+                  key={`${target.spaceId}:${target.projectId}:${target.categoryId}`}
+                  type="button"
+                  aria-pressed={selected}
+                  title={`${parts.space.name} › ${parts.project.name} › ${parts.category.name}`}
+                  onClick={() => onChange(target)}
+                  className={`flex max-w-full items-center gap-1.5 rounded-md border px-2 py-1 text-xs outline-none transition-colors focus-visible:ring-1 focus-visible:ring-ring ${
+                    selected ? "border-[var(--accent)] text-white/95" : "border-white/10 text-white/75 hover:bg-white/[0.05]"
+                  }`}
+                  style={selected ? { backgroundColor: "var(--accent-subtle)" } : undefined}
+                >
+                  <CategoryIcon className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{parts.category.name}</span>
+                  <span className="truncate text-white/50">{parts.project.name}</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+      <div
+        role="radiogroup"
+        aria-label="Destination"
+        className={`${maxHeightClass} overflow-y-auto rounded-md border border-white/10 bg-white/[0.02] py-1`}
+      >
+        {visible.length === 0 && (
+          <div className="px-3 py-3 text-xs text-white/55">No match.</div>
+        )}
+        {visible.map((space) => (
+          <div key={space.id} className="py-0.5">
+            <div className="flex items-center gap-2 px-3 py-1 text-[11px] font-medium text-white/60">
+              <SpaceAvatar space={space} size={14} active={space.id === activeSpaceId} />
+              <span className="truncate">{space.name}</span>
+            </div>
+            {space.projects.map((project) => (
+              <div key={project.id}>
+                <div className="flex items-center gap-2 pl-5 pr-3 py-1 text-xs text-white/75">
+                  <ProjectIcon className="h-3.5 w-3.5 shrink-0 text-white/55" />
+                  <span className="truncate font-medium">{project.name}</span>
+                </div>
+                {project.categories.map((category) => {
+                  const selected =
+                    value.spaceId === space.id &&
+                    value.projectId === project.id &&
+                    value.categoryId === category.id
+                  return (
+                    <label
+                      key={category.id}
+                      className={`flex cursor-pointer items-center gap-2 pl-10 pr-3 py-1.5 text-xs transition-colors focus-within:ring-1 focus-within:ring-inset focus-within:ring-ring ${
+                        selected ? "text-white/95" : "text-white/70 hover:bg-white/[0.05]"
+                      }`}
+                      style={selected ? { backgroundColor: "var(--accent-subtle)" } : undefined}
+                    >
+                      <input
+                        type="radio"
+                        name={groupName}
+                        className="sr-only"
+                        checked={selected}
+                        onChange={() => onChange({ spaceId: space.id, projectId: project.id, categoryId: category.id })}
+                      />
+                      <CategoryIcon className="h-3 w-3 shrink-0" />
+                      <span className="flex-1 truncate">{category.name}</span>
+                      {selected && <Check className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--accent)" }} aria-hidden />}
+                    </label>
+                  )
+                })}
+                {!q && (
+                  creating?.kind === "category" && creating.projectId === project.id ? (
+                    <NameRow
+                      indentClass="pl-10"
+                      label="New category name"
+                      placeholder="Category name"
+                      onCommit={(name) => createCategory(space.id, project.id, name)}
+                      onCancel={() => setCreating(null)}
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setCreating({ kind: "category", spaceId: space.id, projectId: project.id })}
+                      className="w-full pl-10 pr-3 py-1 text-left text-[11px] text-white/55 hover:text-white/80"
+                    >
+                      + New category in {project.name}
+                    </button>
+                  )
+                )}
+              </div>
+            ))}
+            {!q && (
+              creating?.kind === "project" && creating.spaceId === space.id ? (
+                <NameRow
+                  indentClass="pl-5"
+                  label="New project name"
+                  placeholder="Project name"
+                  onCommit={(name) => createProject(space.id, name)}
+                  onCancel={() => setCreating(null)}
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setCreating({ kind: "project", spaceId: space.id })}
+                  className="w-full pl-5 pr-3 py-1 text-left text-[11px] text-white/55 hover:text-white/80"
+                >
+                  + New project in {space.name}
+                </button>
+              )
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/** Inline name entry; Enter commits, Escape or an empty name cancels. */
+function NameRow({ indentClass, label, placeholder, onCommit, onCancel }: {
+  indentClass: string; label: string; placeholder: string
+  onCommit: (name: string) => void; onCancel: () => void
+}) {
+  const [value, setValue] = useState("")
+  const done = useRef(false)
+  const finish = (commit: boolean) => {
+    if (done.current) return
+    done.current = true
+    const name = value.trim()
+    if (commit && name) onCommit(name); else onCancel()
+  }
+  return (
+    <div className={`${indentClass} pr-3 py-1`}>
+      <Input
+        variant="inline"
+        autoFocus
+        aria-label={label}
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => {
+          // Keep Enter/Escape from submitting or closing the surrounding dialog.
+          if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); finish(true) }
+          if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); finish(false) }
+        }}
+        onBlur={() => finish(true)}
+        className="w-full text-xs"
+      />
+    </div>
+  )
+}
+
+/** Keep the tree shape; drop branches with no match. Space/project name matches keep their children. */
+function filterTree(spaces: SavedSpace[], q: string): SavedSpace[] {
+  if (!q) return spaces
+  const hit = (s: string) => s.toLowerCase().includes(q)
+  const out: SavedSpace[] = []
+  for (const space of spaces) {
+    if (hit(space.name)) { out.push(space); continue }
+    const projects = []
+    for (const project of space.projects) {
+      if (hit(project.name)) { projects.push(project); continue }
+      const categories = project.categories.filter((c) => hit(c.name))
+      if (categories.length) projects.push({ ...project, categories })
+    }
+    if (projects.length) out.push({ ...space, projects })
+  }
+  return out
+}
+
+function resolveParts(spaces: SavedSpace[], t: SaveTabsTarget) {
+  const space = spaces.find((s) => s.id === t.spaceId)
+  const project = space?.projects.find((p) => p.id === t.projectId)
+  const category = project?.categories.find((c) => c.id === t.categoryId)
+  return space && project && category ? { space, project, category } : null
+}
+
+/** "Space › Project › Category" for a target, or null when incomplete. */
+export function describeTarget(spaces: SavedSpace[], t: SaveTabsTarget): string | null {
+  const parts = resolveParts(spaces, t)
+  return parts ? `${parts.space.name} › ${parts.project.name} › ${parts.category.name}` : null
+}

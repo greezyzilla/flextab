@@ -5,16 +5,18 @@ import { DragHandleIcon } from "./icons/DragHandleIcon";
 import { FaviconImg } from "./FaviconImg";
 import { CSS } from "@dnd-kit/utilities";
 import type { SavedGroup, SavedTab } from "~src/types";
-import { useSavedSpacesStore, useActiveSpace, useActiveProject, useActiveCategory } from "~src/store/useSavedSpacesStore";
+import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
+import type { GroupLocation } from "~src/services/dragDrop";
 import { showUndoToast } from "./ui/sonner";
 import { ConfirmDialog } from "./ui/confirm-dialog";
 import { Tooltip, TooltipTrigger, TooltipContent } from "./ui/tooltip";
 import { IconButton } from "./ui/button";
 import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
+import { GroupIcon } from "./levelIcons";
 import type { GroupLayout } from "~src/store/useSettingsStore";
 
-function SavedTabItem({ tab, groupId, isDuplicate }: { tab: SavedTab; groupId: string; isDuplicate?: boolean }) {
+function SavedTabItem({ tab, groupId, location, isDuplicate }: { tab: SavedTab; groupId: string; location: GroupLocation; isDuplicate?: boolean }) {
   const {
     attributes,
     listeners,
@@ -31,9 +33,7 @@ function SavedTabItem({ tab, groupId, isDuplicate }: { tab: SavedTab; groupId: s
   };
 
   const { removeSavedTab, addSavedTab } = useSavedSpacesStore();
-  const activeSpace = useActiveSpace();
-  const activeProject = useActiveProject();
-  const activeCategory = useActiveCategory();
+  const { spaceId, projectId, categoryId } = location;
 
   const onClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
     // Preserve native modified-click/link actions; plain click and Enter retain
@@ -45,10 +45,9 @@ function SavedTabItem({ tab, groupId, isDuplicate }: { tab: SavedTab; groupId: s
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!activeSpace || !activeProject || !activeCategory) return;
-    removeSavedTab(activeSpace.id, activeProject.id, activeCategory.id, groupId, tab);
+    removeSavedTab(spaceId, projectId, categoryId, groupId, tab);
     showUndoToast(`Removed "${tab.title}"`, () => {
-      addSavedTab(activeSpace.id, activeProject.id, activeCategory.id, groupId, tab);
+      addSavedTab(spaceId, projectId, categoryId, groupId, tab);
     });
   };
 
@@ -106,18 +105,19 @@ function SavedTabItem({ tab, groupId, isDuplicate }: { tab: SavedTab; groupId: s
 
 export interface TabGroupProps {
   group: SavedGroup;
+  /** Where the group lives. The project page shows groups from every
+   * category, so the active category is not necessarily this group's. */
+  location: GroupLocation;
   layout?: GroupLayout;
   gridColumns?: number;
 }
 
-export function TabGroup({ group, layout = 'list', gridColumns = 2 }: TabGroupProps) {
+export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: TabGroupProps) {
   const { setNodeRef: setDroppableRef, isOver } = useDroppable({
     id: `droppable-${group.id}`,
   });
   const { removeSavedGroup, addSavedGroup, updateSavedGroup } = useSavedSpacesStore();
-  const activeSpace = useActiveSpace();
-  const activeProject = useActiveProject();
-  const activeCategory = useActiveCategory();
+  const { spaceId, projectId, categoryId } = location;
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(group.name);
   const renameRef = useRef<HTMLInputElement>(null);
@@ -157,17 +157,15 @@ export function TabGroup({ group, layout = 'list', gridColumns = 2 }: TabGroupPr
   };
 
   const handleDeleteGroup = () => {
-    if (!activeSpace || !activeProject || !activeCategory) return;
-    removeSavedGroup(activeSpace.id, activeProject.id, activeCategory.id, group);
+    removeSavedGroup(spaceId, projectId, categoryId, group);
     showUndoToast(`Deleted group "${group.name}"`, () => {
-      addSavedGroup(activeSpace.id, activeProject.id, activeCategory.id, group);
+      addSavedGroup(spaceId, projectId, categoryId, group);
     });
   };
 
   const handleRenameSubmit = () => {
-    if (!activeSpace || !activeProject || !activeCategory) return;
     if (renameValue.trim() && renameValue.trim() !== group.name) {
-      updateSavedGroup(activeSpace.id, activeProject.id, activeCategory.id, { ...group, name: renameValue.trim() });
+      updateSavedGroup(spaceId, projectId, categoryId, { ...group, name: renameValue.trim() });
     }
     setIsRenaming(false);
   };
@@ -191,6 +189,7 @@ export function TabGroup({ group, layout = 'list', gridColumns = 2 }: TabGroupPr
           />
         ) : (
           <div className="flex items-center gap-2.5 min-w-0">
+            <GroupIcon className="h-3.5 w-3.5 shrink-0 text-white/55" />
             <h3 className="min-w-0 text-white/60 font-sans text-sm">
               <button
                 ref={renameButtonRef}
@@ -252,7 +251,7 @@ export function TabGroup({ group, layout = 'list', gridColumns = 2 }: TabGroupPr
               }}
             >
               {sortedTabs.map((tab) => (
-                <SavedTabItem key={tab.id} tab={tab} groupId={group.id} isDuplicate={duplicateUrls.has(tab.url?.replace(/\/$/, '') || '')} />
+                <SavedTabItem key={tab.id} tab={tab} groupId={group.id} location={location} isDuplicate={duplicateUrls.has(tab.url?.replace(/\/$/, '') || '')} />
               ))}
             </div>
           </SortableContext>
