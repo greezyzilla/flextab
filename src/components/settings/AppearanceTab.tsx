@@ -128,7 +128,7 @@ export function AppearanceTab() {
         </SettingRow>
 
         {groupLayout === 'grid' && (
-          <SettingRow label="Grid columns" description="Number of columns in grid view.">
+          <SettingRow label="Grid columns" description="Maximum columns in grid view. Narrow windows show fewer so titles stay readable.">
             {(controlProps) => (
               <ToggleGroup<string>
                 {...controlProps}

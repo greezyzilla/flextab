@@ -67,7 +67,7 @@ describe("appearance control accessibility", () => {
     }
     await user.click(within(screen.getByRole("radiogroup", { name: "Group layout" })).getByRole("radio", { name: "Grid" }));
     const columns = screen.getByRole("radiogroup", { name: "Grid columns" });
-    expect(columns).toHaveAccessibleDescription("Number of columns in grid view.");
+    expect(columns).toHaveAccessibleDescription("Maximum columns in grid view. Narrow windows show fewer so titles stay readable.");
     await user.click(within(columns).getByRole("radio", { name: "3" }));
     expect(useSettingsStore.getState().gridColumns).toBe(3);
   });

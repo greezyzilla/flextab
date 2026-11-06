@@ -113,6 +113,8 @@ function SavedTabItem({ tab, groupId, location, isDuplicate, unsorted }: { tab: 
 /** Side padding of a group block: the same 1.5rem (px-6) as the category
  * header, so headers and cards share one left edge at every density. */
 export const GROUP_INLINE = '1.5rem';
+/** Narrowest grid cell: favicon + a title of ~30 characters. */
+export const GRID_MIN_CELL = '15rem';
 
 /**
  * The one empty-state row for a drop target (an empty group or an empty
@@ -299,10 +301,12 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: 
               style={{
                 gap: 'var(--density-gap-group)',
                 // Fluid grid: render up to `gridColumns` columns, but collapse to
-                // fewer when the container gets too narrow to keep cells >= 150px.
+                // fewer when the container gets too narrow to keep cells >=
+                // GRID_MIN_CELL, wide enough for a readable title (TASK-25; at
+                // 150px a 4-column grid cut titles after ~12 characters).
                 ...(layout === 'grid'
                   ? {
-                      gridTemplateColumns: `repeat(auto-fill, minmax(max(150px, calc((100% - ${gridColumns - 1} * var(--density-gap-group)) / ${gridColumns})), 1fr))`,
+                      gridTemplateColumns: `repeat(auto-fill, minmax(max(${GRID_MIN_CELL}, calc((100% - ${gridColumns - 1} * var(--density-gap-group)) / ${gridColumns})), 1fr))`,
                     }
                   : {}),
               }}
