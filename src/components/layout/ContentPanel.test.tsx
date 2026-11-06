@@ -105,9 +105,10 @@ describe("empty states create in place", () => {
     ] }] }])
     useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces(), activeSpaceId: "s", activeProjectId: "p", activeCategoryId: "c", expandedProjectIds: ["p"] })
     const user = setup()
-    expect(screen.getByText("0 groups")).toBeInTheDocument()
-    await user.click(screen.getByRole("button", { name: "+ New group" }))
-    expect(screen.queryByText("Empty — drag tabs or groups here.")).not.toBeInTheDocument()
+    expect(screen.getByText("No groups yet. Drag tabs here.")).toBeInTheDocument()
+    expect(screen.queryByText("0 groups")).not.toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "New group in Research" }))
+    expect(screen.queryByText("No groups yet. Drag tabs here.")).not.toBeInTheDocument()
     await user.keyboard("Ideas")
     // Focus moves elsewhere in the page (window still focused) → the name commits.
     const hasFocus = vi.spyOn(document, "hasFocus").mockReturnValue(true)

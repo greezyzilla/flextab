@@ -1,7 +1,7 @@
 import { useActiveCategory, useActiveSpace, useActiveProject, useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { commitOnBlur } from "~src/lib/inlineEdit";
 import type { SavedCategory, SavedGroup, SavedProject, SavedSpace } from "~src/types";
-import { GROUP_INLINE, TabGroup } from "../TabGroup";
+import { EmptyDropRow, GROUP_INLINE, TabGroup } from "../TabGroup";
 import { Tooltip, TooltipTrigger, TooltipContent } from "~src/components/ui/tooltip";
 import { Button } from "~src/components/ui/button";
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
@@ -177,20 +177,13 @@ function NewGroupRow({ categoryName, onCommit, onCancel }: {
 }
 
 /** Drop zone for a category that has no groups yet (tabs or whole groups). */
-function EmptySectionDrop({ location, onNewGroup }: { location: GroupLocation; onNewGroup: () => void }) {
+function EmptySectionDrop({ location }: { location: GroupLocation }) {
   const { setNodeRef, isOver } = useDroppable({
     id: `section-drop:${location.spaceId}:${location.projectId}:${location.categoryId}`,
   });
   return (
-    <div
-      ref={setNodeRef}
-      className={`flex items-center justify-between gap-3 px-4 py-2 rounded-lg border border-dashed transition-colors ${isOver ? '' : 'border-white/[0.12]'}`}
-      style={isOver ? { borderColor: 'var(--accent)', backgroundColor: 'var(--accent-subtle)' } : undefined}
-    >
-      <span className={`font-sans text-xs ${isOver ? '' : 'text-white/55'}`} style={isOver ? { color: 'var(--accent)' } : undefined}>
-        {isOver ? 'Drop here' : 'Empty — drag tabs or groups here.'}
-      </span>
-      <Button variant="ghost" size="sm" onClick={onNewGroup} className={isOver ? 'invisible' : ''}>+ New group</Button>
+    <div ref={setNodeRef}>
+      <EmptyDropRow isOver={isOver} label="No groups yet. Drag tabs here." />
     </div>
   );
 }
@@ -220,7 +213,8 @@ function CategorySection({ space, project, category, layout, gridColumns, isCurr
   };
   const unsortedCount = unsorted?.tabs.length ?? 0;
   const counts = [
-    ...(groups.length > 0 || !unsorted ? [`${groups.length} group${groups.length !== 1 ? 's' : ''}`] : []),
+    // An empty category shows no "0 groups": its empty row already says so.
+    ...(groups.length > 0 ? [`${groups.length} group${groups.length !== 1 ? 's' : ''}`] : []),
     ...(unsorted ? [`${unsortedCount} unsorted`] : []),
   ].join(' · ');
 
@@ -248,13 +242,10 @@ function CategorySection({ space, project, category, layout, gridColumns, isCurr
         <h3 id={`section-${category.id}`} className={`flex items-center gap-2 min-w-0 font-sans text-base ${isCurrent ? 'text-white/95' : 'text-white/80'}`}>
           <CategoryIcon className="h-4 w-4 shrink-0" />
           <span className="truncate font-semibold">{category.name}</span>
-          <span className="text-white/45 text-xs font-normal shrink-0">
-            {counts}
-          </span>
+          {counts && <span className="text-white/45 text-xs font-normal shrink-0">{counts}</span>}
         </h3>
-        {(groups.length > 0 || unsorted) && (
-          <Button variant="ghost" size="sm" onClick={newGroup} aria-label={`New group in ${category.name}`}>+ New group</Button>
-        )}
+        {/* Always here, empty or not: one place to create a group. */}
+        <Button variant="ghost" size="sm" onClick={newGroup} aria-label={`New group in ${category.name}`}>+ New group</Button>
       </div>
       {unsorted && <TabGroup group={unsorted} location={location} layout={layout} gridColumns={gridColumns} />}
       {naming && <NewGroupRow categoryName={category.name} onCommit={createGroup} onCancel={endNamingGroup} />}
@@ -266,7 +257,7 @@ function CategorySection({ space, project, category, layout, gridColumns, isCurr
         </SortableContext>
       ) : !unsorted && !naming && (
         <div className="px-6" style={{ paddingTop: 'var(--density-p-section)' }}>
-          <EmptySectionDrop location={location} onNewGroup={newGroup} />
+          <EmptySectionDrop location={location} />
         </div>
       )}
       {/* Section end space (2G) as content, not padding: sticky stays within
@@ -382,13 +373,13 @@ export function ContentPanel() {
 
   let body: React.ReactNode;
   if (!activeSpace) {
-    body = <LevelEmptyState icon={<SpaceAvatar size={24} />} title="Pick a space" body="Spaces are separate worlds for your tabs — e.g. Work and Personal. Pick one on the left." />;
+    body = <LevelEmptyState icon={<SpaceAvatar size={24} />} title="Pick a space" body="Spaces keep your tabs apart, like Work and Personal. Pick one on the left." />;
   } else if (!activeProject) {
     body = (
       <LevelEmptyState
         icon={<ProjectIcon className="h-6 w-6" />}
         title={`${activeSpace.name} has no projects yet`}
-        body="A project is one thing you work on — a client, a course, a trip. Each project gets its own page."
+        body="A project is one thing you work on, like a client, a course or a trip. Each project gets its own page."
         action={
           <InlineCreate
             label="New project"
@@ -409,7 +400,7 @@ export function ContentPanel() {
       <LevelEmptyState
         icon={<CategoryIcon className="h-6 w-6" />}
         title={`${activeProject.name} has no categories yet`}
-        body="Categories split a project into parts — e.g. Research, Design, Admin. Groups of saved tabs live inside a category."
+        body="Categories split a project into parts, like Research, Design and Admin. Groups of saved tabs live inside a category."
         action={
           <InlineCreate
             key={activeProject.id}
@@ -428,11 +419,6 @@ export function ContentPanel() {
   } else {
     body = (
       <div ref={scrollRef} onScroll={handleScroll} className="relative flex-1 overflow-y-auto content-panel-scroll">
-        {!projectHasGroups && (
-          <p className="px-6 pt-4 pb-1 text-white/55 font-sans text-xs leading-relaxed max-w-md">
-            Save tabs by dragging them from Opened Tabs, saving a whole window there, or using “Save all tabs” above.
-          </p>
-        )}
         {categories.map((category, i) => (
           <CategorySection
             key={category.id}

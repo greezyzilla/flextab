@@ -114,6 +114,28 @@ function SavedTabItem({ tab, groupId, location, isDuplicate, unsorted }: { tab: 
  * header, so headers and cards share one left edge at every density. */
 export const GROUP_INLINE = '1.5rem';
 
+/**
+ * The one empty-state row for a drop target (an empty group or an empty
+ * category): a thin dashed row with one line of text, no buttons. Creating
+ * things stays in the headers, so the row never competes with them.
+ */
+export function EmptyDropRow({ isOver, label }: { isOver: boolean; label: string }) {
+  return (
+    // As tall as one saved-tab row at every density, so an empty slot keeps
+    // the same rhythm as a filled one and is a comfortable drop target.
+    <div
+      className={`flex items-center font-sans text-xs rounded-lg border border-dashed transition-colors ${isOver ? 'border-transparent' : 'border-white/[0.12] text-white/55'}`}
+      style={{
+        minHeight: 'calc(var(--density-py-tab) * 2 + 2rem)',
+        paddingInline: 'var(--density-px-tab)',
+        ...(isOver ? { color: 'var(--accent)', backgroundColor: 'var(--accent-subtle)' } : {}),
+      }}
+    >
+      {isOver ? 'Drop here' : label}
+    </div>
+  );
+}
+
 export interface TabGroupProps {
   group: SavedGroup;
   /** Where the group lives. The project page shows groups from every
@@ -291,13 +313,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: 
             </div>
           </SortableContext>
         ) : (
-          // Same one-line dashed drop row as an empty category (one empty pattern).
-          <div
-            className={`px-3 py-2 font-sans text-xs rounded-lg border border-dashed transition-colors ${isOver ? 'border-transparent' : 'border-white/[0.12] text-white/55'}`}
-            style={isOver ? { color: 'var(--accent)' } : undefined}
-          >
-            {isOver ? 'Drop here' : 'Empty — drag tabs here.'}
-          </div>
+          <EmptyDropRow isOver={false} label="No tabs yet. Drag tabs here." />
         )}
     </div>
 
