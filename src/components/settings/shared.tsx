@@ -4,7 +4,7 @@ import { ToggleGroup as ShadcnToggleGroup, ToggleGroupItem } from "~src/componen
 
 /** Small uppercase section heading used to group settings within a tab. */
 export function GroupHeading({ children }: { children: ReactNode }) {
-  return <div className="text-white/35 text-[11px] font-medium font-sans uppercase tracking-wider">{children}</div>;
+  return <div className="text-fg-subtle text-[11px] font-medium font-sans uppercase tracking-wider">{children}</div>;
 }
 export function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -43,9 +43,9 @@ export function UsageBar({ label, used, cap, format, tone = 'quota', hint }: {
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-baseline justify-between">
-        <span className="text-white/60 text-xs font-sans">{label}</span>
-        <span className="text-white/40 text-xs font-sans tabular-nums">
-          {fmt(used)} {unlimited ? <span className="text-white/25">/ ∞</span> : <span className="text-white/25">/ {fmt(cap)}</span>}
+        <span className="text-fg-muted text-xs font-sans">{label}</span>
+        <span className="text-fg-subtle text-xs font-sans tabular-nums">
+          {fmt(used)} {unlimited ? <span className="text-fg-subtle">/ ∞</span> : <span className="text-fg-subtle">/ {fmt(cap)}</span>}
         </span>
       </div>
       {!unlimited ? (
@@ -58,7 +58,7 @@ export function UsageBar({ label, used, cap, format, tone = 'quota', hint }: {
       ) : (
         <Progress value={0} className="h-1.5" />
       )}
-      {hint && <span className="text-white/25 text-[11px] font-sans">{hint}</span>}
+      {hint && <span className="text-fg-subtle text-[11px] font-sans">{hint}</span>}
     </div>
   );
 }
@@ -98,8 +98,8 @@ export function SettingRow({ label, description, children }: {
   return (
     <div className="flex flex-col gap-2.5">
       <div>
-        <div id={controlProps['aria-labelledby']} className="text-white/80 font-sans text-sm font-medium">{label}</div>
-        <div id={controlProps['aria-describedby']} className="text-white/35 font-sans text-xs mt-0.5 leading-relaxed">{description}</div>
+        <div id={controlProps['aria-labelledby']} className="text-fg font-sans text-sm font-medium">{label}</div>
+        <div id={controlProps['aria-describedby']} className="text-fg-subtle font-sans text-xs mt-0.5 leading-relaxed">{description}</div>
       </div>
       {typeof children === 'function' ? children(controlProps) : children}
     </div>

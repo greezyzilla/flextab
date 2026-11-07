@@ -44,7 +44,7 @@ function SortableGroup({ group, location, layout, gridColumns }: {
       <div className="absolute left-1 z-10 opacity-0 group-hover/sortable:opacity-30 hover:!opacity-80 focus-visible:!opacity-100 focus-visible:ring-1 focus-visible:ring-ring outline-none rounded transition-opacity cursor-grab active:cursor-grabbing"
         style={{ top: 'calc(var(--density-p-section) + var(--density-p-group) + 5px)' }} {...attributes} {...listeners}
         aria-label={`Reorder ${group.name}`}>
-        <DragHandleIcon className="w-4 h-4 text-white/50" />
+        <DragHandleIcon className="w-4 h-4 text-fg-subtle" />
       </div>
       <TabGroup group={group} location={location} layout={layout} gridColumns={gridColumns} />
     </div>
@@ -73,12 +73,12 @@ function LevelEmptyState({ icon, title, body, action }: {
   return (
     <div className="flex-1 flex items-center justify-center p-12">
       <div className="flex flex-col items-center gap-5 max-w-sm text-center">
-        <div className="w-14 h-14 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center text-white/50">
+        <div className="w-14 h-14 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center text-fg-subtle">
           {icon}
         </div>
         <div className="flex flex-col gap-2">
-          <h3 className="text-white/80 font-sans text-sm font-medium">{title}</h3>
-          <p className="text-white/55 font-sans text-xs leading-relaxed">{body}</p>
+          <h3 className="text-fg font-sans text-sm font-medium">{title}</h3>
+          <p className="text-fg-subtle font-sans text-xs leading-relaxed">{body}</p>
         </div>
         {action}
       </div>
@@ -129,7 +129,7 @@ function InlineCreate({ label, placeholder, inputLabel, startEditing = false, on
           <Button variant="default" size="sm" onClick={() => setEditing(true)}>{label}…</Button>
         )}
       </div>
-      <span className={`text-[11px] text-white/50 font-sans ${editing ? "" : "invisible"}`}>Enter to create · Esc to cancel</span>
+      <span className={`text-[11px] text-fg-subtle font-sans ${editing ? "" : "invisible"}`}>Enter to create · Esc to cancel</span>
     </div>
   );
 }
@@ -156,7 +156,7 @@ function NewGroupRow({ categoryName, onCommit, onCancel }: {
     <div style={{ paddingTop: 'var(--density-p-section)', paddingInline: GROUP_INLINE }}>
     <div className="flex flex-col gap-1 rounded-xl border border-white/[0.08] bg-white/[0.015]" style={{ padding: 'var(--density-p-group)' }}>
       <div className="flex items-center gap-2.5" style={{ paddingInline: 'var(--density-px-tab)' }}>
-        <span className="w-5 flex justify-center shrink-0"><GroupIcon className="h-3.5 w-3.5 text-white/55" /></span>
+        <span className="w-5 flex justify-center shrink-0"><GroupIcon className="h-3.5 w-3.5 text-fg-subtle" /></span>
         <Input
           variant="inline"
           autoFocus
@@ -171,7 +171,7 @@ function NewGroupRow({ categoryName, onCommit, onCancel }: {
           onBlur={commitOnBlur(() => finish(true))}
         />
       </div>
-      <span className="text-[11px] text-white/50 font-sans" style={{ paddingLeft: 'calc(var(--density-px-tab) + 1.25rem + 0.625rem)' }}>Enter to create · Esc to cancel</span>
+      <span className="text-[11px] text-fg-subtle font-sans" style={{ paddingLeft: 'calc(var(--density-px-tab) + 1.25rem + 0.625rem)' }}>Enter to create · Esc to cancel</span>
     </div>
     </div>
   );
@@ -240,10 +240,10 @@ function CategorySection({ space, project, category, layout, gridColumns, isCurr
       // line coincide (one line, never a double line).
       className={`${isFirst ? '' : '-mt-px border-t border-white/[0.12]'} ${isLast ? 'min-h-full' : ''}`}>
       <div className="sticky top-0 z-20 bg-black-900 h-12 px-6 flex items-center justify-between gap-3 border-b border-white/[0.12]">
-        <h3 id={`section-${category.id}`} className={`flex items-center gap-2 min-w-0 font-sans text-base ${isCurrent ? 'text-white/95' : 'text-white/80'}`}>
+        <h3 id={`section-${category.id}`} className={`flex items-center gap-2 min-w-0 font-sans text-base ${isCurrent ? 'text-fg' : 'text-fg'}`}>
           <CategoryIcon className="h-4 w-4 shrink-0" />
           <span className="truncate font-semibold">{category.name}</span>
-          {counts && <span className="text-white/45 text-xs font-normal shrink-0">{counts}</span>}
+          {counts && <span className="text-fg-subtle text-xs font-normal shrink-0">{counts}</span>}
         </h3>
         {/* Always here, empty or not: one place to create a group. */}
         <Button variant="ghost" size="sm" onClick={newGroup} aria-label={`New group in ${category.name}`}>+ New group</Button>
@@ -273,10 +273,10 @@ function Breadcrumb({ space, project, category, onProject, onCategory }: {
   space?: SavedSpace; project?: SavedProject; category?: SavedCategory;
   onProject: () => void; onCategory: () => void;
 }) {
-  const sep = <span aria-hidden className="text-white/35">›</span>;
+  const sep = <span aria-hidden className="text-fg-subtle">›</span>;
   return (
     <nav aria-label="Location" className="flex items-center gap-1.5 min-w-0 font-sans text-sm">
-      <span className="flex items-center gap-1.5 min-w-0 text-white/60">
+      <span className="flex items-center gap-1.5 min-w-0 text-fg-muted">
         <SpaceAvatar space={space} />
         <span className="truncate max-w-[10rem]">{space?.name ?? 'No space'}</span>
       </span>
@@ -284,7 +284,7 @@ function Breadcrumb({ space, project, category, onProject, onCategory }: {
         <>
           {sep}
           <button type="button" onClick={onProject}
-            className="flex items-center gap-1.5 min-w-0 rounded px-1 -mx-1 text-white/80 hover:text-white outline-none focus-visible:ring-1 focus-visible:ring-ring">
+            className="flex items-center gap-1.5 min-w-0 rounded px-1 -mx-1 text-fg hover:text-white outline-none focus-visible:ring-1 focus-visible:ring-ring">
             <ProjectIcon className="h-3.5 w-3.5 shrink-0" />
             <span className="truncate max-w-[14rem] font-medium">{project.name}</span>
           </button>
@@ -294,7 +294,7 @@ function Breadcrumb({ space, project, category, onProject, onCategory }: {
         <>
           {sep}
           <button type="button" onClick={onCategory} aria-current="location"
-            className="flex items-center gap-1.5 min-w-0 rounded px-1 -mx-1 text-white/60 hover:text-white/90 outline-none focus-visible:ring-1 focus-visible:ring-ring">
+            className="flex items-center gap-1.5 min-w-0 rounded px-1 -mx-1 text-fg-muted hover:text-fg outline-none focus-visible:ring-1 focus-visible:ring-ring">
             <CategoryIcon className="h-3.5 w-3.5 shrink-0" />
             <span className="truncate max-w-[12rem]">{category.name}</span>
           </button>
@@ -458,7 +458,7 @@ export function ContentPanel() {
                     aria-label="List view"
                     aria-pressed={groupLayout === 'list'}
                     onClick={() => setGroupLayout('list')}
-                    className={`p-1 rounded transition-colors ${groupLayout === 'list' ? 'bg-white/10 text-white/80' : 'text-white/50 hover:text-white/70'}`}
+                    className={`p-1 rounded transition-colors ${groupLayout === 'list' ? 'bg-white/10 text-fg' : 'text-fg-subtle hover:text-fg-muted'}`}
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
@@ -474,7 +474,7 @@ export function ContentPanel() {
                     aria-label="Grid view"
                     aria-pressed={groupLayout === 'grid'}
                     onClick={() => setGroupLayout('grid')}
-                    className={`p-1 rounded transition-colors ${groupLayout === 'grid' ? 'bg-white/10 text-white/80' : 'text-white/50 hover:text-white/70'}`}
+                    className={`p-1 rounded transition-colors ${groupLayout === 'grid' ? 'bg-white/10 text-fg' : 'text-fg-subtle hover:text-fg-muted'}`}
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25a2.25 2.25 0 0 1-2.25-2.25v-2.25Z" />

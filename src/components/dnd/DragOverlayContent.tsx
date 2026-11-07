@@ -25,7 +25,7 @@ export function DragOverlayContent({ activeId, draggedGroup, draggedTab, dragged
         {draggedTab && (
           <>
             <FaviconImg src={draggedTab.favIconUrl} alt={draggedTab.title} />
-            <div className="flex flex-col text-white/90 truncate">
+            <div className="flex flex-col text-fg truncate">
               <div>{draggedTab.title}</div>
               <div className="truncate">{draggedTab.url}</div>
             </div>
@@ -35,7 +35,7 @@ export function DragOverlayContent({ activeId, draggedGroup, draggedTab, dragged
         {draggedSavedTab && (
           <>
             <FaviconImg src={draggedSavedTab.favicon} alt={draggedSavedTab.title} />
-            <div className="flex flex-col text-white/90 truncate">
+            <div className="flex flex-col text-fg truncate">
               <div>{draggedSavedTab.title}</div>
               <div className="truncate">{draggedSavedTab.url}</div>
             </div>

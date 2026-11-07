@@ -67,6 +67,25 @@
     --accent: hsl(var(--hue), var(--accent-sat), 56%);
     --accent-hover: hsl(var(--hue), var(--accent-sat), 48%);
     --accent-subtle: hsl(var(--hue), var(--accent-sat), 56%, 0.16);
+    /* Accent as TEXT or a small selection mark (TASK-6). The 56% accent is a
+       fill colour: as text it drops to 1.8:1 at a saturated blue. 76% keeps
+       ≥4.5:1 on every surface and on accent-subtle, at every hue/intensity
+       (worst: hue 240 at intensity 100 on accent-subtle, 4.74:1). */
+    --accent-text: hsl(var(--hue), var(--accent-sat), 76%);
+
+    /* Text tiers (TASK-6). The surfaces are near-black at every hue and
+       intensity (surface saturation tops out at 11%), so contrast only
+       depends on the alpha. Worst case is a hovered row on black-700:
+       primary 0.9 → 11:1, secondary 0.7 → 7.1:1, tertiary 0.55 → 5.05:1
+       (the lowest alpha that keeps 4.5:1 on 900/800/700). Disabled text is
+       exempt from WCAG contrast and is only for disabled controls. */
+    --text-primary: hsl(0 0% 100% / 0.9);
+    --text-secondary: hsl(0 0% 100% / 0.7);
+    --text-tertiary: hsl(0 0% 100% / 0.55);
+    --text-disabled: hsl(0 0% 100% / 0.35);
+    /* Boundary of a control that is not identified by its own text (inputs,
+       select triggers, switch tracks, radios): ≥3:1 on 900/800 (WCAG 1.4.11). */
+    --border-control: hsl(0 0% 100% / 0.4);
 
     --radius: 0.5rem;
 

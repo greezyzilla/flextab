@@ -144,13 +144,13 @@ export function AccountTab() {
             {user.avatar ? (
               <img src={user.avatar} alt={user.name} className="w-9 h-9 rounded-full" referrerPolicy="no-referrer" />
             ) : (
-              <div className="w-9 h-9 rounded-full flex items-center justify-center text-white/85 text-sm font-medium" style={{ backgroundColor: 'var(--accent)' }}>
+              <div className="w-9 h-9 rounded-full flex items-center justify-center text-fg text-sm font-medium" style={{ backgroundColor: 'var(--accent)' }}>
                 {(user.name || user.email).slice(0, 1).toUpperCase()}
               </div>
             )}
             <div className="flex flex-col min-w-0">
-              <span className="text-white/80 text-sm font-sans truncate">{user.name}</span>
-              <span className="text-white/30 text-xs font-sans truncate">{user.email}</span>
+              <span className="text-fg text-sm font-sans truncate">{user.name}</span>
+              <span className="text-fg-subtle text-xs font-sans truncate">{user.email}</span>
             </div>
           </div>
         )}
@@ -170,14 +170,14 @@ export function AccountTab() {
       <SettingRow label="Sign-in methods" description="Providers linked to your account. Link more or remove ones you don't use.">
         <div className="flex flex-col gap-2">
           {idError && <div className="text-red-400 text-xs font-sans">{idError}</div>}
-          {identities === null && <div className="text-white/30 text-xs font-sans">Loading…</div>}
+          {identities === null && <div className="text-fg-subtle text-xs font-sans">Loading…</div>}
           {identities?.map(id => (
             <div key={id.provider} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/[0.08] bg-white/[0.02] px-4 py-3">
               <div className="flex flex-wrap items-center gap-2 min-w-0 max-w-full">
-                <span className="text-white/75 text-sm font-sans capitalize">{id.provider}</span>
-                {id.email && <span className="text-white/30 text-xs font-sans truncate">{id.email}</span>}
+                <span className="text-fg-muted text-sm font-sans capitalize">{id.provider}</span>
+                {id.email && <span className="text-fg-subtle text-xs font-sans truncate">{id.email}</span>}
               </div>
-              <Button variant="ghost" size="sm" onClick={() => handleUnlink(id.provider)} disabled={unlinking === id.provider} className="!text-red-400/70 hover:!text-red-400">
+              <Button variant="ghost" size="sm" onClick={() => handleUnlink(id.provider)} disabled={unlinking === id.provider} className="!text-red-400 hover:!text-red-300">
                 {unlinking === id.provider ? 'Unlinking…' : 'Unlink'}
               </Button>
             </div>
@@ -197,7 +197,7 @@ export function AccountTab() {
       >
         <form onSubmit={handleChangePassword} className="flex flex-col gap-2.5">
           {!hasPassword && (
-            <p className="text-white/30 text-xs leading-relaxed">
+            <p className="text-fg-subtle text-xs leading-relaxed">
               Adding a password lets you sign in with {user?.email ?? 'your email'} too. Your linked providers keep working.
             </p>
           )}
@@ -216,7 +216,7 @@ export function AccountTab() {
 
       {/* Sign out */}
       <div className="pt-2 border-t border-white/5">
-        <Button variant="link" onClick={() => setSignOutOpen(true)} className="!text-sm !text-red-400/70 hover:!text-red-400">
+        <Button variant="link" onClick={() => setSignOutOpen(true)} className="!text-sm !text-red-400 hover:!text-red-300">
           Sign out
         </Button>
       </div>

@@ -84,7 +84,7 @@ export function SaveAllDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="w-full max-w-md p-5">
         <DialogHeader>
-          <DialogTitle className="text-white/90 font-sans text-base font-medium">Save all tabs</DialogTitle>
+          <DialogTitle className="text-fg font-sans text-base font-medium">Save all tabs</DialogTitle>
           <DialogDescription>
             {total === 0
               ? "No savable tabs are open. Browser, extension and local file pages are skipped."
@@ -109,8 +109,8 @@ export function SaveAllDialog() {
             <DestinationPicker value={target} onChange={setTarget} maxHeightClass="max-h-48" />
           </div>
 
-          <label className="flex items-center justify-between gap-2 text-sm text-white/75">
-            <span>Close tabs after saving <span className="text-white/45">(pinned tabs stay open)</span></span>
+          <label className="flex items-center justify-between gap-2 text-sm text-fg-muted">
+            <span>Close tabs after saving <span className="text-fg-subtle">(pinned tabs stay open)</span></span>
             <Switch checked={closeAfter} aria-label="Close tabs after saving"
               onCheckedChange={(v) => { setCloseAfter(v); void saveCloseAfterSave(v) }} />
           </label>

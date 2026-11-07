@@ -91,7 +91,7 @@ export function SaveSessionModal({
     <Dialog open onOpenChange={(o) => { if (!o) onClose() }}>
       <DialogContent className="w-full max-w-md p-5">
         <DialogHeader>
-          <DialogTitle className="text-white/90 font-sans text-base font-medium">
+          <DialogTitle className="text-fg font-sans text-base font-medium">
             Save Session
           </DialogTitle>
           <DialogDescription>
@@ -124,7 +124,7 @@ export function SaveSessionModal({
           <div className="flex flex-col gap-1.5">
             <Label>Save to</Label>
             <DestinationPicker value={target} onChange={setTarget} />
-            <span className="text-white/55 text-xs font-sans truncate" aria-live="polite">
+            <span className="text-fg-subtle text-xs font-sans truncate" aria-live="polite">
               {destination ?? "Pick or create a category to save into."}
             </span>
           </div>

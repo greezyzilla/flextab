@@ -92,7 +92,7 @@ function DataTab() {
         message={
           <>
             Importing replaces your current workspace with{" "}
-            <span className="text-white/80">{pendingImport?.length ?? 0} space{(pendingImport?.length ?? 0) !== 1 ? "s" : ""}</span>.
+            <span className="text-fg">{pendingImport?.length ?? 0} space{(pendingImport?.length ?? 0) !== 1 ? "s" : ""}</span>.
             This can&apos;t be undone.
           </>
         }
@@ -112,7 +112,7 @@ function DataTab() {
       <SettingRow label="Export" description="Download all your data as a JSON file.">
         <div className="flex flex-wrap items-center gap-3">
           <Button variant="secondary" size="sm" onClick={handleExport}>Export JSON</Button>
-          <span className="text-white/25 text-xs font-sans">
+          <span className="text-fg-subtle text-xs font-sans">
             {savedSpaces.length} space{savedSpaces.length !== 1 ? 's' : ''} · {totalTabs} tab{totalTabs !== 1 ? 's' : ''} · {formatSize(dataSize)}
           </span>
         </div>
@@ -173,7 +173,7 @@ function HistoryTab() {
     return (
       <div className="flex flex-col gap-7">
         <SettingRow label="Version history" description="Snapshots of your tabs you can restore.">
-          <div className="rounded-lg border border-white/[0.08] bg-white/[0.02] px-5 py-4 text-white/50 text-sm font-sans leading-relaxed">
+          <div className="rounded-lg border border-white/[0.08] bg-white/[0.02] px-5 py-4 text-fg-subtle text-sm font-sans leading-relaxed">
             Sign in to keep a version history of your spaces and restore earlier states.
           </div>
         </SettingRow>
@@ -227,17 +227,17 @@ function HistoryTab() {
     <div className="flex flex-col gap-7">
       <SettingRow label="Version history" description="Preview and restore retained cloud versions. Syncs within 30 minutes can share a version; older versions are removed at your plan’s history limit. Export JSON to keep a separate local backup.">
         <div className="flex flex-col gap-2.5">
-          {failed && <div className="text-white/30 text-xs font-sans">Couldn't load history.</div>}
-          {!failed && snapshots === null && <div className="text-white/30 text-xs font-sans">Loading…</div>}
-          {!failed && snapshots?.length === 0 && <div className="text-white/30 text-xs font-sans">No snapshots yet. They appear after your tabs sync.</div>}
-          {restoring && <div className="text-white/40 text-xs font-sans">Restoring…</div>}
+          {failed && <div className="text-fg-subtle text-xs font-sans">Couldn't load history.</div>}
+          {!failed && snapshots === null && <div className="text-fg-subtle text-xs font-sans">Loading…</div>}
+          {!failed && snapshots?.length === 0 && <div className="text-fg-subtle text-xs font-sans">No snapshots yet. They appear after your tabs sync.</div>}
+          {restoring && <div className="text-fg-subtle text-xs font-sans">Restoring…</div>}
           {restoreError && <div role="alert" className="text-red-400 text-xs font-sans">{restoreError}</div>}
           {pendingPull && (
             <Button variant="secondary" size="sm" className="self-start" disabled={restoring} onClick={() => { void handleRestore(); }}>
               Retry loading workspace
             </Button>
           )}
-          {done && <div className="text-xs font-sans" style={{ color: 'var(--accent)' }}>Restored.</div>}
+          {done && <div className="text-xs font-sans" style={{ color: 'var(--accent-text)' }}>Restored.</div>}
           {snapshots?.map(s => (
             <SnapshotRow
               key={s.revision}
@@ -285,12 +285,12 @@ function SnapshotRow({ snapshot, onPreview, onRestore, restoreDisabled }: {
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/[0.08] bg-white/[0.02] px-4 py-3.5">
       <div className="min-w-0 flex flex-col gap-0.5">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-white/25 text-[11px] font-mono shrink-0">v{snapshot.revision}</span>
-          <span className="text-white/75 text-sm font-sans truncate">
+          <span className="text-fg-subtle text-[11px] font-mono shrink-0">v{snapshot.revision}</span>
+          <span className="text-fg-muted text-sm font-sans truncate">
             {formatRelativeTime(new Date(snapshot.created_at).getTime())}
           </span>
         </div>
-        <span className="text-white/35 text-xs font-sans">
+        <span className="text-fg-subtle text-xs font-sans">
           {snapshot.space_count} space{snapshot.space_count !== 1 ? 's' : ''} · {snapshot.tab_count} tab{snapshot.tab_count !== 1 ? 's' : ''}
         </span>
       </div>
@@ -402,16 +402,16 @@ function SnapshotPreviewModal({ snapshot, open, onOpenChange, onRestore, restore
             top-right corner; the title is short so it never reaches it. The
             primary action sits in the footer instead of colliding here. */}
         <div className="flex flex-col gap-1 p-5 pr-12 border-b border-black-800 shrink-0">
-          <DialogTitle className="text-white/90 text-sm font-medium">Version v{snapshot.revision}</DialogTitle>
-          <span className="text-white/40 text-xs font-sans">
+          <DialogTitle className="text-fg text-sm font-medium">Version v{snapshot.revision}</DialogTitle>
+          <span className="text-fg-subtle text-xs font-sans">
             {formatRelativeTime(new Date(snapshot.created_at).getTime())} · {snapshot.space_count} space{snapshot.space_count !== 1 ? 's' : ''} · {snapshot.tab_count} tab{snapshot.tab_count !== 1 ? 's' : ''}
           </span>
         </div>
 
         <div className="flex-1 overflow-y-auto p-2 min-h-[160px]">
-          {failed && <div className="text-white/30 text-xs font-sans p-3">Couldn't load this snapshot.</div>}
-          {!failed && tree === null && <div className="text-white/30 text-xs font-sans p-3">Loading…</div>}
-          {tree?.length === 0 && <div className="text-white/30 text-xs font-sans p-3">This snapshot is empty.</div>}
+          {failed && <div className="text-fg-subtle text-xs font-sans p-3">Couldn't load this snapshot.</div>}
+          {!failed && tree === null && <div className="text-fg-subtle text-xs font-sans p-3">Loading…</div>}
+          {tree?.length === 0 && <div className="text-fg-subtle text-xs font-sans p-3">This snapshot is empty.</div>}
           {tree?.map(node => (
             <PreviewNode key={node.id} node={node} depth={0} expanded={expanded} onToggle={toggle} />
           ))}
@@ -433,9 +433,9 @@ function PreviewNode({ node, depth, expanded, onToggle }: {
   const isOpen = expanded.has(node.id);
   const indent = 8 + depth * 16;
   const nameCls =
-    node.kind === 'space' ? 'text-white/90 text-sm font-medium'
-      : node.kind === 'group' ? 'text-white/55 text-xs'
-        : 'text-white/80 text-xs font-medium';
+    node.kind === 'space' ? 'text-fg text-sm font-medium'
+      : node.kind === 'group' ? 'text-fg-subtle text-xs'
+        : 'text-fg text-xs font-medium';
 
   return (
     <div className="flex flex-col">
@@ -445,17 +445,17 @@ function PreviewNode({ node, depth, expanded, onToggle }: {
         style={{ paddingLeft: indent }}
         aria-expanded={isOpen}
       >
-        <ChevronRight className={`h-3.5 w-3.5 shrink-0 text-white/25 transition-transform group-hover:text-white/45 ${isOpen ? 'rotate-90' : ''}`} strokeWidth={2} />
+        <ChevronRight className={`h-3.5 w-3.5 shrink-0 text-fg-subtle transition-transform group-hover:text-fg-muted ${isOpen ? 'rotate-90' : ''}`} strokeWidth={2} />
         {node.kind === 'space' && (
           <span
-            className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-[9px] font-semibold text-white/85"
+            className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-[9px] font-semibold text-fg"
             style={{ backgroundColor: node.color ? `${node.color}55` : 'var(--accent-subtle)' }}
           >
             {node.abbr}
           </span>
         )}
         <span className={`min-w-0 flex-1 truncate font-sans ${nameCls}`}>{node.name}</span>
-        <span className="shrink-0 text-white/30 text-[11px] font-sans tabular-nums">{node.count}</span>
+        <span className="shrink-0 text-fg-subtle text-[11px] font-sans tabular-nums">{node.count}</span>
       </button>
 
       {isOpen && (node.children ?? []).map(child => (
@@ -464,13 +464,13 @@ function PreviewNode({ node, depth, expanded, onToggle }: {
 
       {isOpen && node.tabs && (
         node.tabs.length === 0
-          ? <div className="text-white/20 text-xs font-sans py-1" style={{ paddingLeft: indent + 24 }}>Empty group</div>
+          ? <div className="text-fg-subtle text-xs font-sans py-1" style={{ paddingLeft: indent + 24 }}>Empty group</div>
           : node.tabs.map(t => (
             <div key={t.id} className="flex items-center gap-2 min-w-0 py-1 pr-2.5" style={{ paddingLeft: indent + 24 }}>
               {t.favicon
                 ? <img src={t.favicon} alt="" referrerPolicy="no-referrer" className="h-4 w-4 rounded shrink-0" onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }} />
                 : <span className="h-4 w-4 rounded bg-white/10 shrink-0" />}
-              <span className="text-white/55 text-xs font-sans truncate">{t.title || t.url}</span>
+              <span className="text-fg-subtle text-xs font-sans truncate">{t.title || t.url}</span>
             </div>
           ))
       )}

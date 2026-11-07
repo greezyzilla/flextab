@@ -79,7 +79,7 @@ function SavedTabItem({ tab, groupId, location, isDuplicate, unsorted }: { tab: 
             className="absolute -inset-0.5 flex items-center justify-center rounded bg-black-800 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-1 focus-visible:ring-ring outline-none cursor-grab active:cursor-grabbing transition-opacity"
             title="Drag to reorder"
           >
-            <DragHandleIcon className="w-3.5 h-3.5 text-white/70" />
+            <DragHandleIcon className="w-3.5 h-3.5 text-fg-muted" />
           </button>
         </span>
 
@@ -92,8 +92,8 @@ function SavedTabItem({ tab, groupId, location, isDuplicate, unsorted }: { tab: 
           onClick={onClick}
         >
           <div className="flex flex-col min-w-0">
-            <span className="text-white/80 text-xs font-sans truncate">{tab.title}</span>
-            <span className="text-white/30 text-[10px] font-sans truncate">{tab.url?.replace(/^https?:\/\//, '')}</span>
+            <span className="text-fg text-xs font-sans truncate">{tab.title}</span>
+            <span className="text-fg-subtle text-[10px] font-sans truncate">{tab.url?.replace(/^https?:\/\//, '')}</span>
           </div>
           {isDuplicate && (
             <Badge variant="warning" size="sm" className="shrink-0 font-normal" title="Duplicate URL in this group">dup</Badge>
@@ -142,11 +142,11 @@ export function EmptyDropRow({ isOver, label }: { isOver: boolean; label: string
     // As tall as one saved-tab row at every density, so an empty slot keeps
     // the same rhythm as a filled one and is a comfortable drop target.
     <div
-      className={`flex items-center font-sans text-xs rounded-lg border border-dashed transition-colors ${isOver ? 'border-transparent' : 'border-white/[0.12] text-white/55'}`}
+      className={`flex items-center font-sans text-xs rounded-lg border border-dashed transition-colors ${isOver ? 'border-transparent' : 'border-white/[0.12] text-fg-subtle'}`}
       style={{
         minHeight: 'calc(var(--density-py-tab) * 2 + 2rem)',
         paddingInline: 'var(--density-px-tab)',
-        ...(isOver ? { color: 'var(--accent)', backgroundColor: 'var(--accent-subtle)' } : {}),
+        ...(isOver ? { color: 'var(--accent-text)', backgroundColor: 'var(--accent-subtle)' } : {}),
       }}
     >
       {isOver ? 'Drop here' : label}
@@ -247,9 +247,9 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: 
       <div className="flex items-center justify-between gap-2 min-h-[26px] group/header" style={{ paddingInline: 'var(--density-px-tab)' }}>
         {unsorted ? (
           <div className="flex items-center gap-2.5 min-w-0">
-            <span className="w-5 flex justify-center shrink-0"><UnsortedIcon className="h-3.5 w-3.5 text-white/55" /></span>
-            <h3 className="text-white/60 font-sans text-[11px] font-medium uppercase tracking-wider">Unsorted</h3>
-            <span className="min-w-0 truncate text-white/45 text-xs font-sans">
+            <span className="w-5 flex justify-center shrink-0"><UnsortedIcon className="h-3.5 w-3.5 text-fg-subtle" /></span>
+            <h3 className="text-fg-muted font-sans text-[11px] font-medium uppercase tracking-wider">Unsorted</h3>
+            <span className="min-w-0 truncate text-fg-subtle text-xs font-sans">
               {sortedTabs.length} tab{sortedTabs.length !== 1 ? 's' : ''} · drag into a group to file them
             </span>
           </div>
@@ -269,12 +269,12 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: 
           />
         ) : (
           <div className="flex items-center gap-2.5 min-w-0">
-            <span className="w-5 flex justify-center shrink-0"><GroupIcon className="h-3.5 w-3.5 text-white/55" /></span>
-            <h3 className="min-w-0 text-white/75 font-sans text-[13px] font-medium">
+            <span className="w-5 flex justify-center shrink-0"><GroupIcon className="h-3.5 w-3.5 text-fg-subtle" /></span>
+            <h3 className="min-w-0 text-fg-muted font-sans text-[13px] font-medium">
               <button
                 ref={renameButtonRef}
                 type="button"
-                className="block max-w-full text-left truncate rounded outline-none focus-visible:ring-1 focus-visible:ring-ring hover:text-white/80 transition-colors"
+                className="block max-w-full text-left truncate rounded outline-none focus-visible:ring-1 focus-visible:ring-ring hover:text-fg transition-colors"
                 onClick={() => { setRenameValue(group.name); setIsRenaming(true); }}
                 aria-label={`Rename ${group.name}`}
                 title="Rename group"
@@ -282,7 +282,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: 
                 {group.name}
               </button>
             </h3>
-            <span className="text-white/40 text-xs font-sans shrink-0">{sortedTabs.length} tab{sortedTabs.length !== 1 ? 's' : ''}</span>
+            <span className="text-fg-subtle text-xs font-sans shrink-0">{sortedTabs.length} tab{sortedTabs.length !== 1 ? 's' : ''}</span>
           </div>
         )}
         {/* A group header is a header row (TASK-5): its primary action (open
@@ -297,7 +297,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: 
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <DropdownMenuTrigger asChild>
-                      <IconButton aria-label={`Open all tabs in ${group.name}`} className={openAllMenu ? 'bg-white/10 text-white/80' : ''}>
+                      <IconButton aria-label={`Open all tabs in ${group.name}`} className={openAllMenu ? 'bg-white/10 text-fg' : ''}>
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M13 5h6v6M19 5l-8 8M11 5H6a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1v-5" />
                         </svg>
@@ -369,7 +369,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: 
         title="Delete group?"
         message={
           <>
-            This permanently removes <span className="text-white/80">{group.name}</span> and its{" "}
+            This permanently removes <span className="text-fg">{group.name}</span> and its{" "}
             {sortedTabs.length} saved tab{sortedTabs.length !== 1 ? "s" : ""}.
           </>
         }

@@ -24,12 +24,12 @@ export function PickDestinationDialog({ title, description, groupLevel = false, 
     <Dialog open onOpenChange={(o) => { if (!o) onClose() }}>
       <DialogContent className="w-full max-w-md p-5">
         <DialogHeader>
-          <DialogTitle className="text-white/90 font-sans text-base font-medium">{title}</DialogTitle>
+          <DialogTitle className="text-fg font-sans text-base font-medium">{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-1.5 py-2">
           <DestinationPicker groupLevel={groupLevel} value={target} onChange={setTarget} />
-          <span className="text-white/55 text-xs font-sans truncate" aria-live="polite">
+          <span className="text-fg-subtle text-xs font-sans truncate" aria-live="polite">
             {where ?? "Pick or create a category."}
           </span>
         </div>

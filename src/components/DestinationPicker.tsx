@@ -93,7 +93,7 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
       />
       {!q && recent.length > 0 && (
         <div className="flex flex-col gap-1">
-          <span className="text-[11px] font-medium text-white/55">Recent</span>
+          <span className="text-[11px] font-medium text-fg-subtle">Recent</span>
           <div className="flex flex-wrap gap-1.5">
             {recent.map(({ target, parts, group }) => {
               const selected =
@@ -109,13 +109,13 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
                   title={describeDestination(savedSpaces, target) ?? undefined}
                   onClick={() => onChange(target)}
                   className={`flex max-w-full items-center gap-1.5 rounded-md border px-2 py-1 text-xs outline-none transition-colors focus-visible:ring-1 focus-visible:ring-ring ${
-                    selected ? "border-[var(--accent)] text-white/95" : "border-white/10 text-white/75 hover:bg-white/[0.05]"
+                    selected ? "border-[var(--accent)] text-fg" : "border-white/10 text-fg-muted hover:bg-white/[0.05]"
                   }`}
                   style={selected ? { backgroundColor: "var(--accent-subtle)" } : undefined}
                 >
                   {group ? (isUnsortedGroup(group) ? <UnsortedIcon className="h-3 w-3 shrink-0" /> : <GroupIcon className="h-3 w-3 shrink-0" />) : <CategoryIcon className="h-3 w-3 shrink-0" />}
                   <span className="truncate">{group ? group.name : parts.category.name}</span>
-                  <span className="truncate text-white/50">{group ? parts.category.name : parts.project.name}</span>
+                  <span className="truncate text-fg-subtle">{group ? parts.category.name : parts.project.name}</span>
                 </button>
               )
             })}
@@ -128,18 +128,18 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
         className={`${maxHeightClass} overflow-y-auto rounded-md border border-white/10 bg-white/[0.02] py-1`}
       >
         {visible.length === 0 && (
-          <div className="px-3 py-3 text-xs text-white/55">No match.</div>
+          <div className="px-3 py-3 text-xs text-fg-subtle">No match.</div>
         )}
         {visible.map((space) => (
           <div key={space.id} className="py-0.5">
-            <div className="flex items-center gap-2 px-3 py-1 text-[11px] font-medium text-white/60">
+            <div className="flex items-center gap-2 px-3 py-1 text-[11px] font-medium text-fg-muted">
               <SpaceAvatar space={space} size={14} active={space.id === activeSpaceId} />
               <span className="truncate">{space.name}</span>
             </div>
             {space.projects.map((project) => (
               <div key={project.id}>
-                <div className="flex items-center gap-2 pl-5 pr-3 py-1 text-xs text-white/75">
-                  <ProjectIcon className="h-3.5 w-3.5 shrink-0 text-white/55" />
+                <div className="flex items-center gap-2 pl-5 pr-3 py-1 text-xs text-fg-muted">
+                  <ProjectIcon className="h-3.5 w-3.5 shrink-0 text-fg-subtle" />
                   <span className="truncate font-medium">{project.name}</span>
                 </div>
                 {project.categories.map((category) => {
@@ -168,7 +168,7 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
                     (!value.groupId || value.groupId === unsorted?.id)
                   return (
                     <div key={category.id}>
-                      <div className="flex items-center gap-2 pl-10 pr-3 py-1 text-xs text-white/70">
+                      <div className="flex items-center gap-2 pl-10 pr-3 py-1 text-xs text-fg-muted">
                         <CategoryIcon className="h-3 w-3 shrink-0" />
                         <span className="truncate">{category.name}</span>
                       </div>
@@ -205,7 +205,7 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
                         creating?.kind === "group" && creating.categoryId === category.id ? (
                           <NameRow
                             indentClass="pl-14"
-                            icon={<GroupIcon className="h-3 w-3 shrink-0 text-white/70" />}
+                            icon={<GroupIcon className="h-3 w-3 shrink-0 text-fg-muted" />}
                             label="New group name"
                             placeholder="Group name"
                             onCommit={(name) => { setCreating(null); onChange({ ...at, newGroupName: name }) }}
@@ -228,7 +228,7 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
                   creating?.kind === "category" && creating.projectId === project.id ? (
                     <NameRow
                       indentClass="pl-10"
-                      icon={<CategoryIcon className="h-3 w-3 shrink-0 text-white/70" />}
+                      icon={<CategoryIcon className="h-3 w-3 shrink-0 text-fg-muted" />}
                       label="New category name"
                       placeholder="Category name"
                       onCommit={(name) => createCategory(space.id, project.id, name)}
@@ -250,7 +250,7 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
               creating?.kind === "project" && creating.spaceId === space.id ? (
                 <NameRow
                   indentClass="pl-5"
-                  icon={<ProjectIcon className="h-3.5 w-3.5 shrink-0 text-white/70" />}
+                  icon={<ProjectIcon className="h-3.5 w-3.5 shrink-0 text-fg-muted" />}
                   label="New project name"
                   placeholder="Project name"
                   onCommit={(name) => createProject(space.id, name)}
@@ -280,14 +280,14 @@ function Choice({ name, indentClass, selected, icon, label, onSelect }: {
   return (
     <label
       className={`flex cursor-pointer items-center gap-2 ${indentClass} pr-3 py-1.5 text-xs transition-colors focus-within:ring-1 focus-within:ring-inset focus-within:ring-ring ${
-        selected ? "text-white/95" : "text-white/70 hover:bg-white/[0.05]"
+        selected ? "text-fg" : "text-fg-muted hover:bg-white/[0.05]"
       }`}
       style={selected ? { backgroundColor: "var(--accent-subtle)" } : undefined}
     >
       <input type="radio" name={name} className="sr-only" checked={selected} onChange={onSelect} />
       {icon}
       <span className="flex-1 truncate">{label}</span>
-      {selected && <Check className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--accent)" }} aria-hidden />}
+      {selected && <Check className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--accent-text)" }} aria-hidden />}
     </label>
   )
 }
@@ -312,7 +312,7 @@ function CreateChoice({ indentClass, iconClass, label, ariaLabel, onClick }: {
         type="button"
         aria-label={ariaLabel}
         onClick={onClick}
-        className="flex w-full items-center gap-2 rounded-md border border-dashed border-white/15 px-[7px] py-1 text-left text-xs text-white/55 transition-colors hover:border-white/35 hover:bg-white/[0.03] hover:text-white/85 outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        className="flex w-full items-center gap-2 rounded-md border border-dashed border-white/15 px-[7px] py-1 text-left text-xs text-fg-subtle transition-colors hover:border-white/35 hover:bg-white/[0.03] hover:text-fg outline-none focus-visible:ring-1 focus-visible:ring-ring"
       >
         <Plus className={`${iconClass} shrink-0`} aria-hidden />
         <span className="truncate">{label}…</span>

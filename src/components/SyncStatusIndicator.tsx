@@ -21,43 +21,43 @@ export function SyncStatusIndicator() {
   const guestMode = useAuthStore((s) => s.guestMode)
 
   let Icon: LucideIcon = Cloud
-  let cls = "text-white/35"
+  let cls = "text-fg-subtle"
   let label = "Auto-sync off"
   let detail = formatRelativeTime(lastSyncedAt)
   let spin = false
 
   if (!isAuthenticated) {
     Icon = HardDrive
-    cls = guestMode ? "text-white/30" : "text-white/25"
+    cls = guestMode ? "text-fg-subtle" : "text-fg-subtle"
     label = guestMode ? "Guest" : "Local only"
     detail = guestMode
       ? "Local only on this device. Sign in anytime to sync"
       : "Not signed in. Tabs stay on this device"
   } else if (status === "online") {
     Icon = Cloud
-    cls = "text-white/45"
+    cls = "text-fg-subtle"
     label = "Connected"
     detail = formatRelativeTime(lastSyncedAt)
   } else if (status === "connecting") {
     Icon = RefreshCw
-    cls = "text-white/55"
+    cls = "text-fg-subtle"
     label = "Connecting…"
     detail = "Reaching your account…"
     spin = true
   } else if (status === "syncing") {
     Icon = RefreshCw
-    cls = "text-white/55"
+    cls = "text-fg-subtle"
     label = "Syncing…"
     detail = "Uploading or pulling changes…"
     spin = true
   } else if (status === "offline") {
     Icon = CloudOff
-    cls = "text-white/40"
+    cls = "text-fg-subtle"
     label = "Offline"
     detail = "No connection. Changes stay on this device until you reconnect"
   } else if (status === "error") {
     Icon = CloudOff
-    cls = "text-red-400/70"
+    cls = "text-red-400"
     label = "Sync error"
     detail = "Last sync failed. Changes are still saved locally"
   }
@@ -101,7 +101,7 @@ export function SyncStatusIndicator() {
       </TooltipTrigger>
       <TooltipContent side="bottom" align="end">
         <div className="font-medium">{label}</div>
-        <div className="text-white/45">{detail}</div>
+        <div className="text-fg-subtle">{detail}</div>
       </TooltipContent>
     </Tooltip>
   )

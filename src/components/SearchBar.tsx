@@ -101,7 +101,7 @@ export function SearchBar() {
   return (
     <div ref={containerRef} className="relative flex-1 max-w-lg">
       <div className="flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-1.5 transition-colors focus-within:border-white/30">
-        <svg className="w-4 h-4 text-white/30 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-4 h-4 text-fg-subtle shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
         <Input
@@ -121,7 +121,7 @@ export function SearchBar() {
             variant="ghost"
             size="sm"
             onClick={() => setQuery("")}
-            className="h-6 w-6 shrink-0 p-0 text-white/30 hover:text-white/50"
+            className="h-6 w-6 shrink-0 p-0 text-fg-subtle hover:text-fg-muted"
             aria-label="Clear search"
           >
             ✕
@@ -141,16 +141,16 @@ export function SearchBar() {
               >
                 <FaviconImg src={result.favicon} alt={result.title} className="w-4 h-4 shrink-0" />
                 <div className="flex-1 overflow-hidden">
-                  <div className="text-white/80 text-xs truncate">{result.title}</div>
-                  <div className="text-white/40 text-xs truncate">{result.url}</div>
+                  <div className="text-fg text-xs truncate">{result.title}</div>
+                  <div className="text-fg-subtle text-xs truncate">{result.url}</div>
                   {result.breadcrumb && (
-                    <div className="text-white/30 text-xs truncate">{result.breadcrumb}</div>
+                    <div className="text-fg-subtle text-xs truncate">{result.breadcrumb}</div>
                   )}
                 </div>
               </button>
             ))
           ) : (
-            <div className="px-3 py-4 text-white/40 text-xs text-center">No results found</div>
+            <div className="px-3 py-4 text-fg-subtle text-xs text-center">No results found</div>
           )}
         </div>
       )}

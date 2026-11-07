@@ -15,10 +15,10 @@ const buttonVariants = cva(
           "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
         outline:
           "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
-        secondary: "bg-white/[0.08] text-white/85 hover:bg-white/[0.13]",
+        secondary: "bg-white/[0.08] text-fg hover:bg-white/[0.13]",
         ghost:
-          "border border-white/10 text-white/70 hover:border-white/25 hover:bg-white/[0.04] hover:text-white",
-        link: "text-white/55 underline-offset-4 hover:text-white hover:underline",
+          "border border-white/10 text-fg-muted hover:border-white/25 hover:bg-white/[0.04] hover:text-white",
+        link: "text-fg-subtle underline-offset-4 hover:text-white hover:underline",
       },
       size: {
         default: "h-9 px-3.5 py-2",
@@ -60,14 +60,14 @@ const iconButtonVariants = cva(
   {
     variants: {
       variant: {
-        default: "text-white/40 hover:bg-white/10 hover:text-white/80",
-        subtle: "text-white/40 hover:text-white/75",
+        default: "text-fg-subtle hover:bg-white/10 hover:text-fg",
+        subtle: "text-fg-subtle hover:text-fg-muted",
       },
       danger: { true: "", false: "" },
     },
     compoundVariants: [
-      { variant: "default", danger: true, class: "text-white/40 hover:bg-red-400/10 hover:text-red-400" },
-      { variant: "subtle", danger: true, class: "text-white/40 hover:text-red-400" },
+      { variant: "default", danger: true, class: "text-fg-subtle hover:bg-red-400/10 hover:text-red-400" },
+      { variant: "subtle", danger: true, class: "text-fg-subtle hover:text-red-400" },
     ],
     defaultVariants: { variant: "default", danger: false },
   },

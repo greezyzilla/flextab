@@ -29,7 +29,7 @@ export function TransactionsTab() {
     return (
       <div className="flex flex-col gap-7">
         <SettingRow label="Transactions" description="Your billing history.">
-          <Card className="px-5 py-4 text-white/50 text-sm font-sans leading-relaxed shadow-none">
+          <Card className="px-5 py-4 text-fg-subtle text-sm font-sans leading-relaxed shadow-none">
             Sign in to see your billing history.
           </Card>
         </SettingRow>
@@ -40,9 +40,9 @@ export function TransactionsTab() {
   return (
     <div className="flex flex-col gap-7">
       <SettingRow label="Transactions" description="Every purchase, renewal, and cancellation on this account.">
-        {failed && <div className="text-white/30 text-xs font-sans">Couldn't load transaction history.</div>}
-        {!failed && !txns && <div className="text-white/30 text-xs font-sans">Loading…</div>}
-        {txns && txns.length === 0 && <div className="text-white/30 text-xs font-sans">No transactions yet.</div>}
+        {failed && <div className="text-fg-subtle text-xs font-sans">Couldn't load transaction history.</div>}
+        {!failed && !txns && <div className="text-fg-subtle text-xs font-sans">Loading…</div>}
+        {txns && txns.length === 0 && <div className="text-fg-subtle text-xs font-sans">No transactions yet.</div>}
         {txns && txns.length > 0 && (
           <Card className="overflow-hidden shadow-none">
             {txns.map((t, i) => (
@@ -50,14 +50,14 @@ export function TransactionsTab() {
                 {i > 0 && <Separator className="bg-white/[0.06]" />}
                 <div className="flex flex-wrap items-center justify-between gap-2 px-4 sm:px-5 py-3">
                   <div className="flex flex-col gap-0.5 min-w-0">
-                    <span className="text-white/70 text-sm font-sans">
+                    <span className="text-fg-muted text-sm font-sans">
                       {TXN_TYPE_LABEL[t.type] ?? t.type} · {t.plan === "plus" ? "Plus" : "Pro"}
                     </span>
-                    <span className="text-white/35 text-xs font-sans capitalize">
+                    <span className="text-fg-subtle text-xs font-sans capitalize">
                       {formatDate(t.created_at)} · via {t.provider} · {t.status}
                     </span>
                   </div>
-                  <span className="text-white/60 text-sm font-sans tabular-nums">
+                  <span className="text-fg-muted text-sm font-sans tabular-nums">
                     {t.amount_idr > 0 ? formatIDR(t.amount_idr) : "Free"}
                   </span>
                 </div>

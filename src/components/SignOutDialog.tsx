@@ -58,9 +58,9 @@ export function SignOutDialog({ open, onOpenChange }: {
           <p className="text-sm text-amber-300">Your workspace may contain unsynced changes or an unresolved conflict. Download a backup first, or cancel to finish syncing.</p>
         )}
         <Button variant="secondary" disabled={busy} onClick={download}>Download backup</Button>
-        {notice && <p role="status" className="text-xs text-white/60">{notice}</p>}
+        {notice && <p role="status" className="text-xs text-fg-muted">{notice}</p>}
         {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
-        <label className="flex items-start gap-2 text-sm text-white/70">
+        <label className="flex items-start gap-2 text-sm text-fg-muted">
           <input type="checkbox" checked={confirmed} disabled={busy} onChange={e => setConfirmed(e.target.checked)} />
           I understand that unsynced local changes will be deleted.
         </label>

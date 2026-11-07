@@ -48,7 +48,7 @@ function NewProjectSlot({ onClick }: { onClick: () => void }) {
       <button
         type="button"
         onClick={onClick}
-        className="w-full flex items-center gap-2 rounded-md border border-dashed border-white/15 pl-[23px] pr-[7px] py-1 text-left text-[13px] font-sans text-white/55 hover:border-white/35 hover:bg-white/[0.03] hover:text-white/85 transition-colors outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        className="w-full flex items-center gap-2 rounded-md border border-dashed border-white/15 pl-[23px] pr-[7px] py-1 text-left text-[13px] font-sans text-fg-subtle hover:border-white/35 hover:bg-white/[0.03] hover:text-fg transition-colors outline-none focus-visible:ring-1 focus-visible:ring-ring"
       >
         <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden />
         <span className="truncate">New project…</span>
@@ -77,7 +77,7 @@ function CreateRow({ kind, onCommit, onCancel }: {
   };
   return (
     <div className={`flex flex-col gap-1 ${ROW_LEAD[kind]} py-1`}>
-      <div className="flex items-center text-white/60">
+      <div className="flex items-center text-fg-muted">
         {kind === "project" && <ChevronSlot />}
         {kind === "project"
           ? <ProjectIcon className="h-3.5 w-3.5 shrink-0 mr-2" />
@@ -97,7 +97,7 @@ function CreateRow({ kind, onCommit, onCancel }: {
           className="flex-1 text-[13px] min-w-0"
         />
       </div>
-      <span className={`${kind === "project" ? "pl-[46px]" : "pl-5"} text-[11px] text-white/50 font-sans`}>Enter to create · Esc to cancel</span>
+      <span className={`${kind === "project" ? "pl-[46px]" : "pl-5"} text-[11px] text-fg-subtle font-sans`}>Enter to create · Esc to cancel</span>
     </div>
   );
 }
@@ -252,7 +252,7 @@ export function LeftPanel() {
         title={`Delete ${confirmDelete?.kind ?? ""}?`}
         message={
           <>
-            This permanently removes <span className="text-white/80">{confirmDelete?.name}</span> and everything inside it.
+            This permanently removes <span className="text-fg">{confirmDelete?.name}</span> and everything inside it.
           </>
         }
         confirmLabel="Delete"
@@ -260,15 +260,15 @@ export function LeftPanel() {
       />
       {/* Header */}
       <div className="h-16 p-4 flex items-end gap-2 border-b border-black-800">
-        <h1 className="text-white/90 font-sans text-2xl">FlexTab</h1>
-        <p className="text-white/50 font-sans text-sm">v{config.version || '0.0.1'}</p>
+        <h1 className="text-fg font-sans text-2xl">FlexTab</h1>
+        <p className="text-fg-subtle font-sans text-sm">v{config.version || '0.0.1'}</p>
       </div>
 
       {/* Space header. pr-3 puts its controls in the same column as the
           tree rows' trailing slot (mx-2 + pr-1). */}
       <div className="flex items-center justify-between gap-1 h-14 pl-4 pr-3 border-b border-black-800">
         <div className="flex items-center gap-2.5 min-w-0">
-          <h2 className="text-white/70 font-sans text-sm font-medium truncate">{currentSpace?.name || 'No Space'}</h2>
+          <h2 className="text-fg-muted font-sans text-sm font-medium truncate">{currentSpace?.name || 'No Space'}</h2>
         </div>
         {currentSpace && (
           // Header control, always visible, in the rows' slot column. Managing
@@ -305,14 +305,14 @@ export function LeftPanel() {
                     projectId={project.id}
                   >
                     <div className={`group/proj flex items-center gap-1 mx-2 pl-1 pr-1 rounded-md transition-colors ${
-                      activeProjectId === project.id ? 'text-white/90' : 'text-white/70 hover:bg-white/[0.04]'
+                      activeProjectId === project.id ? 'text-fg' : 'text-fg-muted hover:bg-white/[0.04]'
                     }`}>
                       <button
                         type="button"
                         onClick={() => toggleExpandedProject(project.id)}
                         aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${project.name}`}
                         aria-expanded={isExpanded}
-                        className="h-6 w-5 shrink-0 flex items-center justify-center rounded text-white/50 hover:text-white/80 outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        className="h-6 w-5 shrink-0 flex items-center justify-center rounded text-fg-subtle hover:text-fg outline-none focus-visible:ring-1 focus-visible:ring-ring"
                       >
                         <svg className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
                           fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -336,7 +336,7 @@ export function LeftPanel() {
                           aria-current={activeProjectId === project.id ? "page" : undefined}
                           className="flex-1 min-w-0 flex items-center gap-2 py-1.5 text-left rounded outline-none focus-visible:ring-1 focus-visible:ring-ring"
                         >
-                          <ProjectIcon className="h-3.5 w-3.5 shrink-0 text-white/55" />
+                          <ProjectIcon className="h-3.5 w-3.5 shrink-0 text-fg-subtle" />
                           <span className="flex-1 font-sans text-[13px] font-medium truncate">{project.name}</span>
                         </button>
                       )}
@@ -382,7 +382,7 @@ export function LeftPanel() {
                           >
                             {renamingId === category.id ? (
                               <div className="flex items-center gap-2 mx-2 pl-7 pr-2 py-[5px]">
-                                <CategoryIcon className="h-3 w-3 shrink-0 text-white/50" />
+                                <CategoryIcon className="h-3 w-3 shrink-0 text-fg-subtle" />
                                 <Input variant="inline" ref={renameRef} type="text" value={renameValue}
                                   aria-label="Category name"
                                   onChange={e => setRenameValue(e.target.value)} onBlur={submitRename}
@@ -392,7 +392,7 @@ export function LeftPanel() {
                             ) : (
                               <div
                                 className={`group/cat flex items-center gap-1 mx-2 pr-1 rounded-md transition-colors ${
-                                  isActive ? 'text-white/90' : 'text-white/60 hover:text-white/80 hover:bg-white/[0.04]'
+                                  isActive ? 'text-fg' : 'text-fg-muted hover:text-fg hover:bg-white/[0.04]'
                                 }`}
                                 style={isActive ? { backgroundColor: 'var(--accent-subtle)' } : undefined}
                               >
@@ -412,7 +412,7 @@ export function LeftPanel() {
                                 reveal="opacity-0 group-hover/cat:opacity-100 group-focus-within/cat:opacity-100"
                                 conceal="group-hover/cat:opacity-0 group-focus-within/cat:opacity-0"
                                 rest={category.groups.some(g => !isUnsortedGroup(g)) ? (
-                                  <span className={`text-[10px] font-sans ${isActive ? 'text-white/60' : 'text-white/45'}`}>
+                                  <span className={`text-[10px] font-sans ${isActive ? 'text-fg-muted' : 'text-fg-subtle'}`}>
                                     {category.groups.filter(g => !isUnsortedGroup(g)).length}
                                   </span>
                                 ) : undefined}
@@ -455,13 +455,13 @@ export function LeftPanel() {
             )}
           </>
         ) : (
-          <div className="text-white/40 font-sans text-xs p-8 text-center">Select a space</div>
+          <div className="text-fg-subtle font-sans text-xs p-8 text-center">Select a space</div>
         )}
       </nav>
 
       {/* Footer */}
       <div className="px-4 py-3 border-t border-black-800">
-        <div className="text-[11px] font-sans text-white/20">
+        <div className="text-[11px] font-sans text-fg-subtle">
           {currentSpace ? (() => {
             const pc = currentSpace.projects.length;
             const cc = currentSpace.projects.reduce((sum, p) => sum + p.categories.length, 0);

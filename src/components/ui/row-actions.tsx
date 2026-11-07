@@ -67,7 +67,7 @@ export function RowActions({ label, items, reveal = "", conceal = "", rest, note
               aria-label={label}
               title={label}
               onClick={(e) => e.stopPropagation()}
-              className={`absolute inset-0 ${open ? "opacity-100 bg-white/10 text-white/80" : reveal}`}
+              className={`absolute inset-0 ${open ? "opacity-100 bg-white/10 text-fg" : reveal}`}
             >
               <MoreHorizontal className="h-3.5 w-3.5" aria-hidden />
             </IconButton>
@@ -81,7 +81,7 @@ export function RowActions({ label, items, reveal = "", conceal = "", rest, note
           }}>
             {note && (
               <>
-                <DropdownMenuLabel className="max-w-64 font-normal text-white/50">{note}</DropdownMenuLabel>
+                <DropdownMenuLabel className="max-w-64 font-normal text-fg-subtle">{note}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
               </>
             )}

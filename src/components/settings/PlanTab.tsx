@@ -118,7 +118,7 @@ export function PlanTab() {
     return (
       <div className="flex flex-col gap-7">
         <SettingRow label="Plan & Usage" description="Your plan limits and how much you've used.">
-          <Card className="px-5 py-4 text-white/50 text-sm font-sans leading-relaxed shadow-none">
+          <Card className="px-5 py-4 text-fg-subtle text-sm font-sans leading-relaxed shadow-none">
             Sign in to see your plan and usage. Local-only workspaces have no limits.
           </Card>
         </SettingRow>
@@ -150,14 +150,14 @@ export function PlanTab() {
           />
         </div>
         {upgradeError && <div className="text-amber-300/80 text-xs font-sans mt-1.5">{upgradeError}</div>}
-        {confirming && <div className="text-white/40 text-xs font-sans mt-1.5">Confirming your payment. This can take a few seconds…</div>}
+        {confirming && <div className="text-fg-subtle text-xs font-sans mt-1.5">Confirming your payment. This can take a few seconds…</div>}
       </SettingRow>
 
       {billing?.active && (
         <SettingRow label="Billing" description="Your subscription, managed by our payment provider.">
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/[0.08] bg-white/[0.02] px-5 py-4">
             <div className="flex flex-col gap-0.5">
-              <span className="text-white/70 text-sm font-sans">
+              <span className="text-fg-muted text-sm font-sans">
                 {billing.status === 'cancelled' && billing.ends_at
                   ? `${currentPlan === 'plus' ? 'Plus' : 'Pro'} until ${formatDate(billing.ends_at)} (won't renew)`
                   : billing.renews_at
@@ -165,7 +165,7 @@ export function PlanTab() {
                     : 'Active subscription'}
               </span>
               {billing.card_brand && billing.card_last_four && (
-                <span className="text-white/35 text-xs font-sans capitalize">
+                <span className="text-fg-subtle text-xs font-sans capitalize">
                   {billing.card_brand} •••• {billing.card_last_four}
                 </span>
               )}
@@ -180,8 +180,8 @@ export function PlanTab() {
       )}
 
       <SettingRow label="Usage" description="How much of your plan you're using across this account.">
-        {failed && <div className="text-white/30 text-xs font-sans">Couldn't load usage.</div>}
-        {!failed && !status && <div className="text-white/30 text-xs font-sans">Loading…</div>}
+        {failed && <div className="text-fg-subtle text-xs font-sans">Couldn't load usage.</div>}
+        {!failed && !status && <div className="text-fg-subtle text-xs font-sans">Loading…</div>}
         {status && (
           <div className="flex flex-col gap-3">
             <UsageBar label="Total tabs" used={status.usage.total_tabs} cap={status.limits.max_tabs_total} />
@@ -206,9 +206,9 @@ function PlanCard({ name, price, active, limits, onUpgrade, upgrading }: {
         {active && <Badge variant="accent" size="sm" className="font-normal">Current</Badge>}
       </CardHeader>
       <CardContent className="flex flex-col gap-2 p-3.5 pt-0">
-        <span className="text-white/50 text-xs font-sans">{price}</span>
+        <span className="text-fg-subtle text-xs font-sans">{price}</span>
         {limits && (
-          <div className="flex flex-col gap-1 text-[11px] font-sans text-white/40">
+          <div className="flex flex-col gap-1 text-[11px] font-sans text-fg-subtle">
             <span>{limits.max_tabs_total === 0 ? "Unlimited tabs" : `${limits.max_tabs_total.toLocaleString()} tabs`}</span>
             <span>{limits.max_tree_bytes === 0 ? "Unlimited storage" : formatBytes(limits.max_tree_bytes)}</span>
             <span>{limits.max_snapshots === 0 ? "Unlimited history" : `${limits.max_snapshots} versions of history`}</span>

@@ -28,7 +28,7 @@ export function SettingsNav() {
   return (
     <div className="hidden md:flex w-64 h-full flex-col bg-black-900 shrink-0 font-sans">
       <div className="h-16 p-4 flex items-end border-b border-black-800 shrink-0">
-        <h1 className="text-white/90 font-sans text-2xl">Settings</h1>
+        <h1 className="text-fg font-sans text-2xl">Settings</h1>
       </div>
       <Tabs
         value={active}
@@ -79,13 +79,13 @@ export function SettingsContent() {
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden min-h-0 min-w-0">
       <div className="min-h-16 px-4 py-3 sm:px-6 md:px-8 flex flex-col justify-center gap-1.5 border-b border-black-800 shrink-0">
-        <span className="hidden md:block text-white/80 text-sm font-medium font-sans">{SECTION_LABEL[tab]}</span>
-        <label htmlFor={sectionSelectId} className="md:hidden text-white/60 text-xs font-sans">Settings section</label>
+        <span className="hidden md:block text-fg text-sm font-medium font-sans">{SECTION_LABEL[tab]}</span>
+        <label htmlFor={sectionSelectId} className="md:hidden text-fg-muted text-xs font-sans">Settings section</label>
         <select
           id={sectionSelectId}
           value={tab}
           onChange={(event) => navigate(`${SETTINGS_ROUTE}/${event.target.value}`)}
-          className="md:hidden w-full min-w-0 rounded-md border border-white/15 bg-black-900 px-2 py-2 text-sm text-white/90 font-sans focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="md:hidden w-full min-w-0 rounded-md border border-white/15 bg-black-900 px-2 py-2 text-sm text-fg font-sans focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {NAV.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
         </select>

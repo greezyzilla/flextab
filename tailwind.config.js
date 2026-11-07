@@ -20,14 +20,24 @@ module.exports = {
         // (one source of truth; see style.css). primary/destructive keep an
         // <alpha-value> form so bg-primary/90 etc. still work.
         border: "var(--color-black-700)",
-        input: "var(--color-black-700)",
+        // Control boundary (inputs, select triggers, switch tracks): ≥3:1, TASK-6.
+        input: "var(--border-control)",
         ring: "var(--accent)",
         background: "var(--color-black-900)",
         foreground: "hsl(0 0% 100% / 0.92)",
         primary: { DEFAULT: "var(--accent)", foreground: "hsl(0 0% 100%)" },
         secondary: { DEFAULT: "var(--color-black-800)", foreground: "hsl(0 0% 100% / 0.88)" },
         destructive: { DEFAULT: "hsl(0 72% 51% / <alpha-value>)", foreground: "hsl(0 0% 100%)" },
-        muted: { DEFAULT: "var(--color-black-800)", foreground: "hsl(0 0% 100% / 0.5)" },
+        muted: { DEFAULT: "var(--color-black-800)", foreground: "var(--text-tertiary)" },
+        // Text tiers (TASK-6, style.css): text-fg / -muted / -subtle / -disabled.
+        fg: {
+          DEFAULT: "var(--text-primary)",
+          muted: "var(--text-secondary)",
+          subtle: "var(--text-tertiary)",
+          disabled: "var(--text-disabled)",
+          accent: "var(--accent-text)",
+        },
+        control: "var(--border-control)",
         // item-hover surface — lighter than the menu bg so hover reads
         accent: { DEFAULT: "var(--color-black-700)", foreground: "hsl(0 0% 100% / 0.92)" },
         // elevated surfaces (menus/dropdowns/tooltips) — LIGHTER than the page base

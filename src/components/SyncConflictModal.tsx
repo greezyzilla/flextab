@@ -58,10 +58,10 @@ export function SyncConflictModal() {
     <AlertDialog open={pending}>
       <AlertDialogContent className="w-[560px] max-w-[92vw] max-h-[85vh] p-0 gap-0 flex flex-col font-sans">
         <AlertDialogHeader className="p-6 pb-4 space-y-1.5 shrink-0 text-left">
-          <AlertDialogTitle className="text-white/90 text-base font-medium">
+          <AlertDialogTitle className="text-fg text-base font-medium">
             Choose what to keep
           </AlertDialogTitle>
-          <AlertDialogDescription className="text-white/45 text-sm leading-relaxed">
+          <AlertDialogDescription className="text-fg-subtle text-sm leading-relaxed">
             This device has local tabs and your account already has saved tabs.
             Pick an option. Nothing changes until you apply.
           </AlertDialogDescription>
@@ -88,9 +88,9 @@ export function SyncConflictModal() {
               >
                 <div className="flex items-center gap-2.5">
                   <RadioGroupItem value={opt.id} id={`sync-choice-${opt.id}`} />
-                  <span className="text-white/80 text-sm">{opt.label}</span>
+                  <span className="text-fg text-sm">{opt.label}</span>
                 </div>
-                <span className="text-white/35 text-[11px]">
+                <span className="text-fg-subtle text-[11px]">
                   {t.spaces} space{t.spaces !== 1 ? "s" : ""} · {t.tabs} tab{t.tabs !== 1 ? "s" : ""}
                 </span>
               </Label>
@@ -99,11 +99,11 @@ export function SyncConflictModal() {
         </RadioGroup>
 
         <div className="px-6 pt-4 pb-2 shrink-0">
-          <div className="text-white/40 text-[11px] font-medium uppercase tracking-wider">Result preview</div>
+          <div className="text-fg-subtle text-[11px] font-medium uppercase tracking-wider">Result preview</div>
         </div>
         <div className="px-6 flex-1 overflow-y-auto min-h-[80px]">
           {result.length === 0 ? (
-            <div className="text-white/30 text-xs py-4">Nothing here. The workspace is empty.</div>
+            <div className="text-fg-subtle text-xs py-4">Nothing here. The workspace is empty.</div>
           ) : (
             <div className="flex flex-col gap-2.5 pb-2">
               {result.map((s) => {
@@ -111,13 +111,13 @@ export function SyncConflictModal() {
                 return (
                   <Card key={s.id} className="px-3 py-2 shadow-none">
                     <div className="flex items-center justify-between">
-                      <span className="text-white/75 text-xs font-medium truncate">{s.name}</span>
-                      <span className="text-white/30 text-[10px] shrink-0">
+                      <span className="text-fg-muted text-xs font-medium truncate">{s.name}</span>
+                      <span className="text-fg-subtle text-[10px] shrink-0">
                         {groups.length} group{groups.length !== 1 ? "s" : ""} · {spaceTabCount(s)} tabs
                       </span>
                     </div>
                     {groups.length > 0 && (
-                      <div className="mt-1 text-white/35 text-[11px] leading-relaxed truncate">
+                      <div className="mt-1 text-fg-subtle text-[11px] leading-relaxed truncate">
                         {groups.map((g) => `${g.name} (${g.tabs})`).join(" · ")}
                       </div>
                     )}

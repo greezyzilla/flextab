@@ -66,18 +66,18 @@ export function OnboardingScreen({ onBack }: {
         <div className="relative z-10 flex-1 flex flex-col justify-between">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-white/20 to-white/5 border border-white/10 flex items-center justify-center">
-            <svg className="w-4 h-4 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+            <svg className="w-4 h-4 text-fg" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25a2.25 2.25 0 0 1-2.25-2.25v-2.25Z" />
             </svg>
           </div>
-          <span className="text-white/70 text-sm font-medium">FlexTab</span>
+          <span className="text-fg-muted text-sm font-medium">FlexTab</span>
         </div>
 
         <div className="flex flex-col gap-6 max-w-lg">
-          <h1 className="text-white/90 text-3xl sm:text-4xl font-semibold tracking-tight leading-[1.15]">
+          <h1 className="text-fg text-3xl sm:text-4xl font-semibold tracking-tight leading-[1.15]">
             Stop losing tabs.<br />Start organizing them.
           </h1>
-          <p className="text-white/40 text-sm sm:text-base leading-relaxed max-w-md">
+          <p className="text-fg-subtle text-sm sm:text-base leading-relaxed max-w-md">
             FlexTab replaces your new tab page with a workspace that saves, groups, and syncs your browsing sessions across every device.
           </p>
         </div>
@@ -90,45 +90,45 @@ export function OnboardingScreen({ onBack }: {
               <div className="w-6 h-6 rounded-full border border-dashed border-white/20" />
             </div>
             <div className="flex-1 flex items-center gap-4 px-4 py-2.5">
-              <div className="text-white/50 text-xs font-medium">Personal</div>
+              <div className="text-fg-subtle text-xs font-medium">Personal</div>
               <div className="flex gap-2">
-                <div className="px-2 py-0.5 rounded bg-white/10 text-white/50 text-[10px]">Work</div>
-                <div className="px-2 py-0.5 rounded bg-white/5 text-white/30 text-[10px]">Research</div>
+                <div className="px-2 py-0.5 rounded bg-white/10 text-fg-subtle text-[10px]">Work</div>
+                <div className="px-2 py-0.5 rounded bg-white/5 text-fg-subtle text-[10px]">Research</div>
               </div>
             </div>
           </div>
           <div className="flex">
             <div className="flex-1 p-3 flex flex-col gap-2">
               <div className="rounded-lg bg-white/[0.03] border border-white/5 p-2.5">
-                <div className="text-white/50 text-[10px] font-medium mb-2">Sprint Planning</div>
+                <div className="text-fg-subtle text-[10px] font-medium mb-2">Sprint Planning</div>
                 <div className="flex flex-col gap-1.5">
                   {["Linear · Current Sprint", "Figma · Design System", "GitHub · Pull Requests"].map((t, i) => (
                     <div key={i} className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded bg-white/10 shrink-0" />
-                      <div className="text-white/30 text-[10px] truncate">{t}</div>
+                      <div className="text-fg-subtle text-[10px] truncate">{t}</div>
                     </div>
                   ))}
                 </div>
               </div>
               <div className="rounded-lg bg-white/[0.03] border border-white/5 p-2.5">
-                <div className="text-white/50 text-[10px] font-medium mb-2">API Docs</div>
+                <div className="text-fg-subtle text-[10px] font-medium mb-2">API Docs</div>
                 <div className="flex flex-col gap-1.5">
                   {["Stripe · Webhooks", "Vercel · Deployments"].map((t, i) => (
                     <div key={i} className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded bg-white/10 shrink-0" />
-                      <div className="text-white/30 text-[10px] truncate">{t}</div>
+                      <div className="text-fg-subtle text-[10px] truncate">{t}</div>
                     </div>
                   ))}
                 </div>
               </div>
             </div>
             <div className="w-48 border-l border-black-800 p-3">
-              <div className="text-white/40 text-[10px] font-medium mb-2">Opened Tabs</div>
+              <div className="text-fg-subtle text-[10px] font-medium mb-2">Opened Tabs</div>
               <div className="flex flex-col gap-1.5">
                 {["localhost:3000", "claude.ai", "github.com", "notion.so", "figma.com"].map((t, i) => (
                   <div key={i} className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded bg-white/10 shrink-0" />
-                    <div className="text-white/25 text-[10px] truncate">{t}</div>
+                    <div className="text-fg-subtle text-[10px] truncate">{t}</div>
                   </div>
                 ))}
               </div>
@@ -142,7 +142,7 @@ export function OnboardingScreen({ onBack }: {
       <div className="w-full lg:w-[420px] shrink-0 flex flex-col justify-center border-t lg:border-t-0 lg:border-l border-black-800 p-6 sm:p-10" style={{ backgroundColor: 'color-mix(in srgb, var(--color-black-950) 50%, transparent)' }}>
         <div className="flex flex-col gap-6">
           {onBack && (
-            <Button variant="link" onClick={onBack} className="self-start !px-0 !text-sm !text-white/60 hover:!text-white/85">
+            <Button variant="link" onClick={onBack} className="self-start !px-0 !text-sm !text-fg-muted hover:!text-fg">
               ← Back to my tabs
             </Button>
           )}
@@ -153,10 +153,10 @@ export function OnboardingScreen({ onBack }: {
           )}
 
           <div className="flex flex-col gap-2">
-            <h2 className="text-white/85 text-xl font-medium">
+            <h2 className="text-fg text-xl font-medium">
               {mode === 'login' ? 'Welcome back' : 'Create an account'}
             </h2>
-            <p className="text-white/35 text-sm leading-relaxed">
+            <p className="text-fg-subtle text-sm leading-relaxed">
               {mode === 'login'
                 ? 'Sign in to sync your tabs across devices.'
                 : 'Get started with FlexTab. Organize and sync your tabs.'}
@@ -201,7 +201,7 @@ export function OnboardingScreen({ onBack }: {
           {/* Divider */}
           <div className="flex items-center gap-3">
             <div className="flex-1 h-px bg-white/5" />
-            <span className="text-white/20 text-xs">or</span>
+            <span className="text-fg-subtle text-xs">or</span>
             <div className="flex-1 h-px bg-white/5" />
           </div>
 
@@ -230,24 +230,24 @@ export function OnboardingScreen({ onBack }: {
 
           {/* Toggle mode */}
           <div className="text-center">
-            <Button variant="link" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); }} className="!text-xs !text-white/30 hover:!text-white/50">
+            <Button variant="link" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); }} className="!text-xs !text-fg-subtle hover:!text-fg-subtle">
               {mode === 'login' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
             </Button>
           </div>
 
           {/* Try without an account — local-only until you sign in */}
           {!onBack && <div className="flex flex-col items-center gap-1.5 pt-1">
-            <Button variant="link" onClick={() => continueAsGuest()} className="!text-sm !text-white/55 hover:!text-white/80">
+            <Button variant="link" onClick={() => continueAsGuest()} className="!text-sm !text-fg-subtle hover:!text-fg">
               Continue without an account →
             </Button>
-            <span className="text-white/25 text-[11px]">Saved locally on this device. Sign in anytime to sync.</span>
+            <span className="text-fg-subtle text-[11px]">Saved locally on this device. Sign in anytime to sync.</span>
           </div>}
 
-          <p className="text-white/15 text-[11px] leading-relaxed">
+          <p className="text-fg-subtle text-[11px] leading-relaxed">
             By continuing, you agree to FlexTab's{' '}
-            <a href={`${LEGAL_BASE_URL}/terms.html`} target="_blank" rel="noreferrer" className="underline hover:text-white/40">terms of service</a>
+            <a href={`${LEGAL_BASE_URL}/terms.html`} target="_blank" rel="noreferrer" className="underline hover:text-fg-subtle">terms of service</a>
             {' '}and{' '}
-            <a href={`${LEGAL_BASE_URL}/privacy.html`} target="_blank" rel="noreferrer" className="underline hover:text-white/40">privacy policy</a>.
+            <a href={`${LEGAL_BASE_URL}/privacy.html`} target="_blank" rel="noreferrer" className="underline hover:text-fg-subtle">privacy policy</a>.
           </p>
         </div>
       </div>

@@ -81,10 +81,10 @@ export function MergeConflictModal() {
     <AlertDialog open={pending}>
       <AlertDialogContent className="w-[560px] max-w-[92vw] max-h-[85vh] p-0 gap-0 flex flex-col font-sans">
         <AlertDialogHeader className="p-6 pb-4 space-y-1.5 shrink-0 text-left">
-          <AlertDialogTitle className="text-white/90 text-base font-medium">
+          <AlertDialogTitle className="text-fg text-base font-medium">
             Resolve sync conflicts
           </AlertDialogTitle>
-          <AlertDialogDescription className="text-white/45 text-sm leading-relaxed">
+          <AlertDialogDescription className="text-fg-subtle text-sm leading-relaxed">
             {conflicts.length} item{conflicts.length !== 1 ? "s" : ""} changed on both this device and your account.
             Everything else was merged automatically. Pick which to keep. Nothing changes until you apply.
           </AlertDialogDescription>
@@ -94,14 +94,14 @@ export function MergeConflictModal() {
           <div className="flex flex-col gap-3.5 pb-2">
             {[...byPath.entries()].map(([path, items]) => (
               <div key={path} className="flex flex-col gap-2">
-                {path && <div className="text-white/35 text-[11px] font-medium truncate">{path}</div>}
+                {path && <div className="text-fg-subtle text-[11px] font-medium truncate">{path}</div>}
                 {items.map((c) => {
                   const opts = optionsFor(c)
                   return (
                     <Card key={c.key} className="shadow-none">
                       <CardHeader className="flex-row items-center justify-between gap-2 space-y-0 p-3 pb-2">
-                        <span className="text-white/80 text-sm truncate">{c.name || "(untitled)"}</span>
-                        <span className="text-white/30 text-[10px] shrink-0">{fieldLabel(c)}</span>
+                        <span className="text-fg text-sm truncate">{c.name || "(untitled)"}</span>
+                        <span className="text-fg-subtle text-[10px] shrink-0">{fieldLabel(c)}</span>
                       </CardHeader>
                       <CardContent className="p-3 pt-0">
                         <ToggleGroup
@@ -122,7 +122,7 @@ export function MergeConflictModal() {
                               className="h-auto min-h-0 flex-col items-start gap-0.5 px-2.5 py-1.5 data-[state=on]:border-[var(--accent)]"
                             >
                               <span className="text-[11px] font-medium">{opt.label}</span>
-                              <span className="max-w-full truncate text-[11px] font-normal text-white/40">
+                              <span className="max-w-full truncate text-[11px] font-normal text-fg-subtle">
                                 {opt.detail || "No details"}
                               </span>
                             </ToggleGroupItem>
@@ -138,7 +138,7 @@ export function MergeConflictModal() {
         </div>
 
         <AlertDialogFooter className="p-6 pt-4 flex-row items-center justify-between gap-2 shrink-0 border-t border-black-800 sm:justify-between sm:space-x-0">
-          <span className="text-white/30 text-[11px]">
+          <span className="text-fg-subtle text-[11px]">
             {resolvedCount} tab{resolvedCount !== 1 ? "s" : ""} after merge
           </span>
           <div className="flex items-center gap-2">

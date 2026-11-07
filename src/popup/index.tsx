@@ -146,7 +146,7 @@ function IndexPopup() {
   if (authLoading || !hydrated) {
     return (
       <div className="w-72 bg-black-900 p-4 font-sans">
-        <div className="text-white/50 text-xs text-center">Loading...</div>
+        <div className="text-fg-subtle text-xs text-center">Loading...</div>
       </div>
     )
   }
@@ -156,8 +156,8 @@ function IndexPopup() {
   if (!usable) {
     return (
       <div className="w-72 bg-black-900 p-4 font-sans flex flex-col items-center gap-3">
-        <h2 className="text-white/90 text-base font-medium">FlexTab</h2>
-        <p className="text-white/55 text-xs text-center">Start saving tabs: use FlexTab on this device, or sign in to sync.</p>
+        <h2 className="text-fg text-base font-medium">FlexTab</h2>
+        <p className="text-fg-subtle text-xs text-center">Start saving tabs: use FlexTab on this device, or sign in to sync.</p>
         <Button variant="secondary" onClick={() => chrome.tabs.create({ url: chrome.runtime.getURL("newtab.html") })} className="w-full">Get started</Button>
         <Button variant="ghost" size="sm" onClick={() => chrome.tabs.create({ url: signInPageUrl() })} className="w-full">Sign in</Button>
       </div>
@@ -168,10 +168,10 @@ function IndexPopup() {
 
   return (
     <div className="w-80 bg-black-900 p-4 font-sans flex flex-col gap-3">
-      <h2 className="text-white/90 text-base font-medium">FlexTab</h2>
+      <h2 className="text-fg text-base font-medium">FlexTab</h2>
 
       {lastBackground && (
-        <div className="flex items-center justify-between gap-2 rounded-md border border-white/10 px-2.5 py-1.5 text-xs text-white/70">
+        <div className="flex items-center justify-between gap-2 rounded-md border border-white/10 px-2.5 py-1.5 text-xs text-fg-muted">
           <span className="min-w-0 truncate">
             Last shortcut save: {lastBackground.tabIds.length} tab{lastBackground.tabIds.length === 1 ? "" : "s"}
             {lastBackground.closed.length > 0 ? `, ${lastBackground.closed.length} closed` : ""}
@@ -181,31 +181,31 @@ function IndexPopup() {
       )}
 
       <section role="status" aria-live="polite" className="rounded-lg border border-white/10 bg-white/[0.03] p-3 flex flex-col gap-2">
-        {status.kind === "saving" && <p className="text-white/60 text-xs">Saving this page…</p>}
+        {status.kind === "saving" && <p className="text-fg-muted text-xs">Saving this page…</p>}
         {status.kind === "saved" && (
           <>
-            <p className="text-xs text-white/90"><span className="text-green-400">✓ Saved</span> to</p>
-            <p className="text-xs text-white/70 break-words">{where}</p>
+            <p className="text-xs text-fg"><span className="text-green-400">✓ Saved</span> to</p>
+            <p className="text-xs text-fg-muted break-words">{where}</p>
             {/* Same page already saved elsewhere (TASK-4): say where, don't block. */}
             {describeAlsoSaved(status.receipt.alsoIn ?? []) && (
-              <p className="text-xs text-white/55 break-words">{describeAlsoSaved(status.receipt.alsoIn ?? [])}</p>
+              <p className="text-xs text-fg-subtle break-words">{describeAlsoSaved(status.receipt.alsoIn ?? [])}</p>
             )}
           </>
         )}
         {status.kind === "already" && (
           <>
-            <p className="text-xs text-white/90">Already saved in</p>
-            <p className="text-xs text-white/70 break-words">{where}</p>
+            <p className="text-xs text-fg">Already saved in</p>
+            <p className="text-xs text-fg-muted break-words">{where}</p>
           </>
         )}
         {status.kind === "unsavable" && (
           <>
-            <p className="text-xs text-white/90">This page can't be saved</p>
-            <p className="text-xs text-white/55">Only web pages (http/https) can be saved. Browser, extension and local file pages are skipped.</p>
+            <p className="text-xs text-fg">This page can't be saved</p>
+            <p className="text-xs text-fg-subtle">Only web pages (http/https) can be saved. Browser, extension and local file pages are skipped.</p>
           </>
         )}
-        {status.kind === "choose" && <p className="text-xs text-white/90">Choose where to save this page</p>}
-        {status.kind === "removed" && <p className="text-xs text-white/80">Removed from FlexTab.</p>}
+        {status.kind === "choose" && <p className="text-xs text-fg">Choose where to save this page</p>}
+        {status.kind === "removed" && <p className="text-xs text-fg">Removed from FlexTab.</p>}
         {status.kind === "failed" && (
           <p role="alert" className="text-xs text-red-400">Could not save to this device. Keep this popup open and retry.</p>
         )}
@@ -248,15 +248,15 @@ function IndexPopup() {
             </Button>
           )}
           {windowReceipt && (
-            <div className="flex items-center justify-between gap-2 text-xs text-white/70">
+            <div className="flex items-center justify-between gap-2 text-xs text-fg-muted">
               <span>
                 Saved {windowReceipt.tabIds.length} more{windowReceipt.closed.length ? `, closed ${windowReceipt.closed.length}` : ""}
               </span>
               <Button variant="ghost" size="sm" onClick={undoOthers} disabled={busy}>Undo</Button>
             </div>
           )}
-          <label className="flex items-center justify-between gap-2 text-xs text-white/70">
-            <span>Close tabs after saving <span className="text-white/45">(pinned tabs stay open)</span></span>
+          <label className="flex items-center justify-between gap-2 text-xs text-fg-muted">
+            <span>Close tabs after saving <span className="text-fg-subtle">(pinned tabs stay open)</span></span>
             <Switch checked={closeAfter} aria-label="Close tabs after saving"
               onCheckedChange={(v) => { setCloseAfter(v); void saveCloseAfterSave(v) }} />
           </label>
@@ -267,7 +267,7 @@ function IndexPopup() {
         Open FlexTab Dashboard
       </Button>
       {!isAuthenticated && (
-        <Button variant="link" size="sm" onClick={() => chrome.tabs.create({ url: signInPageUrl() })} className="w-full !text-xs !text-white/55 hover:!text-white/80">
+        <Button variant="link" size="sm" onClick={() => chrome.tabs.create({ url: signInPageUrl() })} className="w-full !text-xs !text-fg-subtle hover:!text-fg">
           Sign in to sync across devices
         </Button>
       )}

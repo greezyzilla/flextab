@@ -72,8 +72,8 @@ export function SpacesTab() {
                 >
                   <SpaceAvatar space={space} size={28} active={isSelected} />
                   <span className="flex min-w-0 flex-col">
-                    <span className="truncate text-sm font-sans text-white/85">{space.name}</span>
-                    <span className="text-xs font-sans text-white/45">{plural(projects, "project")} · {plural(tabs, "tab")}</span>
+                    <span className="truncate text-sm font-sans text-fg">{space.name}</span>
+                    <span className="text-xs font-sans text-fg-subtle">{plural(projects, "project")} · {plural(tabs, "tab")}</span>
                   </span>
                 </button>
                 <IconButton aria-label={`Move ${space.name} up`} disabled={i === 0}
@@ -165,11 +165,11 @@ function DangerZone({ space, isLast }: { space: SavedSpace; isLast: boolean }) {
 
   return (
     <section className="flex flex-col gap-3 border-t border-white/10 pt-6" aria-labelledby="danger-zone-heading">
-      <h3 id="danger-zone-heading" className="text-white/35 text-[11px] font-medium font-sans uppercase tracking-wider">Danger zone</h3>
+      <h3 id="danger-zone-heading" className="text-fg-subtle text-[11px] font-medium font-sans uppercase tracking-wider">Danger zone</h3>
       <div className="flex items-start justify-between gap-4 rounded-lg border border-red-400/25 p-4">
         <div className="min-w-0">
-          <div className="text-sm font-sans font-medium text-white/80">Delete this space</div>
-          <p className="mt-0.5 text-xs font-sans leading-relaxed text-white/45">
+          <div className="text-sm font-sans font-medium text-fg">Delete this space</div>
+          <p className="mt-0.5 text-xs font-sans leading-relaxed text-fg-subtle">
             {isLast
               ? "This is your only space. Create another space before deleting this one."
               : `Removes ${plural(projects, "project")} and ${plural(tabs, "tab")} on every synced device.`}
@@ -189,7 +189,7 @@ function DangerZone({ space, isLast }: { space: SavedSpace; isLast: boolean }) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="confirm-space-name">Type <span className="text-white/80">{space.name}</span> to confirm</Label>
+            <Label htmlFor="confirm-space-name">Type <span className="text-fg">{space.name}</span> to confirm</Label>
             <Input id="confirm-space-name" value={typed} onChange={e => setTyped(e.target.value)} autoComplete="off" className="w-full"
               onKeyDown={e => { if (e.key === "Enter" && matches) { setOpen(false); remove(); } }} />
           </div>

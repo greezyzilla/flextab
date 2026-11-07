@@ -34,7 +34,7 @@ export function SyncTab() {
               : "Sync your spaces, groups, and tabs across every device."
           }
         >
-          <Card className="px-5 py-4 text-white/50 text-sm font-sans leading-relaxed shadow-none">
+          <Card className="px-5 py-4 text-fg-subtle text-sm font-sans leading-relaxed shadow-none">
             {guestMode
               ? "You're in guest mode, not offline. Tabs save locally on this device. Sign in to back up and sync across devices."
               : "You're using FlexTab locally on this device. Sign in to back up and sync your tabs across devices."}
@@ -75,8 +75,8 @@ export function SyncTab() {
               style={{ backgroundColor: meta.color }}
             />
             <div className="flex flex-col">
-              <span className="text-white/80 text-sm font-sans font-medium">{meta.label}</span>
-              <span className="text-white/30 text-xs font-sans">Last synced {formatRelativeTime(lastSyncedAt)}</span>
+              <span className="text-fg text-sm font-sans font-medium">{meta.label}</span>
+              <span className="text-fg-subtle text-xs font-sans">Last synced {formatRelativeTime(lastSyncedAt)}</span>
             </div>
           </div>
           <Button variant="ghost" size="sm" onClick={handleSyncNow} disabled={syncing || status === "syncing"}>
@@ -89,7 +89,7 @@ export function SyncTab() {
         {(controlProps) => (
           <div className="flex items-center gap-2">
             <Switch {...controlProps} checked={autoSync} onCheckedChange={setAutoSync} />
-            <span className="text-white/60 text-sm font-sans">{autoSync ? 'On' : 'Off'}</span>
+            <span className="text-fg-muted text-sm font-sans">{autoSync ? 'On' : 'Off'}</span>
           </div>
         )}
       </SettingRow>
@@ -124,26 +124,26 @@ export function DevicesSection({ refresh }: { refresh: number }) {
     <SettingRow label="Devices" description="Devices that have used this account.">
       <div className="flex flex-col gap-2.5">
         <div className="flex flex-col gap-2">
-          {failed && <div className="text-white/30 text-xs font-sans">Couldn't load devices.</div>}
-          {!failed && devices === null && <div className="text-white/30 text-xs font-sans">Loading…</div>}
-          {!failed && devices?.length === 0 && <div className="text-white/30 text-xs font-sans">No devices recorded yet.</div>}
+          {failed && <div className="text-fg-subtle text-xs font-sans">Couldn't load devices.</div>}
+          {!failed && devices === null && <div className="text-fg-subtle text-xs font-sans">Loading…</div>}
+          {!failed && devices?.length === 0 && <div className="text-fg-subtle text-xs font-sans">No devices recorded yet.</div>}
           {devices?.map(d => (
             <div key={d.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/[0.08] bg-white/[0.02] px-4 py-3">
               <div className="flex flex-wrap items-center gap-2 min-w-0 max-w-full">
-                <span className="text-white/75 text-sm font-sans truncate">{d.label}</span>
+                <span className="text-fg-muted text-sm font-sans truncate">{d.label}</span>
                 {d.id === thisDeviceId && (
                   <Badge variant="accent" size="sm" className="shrink-0 font-normal">This device</Badge>
                 )}
               </div>
-              <span className="text-white/30 text-xs font-sans shrink-0 tabular-nums">
+              <span className="text-fg-subtle text-xs font-sans shrink-0 tabular-nums">
                 {formatRelativeTime(new Date(d.last_seen_at).getTime())}
               </span>
             </div>
           ))}
         </div>
         {lastSyncedDevice && (
-          <div className="text-white/30 text-xs font-sans px-0.5">
-            Last synced from <span className="text-white/50">{lastSyncedDevice.label}</span> · {formatRelativeTime(new Date(lastSyncedDevice.last_synced_at!).getTime())}
+          <div className="text-fg-subtle text-xs font-sans px-0.5">
+            Last synced from <span className="text-fg-subtle">{lastSyncedDevice.label}</span> · {formatRelativeTime(new Date(lastSyncedDevice.last_synced_at!).getTime())}
           </div>
         )}
       </div>

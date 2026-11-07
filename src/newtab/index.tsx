@@ -20,7 +20,7 @@ import { useSettingsStore } from "~src/store/useSettingsStore"
 function LoadingScreen() {
   return (
     <div className="flex items-center justify-center h-screen w-screen bg-black-900">
-      <div className="text-white/50 font-sans text-sm">Loading...</div>
+      <div className="text-fg-subtle font-sans text-sm">Loading...</div>
     </div>
   )
 }

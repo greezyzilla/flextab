@@ -60,7 +60,7 @@ const OpenedTab = ({ tab, windowId, saved }: { tab: chrome.tabs.Tab, windowId: n
           title="Drag to save"
           className="absolute -inset-0.5 flex items-center justify-center rounded bg-black-700 opacity-0 group-hover/tab:opacity-100 focus-visible:opacity-100 focus-visible:ring-1 focus-visible:ring-ring outline-none cursor-grab active:cursor-grabbing transition-opacity"
         >
-          <DragHandleIcon className="w-3.5 h-3.5 text-white/70" />
+          <DragHandleIcon className="w-3.5 h-3.5 text-fg-muted" />
         </button>
       </span>
 
@@ -70,8 +70,8 @@ const OpenedTab = ({ tab, windowId, saved }: { tab: chrome.tabs.Tab, windowId: n
         className="flex flex-col flex-1 min-w-0 cursor-pointer overflow-hidden text-left rounded outline-none focus-visible:ring-1 focus-visible:ring-ring"
         onClick={() => onTabClick(tab, windowId)}
       >
-        <span className="text-white/80 text-xs font-sans truncate">{tab.title}</span>
-        <span className="text-white/30 text-[10px] font-sans truncate">{tab.url?.replace(/^https?:\/\//, '')}</span>
+        <span className="text-fg text-xs font-sans truncate">{tab.title}</span>
+        <span className="text-fg-subtle text-[10px] font-sans truncate">{tab.url?.replace(/^https?:\/\//, '')}</span>
       </button>
 
       {/* The row's one trailing slot: the saved mark (TASK-4) rests there,
@@ -81,7 +81,7 @@ const OpenedTab = ({ tab, windowId, saved }: { tab: chrome.tabs.Tab, windowId: n
         reveal="opacity-0 group-hover/tab:opacity-100 group-focus-within/tab:opacity-100"
         conceal="group-hover/tab:opacity-0 group-focus-within/tab:opacity-0"
         rest={savedLabel ? (
-          <span role="img" aria-label={savedLabel} title={savedLabel} className="text-white/45">
+          <span role="img" aria-label={savedLabel} title={savedLabel} className="text-fg-subtle">
             <BookmarkCheck className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
           </span>
         ) : undefined}
@@ -127,7 +127,7 @@ export function RightPanel() {
     <div className="w-80 h-full flex flex-col">
       {/* Header */}
       <div className="h-16 px-4 flex items-center gap-2 border-b border-black-800 shrink-0">
-        <h2 className="text-white/80 font-sans text-sm font-medium flex-1">Opened Tabs</h2>
+        <h2 className="text-fg font-sans text-sm font-medium flex-1">Opened Tabs</h2>
       </div>
 
       {/* Tab list */}
@@ -151,9 +151,9 @@ export function RightPanel() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </IconButton>
-                <span className="text-xs text-white/50 font-sans flex-1">
+                <span className="text-xs text-fg-subtle font-sans flex-1">
                   Window {index + 1}
-                  <span className="text-white/25 ml-1.5">{tabs.length} tabs</span>
+                  <span className="text-fg-subtle ml-1.5">{tabs.length} tabs</span>
                 </span>
                 <ActionSlot>
                 <Tooltip>

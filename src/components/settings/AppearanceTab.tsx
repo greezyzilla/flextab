@@ -52,7 +52,7 @@ export function AppearanceTab() {
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-3">
                 <HueSlider {...controlProps} value={hue} onChange={setHue} />
-                <span className="w-10 shrink-0 rounded-md border border-white/10 py-0.5 text-center text-xs font-sans text-white/45">{hue}°</span>
+                <span className="w-10 shrink-0 rounded-md border border-white/10 py-0.5 text-center text-xs font-sans text-fg-subtle">{hue}°</span>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 {HUE_PRESETS.map(p => (
@@ -73,7 +73,7 @@ export function AppearanceTab() {
           {(controlProps) => (
             <div className="flex items-center gap-3">
               <Slider {...controlProps} aria-valuetext={`${intensity} percent`} min={0} max={100} value={[intensity]} onValueChange={(v) => setIntensity(v[0])} className="flex-1" />
-              <span className="text-white/30 text-xs font-sans w-9 text-right shrink-0">{intensity}%</span>
+              <span className="text-fg-subtle text-xs font-sans w-9 text-right shrink-0">{intensity}%</span>
             </div>
           )}
         </SettingRow>
@@ -82,7 +82,7 @@ export function AppearanceTab() {
           {(controlProps) => (
             <div className="flex items-center gap-3">
               <Slider {...controlProps} aria-valuetext={`${radius} pixels`} min={0} max={16} value={[radius]} onValueChange={(v) => setRadius(v[0])} className="flex-1" />
-              <span className="text-white/30 text-xs font-sans w-9 text-right shrink-0">{radius}px</span>
+              <span className="text-fg-subtle text-xs font-sans w-9 text-right shrink-0">{radius}px</span>
             </div>
           )}
         </SettingRow>
@@ -105,7 +105,7 @@ export function AppearanceTab() {
           {(controlProps) => (
             <div className="flex items-center gap-3">
               <Slider {...controlProps} aria-valuetext={`${Math.round(uiScale * 100)} percent`} min={0.8} max={1.2} step={0.05} value={[uiScale]} onValueChange={(v) => setUiScale(v[0])} className="flex-1" />
-              <span className="text-white/30 text-xs font-sans w-9 text-right shrink-0">{Math.round(uiScale * 100)}%</span>
+              <span className="text-fg-subtle text-xs font-sans w-9 text-right shrink-0">{Math.round(uiScale * 100)}%</span>
             </div>
           )}
         </SettingRow>
@@ -168,14 +168,14 @@ export function AppearanceTab() {
           {(controlProps) => (
             <div className="flex items-center gap-2">
               <Switch {...controlProps} checked={reduceMotion} onCheckedChange={setReduceMotion} />
-              <span className="text-white/60 text-sm font-sans">{reduceMotion ? 'On' : 'Off'}</span>
+              <span className="text-fg-muted text-sm font-sans">{reduceMotion ? 'On' : 'Off'}</span>
             </div>
           )}
         </SettingRow>
       </section>
 
       <div className="pt-2 border-t border-white/5">
-        <Button variant="ghost" size="sm" onClick={resetAppearance} className="!text-white/45 hover:!text-white/80">
+        <Button variant="ghost" size="sm" onClick={resetAppearance} className="!text-fg-subtle hover:!text-fg">
           Reset to defaults
         </Button>
       </div>
