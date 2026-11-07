@@ -1,11 +1,14 @@
 import { useMemo, useState } from "react"
+import { ChevronRight } from "lucide-react"
 import { useMergeConflict } from "~src/store/useMergeConflict"
 import { resolveMergeConflicts, dismissMergeConflicts } from "~src/services/syncEngine"
 import { merge3, type Conflict, type Resolutions } from "~src/services/spacesMerge3"
 import { spaceTabCount } from "~src/services/spacesTree"
+import { autoMerged, changeText, editSummary, LEVEL_LABEL, locate, locatedName, type Change, type Level } from "~src/services/syncChanges"
+import { cn } from "~src/lib/utils"
 import { Button } from "~src/components/ui/button"
-import { Card, CardContent, CardHeader } from "~src/components/ui/card"
-import { ToggleGroup, ToggleGroupItem } from "~src/components/ui/toggle-group"
+import { Label } from "~src/components/ui/label"
+import { RadioGroup, RadioGroupItem } from "~src/components/ui/radio-group"
 import {
   AlertDialog,
   AlertDialogContent,
@@ -16,149 +19,178 @@ import {
 } from "~src/components/ui/alert-dialog"
 
 type Side = "server" | "local"
+const SIDE_NAME: Record<Side, string> = { local: "This device", server: "Your account" }
+const SIDE_POSSESSIVE: Record<Side, string> = { local: "this device's", server: "your account's" }
 
-// The default choice for a conflict: keep this device's edit / the surviving edit.
-function defaultChoice(c: Conflict): Side {
-  if (c.kind === "field") return "local"
-  // delete-edit: keep the edit → the side that did NOT delete.
-  return c.deletedOn === "server" ? "local" : "server"
+const FIELD_LABEL: Record<string, string> = {
+  name: "Name", title: "Title", url: "Address", favicon: "Icon", icon: "Icon", color: "Color", abbreviation: "Short name",
 }
+const shown = (v: unknown) => (v === undefined || v === null || v === "" ? "(empty)" : `“${String(v)}”`)
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`
 
-function fieldLabel(c: Conflict): string {
-  if (c.kind === "field") return c.field === "name" || c.field === "title" ? "name" : (c.field ?? "value")
-  return "deleted vs. edited"
-}
+interface Option { side: Side; label: string; detail: string }
 
-// For a conflict + a chosen side, describe what that choice does.
-function optionsFor(c: Conflict): { side: Side; label: string; detail: string }[] {
+/** What the user is choosing between, in plain words (TASK-29). */
+function describe(c: Conflict, level: Level, base: ReturnType<typeof locate>): { lead: string; options: Option[] } {
+  const what = LEVEL_LABEL[level].toLowerCase()
   if (c.kind === "field") {
-    return [
-      { side: "local", label: "This device", detail: String(c.local ?? "") },
-      { side: "server", label: "My account", detail: String(c.server ?? "") },
-    ]
+    const field = FIELD_LABEL[c.field ?? ""] ?? c.field ?? "Value"
+    return {
+      lead: `${field} was ${shown(c.base)}. Both sides changed it.`,
+      options: [
+        { side: "local", label: SIDE_NAME.local, detail: shown(c.local) },
+        { side: "server", label: SIDE_NAME.server, detail: shown(c.server) },
+      ],
+    }
   }
-  const keepSide: Side = c.deletedOn === "server" ? "local" : "server"
-  const dropSide: Side = keepSide === "local" ? "server" : "local"
-  return [
-    { side: keepSide, label: "Keep it", detail: "Restore the edited item" },
-    { side: dropSide, label: "Delete it", detail: "Honor the deletion" },
-  ]
+  // Delete on one side, edit on the other: say who did what.
+  const deleter: Side = c.deletedOn ?? "server"
+  const keeper: Side = deleter === "server" ? "local" : "server"
+  const edited = (keeper === "local" ? c.local : c.server) as Parameters<typeof editSummary>[1]
+  const did = editSummary(base?.node, edited, level)
+  return {
+    lead: `${SIDE_NAME[deleter]} deleted this ${what}. ${SIDE_NAME[keeper]} ${did}.`,
+    options: [
+      { side: keeper, label: "Keep it", detail: `With ${SIDE_POSSESSIVE[keeper]} changes` },
+      { side: deleter, label: "Delete it", detail: "Removed everywhere" },
+    ],
+  }
 }
 
-// Shown when a 3-way reconcile finds true conflicts. Each item is resolved
-// individually; everything non-conflicting is already merged. Nothing is written
-// until Apply. "Pause sync and decide later" keeps local data and pauses sync;
-// the header sync indicator reopens it (TASK-10).
+function MergedList({ title, changes }: { title: string; changes: Change[] }) {
+  if (changes.length === 0) return null
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="text-fg-muted text-xs font-medium">{title}</div>
+      <ul className="flex flex-col gap-0.5">
+        {changes.map((ch, i) => <li key={i} className="text-fg-subtle text-xs leading-relaxed">{changeText(ch)}</li>)}
+      </ul>
+    </div>
+  )
+}
+
+// Shown when a 3-way reconcile finds true conflicts. Like a git merge: what
+// merged by itself is listed, each conflict shows the base and both sides, and
+// nothing is chosen for the user. Nothing is written until Apply. "Pause sync
+// and decide later" keeps local data and pauses sync; the header sync indicator
+// reopens it (TASK-10).
 export function MergeConflictModal() {
   const { pending, conflicts, base, server, local } = useMergeConflict()
   const [choices, setChoices] = useState<Resolutions>({})
+  const [showMerged, setShowMerged] = useState(false)
 
-  // Seed defaults whenever a fresh set of conflicts opens.
-  const seeded = useMemo(() => {
-    const out: Resolutions = {}
-    for (const c of conflicts) out[c.key] = choices[c.key] ?? defaultChoice(c)
-    return out
-  }, [conflicts, choices])
+  const merged = useMemo(() => autoMerged(base, server, local, conflicts), [base, server, local, conflicts])
+  const mergedCount = merged.fromAccount.length + merged.fromDevice.length
+  const items = useMemo(() => conflicts.map((c) => {
+    // Name and path as they were at the common base: both sides may have renamed them.
+    const loc = locate(c.id, base, local, server)
+    const level: Level = loc?.level ?? "space"
+    return { c, level, path: loc?.path ?? [], name: loc ? locatedName(loc) : c.name || "(untitled)", ...describe(c, level, locate(c.id, base)) }
+  }), [conflicts, base, server, local])
 
+  const chosen = conflicts.filter((c) => choices[c.key]).length
+  const complete = conflicts.length > 0 && chosen === conflicts.length
   const resolvedCount = useMemo(
-    () =>
-      merge3(base, server, local, seeded).merged.reduce(
-        (n, s) => n + spaceTabCount(s),
-        0,
-      ),
-    [base, server, local, seeded],
+    () => (complete ? merge3(base, server, local, choices).merged.reduce((n, s) => n + spaceTabCount(s), 0) : 0),
+    [complete, base, server, local, choices],
   )
 
-  const byPath = new Map<string, Conflict[]>()
-  for (const c of conflicts) {
-    const arr = byPath.get(c.path) ?? []
-    arr.push(c)
-    byPath.set(c.path, arr)
-  }
+  const choose = (key: string, side: Side) => setChoices((prev) => ({ ...prev, [key]: side }))
+  const chooseAll = (side: Side) => setChoices(Object.fromEntries(conflicts.map((c) => [c.key, side])))
+  const reset = () => { setChoices({}); setShowMerged(false) }
 
-  // Controlled solely by store pending. Ignore/Apply clear pending via engine
-  // helpers — no Esc/outside path that would accidentally pause sync.
+  // Controlled solely by store pending. Pause/Apply clear pending via engine
+  // helpers: no Esc/outside path that would pause sync by accident.
   return (
     <AlertDialog open={pending}>
-      <AlertDialogContent className="w-[560px] max-w-[92vw] max-h-[85vh] p-0 gap-0 flex flex-col font-sans">
-        <AlertDialogHeader className="p-6 pb-4 space-y-1.5 shrink-0 text-left">
-          <AlertDialogTitle className="text-fg text-base font-medium">
-            Resolve sync conflicts
-          </AlertDialogTitle>
+      <AlertDialogContent className="w-[640px] max-w-[94vw] max-h-[88vh] p-0 gap-0 flex flex-col font-sans">
+        <AlertDialogHeader className="p-6 pb-3 space-y-1.5 shrink-0 text-left">
+          <AlertDialogTitle className="text-fg text-base font-medium">Resolve sync conflicts</AlertDialogTitle>
           <AlertDialogDescription className="text-fg-subtle text-sm leading-relaxed">
-            {conflicts.length} item{conflicts.length !== 1 ? "s" : ""} changed on both this device and your account.
-            Everything else was merged automatically. Pick which to keep. Nothing changes until you apply.
+            {plural(conflicts.length, "item")} changed on both this device and your account. Choose a version for each. Nothing changes until you apply.
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <div className="px-6 flex-1 overflow-y-auto min-h-[100px]">
-          <div className="flex flex-col gap-3.5 pb-2">
-            {[...byPath.entries()].map(([path, items]) => (
-              <div key={path} className="flex flex-col gap-2">
-                {path && <div className="text-fg-subtle text-[11px] font-medium truncate">{path}</div>}
-                {items.map((c) => {
-                  const opts = optionsFor(c)
-                  return (
-                    <Card key={c.key} className="shadow-none">
-                      <CardHeader className="flex-row items-center justify-between gap-2 space-y-0 p-3 pb-2">
-                        <span className="text-fg text-sm truncate">{c.name || "(untitled)"}</span>
-                        <span className="text-fg-subtle text-[10px] shrink-0">{fieldLabel(c)}</span>
-                      </CardHeader>
-                      <CardContent className="p-3 pt-0">
-                        <ToggleGroup
-                          type="single"
-                          variant="outline"
-                          size="sm"
-                          value={seeded[c.key]}
-                          onValueChange={(v) => {
-                            if (!v) return
-                            setChoices((prev) => ({ ...prev, [c.key]: v as Side }))
-                          }}
-                          className="grid w-full grid-cols-2 gap-2"
-                        >
-                          {opts.map((opt) => (
-                            <ToggleGroupItem
-                              key={opt.side}
-                              value={opt.side}
-                              className="h-auto min-h-0 flex-col items-start gap-0.5 px-2.5 py-1.5 data-[state=on]:border-[var(--accent)]"
-                            >
-                              <span className="text-[11px] font-medium">{opt.label}</span>
-                              <span className="max-w-full truncate text-[11px] font-normal text-fg-subtle">
-                                {opt.detail || "No details"}
-                              </span>
-                            </ToggleGroupItem>
-                          ))}
-                        </ToggleGroup>
-                      </CardContent>
-                    </Card>
-                  )
-                })}
+        {mergedCount > 0 && (
+          <div className="px-6 pb-3 shrink-0">
+            <button
+              type="button"
+              aria-expanded={showMerged}
+              onClick={() => setShowMerged((v) => !v)}
+              className="flex items-center gap-1.5 rounded text-fg-muted text-xs outline-none hover:text-fg focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <ChevronRight className={cn("h-3.5 w-3.5 transition-transform", showMerged && "rotate-90")} aria-hidden />
+              {plural(mergedCount, "other change")} merged automatically
+            </button>
+            {showMerged && (
+              <div className="mt-2 flex max-h-40 flex-col gap-3 overflow-y-auto rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2.5">
+                <MergedList title="From your account, arriving on this device" changes={merged.fromAccount} />
+                <MergedList title="From this device, going to your account" changes={merged.fromDevice} />
               </div>
+            )}
+          </div>
+        )}
+
+        {conflicts.length > 1 && (
+          <div className="flex shrink-0 items-center gap-2 px-6 pb-3 text-fg-subtle text-xs">
+            <span>Choose for all:</span>
+            <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs" onClick={() => chooseAll("local")}>This device</Button>
+            <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs" onClick={() => chooseAll("server")}>Your account</Button>
+          </div>
+        )}
+
+        <div className="min-h-[100px] flex-1 overflow-y-auto px-6">
+          <div className="flex flex-col gap-3 pb-3">
+            {items.map(({ c, level, path, name, lead, options }) => (
+              <section key={c.key} aria-label={`${LEVEL_LABEL[level]} ${name}`} className="flex flex-col gap-2 rounded-lg border border-white/10 p-3">
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <div className="flex min-w-0 items-baseline gap-2">
+                    <span className="shrink-0 text-fg-subtle text-[11px] uppercase tracking-wide">{LEVEL_LABEL[level]}</span>
+                    <span className="truncate text-fg text-sm">{name}</span>
+                  </div>
+                  {path.length > 0 && <span className="truncate text-fg-subtle text-[11px]">in {path.join(" › ")}</span>}
+                </div>
+                <p className="text-fg-muted text-xs leading-relaxed">{lead}</p>
+                <RadioGroup
+                  value={choices[c.key] ?? ""}
+                  onValueChange={(v) => choose(c.key, v as Side)}
+                  aria-label={`${LEVEL_LABEL[level]} ${name}: which version to keep`}
+                  className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+                >
+                  {options.map((opt) => {
+                    const id = `merge-${c.key}-${opt.side}`
+                    return (
+                      <Label
+                        key={opt.side}
+                        htmlFor={id}
+                        className={cn(
+                          "flex cursor-pointer items-start gap-2.5 rounded-md border px-3 py-2 font-normal transition-colors",
+                          choices[c.key] === opt.side ? "border-[var(--accent)] bg-[var(--accent-subtle)]" : "border-white/10 bg-white/[0.02] hover:bg-white/[0.05]",
+                        )}
+                      >
+                        <RadioGroupItem value={opt.side} id={id} className="mt-0.5" />
+                        <span className="flex min-w-0 flex-col gap-0.5">
+                          <span className="text-fg text-xs font-medium">{opt.label}</span>
+                          <span className="break-all text-fg-subtle text-xs">{opt.detail}</span>
+                        </span>
+                      </Label>
+                    )
+                  })}
+                </RadioGroup>
+              </section>
             ))}
           </div>
         </div>
 
         <AlertDialogFooter className="p-6 pt-4 flex-row items-center justify-between gap-2 shrink-0 border-t border-black-800 sm:justify-between sm:space-x-0">
-          <span className="text-fg-subtle text-[11px]">
-            {resolvedCount} tab{resolvedCount !== 1 ? "s" : ""} after merge
+          <span className="text-fg-subtle text-[11px]" aria-live="polite">
+            {complete ? `${plural(resolvedCount, "tab")} after apply` : `${chosen} of ${conflicts.length} chosen`}
           </span>
           <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              onClick={() => {
-                dismissMergeConflicts()
-                setChoices({})
-              }}
-            >
+            <Button variant="ghost" onClick={() => { dismissMergeConflicts(); reset() }}>
               Pause sync and decide later
             </Button>
-            <Button
-              variant="default"
-              onClick={() => {
-                resolveMergeConflicts(seeded)
-                setChoices({})
-              }}
-            >
+            <Button variant="default" disabled={!complete} onClick={() => { resolveMergeConflicts(choices); reset() }}>
               Apply
             </Button>
           </div>
