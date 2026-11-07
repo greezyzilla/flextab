@@ -3,12 +3,15 @@ import { Cloud, CloudOff, HardDrive, RefreshCw } from "lucide-react"
 import { useSyncStore, formatRelativeTime } from "~src/store/useSyncStore"
 import { useAuthStore } from "~src/store/useAuthStore"
 import { Tooltip, TooltipTrigger, TooltipContent } from "./ui/tooltip"
+import { navigate } from "~src/lib/route"
+import { SIGN_IN_ROUTE } from "~src/lib/workspaceAccess"
 
 /**
  * Header sync badge.
  *
  * Keep these product states separate:
- * - not signed in / guest → local device only (HardDrive) — never "Offline"
+ * - not signed in → local device only (HardDrive), never "Offline". It is
+ *   also the one global way in to sign-in (TASK-7), so it is a labelled button.
  * - signed in + no transport → Offline (CloudOff)
  * - signed in + auto-sync off → paused (Cloud)
  */
@@ -18,7 +21,6 @@ export function SyncStatusIndicator() {
   const dirty = useSyncStore((s) => s.dirty)
   const conflictPending = useSyncStore((s) => s.conflictPending)
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  const guestMode = useAuthStore((s) => s.guestMode)
 
   let Icon: LucideIcon = Cloud
   let cls = "text-fg-subtle"
@@ -28,11 +30,9 @@ export function SyncStatusIndicator() {
 
   if (!isAuthenticated) {
     Icon = HardDrive
-    cls = guestMode ? "text-fg-subtle" : "text-fg-subtle"
-    label = guestMode ? "Guest" : "Local only"
-    detail = guestMode
-      ? "Local only on this device. Sign in anytime to sync"
-      : "Not signed in. Tabs stay on this device"
+    cls = "text-fg-subtle"
+    label = "Local only"
+    detail = "Tabs stay on this device. Sign in to sync them across devices"
   } else if (status === "online") {
     Icon = Cloud
     cls = "text-fg-subtle"
@@ -76,6 +76,27 @@ export function SyncStatusIndicator() {
       status === "paused"
         ? "Unsynced changes. Turn on sync or use Sync now"
         : "Unsynced changes. They will sync when reconnected"
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            onClick={() => navigate(SIGN_IN_ROUTE)}
+            className="flex h-9 shrink-0 items-center gap-2 rounded-md px-2.5 text-fg-muted text-xs font-sans outline-none transition-colors hover:bg-white/[0.06] hover:text-fg focus-visible:ring-1 focus-visible:ring-ring"
+          >
+            <Icon className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+            Sign in to sync
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" align="end">
+          <div className="font-medium">{label}</div>
+          <div className="text-fg-subtle">{detail}</div>
+        </TooltipContent>
+      </Tooltip>
+    )
   }
 
   return (

@@ -26,40 +26,27 @@ export interface User {
 // Guest mode lets users try the app fully (local-only) before signing in.
 // Persisted to chrome.storage.local so it survives reloads and syncs across tabs
 // via the onChanged listener below. Auth always wins: signing in clears it.
-const GUEST_MODE_KEY = "flextab_guest_mode";
-
-async function loadGuestMode(): Promise<boolean> {
-  try {
-    const res = await chrome.storage.local.get(GUEST_MODE_KEY);
-    return res[GUEST_MODE_KEY] === true;
-  } catch (_) {
-    return false;
-  }
-}
-
-async function persistGuestMode(value: boolean): Promise<void> {
-  try {
-    if (value) await chrome.storage.local.set({ [GUEST_MODE_KEY]: true });
-    else await chrome.storage.local.remove(GUEST_MODE_KEY);
-  } catch (_) {
-    /* ok */
-  }
-}
+// Guest mode is gone (TASK-7): the workspace is always local, an account only
+// adds sync. The old flag is removed once so it does not linger in storage.
+const LEGACY_GUEST_MODE_KEY = "flextab_guest_mode";
 
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  guestMode: boolean;
 
   initialize: () => Promise<void>;
-  continueAsGuest: () => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   loginWithGithub: () => Promise<void>;
   loginWithEmail: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
   handleAuthCallback: (tokens: TokenData, alreadyStored?: boolean) => Promise<void>;
-  logout: (confirmation: { discardLocalData: true }) => Promise<void>;
+  /**
+   * Sign out. "keep" leaves this device's workspace in place as a local-only
+   * workspace (TASK-7): the next sign-in, to any account, reconciles it through
+   * the same guest→account path as a first login. "remove" also deletes it.
+   */
+  logout: (choice: { localData: "keep" | "remove" }) => Promise<void>;
   fetchUser: () => Promise<void>;
 }
 
@@ -74,14 +61,11 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   user: null,
   isAuthenticated: false,
   isLoading: true,
-  guestMode: false,
 
   initialize: async () => {
     const tokens = await loadTokens();
     if (tokens) {
-      // A real session always supersedes any stale guest flag.
-      set({ isAuthenticated: true, guestMode: false });
-      void persistGuestMode(false);
+      set({ isAuthenticated: true });
       try {
         await get().fetchUser();
       } catch (err) {
@@ -92,15 +76,9 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
           set({ isAuthenticated: false, user: null });
         }
       }
-    } else {
-      set({ guestMode: await loadGuestMode() });
     }
+    try { void chrome.storage.local.remove(LEGACY_GUEST_MODE_KEY); } catch (_) { /* ok */ }
     set({ isLoading: false });
-  },
-
-  continueAsGuest: async () => {
-    await persistGuestMode(true);
-    set({ guestMode: true });
   },
 
   loginWithGoogle: () => requestOAuthLogin("google"),
@@ -128,41 +106,46 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
         await cancelPendingOAuth();
         await saveTokens(tokens);
       }
-      await persistGuestMode(false);
-      // Preserve guest work for the existing explicit sync reconciliation flow.
+      // Preserve local work for the existing explicit sync reconciliation flow.
       await clearStoredRevision();
       try { await chrome.storage.local.set({ [FRESH_LOGIN_KEY]: true }); } catch (_) { /* ok */ }
       try { await chrome.storage.local.remove(SYNC_HYDRATED_KEY); } catch (_) { /* ok */ }
       // Invalidate the previous identity before releasing the login lock.
       // Account-bound work must wait for /me for the newly accepted tokens.
-      set({ isAuthenticated: true, guestMode: false, user: null });
+      set({ isAuthenticated: true, user: null });
       return true;
     });
     if (accepted) await get().fetchUser();
   },
 
-  logout: async (confirmation) => {
-    // Fail closed for stale callers (including an onClick MouseEvent): deleting
-    // local data requires the explicit choice from the shared sign-out dialog.
-    if (confirmation?.discardLocalData !== true) throw new Error("Confirm local data deletion before signing out");
+  logout: async (choice) => {
+    // Fail closed for stale callers (including an onClick MouseEvent): what
+    // happens to local data is always an explicit choice from the sign-out dialog.
+    const localData = choice?.localData;
+    if (localData !== "keep" && localData !== "remove") throw new Error("Choose what happens to local data before signing out");
     await withSyncWriteLock(async () => {
       await cancelPendingOAuth();
-      // Drain an in-flight sync before clearing its revision/receipt and workspace.
+      // Drain an in-flight sync before clearing its revision/receipt.
       // Revoke the refresh token server-side before dropping it locally.
       await apiLogout();
       await clearTokens();
-      await clearState();
-      resetYjsHydration();
-      await persistGuestMode(false);
+      if (localData === "remove") {
+        await clearState();
+        resetYjsHydration();
+      }
       await clearStoredRevision();
       // The merge base is per-account, so it belongs here (real, explicit
       // sign-out) — not in stopSyncEngine's generic pause path, which also runs
       // on a transient auth drop (e.g. the refresh-token race) where the base
       // must survive so re-login doesn't manufacture a false merge conflict.
+      // A kept workspace has no base afterwards: the next sign-in treats it as
+      // local work and reconciles it explicitly, whichever account it is.
       await clearMergeBase();
       await clearConflictPending(); // per-account, like the merge base
-      try { await chrome.storage.local.remove(["spaces", SYNC_HYDRATED_KEY, FRESH_LOGIN_KEY, LANDED_SNAPSHOT_KEY]); } catch (_) { /* ok */ }
-      set({ user: null, isAuthenticated: false, guestMode: false });
+      const keys = [SYNC_HYDRATED_KEY, FRESH_LOGIN_KEY, LANDED_SNAPSHOT_KEY];
+      if (localData === "remove") keys.push("spaces");
+      try { await chrome.storage.local.remove(keys); } catch (_) { /* ok */ }
+      set({ user: null, isAuthenticated: false });
     });
   },
 
@@ -183,9 +166,6 @@ if (chrome.storage?.onChanged) {
       } else if (!changes.auth_tokens.newValue && isAuthenticated) {
         useAuthStore.setState({ user: null, isAuthenticated: false });
       }
-    }
-    if (changes[GUEST_MODE_KEY]) {
-      useAuthStore.setState({ guestMode: changes[GUEST_MODE_KEY].newValue === true });
     }
   });
 }

@@ -28,7 +28,7 @@ beforeEach(async () => {
   await loadTokens();
   fetchMock = vi.fn();
   global.fetch = fetchMock;
-  useAuthStore.setState({ user: null, isAuthenticated: false, isLoading: true, guestMode: false });
+  useAuthStore.setState({ user: null, isAuthenticated: false, isLoading: true });
 });
 
 function expectSessionPreserved() {
@@ -116,7 +116,7 @@ describe('refresh failure recovery with real API and auth store', () => {
     const workspace = getSpaces();
     fetchMock.mockResolvedValueOnce(response({}, 503)).mockResolvedValue(response({}, 401));
     await useAuthStore.getState().initialize();
-    expect(useAuthStore.getState()).toMatchObject({ isAuthenticated: true, isLoading: false, guestMode: false });
+    expect(useAuthStore.getState()).toMatchObject({ isAuthenticated: true, isLoading: false });
     expect(getSpaces()).toEqual(workspace);
     expect(storage.spaces).toEqual(workspace);
     expectSessionPreserved();

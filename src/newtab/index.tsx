@@ -9,8 +9,8 @@ import { TooltipProvider } from "~src/components/ui/tooltip"
 import "@fontsource-variable/inter"
 import "../../style.css"
 
-import { useHydrated, useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
-import { canUseWorkspace, SIGN_IN_ROUTE } from "~src/lib/workspaceAccess"
+import { useHydrated } from "~src/store/useSavedSpacesStore"
+import { SIGN_IN_ROUTE } from "~src/lib/workspaceAccess"
 import { navigate, useRoute } from "~src/lib/route"
 import { useAuthStore } from "~src/store/useAuthStore"
 import { startSyncEngine, stopSyncEngine, startLocalPersistence, stopLocalPersistence } from "~src/services/syncEngine"
@@ -27,17 +27,8 @@ function LoadingScreen() {
 
 function NewTabPage() {
   const { hydrated, error: hydrationError } = useHydrated()
-  const { initialize, isAuthenticated, isLoading: authLoading, guestMode, user } = useAuthStore()
+  const { initialize, isAuthenticated, isLoading: authLoading, user } = useAuthStore()
   const autoSync = useSettingsStore((s) => s.autoSync)
-  // A previously-authenticated device whose session just dropped (e.g. the
-  // refresh-token race, or any other involuntary logout) still has its real
-  // tabs sitting in the local Yjs doc — `savedSpaces` is populated by
-  // hydration regardless of auth state. Gating the full-screen onboarding
-  // wall on auth alone would hide those tabs behind a login page they never
-  // asked to see. Checking actual tab content (not just space count) matters
-  // because a fresh/logged-out account still seeds one empty default space.
-  const savedSpaces = useSavedSpacesStore((s) => s.savedSpaces)
-  const workspaceUsable = canUseWorkspace({ isAuthenticated, guestMode, spaces: savedSpaces })
   const onSignInRoute = useRoute() === SIGN_IN_ROUTE
 
   // Signing in from the sign-in screen lands back in the workspace.
@@ -75,9 +66,9 @@ function NewTabPage() {
   if (hydrationError) return <WorkspaceLoadError />
   if (authLoading) return <LoadingScreen />
   if (!hydrated) return <LoadingScreen />
-  if (!workspaceUsable) return <OnboardingScreen />
-  // Explicit "Sign in" (rail, popup) while already using FlexTab locally:
-  // the full sign-in screen, with a way back to the tabs.
+  // The workspace is always local and usable, signed in or not (TASK-7).
+  // Sign-in is a place you go to (rail, popup, getting-started card), with a
+  // way back to the tabs, never a wall in front of them.
   if (onSignInRoute && !isAuthenticated) return <OnboardingScreen onBack={() => navigate("/")} />
 
   return (

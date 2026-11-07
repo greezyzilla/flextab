@@ -36,7 +36,7 @@ beforeEach(async () => {
   await yjs.persistState();
   resetYjsHydration();
   useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces(), activeSpaceId: "s", activeProjectId: "p", activeCategoryId: "c" });
-  useAuthStore.setState({ isAuthenticated: true, isLoading: false, guestMode: false, initialize: vi.fn(async () => {}) });
+  useAuthStore.setState({ isAuthenticated: true, isLoading: false, initialize: vi.fn(async () => {}) });
   windowTabs([{ id: 1, windowId: 9, index: 0, active: true, title: "Example", url: "https://example.com" }]);
 });
 
@@ -197,13 +197,14 @@ describe("popup instant save", () => {
   });
 });
 
-describe("popup access (TASK-3)", () => {
-  it("lets a guest save", async () => {
-    useAuthStore.setState({ isAuthenticated: false, guestMode: true });
+describe("popup access (TASK-3, TASK-7)", () => {
+  it("saves on a fresh signed-out install, with sign-in as an option", async () => {
+    useAuthStore.setState({ isAuthenticated: false });
     render(<Popup />);
     await screen.findByText("✓ Saved");
-    expect(screen.getByRole("button", { name: "Sign in to sync across devices" })).toBeInTheDocument();
     expect(storedGroups()).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "Sign in to sync across devices" }));
+    expect(chrome.tabs.create).toHaveBeenCalledWith({ url: "chrome-extension://test/newtab.html#/signin" });
   });
 
   it("lets a signed-out device that still holds tabs save", async () => {
@@ -211,21 +212,12 @@ describe("popup access (TASK-3)", () => {
       groups: [{ id: "g0", name: "Old", order: 0, tabs: [{ id: "t0", url: "https://old.example", title: "Old", favicon: "", order: 0 }] }] }] }] }]);
     await yjs.persistState();
     resetYjsHydration();
-    useAuthStore.setState({ isAuthenticated: false, guestMode: false });
+    useAuthStore.setState({ isAuthenticated: false });
     render(<Popup />);
     await screen.findByText("✓ Saved");
     const saved = storedGroups();
     expect(saved.find(g => g.id === "g0")!.tabs.map(t => t.url)).toEqual(["https://old.example"]);
     expect(saved.find(g => g.config?.kind === "unsorted")!.tabs.map(t => t.url)).toEqual(["https://example.com"]);
   });
-
-  it("sends a fresh signed-out install to set up, with sign-in opening the full screen", async () => {
-    useAuthStore.setState({ isAuthenticated: false, guestMode: false });
-    render(<Popup />);
-    fireEvent.click(await screen.findByRole("button", { name: "Sign in" }));
-    expect(chrome.tabs.create).toHaveBeenCalledWith({ url: "chrome-extension://test/newtab.html#/signin" });
-    fireEvent.click(screen.getByRole("button", { name: "Get started" }));
-    expect(chrome.tabs.create).toHaveBeenCalledWith({ url: "chrome-extension://test/newtab.html" });
-    expect(storedGroups()).toHaveLength(0);
-  });
 });
+

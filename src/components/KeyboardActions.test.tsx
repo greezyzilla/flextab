@@ -16,7 +16,7 @@ vi.mock("./ui/sonner", () => ({ showUndoToast: vi.fn() }));
 
 beforeEach(() => {
   vi.clearAllMocks();
-  useAuthStore.setState({ user: null, isAuthenticated: false, guestMode: true, loginWithGoogle: login });
+  useAuthStore.setState({ user: null, isAuthenticated: false, loginWithGoogle: login });
   window.history.replaceState(null, "", "#/");
   setSpaces([{ id: "personal", name: "Personal", projects: [{ id: "project", name: "Research", categories: [{ id: "category", name: "General", groups: [{ id: "group", name: "Reading", tabs: [{ id: "tab", title: "Documentation", url: "https://example.com", favicon: "", order: 0 }] }] }] }] }, { id: "work", name: "Work", projects: [] }]);
   syncActiveSelection(true);

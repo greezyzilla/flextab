@@ -1,4 +1,4 @@
-import { act, render } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const settings = vi.hoisted(() => ({ pull: vi.fn(), start: vi.fn(), stop: vi.fn() }));
@@ -8,7 +8,7 @@ vi.mock('~src/services/settingsSync', () => ({
 vi.mock('~src/store/useAuthStore', async () => {
   const { create } = await import('zustand');
   return { useAuthStore: create(() => ({
-    user: null, isAuthenticated: true, isLoading: false, guestMode: false, initialize: vi.fn(),
+    user: null, isAuthenticated: true, isLoading: false, initialize: vi.fn(),
   })) };
 });
 vi.mock('~src/store/useSavedSpacesStore', () => ({
@@ -24,8 +24,8 @@ vi.mock('~src/services/syncEngine', () => ({
 vi.mock('~src/components/WorkspaceLoadError', () => ({ WorkspaceLoadError: () => null }));
 vi.mock('~src/components/SyncConflictModal', () => ({ SyncConflictModal: () => null }));
 vi.mock('~src/components/MergeConflictModal', () => ({ MergeConflictModal: () => null }));
-vi.mock('~src/components/OnboardingScreen', () => ({ OnboardingScreen: () => null }));
-vi.mock('~src/components/layout/AppShell', () => ({ AppShell: () => null }));
+vi.mock('~src/components/OnboardingScreen', () => ({ OnboardingScreen: () => <p>Sign-in screen</p> }));
+vi.mock('~src/components/layout/AppShell', () => ({ AppShell: () => <p>Workspace</p> }));
 
 import NewTabPage from './index';
 import { useAuthStore } from '~src/store/useAuthStore';
@@ -61,5 +61,23 @@ describe('new-tab account settings lifecycle', () => {
     act(() => useAuthStore.setState({ user: null, isAuthenticated: false }));
     expect(settings.stop).toHaveBeenCalledTimes(1);
     expect(settings.start).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('local-first first run (TASK-7)', () => {
+  it('opens a fresh signed-out install straight into the workspace', () => {
+    window.history.replaceState(null, '', '#/');
+    useAuthStore.setState({ isAuthenticated: false, user: null });
+    render(<NewTabPage />);
+    expect(screen.getByText('Workspace')).toBeInTheDocument();
+    expect(screen.queryByText('Sign-in screen')).not.toBeInTheDocument();
+  });
+
+  it('shows sign-in only when the user goes there', () => {
+    window.history.replaceState(null, '', '#/signin');
+    useAuthStore.setState({ isAuthenticated: false, user: null });
+    render(<NewTabPage />);
+    expect(screen.getByText('Sign-in screen')).toBeInTheDocument();
+    window.history.replaceState(null, '', '#/');
   });
 });

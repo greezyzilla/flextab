@@ -9,7 +9,7 @@ import { installExternalPersistBridge } from "~src/lib/yjsDoc"
 import { Button } from "~src/components/ui/button"
 import { Switch } from "~src/components/ui/switch"
 import { DestinationPicker, describeDestination, type PickerValue } from "~src/components/DestinationPicker"
-import { canUseWorkspace, signInPageUrl } from "~src/lib/workspaceAccess"
+import { signInPageUrl } from "~src/lib/workspaceAccess"
 import { isSavableTabUrl } from "~src/services/saveTabsAsGroup"
 import {
   captureTabs, moveCapture, undoCapture, closeSavedTabs, persistCapture, isCaptureFailure,
@@ -38,9 +38,11 @@ const toDestination = (r: CaptureReceipt): CaptureDestination => ({ ...r.target 
 
 function IndexPopup() {
   const { hydrated, error: hydrationError } = useHydrated()
-  const { initialize, isAuthenticated, isLoading: authLoading, guestMode } = useAuthStore()
+  const { initialize, isAuthenticated, isLoading: authLoading } = useAuthStore()
   const { savedSpaces, activeSpaceId, activeProjectId, activeCategoryId } = useSavedSpacesStore()
-  const usable = hydrated && canUseWorkspace({ isAuthenticated, guestMode, spaces: savedSpaces })
+  // The workspace is always local and usable once hydrated (TASK-7): the popup
+  // saves from the very first click, signed in or not.
+  const usable = hydrated
 
   const [status, setStatus] = useState<Status>({ kind: "saving" })
   const [destination, setDestination] = useState<CaptureDestination | null>(null)
@@ -153,17 +155,6 @@ function IndexPopup() {
 
   // Same rule as the new tab page (TASK-3): guests and signed-out devices
   // that still hold tabs can save; only a fresh install is sent to set up.
-  if (!usable) {
-    return (
-      <div className="w-72 bg-black-900 p-4 font-sans flex flex-col items-center gap-3">
-        <h2 className="text-fg text-base font-medium">FlexTab</h2>
-        <p className="text-fg-subtle text-xs text-center">Start saving tabs: use FlexTab on this device, or sign in to sync.</p>
-        <Button variant="secondary" onClick={() => chrome.tabs.create({ url: chrome.runtime.getURL("newtab.html") })} className="w-full">Get started</Button>
-        <Button variant="ghost" size="sm" onClick={() => chrome.tabs.create({ url: signInPageUrl() })} className="w-full">Sign in</Button>
-      </div>
-    )
-  }
-
   const where = destination ? describeDestination(savedSpaces, destination) : null
 
   return (

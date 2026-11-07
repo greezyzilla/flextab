@@ -51,15 +51,13 @@ describe('revision — clear catch branch', () => {
   });
 });
 
-describe('useAuthStore — guest-mode storage catch branches', () => {
-  it('loadGuestMode + persistGuestMode swallow storage errors', async () => {
+describe('useAuthStore — storage catch branches', () => {
+  it('initialize swallows a failing legacy-flag cleanup', async () => {
     const { useAuthStore } = await import('~src/store/useAuthStore');
     (chrome.storage.local.get as any).mockRejectedValue(new Error('no ctx'));
-    await useAuthStore.getState().initialize(); // loadGuestMode catch
-    expect(useAuthStore.getState().guestMode).toBe(false);
-    (chrome.storage.local.set as any).mockRejectedValue(new Error('no ctx'));
-    await useAuthStore.getState().continueAsGuest(); // persistGuestMode catch
-    expect(useAuthStore.getState().guestMode).toBe(true);
+    (chrome.storage.local.remove as any).mockImplementation(() => { throw new Error('no ctx'); });
+    await useAuthStore.getState().initialize();
+    expect(useAuthStore.getState().isLoading).toBe(false);
   });
 });
 
@@ -112,7 +110,7 @@ describe('useAuthStore — storage set/remove catch branches', () => {
     await useAuthStore.getState().handleAuthCallback({ access_token: 't', refresh_token: 'r', expires_at: Date.now() / 1000 + 3600 });
     expect(useAuthStore.getState().isAuthenticated).toBe(true);
     (chrome.storage.local.remove as any).mockRejectedValue(new Error('x'));
-    await useAuthStore.getState().logout({ discardLocalData: true });
+    await useAuthStore.getState().logout({ localData: 'remove' });
     expect(useAuthStore.getState().isAuthenticated).toBe(false);
   });
 });

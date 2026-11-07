@@ -16,6 +16,8 @@ import { useUIStore } from "~src/store/useUIStore";
 import type { GroupLocation } from "~src/services/dragDrop";
 import { CategoryIcon, GroupIcon, ProjectIcon, SpaceAvatar } from "~src/components/levelIcons";
 import { findUnsorted, firstGroupOrder, isUnsortedGroup, orderedGroups } from "~src/lib/defaultPath";
+import { spacesHaveTabs } from "~src/services/spacesTree";
+import { ArrowRight } from "lucide-react";
 
 /**
  * The project page. A project is one page; its categories are sections on it
@@ -177,14 +179,46 @@ function NewGroupRow({ categoryName, onCommit, onCancel }: {
   );
 }
 
-/** Drop zone for a category that has no groups yet (tabs or whole groups). */
+/**
+ * Drop zone for a category that has no groups yet (tabs or whole groups).
+ * While the whole workspace is still empty (first run, TASK-7) it is also the
+ * guidance: where to drag from, one real save action, and the shortcut. It
+ * goes away by itself once anything is saved, so it needs no dismiss.
+ */
 function EmptySectionDrop({ location }: { location: GroupLocation }) {
   const { setNodeRef, isOver } = useDroppable({
     id: `section-drop:${location.spaceId}:${location.projectId}:${location.categoryId}`,
   });
+  const firstRun = useSavedSpacesStore((s) => !spacesHaveTabs(s.savedSpaces));
+  const { setActiveCategory } = useSavedSpacesStore();
+  const setSaveAllOpen = useUIStore((s) => s.setSaveAllOpen);
+  if (!firstRun || isOver) {
+    return (
+      <div ref={setNodeRef}>
+        <EmptyDropRow isOver={isOver} label="No groups yet. Drag tabs here." />
+      </div>
+    );
+  }
   return (
-    <div ref={setNodeRef}>
-      <EmptyDropRow isOver={isOver} label="No groups yet. Drag tabs here." />
+    <div
+      ref={setNodeRef}
+      className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-lg border border-dashed border-white/[0.12] font-sans"
+      style={{ padding: 'var(--density-p-group) var(--density-px-tab)' }}
+    >
+      <div className="flex flex-col gap-1">
+        <span className="flex items-center gap-1.5 text-fg-muted text-sm">
+          Drag tabs here from Opened Tabs
+          <ArrowRight className="h-3.5 w-3.5 text-fg-subtle" aria-hidden />
+        </span>
+        <span className="text-fg-subtle text-xs">Or press Alt+Shift+S on any page to save it.</span>
+      </div>
+      <Button
+        variant="secondary"
+        size="sm"
+        onClick={() => { setActiveCategory(location.categoryId); setSaveAllOpen(true); }}
+      >
+        Save all tabs
+      </Button>
     </div>
   );
 }

@@ -102,15 +102,14 @@ describe("captureFromBackground", () => {
     expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ text: "×" })
   })
 
-  it("opens FlexTab instead of saving when there's no workspace or access", async () => {
-    loadTokens.mockResolvedValue(null)
+  it("opens FlexTab instead of saving before the first new tab has created the workspace", async () => {
+    delete disk[yjs.PERSIST_KEY]
     expect(await captureFromBackground("page", { tab: { id: 1, url: "https://a.example" } as chrome.tabs.Tab })).toBe("no-workspace")
     expect(chrome.tabs.create).toHaveBeenCalledWith({ url: "chrome-extension://test/newtab.html" })
   })
 
   it("saves into the default path when the space has no category yet", async () => {
     disk[yjs.PERSIST_KEY] = { version: 1, origin: "snapshot", data: yjs.encodeSpacesAsStorage([{ id: "s", name: "W", order: 0, projects: [] }]) }
-    disk.flextab_guest_mode = true
     expect(await captureFromBackground("page", { tab: { id: 1, url: "https://a.example" } as chrome.tabs.Tab })).toBe("saved")
     const [project] = yjs.getSpaces()[0].projects
     expect([project.name, project.categories[0].name, project.categories[0].groups[0].name]).toEqual(["General", "Uncategorized", "Unsorted"])
@@ -119,7 +118,6 @@ describe("captureFromBackground", () => {
 
   it("opens the popup to choose when there's no space to save into", async () => {
     disk[yjs.PERSIST_KEY] = { version: 1, origin: "snapshot", data: yjs.encodeSpacesAsStorage([]) }
-    disk.flextab_guest_mode = true
     expect(await captureFromBackground("page", { tab: { id: 1, url: "https://a.example" } as chrome.tabs.Tab })).toBe("no-destination")
     expect(chrome.action.openPopup).toHaveBeenCalled()
     vi.mocked(chrome.action.openPopup).mockRejectedValueOnce(new Error("not allowed"))

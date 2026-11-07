@@ -14,7 +14,6 @@ import { SettingRow } from "./shared";
 
 export function SyncTab() {
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
-  const guestMode = useAuthStore(s => s.guestMode);
   const { autoSync, setAutoSync } = useSettingsStore();
   const status = useSyncStore(s => s.status);
   const lastSyncedAt = useSyncStore(s => s.lastSyncedAt);
@@ -28,16 +27,10 @@ export function SyncTab() {
       <div className="flex flex-col gap-7">
         <SettingRow
           label="Sync"
-          description={
-            guestMode
-              ? "Guest mode: everything stays on this device until you sign in."
-              : "Sync your spaces, groups, and tabs across every device."
-          }
+          description="Sync your spaces, groups, and tabs across every device."
         >
           <Card className="px-5 py-4 text-fg-subtle text-sm font-sans leading-relaxed shadow-none">
-            {guestMode
-              ? "You're in guest mode, not offline. Tabs save locally on this device. Sign in to back up and sync across devices."
-              : "You're using FlexTab locally on this device. Sign in to back up and sync your tabs across devices."}
+            You're using FlexTab locally on this device. Sign in to back up and sync your tabs across devices.
           </Card>
         </SettingRow>
       </div>

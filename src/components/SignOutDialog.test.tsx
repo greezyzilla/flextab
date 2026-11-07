@@ -39,14 +39,26 @@ afterEach(() => {
 });
 
 function open() { render(<SignOutDialog open onOpenChange={change} />); }
+const chooseRemove = () => fireEvent.click(screen.getByRole("radio", { name: /Remove tabs from this device/ }));
 
 describe("safe sign-out choice", () => {
+  it("keeps this device's tabs by default and signs out in one step", async () => {
+    open();
+    expect(screen.getByRole("radio", { name: /Keep tabs on this device/ })).toBeChecked();
+    fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
+    await waitFor(() => expect(change).toHaveBeenCalledWith(false));
+    expect(logout).toHaveBeenCalledExactlyOnceWith({ localData: "keep" });
+  });
+
   it.each(["offline", "error", "syncing", "conflict"])("does not sign out or clear %s work when opened or cancelled", async state => {
     useSyncStore.setState({ dirty: true, conflictPending: state === "conflict", status: state === "conflict" ? "paused" : state as any });
     const before = encodeState();
     open();
+    // Keeping is safe: unsynced work stays and syncs after the next sign-in.
+    expect(screen.getByRole("alertdialog")).toHaveTextContent("stay on this device and sync when you sign in again");
+    chooseRemove();
     expect(screen.getByRole("alertdialog")).toHaveTextContent("unsynced changes or an unresolved conflict");
-    expect(screen.getByRole("button", { name: "Sign out and delete local data" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Sign out and remove tabs" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(change).toHaveBeenCalledWith(false);
     expect(logout).not.toHaveBeenCalled();
@@ -55,11 +67,12 @@ describe("safe sign-out choice", () => {
 
   it("exports current live data without logging out or treating a download request as saved", async () => {
     open();
+    chooseRemove();
     setSpaces(space("Edited after dialog opened"));
     fireEvent.click(screen.getByRole("button", { name: "Download backup" }));
     expect(logout).not.toHaveBeenCalled();
     expect(screen.getByRole("status")).toHaveTextContent("Check that the JSON file was saved");
-    expect(screen.getByRole("button", { name: "Sign out and delete local data" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Sign out and remove tabs" })).toBeDisabled();
     const content = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result as string);
@@ -72,6 +85,7 @@ describe("safe sign-out choice", () => {
 
   it("keeps the workspace and clears destructive consent after export failure", () => {
     open();
+    chooseRemove();
     fireEvent.click(screen.getByRole("checkbox"));
     vi.mocked(URL.createObjectURL).mockImplementation(() => { throw new Error("download blocked"); });
     fireEvent.click(screen.getByRole("button", { name: "Download backup" }));
@@ -81,30 +95,33 @@ describe("safe sign-out choice", () => {
     expect(getSpaces()[0].name).toBe("Unsynced work");
   });
 
-  it("requires explicit discard even when the sync indicator appears clean", async () => {
+  it("requires explicit consent to remove, even when the sync indicator appears clean", async () => {
     open();
-    const button = screen.getByRole("button", { name: "Sign out and delete local data" });
+    chooseRemove();
+    const button = screen.getByRole("button", { name: "Sign out and remove tabs" });
     expect(button).toBeDisabled();
     fireEvent.click(screen.getByRole("checkbox"));
     fireEvent.click(button);
     await waitFor(() => expect(change).toHaveBeenCalledWith(false));
-    expect(logout).toHaveBeenCalledExactlyOnceWith({ discardLocalData: true });
+    expect(logout).toHaveBeenCalledExactlyOnceWith({ localData: "remove" });
   });
 
-  it("requires fresh consent when the dialog is reopened", () => {
+  it("goes back to keeping, with fresh consent, when the dialog is reopened", () => {
     const { rerender } = render(<SignOutDialog open onOpenChange={change} />);
+    chooseRemove();
     fireEvent.click(screen.getByRole("checkbox"));
     rerender(<SignOutDialog open={false} onOpenChange={change} />);
     rerender(<SignOutDialog open onOpenChange={change} />);
+    expect(screen.getByRole("radio", { name: /Keep tabs on this device/ })).toBeChecked();
+    chooseRemove();
     expect(screen.getByRole("checkbox")).not.toBeChecked();
-    expect(screen.getByRole("button", { name: "Sign out and delete local data" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Sign out and remove tabs" })).toBeDisabled();
   });
 
   it("keeps the dialog open and reports a failed logout", async () => {
     logout.mockRejectedValue(new Error("failed"));
     open();
-    fireEvent.click(screen.getByRole("checkbox"));
-    fireEvent.click(screen.getByRole("button", { name: "Sign out and delete local data" }));
+    fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Sign out did not complete");
     expect(change).not.toHaveBeenCalled();
   });

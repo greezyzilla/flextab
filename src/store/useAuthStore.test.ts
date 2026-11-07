@@ -22,36 +22,33 @@ beforeEach(async () => {
   (chrome.storage.local.remove as any).mockResolvedValue(undefined);
   global.fetch = vi.fn();
   await clearTokens();
-  useAuthStore.setState({ user: null, isAuthenticated: false, isLoading: true, guestMode: false });
+  useAuthStore.setState({ user: null, isAuthenticated: false, isLoading: true });
 });
 
-describe('guest mode', () => {
-  it('continueAsGuest enables and persists guest mode', async () => {
-    await useAuthStore.getState().continueAsGuest();
-    expect(useAuthStore.getState().guestMode).toBe(true);
-    expect(chrome.storage.local.set).toHaveBeenCalledWith({ [GUEST_KEY]: true });
-  });
-
-  it('initialize restores persisted guest mode without a session', async () => {
-    (chrome.storage.local.get as any).mockImplementation(async (k: any) => {
-      const wants = (x: string) => k === x || (Array.isArray(k) && k.includes(x));
-      return wants(GUEST_KEY) ? { [GUEST_KEY]: true } : {};
-    });
+describe('local-first sign-out (TASK-7)', () => {
+  it('initialize drops the legacy guest flag', async () => {
     await useAuthStore.getState().initialize();
-    expect(useAuthStore.getState().guestMode).toBe(true);
+    expect(chrome.storage.local.remove).toHaveBeenCalledWith(GUEST_KEY);
     expect(useAuthStore.getState().isLoading).toBe(false);
   });
 
-  it('logout clears guest mode + per-account sync keys', async () => {
-    useAuthStore.setState({ guestMode: true });
-    await useAuthStore.getState().logout({ discardLocalData: true });
-    expect(useAuthStore.getState().guestMode).toBe(false);
-    expect(chrome.storage.local.remove).toHaveBeenCalledWith(['spaces', 'flextab_sync_hydrated', 'flextab_fresh_login', 'flextab_landed_snapshot']);
+  it('logout "keep" leaves the workspace and forgets only the account', async () => {
+    setSpaces([{ id: 'local', name: 'Mine', projects: [] }]);
+    useAuthStore.setState({ isAuthenticated: true });
+    await useAuthStore.getState().logout({ localData: 'keep' });
+    expect(getSpaces()[0].name).toBe('Mine');
+    expect(useAuthStore.getState().isAuthenticated).toBe(false);
+    expect(chrome.storage.local.remove).toHaveBeenCalledWith(['flextab_sync_hydrated', 'flextab_fresh_login', 'flextab_landed_snapshot']);
     expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_sync_revision');
+    // No base afterwards: the next sign-in, to any account, reconciles explicitly.
+    expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_merge_base');
   });
 
-  it('logout clears the merge base (per-account — a real sign-out, unlike a transient auth drop, should forget it)', async () => {
-    await useAuthStore.getState().logout({ discardLocalData: true });
+  it('logout "remove" also deletes the local workspace', async () => {
+    setSpaces([{ id: 'local', name: 'Mine', projects: [] }]);
+    await useAuthStore.getState().logout({ localData: 'remove' });
+    expect(getSpaces()).toEqual([]);
+    expect(chrome.storage.local.remove).toHaveBeenCalledWith(['flextab_sync_hydrated', 'flextab_fresh_login', 'flextab_landed_snapshot', 'spaces']);
     expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_merge_base');
   });
 });
@@ -129,11 +126,6 @@ describe('chrome.storage.onChanged listener', () => {
     expect(useAuthStore.getState().isAuthenticated).toBe(false);
   });
 
-  it('updates guest mode from a cross-tab change', async () => {
-    await fireChange({ [GUEST_KEY]: { newValue: true } });
-    expect(useAuthStore.getState().guestMode).toBe(true);
-  });
-
   it('runs the callback when a token appears while unauthenticated', async () => {
     useAuthStore.setState({ isAuthenticated: false });
     (global.fetch as any).mockResolvedValue(jsonRes({ id: 'u9', email: '', name: '', avatar: '', provider: '', has_password: false }));
@@ -174,12 +166,12 @@ it.each([false, true])('clears the previous identity while accepted login loads 
   }
 });
 
-describe('destructive logout authorization', () => {
-  it.each([undefined, {}, { discardLocalData: false }, { type: 'click' }])('rejects missing confirmation %j before clearing data or tokens', async confirmation => {
+describe('sign-out authorization', () => {
+  it.each([undefined, {}, { discardLocalData: true }, { localData: 'maybe' }, { type: 'click' }])('rejects a missing local-data choice %j before clearing data or tokens', async confirmation => {
     setSpaces([{ id: 'local', name: 'Not synced', projects: [] }]);
     useAuthStore.setState({ isAuthenticated: true });
     vi.clearAllMocks();
-    await expect(useAuthStore.getState().logout(confirmation as any)).rejects.toThrow('Confirm local data deletion');
+    await expect(useAuthStore.getState().logout(confirmation as any)).rejects.toThrow('Choose what happens to local data');
     expect(getSpaces()[0].name).toBe('Not synced');
     expect(useAuthStore.getState().isAuthenticated).toBe(true);
     expect(chrome.storage.local.remove).not.toHaveBeenCalled();
@@ -197,7 +189,7 @@ describe('destructive logout authorization', () => {
     });
     Object.defineProperty(navigator, 'locks', { value: { request }, configurable: true });
     try {
-      const run = useAuthStore.getState().logout({ discardLocalData: true });
+      const run = useAuthStore.getState().logout({ localData: 'remove' });
       expect(request).toHaveBeenCalledWith('flextab-structured-sync', expect.any(Function));
       expect(getSpaces()[0].name).toBe('Not synced');
       expect(chrome.storage.local.remove).not.toHaveBeenCalledWith('flextab_landed_snapshot');

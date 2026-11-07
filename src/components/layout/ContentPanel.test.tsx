@@ -101,16 +101,41 @@ describe("empty states create in place", () => {
     expect(groupNames()).toHaveLength(2)
   })
 
+  it("guides a first run from the empty section, with one real save action (TASK-7)", async () => {
+    yjs.setSpaces([{ id: "s", name: "Work", order: 0, projects: [{ id: "p", name: "Site", order: 0, categories: [
+      { id: "c", name: "Research", order: 0, groups: [] },
+      { id: "c2", name: "Design", order: 1, groups: [] },
+    ] }] }])
+    useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces(), activeSpaceId: "s", activeProjectId: "p", activeCategoryId: "c", expandedProjectIds: ["p"] })
+    const user = setup()
+    expect(screen.getAllByText("Or press Alt+Shift+S on any page to save it.")).toHaveLength(2)
+    // [0] is the header's Save all tabs; then one per empty section.
+    await user.click(screen.getAllByRole("button", { name: "Save all tabs" })[2])
+    expect(useSavedSpacesStore.getState().activeCategoryId).toBe("c2")
+    expect(useUIStore.getState().saveAllOpen).toBe(true)
+  })
+
+  it("keeps an empty section to one quiet line once the workspace holds tabs", () => {
+    yjs.setSpaces([{ id: "s", name: "Work", order: 0, projects: [{ id: "p", name: "Site", order: 0, categories: [
+      { id: "c", name: "Research", order: 0, groups: [] },
+      { id: "c2", name: "Saved", order: 1, groups: [{ id: "g", name: "G", order: 0, tabs: [{ id: "t", url: "https://a.example", title: "A", favicon: "", order: 0 }] }] },
+    ] }] }])
+    useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces(), activeSpaceId: "s", activeProjectId: "p", activeCategoryId: "c", expandedProjectIds: ["p"] })
+    setup()
+    expect(screen.getByText("No groups yet. Drag tabs here.")).toBeInTheDocument()
+    expect(screen.getAllByRole("button", { name: "Save all tabs" })).toHaveLength(1) // the header's only
+  })
+
   it("an empty section's New group opens the name row in place of the drop row", async () => {
     yjs.setSpaces([{ id: "s", name: "Work", order: 0, projects: [{ id: "p", name: "Site", order: 0, categories: [
       { id: "c", name: "Research", order: 0, groups: [] },
     ] }] }])
     useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces(), activeSpaceId: "s", activeProjectId: "p", activeCategoryId: "c", expandedProjectIds: ["p"] })
     const user = setup()
-    expect(screen.getByText("No groups yet. Drag tabs here.")).toBeInTheDocument()
+    expect(screen.getByText("Drag tabs here from Opened Tabs")).toBeInTheDocument()
     expect(screen.queryByText("0 groups")).not.toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "New group in Research" }))
-    expect(screen.queryByText("No groups yet. Drag tabs here.")).not.toBeInTheDocument()
+    expect(screen.queryByText("Drag tabs here from Opened Tabs")).not.toBeInTheDocument()
     await user.keyboard("Ideas")
     // Focus moves elsewhere in the page (window still focused) → the name commits.
     const hasFocus = vi.spyOn(document, "hasFocus").mockReturnValue(true)

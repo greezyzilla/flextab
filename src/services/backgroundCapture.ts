@@ -3,9 +3,6 @@
 // worker. They save instantly to the last destination (same default as the
 // popup) and confirm with the toolbar badge; the popup then offers Undo for
 // the last such save.
-import * as yjs from "~src/lib/yjsDoc"
-import { loadTokens } from "~src/services/api"
-import { canUseWorkspace } from "~src/lib/workspaceAccess"
 import {
   captureTabs, closeSavedTabs, isCaptureFailure, loadCloseAfterSave, loadDefaultDestination,
   storeLastCapture, syncDocFromStorage, windowGroupName, type ChromeTabLike,
@@ -17,7 +14,6 @@ export const MENU_SAVE_WINDOW = "flextab-save-window"
 export const COMMAND_SAVE_PAGE = "save-page"
 export const COMMAND_SAVE_WINDOW = "save-window"
 
-const GUEST_MODE_KEY = "flextab_guest_mode"
 const BADGE_MS = 2500
 
 export type BackgroundCaptureKind = "page" | "link" | "window"
@@ -70,7 +66,8 @@ async function openForChoice(): Promise<void> {
 
 /**
  * Save the page / link / window behind a command or menu click.
- * With no workspace it opens FlexTab instead of saving. Inside a workspace a
+ * Before the first new tab has created the workspace it opens FlexTab
+ * instead of saving. Inside a workspace a
  * save always lands: missing levels follow the default path (TASK-20).
  */
 export async function captureFromBackground(
@@ -78,9 +75,7 @@ export async function captureFromBackground(
   context: { tab?: chrome.tabs.Tab; linkUrl?: string; linkText?: string },
 ): Promise<BackgroundCaptureOutcome> {
   const hasWorkspace = await syncDocFromStorage()
-  const tokens = await loadTokens()
-  const guestMode = (await chrome.storage.local.get(GUEST_MODE_KEY).catch(() => ({})) as Record<string, unknown>)[GUEST_MODE_KEY] === true
-  if (!hasWorkspace || !canUseWorkspace({ isAuthenticated: !!tokens, guestMode, spaces: yjs.getSpaces() })) {
+  if (!hasWorkspace) {
     await chrome.tabs.create({ url: chrome.runtime.getURL("newtab.html") })
     return "no-workspace"
   }
