@@ -42,6 +42,9 @@ module.exports = {
         // near-black on light). Hairlines, washes and hover fills use it with
         // an alpha (border-ink/10, bg-ink/[0.03]) so they follow the theme.
         ink: "hsl(var(--ink) / <alpha-value>)",
+        // A saved tab row, and the dim behind dialogs / the drawer.
+        row: { DEFAULT: "var(--row)", hover: "var(--row-hover)" },
+        overlay: { DEFAULT: "var(--overlay)", soft: "var(--overlay-soft)" },
         // Hairline between panels and sections.
         line: "var(--color-line)",
         // Status text. Each theme picks shades that read on its own surfaces.

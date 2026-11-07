@@ -5,6 +5,7 @@ import "@fontsource-variable/inter"
 import "../../style.css"
 import { useSavedSpacesStore, useHydrated } from "~src/store/useSavedSpacesStore"
 import { useAuthStore } from "~src/store/useAuthStore"
+import { applyThemeMode, readStoredThemeMode } from "~src/lib/theme"
 import { installExternalPersistBridge } from "~src/lib/yjsDoc"
 import { Button } from "~src/components/ui/button"
 import { Switch } from "~src/components/ui/switch"
@@ -16,6 +17,9 @@ import {
   loadDefaultDestination, loadCloseAfterSave, saveCloseAfterSave, loadLastCapture, storeLastCapture,
   type CaptureReceipt, type CaptureFailure, type CaptureDestination,
 } from "~src/services/capture"
+
+// Before the first render: a forced Light/Dark must not flash (lib/theme.ts).
+applyThemeMode(readStoredThemeMode())
 
 /**
  * Popup = instant save (TASK-2, Pocket/Raindrop pattern): opening it saves the

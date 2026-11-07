@@ -92,6 +92,13 @@
     --border-control: hsl(var(--ink) / 0.4);
     /* Hairline between panels and sections. */
     --color-line: var(--color-black-800);
+    /* A saved tab row: a white wash on dark; on light it is a white card like
+       the Opened Tabs rows (Similarity). */
+    --row: hsl(var(--ink) / 0.03);
+    --row-hover: hsl(var(--ink) / 0.06);
+    /* Dim behind dialogs and the drawer. */
+    --overlay: rgba(0,0,0,0.66);
+    --overlay-soft: rgba(0,0,0,0.55);
     /* Status text as RGB channels (alpha via Tailwind): light shades that
        read on the dark surfaces (Tailwind red-400/300, amber-300/200,
        green-400, yellow-500). */
@@ -107,6 +114,80 @@
     /* Default UI font (the "Inter" option). The Appearance > Font setting
        overrides this on :root via useTheme. */
     --font-sans: "Inter Variable", Inter, system-ui, -apple-system, sans-serif;
+  }
+
+  /* Light theme (TASK-16): the same token names, so components never branch
+     on the theme. Applied when Settings > Appearance > Mode is Light
+     (`:root.light`), or when it is System and the OS is light (the media
+     query, which needs no script, so the first paint is already right).
+     The two blocks must stay identical; style.test.ts checks that.
+
+     Contrast, checked at every hue (0-359) and intensity (0-100), on page
+     97%, rail 93%, cards 100%, hover 90% and the 10% ink highlight:
+     - Text tiers are ink at 0.9 / 0.76 / 0.67: tertiary ≥ 4.6:1.
+     - HSL lightness is not perceptual (a 44% yellow is still too light for
+       text), so the accent is set in OKLCH from the hue: text at L 0.45
+       (≥ 4.6:1), fill at L 0.6 (≥ 3:1 against the page, WCAG 1.4.11).
+     - Status text uses the 700-900 shades instead of the 200-400 ones. */
+  @media (prefers-color-scheme: light) {
+    :root:not(.dark) {
+      --color-black-950: hsl(var(--hue), var(--surface-sat), 93%);
+      --color-black-900: hsl(var(--hue), var(--surface-sat), 97%);
+      --color-black-800: hsl(var(--hue), var(--surface-sat), 100%);
+      --color-black-700: hsl(var(--hue), var(--surface-sat), 90%);
+      --color-black-600: hsl(var(--hue), var(--surface-sat), 80%);
+      --color-black-500: hsl(var(--hue), var(--surface-sat), 58%);
+      --color-line: hsl(var(--hue), var(--surface-sat), 88%);
+      --row: var(--color-black-800);
+      --row-hover: var(--color-black-700);
+      --overlay: rgba(0, 0, 0, 0.32);
+      --overlay-soft: rgba(0, 0, 0, 0.26);
+      --accent: oklch(from hsl(var(--hue), var(--accent-sat), 56%) 0.6 min(c, 0.2) h);
+      --accent-hover: oklch(from hsl(var(--hue), var(--accent-sat), 56%) 0.54 min(c, 0.2) h);
+      --accent-subtle: oklch(from hsl(var(--hue), var(--accent-sat), 56%) 0.6 min(c, 0.2) h / 0.14);
+      --accent-text: oklch(from hsl(var(--hue), var(--accent-sat), 56%) 0.45 min(c, 0.2) h);
+      --ink: var(--hue) calc(var(--intensity) * 0.165%) 12%;
+      --text-primary: hsl(var(--ink) / 0.9);
+      --text-secondary: hsl(var(--ink) / 0.76);
+      --text-tertiary: hsl(var(--ink) / 0.67);
+      --text-disabled: hsl(var(--ink) / 0.4);
+      --border-control: hsl(var(--ink) / 0.55);
+      --danger: 185 28 28;
+      --danger-strong: 153 27 27;
+      --warning: 146 64 14;
+      --warning-body: 120 53 15;
+      --success: 22 101 52;
+      --caution: 133 77 14;
+    }
+  }
+  :root.light {
+    --color-black-950: hsl(var(--hue), var(--surface-sat), 93%);
+    --color-black-900: hsl(var(--hue), var(--surface-sat), 97%);
+    --color-black-800: hsl(var(--hue), var(--surface-sat), 100%);
+    --color-black-700: hsl(var(--hue), var(--surface-sat), 90%);
+    --color-black-600: hsl(var(--hue), var(--surface-sat), 80%);
+    --color-black-500: hsl(var(--hue), var(--surface-sat), 58%);
+    --color-line: hsl(var(--hue), var(--surface-sat), 88%);
+    --row: var(--color-black-800);
+    --row-hover: var(--color-black-700);
+    --overlay: rgba(0, 0, 0, 0.32);
+    --overlay-soft: rgba(0, 0, 0, 0.26);
+    --accent: oklch(from hsl(var(--hue), var(--accent-sat), 56%) 0.6 min(c, 0.2) h);
+    --accent-hover: oklch(from hsl(var(--hue), var(--accent-sat), 56%) 0.54 min(c, 0.2) h);
+    --accent-subtle: oklch(from hsl(var(--hue), var(--accent-sat), 56%) 0.6 min(c, 0.2) h / 0.14);
+    --accent-text: oklch(from hsl(var(--hue), var(--accent-sat), 56%) 0.45 min(c, 0.2) h);
+    --ink: var(--hue) calc(var(--intensity) * 0.165%) 12%;
+    --text-primary: hsl(var(--ink) / 0.9);
+    --text-secondary: hsl(var(--ink) / 0.76);
+    --text-tertiary: hsl(var(--ink) / 0.67);
+    --text-disabled: hsl(var(--ink) / 0.4);
+    --border-control: hsl(var(--ink) / 0.55);
+    --danger: 185 28 28;
+    --danger-strong: 153 27 27;
+    --warning: 146 64 14;
+    --warning-body: 120 53 15;
+    --success: 22 101 52;
+    --caution: 133 77 14;
   }
 }
 

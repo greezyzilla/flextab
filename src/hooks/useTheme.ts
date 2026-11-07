@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useSettingsStore, type FontKey } from '~src/store/useSettingsStore';
+import { applyThemeMode, storeThemeMode } from '~src/lib/theme';
 
 /**
  * Theme = a single hue + tint intensity. Everything (accent, surfaces) is derived
@@ -17,6 +18,7 @@ const FONT_STACKS: Record<FontKey, string> = {
 };
 
 export function useTheme() {
+  const theme = useSettingsStore(s => s.theme);
   const hue = useSettingsStore(s => s.hue);
   const intensity = useSettingsStore(s => s.intensity);
   const density = useSettingsStore(s => s.density);
@@ -38,6 +40,11 @@ export function useTheme() {
     root.style.fontSize = `${uiScale * 100}%`;
     root.style.removeProperty('zoom'); // clear any value from the old approach
   }, [hue, intensity, radius, fontFamily, uiScale]);
+
+  useEffect(() => {
+    applyThemeMode(theme);
+    storeThemeMode(theme);
+  }, [theme]);
 
   useEffect(() => {
     const root = document.documentElement;

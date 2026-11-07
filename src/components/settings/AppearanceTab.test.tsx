@@ -35,8 +35,9 @@ describe("appearance control accessibility", () => {
     const user = userEvent.setup();
     render(<AppearanceTab />);
     await user.tab();
+    expect(within(screen.getByRole("radiogroup", { name: "Mode" })).getByRole("radio", { name: "System" })).toHaveFocus();
     const hue = screen.getByRole("slider", { name: "Accent hue" });
-    expect(hue).toHaveFocus();
+    hue.focus();
     await user.keyboard("{ArrowRight}");
     expect(useSettingsStore.getState().hue).toBe(215);
     expect(hue).toHaveAttribute("aria-valuetext", "215 degrees");
@@ -59,10 +60,24 @@ describe("appearance control accessibility", () => {
     expect(useSettingsStore.getState().reduceMotion).toBe(true);
   });
 
+  it("offers System, Light and Dark, following the device by default", async () => {
+    const user = userEvent.setup();
+    render(<AppearanceTab />);
+    const mode = screen.getByRole("radiogroup", { name: "Mode" });
+    expect(mode).toHaveAccessibleDescription("Follow your device, or always use light or dark.");
+    expect(within(mode).getAllByRole("radio").map(r => r.getAttribute("aria-label"))).toEqual(["System", "Light", "Dark"]);
+    expect(within(mode).getByRole("radio", { name: "System" })).toBeChecked();
+    await user.click(within(mode).getByRole("radio", { name: "Light" }));
+    expect(useSettingsStore.getState().theme).toBe("light");
+    // Reset to defaults goes back to following the device.
+    await user.click(screen.getByRole("button", { name: "Reset to defaults" }));
+    expect(useSettingsStore.getState().theme).toBe("system");
+  });
+
   it("labels option groups, including conditional grid columns", async () => {
     const user = userEvent.setup();
     render(<AppearanceTab />);
-    for (const name of ["Font", "Group layout", "Density"]) {
+    for (const name of ["Mode", "Font", "Group layout", "Density"]) {
       expect(screen.getByRole("radiogroup", { name })).toHaveAccessibleDescription();
     }
     await user.click(within(screen.getByRole("radiogroup", { name: "Group layout" })).getByRole("radio", { name: "Grid" }));

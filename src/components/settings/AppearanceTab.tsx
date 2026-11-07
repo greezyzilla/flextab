@@ -1,4 +1,6 @@
 import * as SliderPrimitive from "@radix-ui/react-slider";
+import { Monitor, Moon, Sun } from "lucide-react";
+import type { ThemeMode } from "~src/lib/theme";
 import { useSettingsStore, HUE_PRESETS, FONT_OPTIONS, type GroupLayout, type Density, type FontKey } from "~src/store/useSettingsStore";
 import { Switch } from "~src/components/ui/switch";
 import { Slider } from "~src/components/ui/slider";
@@ -37,7 +39,7 @@ export function HueSlider({ value, onChange, ...controlProps }: { value: number;
 // into one surface since they're all "how the workspace looks".
 export function AppearanceTab() {
   const {
-    hue, setHue, intensity, setIntensity, radius, setRadius,
+    theme, setTheme, hue, setHue, intensity, setIntensity, radius, setRadius,
     fontFamily, setFontFamily, uiScale, setUiScale,
     groupLayout, setGroupLayout, gridColumns, setGridColumns, density, setDensity,
     reduceMotion, setReduceMotion, resetAppearance,
@@ -47,6 +49,21 @@ export function AppearanceTab() {
     <div className="flex flex-col gap-8">
       <section className="flex flex-col gap-7">
         <GroupHeading>Theme</GroupHeading>
+        <SettingRow label="Mode" description="Follow your device, or always use light or dark.">
+          {(controlProps) => (
+            <ToggleGroup<ThemeMode>
+              {...controlProps}
+              value={theme}
+              onChange={setTheme}
+              options={[
+                { value: 'system', label: 'System', icon: <Monitor className="h-3 w-3" aria-hidden /> },
+                { value: 'light', label: 'Light', icon: <Sun className="h-3 w-3" aria-hidden /> },
+                { value: 'dark', label: 'Dark', icon: <Moon className="h-3 w-3" aria-hidden /> },
+              ]}
+            />
+          )}
+        </SettingRow>
+
         <SettingRow label="Accent hue" description="The colour for accents and highlights.">
           {(controlProps) => (
             <div className="flex flex-col gap-3">

@@ -20,7 +20,7 @@ export function Drawer({ id, side, open, onClose, children }: DrawerProps) {
 
   return (
     <Dialog.Root open={open} onOpenChange={next => { if (!next) onClose() }}>
-      <Dialog.Overlay className="fixed inset-0 z-40 bg-[rgba(0,0,0,0.55)] backdrop-blur-[2px]" />
+      <Dialog.Overlay className="fixed inset-0 z-40 bg-overlay-soft backdrop-blur-[2px]" />
       <Dialog.Content
         id={id}
         aria-modal="true"

@@ -16,6 +16,10 @@ import { useAuthStore } from "~src/store/useAuthStore"
 import { startSyncEngine, stopSyncEngine, startLocalPersistence, stopLocalPersistence } from "~src/services/syncEngine"
 import { pullSettings, startSettingsSync, stopSettingsSync } from "~src/services/settingsSync"
 import { useSettingsStore } from "~src/store/useSettingsStore"
+import { applyThemeMode, readStoredThemeMode } from "~src/lib/theme"
+
+// Before the first render: a forced Light/Dark must not flash (lib/theme.ts).
+applyThemeMode(readStoredThemeMode())
 
 function LoadingScreen() {
   return (

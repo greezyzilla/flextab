@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { storage } from './syncStorage';
+import { readStoredThemeMode, type ThemeMode } from '~src/lib/theme';
 
 export type GroupLayout = 'list' | 'grid';
 export type Density = 'compact' | 'cozy' | 'comfortable';
@@ -49,6 +50,7 @@ function hexToHue(hex: string): number {
 /** Default appearance/layout preferences — the reset target (autoSync excluded;
  *  it's a sync concern, not a look-and-feel one). */
 export const APPEARANCE_DEFAULTS = {
+  theme: 'system' as ThemeMode, // follow the OS; Light/Dark force one (device-only, not synced)
   groupLayout: 'list' as GroupLayout,
   gridColumns: 2,
   density: 'comfortable' as Density,
@@ -61,6 +63,7 @@ export const APPEARANCE_DEFAULTS = {
 };
 
 interface SettingsState {
+  theme: ThemeMode;
   groupLayout: GroupLayout;
   gridColumns: number;
   density: Density;
@@ -72,6 +75,7 @@ interface SettingsState {
   uiScale: number;     // 0.8-1.2 whole-UI zoom
   autoSync: boolean;
 
+  setTheme: (theme: ThemeMode) => void;
   setGroupLayout: (layout: GroupLayout) => void;
   setGridColumns: (columns: number) => void;
   setDensity: (density: Density) => void;
@@ -90,7 +94,12 @@ export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
       ...APPEARANCE_DEFAULTS,
+      // Start from the mirrored choice so the pre-hydration render keeps the
+      // theme the entry already applied (see lib/theme.ts).
+      theme: readStoredThemeMode(),
       autoSync: true,
+
+      setTheme: (theme) => set({ theme }),
 
       setGroupLayout: (groupLayout) => set({ groupLayout }),
       setGridColumns: (gridColumns) => set({ gridColumns }),

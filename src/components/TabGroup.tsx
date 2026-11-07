@@ -66,7 +66,7 @@ function SavedTabItem({ tab, groupId, location, isDuplicate, unsorted }: { tab: 
     <div
       ref={(el) => { setNodeRef(el); flash.ref.current = el; }}
       style={{ ...style, padding: `var(--density-py-tab) var(--density-px-tab)` }}
-      className={`flex flex-col gap-1 rounded-lg transition-[background-color,box-shadow] group ${isDuplicate ? 'bg-yellow-500/[0.06] ring-1 ring-yellow-500/20' : 'bg-ink/[0.03] hover:bg-ink/[0.06]'} ${flash.on ? '!ring-2 !ring-[var(--accent)]' : ''}`}
+      className={`flex flex-col gap-1 rounded-lg transition-[background-color,box-shadow] group ${isDuplicate ? 'bg-yellow-500/[0.06] ring-1 ring-yellow-500/20' : 'bg-row hover:bg-row-hover'} ${flash.on ? '!ring-2 !ring-[var(--accent)]' : ''}`}
     >
       <div className="flex items-center gap-2.5">
         {/* Favicon slot doubles as the drag handle on hover/focus, so no empty
