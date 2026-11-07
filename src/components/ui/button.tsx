@@ -14,7 +14,8 @@ const buttonVariants = cva(
         destructive:
           "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
         outline:
-          "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
+          // Own text colour: dialogs render in a portal, where inherited colour is the browser's black.
+          "border border-input bg-background text-fg-muted shadow-sm hover:bg-accent hover:text-accent-foreground",
         secondary: "bg-white/[0.08] text-fg hover:bg-white/[0.13]",
         ghost:
           "border border-white/10 text-fg-muted hover:border-white/25 hover:bg-white/[0.04] hover:text-white",
