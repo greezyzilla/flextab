@@ -8,7 +8,7 @@ import { Input } from "~src/components/ui/input";
 import { Label } from "~src/components/ui/label";
 import { SpaceAvatar } from "~src/components/levelIcons";
 import {
-  AlertDialog, AlertDialogCancel, AlertDialogContent,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "~src/components/ui/alert-dialog";
 import { cn } from "~src/lib/utils";
@@ -195,11 +195,9 @@ function DangerZone({ space, isLast }: { space: SavedSpace; isLast: boolean }) {
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>Cancel</AlertDialogCancel>
-            {/* A plain destructive Button: AlertDialogAction always adds the
-                accent-fill gradient, which paints over the red. */}
-            <Button variant="destructive" size="sm" disabled={!matches} onClick={() => { setOpen(false); remove(); }}>
+            <AlertDialogAction variant="destructive" size="sm" disabled={!matches} onClick={remove}>
               Delete space
-            </Button>
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

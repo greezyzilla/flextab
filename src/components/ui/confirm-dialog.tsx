@@ -51,7 +51,8 @@ export function ConfirmDialog({
             {cancelLabel}
           </AlertDialogCancel>
           <AlertDialogAction
-            className={cn(buttonVariants({ variant: destructive ? "destructive" : "default", size: "sm" }))}
+            variant={destructive ? "destructive" : "default"}
+            size="sm"
             onClick={onConfirm}
           >
             {confirmLabel}
