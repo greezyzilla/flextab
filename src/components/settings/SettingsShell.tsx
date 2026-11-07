@@ -1,3 +1,4 @@
+import config from '../../../package.json'
 import type { ReactNode } from "react"
 import { useEffect, useId } from "react"
 import { useRoute, navigate, goBack } from "~src/lib/route"
@@ -49,6 +50,11 @@ export function SettingsNav() {
           ))}
         </TabsList>
       </Tabs>
+      {/* Where people look for it (TASK-15): the workspace header no longer
+          spends its top-left on the version. */}
+      <div className="shrink-0 border-t border-black-800 px-4 py-3 text-[11px] text-fg-subtle">
+        FlexTab v{config.version || "0.0.1"}
+      </div>
     </div>
   )
 }

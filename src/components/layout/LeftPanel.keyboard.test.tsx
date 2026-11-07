@@ -90,10 +90,19 @@ describe("sidebar tree by keyboard (TASK-5)", () => {
     expect(yjs.getSpaces()[0].projects[0].categories.map((c) => c.name)).toEqual(["Research", "Design", "Admin"])
   })
 
-  it("sends the space gear to Settings › Spaces for that space (no space actions in the sidebar)", async () => {
+  it("titles the panel with the space and gives it ⋯ like every row: rename, or Settings › Spaces (TASK-15)", async () => {
     const user = setup()
-    expect(screen.queryByRole("button", { name: "Actions for Work" })).not.toBeInTheDocument()
-    await user.click(screen.getByRole("button", { name: "Space settings" }))
+    expect(screen.getByRole("heading", { level: 1, name: "Work" })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Space settings" })).not.toBeInTheDocument() // no second gear
+    await user.click(screen.getByRole("button", { name: "Actions for Work" }))
+    expect(screen.queryByRole("menuitem", { name: /Delete/ })).not.toBeInTheDocument() // deleting stays in Settings (TASK-27)
+    await user.click(screen.getByRole("menuitem", { name: "Rename" }))
+    const input = await screen.findByRole("textbox", { name: "Space name" })
+    await user.clear(input)
+    await user.keyboard("Office{Enter}")
+    expect(yjs.getSpaces()[0].name).toBe("Office")
+    await user.click(screen.getByRole("button", { name: "Actions for Office" }))
+    await user.click(screen.getByRole("menuitem", { name: "Space settings…" }))
     await waitFor(() => expect(window.location.hash).toBe("#/settings/spaces/s"))
   })
 })

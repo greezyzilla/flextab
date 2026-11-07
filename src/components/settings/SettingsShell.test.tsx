@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { SettingsContent } from "./SettingsShell";
+import { SettingsContent, SettingsNav } from "./SettingsShell";
 import { SECTION_LABEL, SETTINGS_TABS } from "./types";
 
 // Keep route integration real; section data loading is covered by its own tests.
@@ -47,5 +47,10 @@ describe("compact settings navigation", () => {
     render(<SettingsContent />);
     expect(screen.getByRole("combobox", { name: "Settings section" })).toHaveValue("appearance");
     expect(screen.getByText("Appearance content")).toBeInTheDocument();
+  });
+
+  it("shows the app version under the settings nav (TASK-15)", () => {
+    render(<SettingsNav />);
+    expect(screen.getByText(/^FlexTab v\d/)).toBeInTheDocument();
   });
 });

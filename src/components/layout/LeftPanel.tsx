@@ -3,7 +3,6 @@ import { commitOnBlur } from "~src/lib/inlineEdit";
 import { useDroppable } from "@dnd-kit/core";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { v7 as uuidv7 } from "uuid";
-import config from '../../../package.json';
 import { showUndoToast } from "~src/components/ui/sonner";
 import { ConfirmDialog } from "~src/components/ui/confirm-dialog";
 import { Tooltip, TooltipTrigger, TooltipContent } from "~src/components/ui/tooltip";
@@ -112,7 +111,7 @@ export function LeftPanel() {
     setActiveProject, setActiveCategory,
     addSavedProject, removeSavedProject,
     addSavedCategory, removeSavedCategory,
-    updateSavedProject, updateSavedCategory,
+    updateSavedProject, updateSavedCategory, updateSavedSpace,
   } = useSavedSpacesStore();
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
@@ -135,7 +134,9 @@ export function LeftPanel() {
   const submitRename = () => {
     if (!renamingId || !renameValue.trim() || !currentSpace) { setRenamingId(null); return; }
     const project = currentSpace.projects.find(p => p.id === renamingId);
-    if (project) {
+    if (renamingId === currentSpace.id) {
+      updateSavedSpace({ ...currentSpace, name: renameValue.trim() });
+    } else if (project) {
       updateSavedProject(currentSpace.id, { ...project, name: renameValue.trim() });
     } else {
       for (const p of currentSpace.projects) {
@@ -261,35 +262,29 @@ export function LeftPanel() {
         confirmLabel="Delete"
         onConfirm={() => confirmDelete?.run()}
       />
-      {/* Header */}
-      <div className="h-16 p-4 flex items-end gap-2 border-b border-black-800">
-        <h1 className="text-fg font-sans text-2xl">FlexTab</h1>
-        <p className="text-fg-subtle font-sans text-sm">v{config.version || '0.0.1'}</p>
-      </div>
-
-      {/* Space header. pr-3 puts its controls in the same column as the
-          tree rows' trailing slot (mx-2 + pr-1). */}
-      <div className="flex items-center justify-between gap-1 h-14 pl-4 pr-3 border-b border-black-800">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <h2 className="text-fg-muted font-sans text-sm font-medium truncate">{currentSpace?.name || 'No Space'}</h2>
-        </div>
+      {/* The space is this panel's title (TASK-15), where Settings shows
+          "Settings": the logo already sits in the rail, the version lives in
+          Settings. Its ⋯ is the same "actions for this thing" as every row's;
+          deleting a space stays in Settings › Spaces (TASK-27). pr-3 keeps
+          the ⋯ in the tree rows' trailing slot column. */}
+      <div className="h-16 flex items-end justify-between gap-2 pl-4 pr-3 pb-4 border-b border-black-800">
+        {currentSpace && renamingId === currentSpace.id ? (
+          <Input variant="inline" ref={renameRef} type="text" value={renameValue}
+            aria-label="Space name"
+            onChange={e => setRenameValue(e.target.value)} onBlur={submitRename}
+            onKeyDown={e => { if (e.key === "Enter") submitRename(); if (e.key === "Escape") setRenamingId(null); }}
+            className="flex-1 min-w-0 text-2xl" />
+        ) : (
+          <h1 className="min-w-0 truncate text-fg font-sans text-2xl">{currentSpace?.name || 'No space'}</h1>
+        )}
         {currentSpace && (
-          // Header control, always visible, in the rows' slot column. Managing
-          // a space (order, look, deletion) lives in Settings › Spaces.
-          <ActionSlot>
-          <Tooltip>
-          <TooltipTrigger asChild>
-          <IconButton variant="subtle" aria-label="Space settings" className="shrink-0"
-            onClick={() => navigate(`${SPACES_ROUTE}/${encodeURIComponent(currentSpace.id)}`)}>
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-            </svg>
-          </IconButton>
-          </TooltipTrigger>
-          <TooltipContent>Space settings</TooltipContent>
-          </Tooltip>
-          </ActionSlot>
+          <RowActions
+            label={`Actions for ${currentSpace.name}`}
+            items={[
+              { label: "Rename", onSelect: () => startRename(currentSpace.id, currentSpace.name), takesFocus: true },
+              { label: "Space settings…", onSelect: () => navigate(`${SPACES_ROUTE}/${encodeURIComponent(currentSpace.id)}`) },
+            ]}
+          />
         )}
       </div>
 
@@ -463,14 +458,7 @@ export function LeftPanel() {
       </nav>
 
       {/* Footer */}
-      <div className="flex items-center justify-between gap-2 px-4 py-2 border-t border-black-800">
-        <div className="text-[11px] font-sans text-fg-subtle">
-          {currentSpace ? (() => {
-            const pc = currentSpace.projects.length;
-            const cc = currentSpace.projects.reduce((sum, p) => sum + p.categories.length, 0);
-            return `${pc} project${pc !== 1 ? 's' : ''} · ${cc} ${cc !== 1 ? 'categories' : 'category'}`;
-          })() : ''}
-        </div>
+      <div className="flex items-center justify-end gap-2 px-4 py-2 border-t border-black-800">
         {/* The one visible way in to every shortcut (TASK-13). */}
         <button
           type="button"
