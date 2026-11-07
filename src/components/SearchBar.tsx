@@ -3,6 +3,9 @@ import { shortcutLabel } from "~src/lib/platform";
 import { openOrFocus } from "~src/services/openTab";
 import { revealInWorkspace } from "~src/services/reveal";
 import { searchAll, type OpenTabHit, type OpenTabInput, type PlaceHit, type SavedTabHit } from "~src/services/searchIndex";
+import { searchActions, type ActionHit } from "~src/services/paletteActions";
+import { useSettingsStore } from "~src/store/useSettingsStore";
+import { Monitor, Moon, Sun } from "lucide-react";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { Input } from "~src/components/ui/input";
 import { Button } from "~src/components/ui/button";
@@ -11,16 +14,17 @@ import { CategoryIcon, GroupIcon, ProjectIcon, SpaceAvatar } from "~src/componen
 import { cn } from "~src/lib/utils";
 import { FaviconImg } from "./FaviconImg";
 
-type Section = "open" | "saved" | "places";
-type Hit = OpenTabHit | SavedTabHit | PlaceHit;
+type Section = "open" | "saved" | "places" | "actions";
+type Hit = OpenTabHit | SavedTabHit | PlaceHit | ActionHit;
 /** One row of the list: a result, or a section's "Show all". */
 type Item = { key: string; hit: Hit } | { key: string; more: Section; hidden: number };
 
 // How many each section shows before "Show N more": enough to choose from at
 // a glance (Hick), few enough that Places stays in view, never cut silently.
-const LIMIT: Record<Section, number> = { open: 3, saved: 5, places: 4 };
-const TITLE: Record<Section, string> = { open: "Open tabs", saved: "Saved tabs", places: "Places" };
-const NOUN: Record<Section, string> = { open: "open tabs", saved: "saved tabs", places: "places" };
+const LIMIT: Record<Section, number> = { open: 3, saved: 5, places: 4, actions: 3 };
+const TITLE: Record<Section, string> = { open: "Open tabs", saved: "Saved tabs", places: "Places", actions: "Actions" };
+const NOUN: Record<Section, string> = { open: "open tabs", saved: "saved tabs", places: "places", actions: "actions" };
+const THEME_ICON = { system: Monitor, light: Sun, dark: Moon };
 const LEVEL: Record<PlaceHit["level"], string> = { space: "Space", project: "Project", category: "Category", group: "Group" };
 
 const host = (url: string) => { try { return new URL(url).host.replace(/^www\./, ""); } catch { return url; } };
@@ -33,6 +37,7 @@ function hintFor(item: Item | undefined): ReactNode {
   const { hit } = item;
   if (hit.kind === "open") return <><Kbd shortcut="Enter" /> switch to tab</>;
   if (hit.kind === "place") return <><Kbd shortcut="Enter" /> go there</>;
+  if (hit.kind === "action") return <><Kbd shortcut="Enter" /> apply</>;
   return (
     <>
       <Kbd shortcut="Enter" /> {hit.isOpen ? "switch to tab" : "open"}
@@ -57,6 +62,8 @@ export function SearchBar() {
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const { savedSpaces } = useSavedSpacesStore();
+  const theme = useSettingsStore((s) => s.theme);
+  const setTheme = useSettingsStore((s) => s.setTheme);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -80,12 +87,15 @@ export function SearchBar() {
     } catch (_) { /* no extension context */ }
   };
 
-  const results = useMemo(() => searchAll(query, savedSpaces, openTabs), [query, savedSpaces, openTabs]);
+  const results = useMemo(
+    () => ({ ...searchAll(query, savedSpaces, openTabs), actions: searchActions(query, theme) }),
+    [query, savedSpaces, openTabs, theme],
+  );
   useEffect(() => { setExpanded(new Set()); }, [query]);
 
   const sections = useMemo(() => {
     const out: { section: Section; items: Item[] }[] = [];
-    for (const section of ["open", "saved", "places"] as Section[]) {
+    for (const section of ["open", "saved", "places", "actions"] as Section[]) {
       const hits: Hit[] = results[section];
       if (!hits.length) continue;
       const shown = expanded.has(section) ? hits : hits.slice(0, LIMIT[section]);
@@ -96,7 +106,7 @@ export function SearchBar() {
     return out;
   }, [results, expanded]);
   const items = useMemo(() => sections.flatMap((s) => s.items), [sections]);
-  const total = results.open.length + results.saved.length + results.places.length;
+  const total = results.open.length + results.saved.length + results.places.length + results.actions.length;
 
   // The first row is active as soon as there are results, so Enter just works.
   useEffect(() => {
@@ -119,6 +129,8 @@ export function SearchBar() {
     if (hit.kind === "open") {
       void chrome.tabs.update(hit.tabId, { active: true });
       void chrome.windows.update(hit.windowId, { focused: true });
+    } else if (hit.kind === "action") {
+      setTheme(hit.theme);
     } else if (hit.kind === "saved") {
       if (reveal) revealInWorkspace({ spaceId: hit.spaceId, projectId: hit.projectId, categoryId: hit.categoryId, flash: { kind: "tab", id: hit.tab.id } });
       else void openOrFocus(hit.tab.url); // go to it if already open (TASK-4)
@@ -174,6 +186,11 @@ export function SearchBar() {
       icon = <FaviconImg src={hit.tab.favicon} alt="" className="w-4 h-4 shrink-0" />;
       title = hit.tab.title || hit.tab.url; detail = `${host(hit.tab.url)} · ${hit.path.join(" › ")}`;
       aside = hit.isOpen && <span className="rounded border border-ink/10 px-1.5 text-fg-muted text-[11px] leading-[18px]">Open</span>;
+    } else if (hit.kind === "action") {
+      const Icon = THEME_ICON[hit.theme];
+      icon = <Icon className="h-4 w-4 shrink-0 text-fg-subtle" aria-hidden />;
+      title = hit.title; detail = "";
+      aside = hit.current && <span className="rounded border border-ink/10 px-1.5 text-fg-muted text-[11px] leading-[18px]">Current</span>;
     } else {
       const space = savedSpaces.find((s) => s.id === hit.spaceId);
       icon = hit.level === "space" ? <SpaceAvatar space={space} size={16} />

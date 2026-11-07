@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import { SearchBar } from "./SearchBar"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import { useUIStore } from "~src/store/useUIStore"
+import { useSettingsStore } from "~src/store/useSettingsStore"
 import type { SavedSpace } from "~src/types"
 
 const { openOrFocus } = vi.hoisted(() => ({ openOrFocus: vi.fn(async () => "opened") }))
@@ -85,5 +86,17 @@ describe("SearchBar command palette (TASK-14)", () => {
   it("says when nothing matches", async () => {
     await type("zzz")
     expect(screen.getByText("No results for “zzz”")).toBeInTheDocument()
+  })
+
+  it("switches the theme from an Actions section (TASK-16)", async () => {
+    useSettingsStore.setState({ theme: "system" })
+    const input = await type("dark")
+    const actions = within(screen.getByRole("listbox", { name: "Search results" })).getByRole("group", { name: /Actions/ })
+    expect(within(actions).getByRole("option", { name: /Use dark theme/ })).toBeInTheDocument()
+    expect(screen.getByText("apply")).toBeInTheDocument()
+    fireEvent.keyDown(input, { key: "Enter" })
+    expect(useSettingsStore.getState().theme).toBe("dark")
+    await type("theme")
+    expect(within(screen.getByRole("group", { name: /Actions/ })).getByRole("option", { name: /Use dark theme.*Current/ })).toBeInTheDocument()
   })
 })
