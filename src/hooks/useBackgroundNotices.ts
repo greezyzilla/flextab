@@ -3,8 +3,9 @@ import { toast } from "sonner"
 import { SESSION_EXPIRED_KEY } from "~src/services/api"
 import { useAuthStore } from "~src/store/useAuthStore"
 import { useSyncStore } from "~src/store/useSyncStore"
-
-const LIMIT_NOTICE_KEY = "flextab_limit_notice"
+import { usePlanStore } from "~src/store/usePlanStore"
+import { LIMIT_NOTICE_KEY, limitSummary, parseLimitNotice } from "~src/services/syncLimit"
+import { navigate } from "~src/lib/route"
 const BILLING_RESULT_KEY = "flextab_billing_result"
 const PUSH_PENDING_KEY = "flextab_push_pending"
 
@@ -15,12 +16,19 @@ const WATCHED_KEYS = [
   SESSION_EXPIRED_KEY,
 ] as const
 
-function showLimitNotice(notice: unknown) {
-  if (notice && typeof notice === "object" && "message" in notice) {
-    toast.error(String((notice as { message: unknown }).message), {
-      description: "Prune some tabs or open Settings › Plan & Usage.",
+// The limit is a lasting state (the header shows "Sync paused" until a push
+// lands, TASK-9). Only the moment sync becomes paused also gets a toast.
+function applyLimitNotice(value: unknown, announce: boolean) {
+  const notice = parseLimitNotice(value)
+  const wasPaused = useSyncStore.getState().limit !== null
+  useSyncStore.getState().setLimit(notice)
+  if (!notice || !useAuthStore.getState().isAuthenticated) return
+  void usePlanStore.getState().load()
+  if (announce && !wasPaused) {
+    toast.error("Sync paused", {
+      description: `${limitSummary(notice)} Your tabs are still saved on this device.`,
+      action: { label: "See plan", onClick: () => navigate("/settings/plan") },
     })
-    try { void chrome.storage.local.remove(LIMIT_NOTICE_KEY) } catch (_) { /* ok */ }
   }
 }
 
@@ -58,10 +66,10 @@ function showSessionExpired(expired: unknown) {
   try { void chrome.storage.local.remove(SESSION_EXPIRED_KEY) } catch (_) { /* ok */ }
 }
 
-function applyKey(key: string, value: unknown) {
+function applyKey(key: string, value: unknown, announce = false) {
   switch (key) {
     case LIMIT_NOTICE_KEY:
-      showLimitNotice(value)
+      applyLimitNotice(value, announce)
       break
     case BILLING_RESULT_KEY:
       showBillingResult(value)
@@ -97,7 +105,7 @@ export function useBackgroundNotices() {
       for (const key of WATCHED_KEYS) {
         if (key in changes) {
           // push_pending: apply even when cleared (newValue undefined)
-          applyKey(key, changes[key].newValue)
+          applyKey(key, changes[key].newValue, true)
         }
       }
     }

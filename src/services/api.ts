@@ -231,7 +231,7 @@ export async function apiGetAuthProviders(): Promise<string[]> {
 export type SyncPushResult =
   | { status: "ok"; revision: number }
   | { status: "conflict"; revision: number; spaces: unknown[] }
-  | { status: "limit"; message: string }
+  | { status: "limit"; message: string; limit?: string; cap?: number; got?: number }
   | { status: "paused" }
   | { status: "error" };
 
@@ -292,7 +292,14 @@ export async function pushSync(spaces: unknown[], baseRevision: number | null, c
     // Plan limit hit — the push can't land until the user prunes or upgrades.
     const body = (await res.json().catch(() => ({}))) ?? {};
     if (body.code === "plan_limit_exceeded") {
-      return { status: "limit", message: typeof body.error === "string" ? body.error : "Plan limit reached" };
+      return {
+        status: "limit",
+        message: typeof body.error === "string" ? body.error : "Plan limit reached",
+        // Which cap and by how much, so the UI can say exactly what to remove (TASK-9).
+        limit: typeof body.limit === "string" ? body.limit : undefined,
+        cap: typeof body.cap === "number" ? body.cap : undefined,
+        got: typeof body.got === "number" ? body.got : undefined,
+      };
     }
     return { status: "error" };
   }

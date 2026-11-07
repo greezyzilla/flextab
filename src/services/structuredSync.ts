@@ -1,5 +1,6 @@
 import { pushSync, fetchSyncRevision } from "./api";
 import { getStoredRevision, setStoredRevision } from "./revision";
+import type { SyncLimitDetail } from "./syncLimit";
 
 const MAX_ATTEMPTS = 4;
 
@@ -27,7 +28,7 @@ export async function syncStructuredSnapshot(
   reReadSpaces: () => Promise<unknown[]>,
   mergeOnConflict?: (server: unknown[], local: unknown[]) => unknown[] | null | Promise<unknown[] | null>,
   onPushed?: (spaces: unknown[], revision: number, localAtAttempt: unknown[]) => void | Promise<void>,
-  onLimit?: (message: string) => void | Promise<void>,
+  onLimit?: (message: string, detail: SyncLimitDetail) => void | Promise<void>,
   canPush?: () => Promise<boolean>,
 ): Promise<StructuredSyncResult> {
   let spaces = initialSpaces;
@@ -70,7 +71,7 @@ export async function syncStructuredSnapshot(
       // A plan or payload-size limit prevented this write from being accepted.
       // Surface it (the caller notifies the UI) and stop; retrying won't help until
       // the user prunes or their limit is raised.
-      await onLimit?.(result.message);
+      await onLimit?.(result.message, { limit: result.limit, cap: result.cap, got: result.got });
       return "limit";
     }
     return "error";

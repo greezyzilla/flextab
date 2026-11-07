@@ -38,7 +38,7 @@ describe('local-first sign-out (TASK-7)', () => {
     await useAuthStore.getState().logout({ localData: 'keep' });
     expect(getSpaces()[0].name).toBe('Mine');
     expect(useAuthStore.getState().isAuthenticated).toBe(false);
-    expect(chrome.storage.local.remove).toHaveBeenCalledWith(['flextab_sync_hydrated', 'flextab_fresh_login', 'flextab_landed_snapshot']);
+    expect(chrome.storage.local.remove).toHaveBeenCalledWith(['flextab_sync_hydrated', 'flextab_fresh_login', 'flextab_landed_snapshot', 'flextab_limit_notice']);
     expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_sync_revision');
     // No base afterwards: the next sign-in, to any account, reconciles explicitly,
     // and must ask before these tabs go anywhere (TASK-11).
@@ -50,7 +50,7 @@ describe('local-first sign-out (TASK-7)', () => {
     setSpaces([{ id: 'local', name: 'Mine', projects: [] }]);
     await useAuthStore.getState().logout({ localData: 'remove' });
     expect(getSpaces()).toEqual([]);
-    expect(chrome.storage.local.remove).toHaveBeenCalledWith(['flextab_sync_hydrated', 'flextab_fresh_login', 'flextab_landed_snapshot', 'spaces']);
+    expect(chrome.storage.local.remove).toHaveBeenCalledWith(['flextab_sync_hydrated', 'flextab_fresh_login', 'flextab_landed_snapshot', 'flextab_limit_notice', 'spaces']);
     expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_merge_base');
     expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_kept_on_signout');
   });

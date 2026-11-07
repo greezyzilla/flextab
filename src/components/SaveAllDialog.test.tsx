@@ -3,11 +3,15 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { SaveAllDialog } from "./SaveAllDialog"
 import { useUIStore } from "~src/store/useUIStore"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
+import { useAuthStore } from "~src/store/useAuthStore"
+import { usePlanStore } from "~src/store/usePlanStore"
+import type { PlanStatus } from "~src/services/api"
 import * as yjs from "~src/lib/yjsDoc"
 import type { SavedSpace } from "~src/types"
 
 const { undoToast } = vi.hoisted(() => ({ undoToast: vi.fn() }))
 vi.mock("~src/components/ui/sonner", () => ({ showUndoToast: undoToast }))
+vi.mock("~src/services/api", async (orig) => ({ ...(await orig<object>()), apiGetPlan: vi.fn(() => new Promise(() => {})) }))
 vi.mock("~src/utils/favicon", () => ({ faviconToDataUrl: vi.fn(async (u: string) => u) }))
 
 const tree = (): SavedSpace[] => [{ id: "s", name: "Work", order: 0, projects: [{ id: "p", name: "Site", order: 0,
@@ -73,5 +77,19 @@ describe("SaveAllDialog", () => {
     render(<SaveAllDialog />)
     expect(await screen.findByText(/No savable tabs are open/)).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Save 0 tabs" })).toBeDisabled()
+  })
+
+  it("says before saving when it crosses the plan's sync cap, and still saves (TASK-9)", async () => {
+    useAuthStore.setState({ isAuthenticated: true })
+    usePlanStore.setState({ status: { plan: "free", limits: { max_tabs_total: 2 }, usage: { total_tabs: 0, tree_bytes: 0, snapshots: 0 } } as unknown as PlanStatus })
+    render(<SaveAllDialog />)
+    await screen.findByText("3 tabs open in 2 windows.")
+    expect(screen.queryByRole("note")).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole("radio", { name: /All windows/ }))
+    expect(screen.getByRole("note")).toHaveTextContent("This puts you at 3 of 2 tabs. Sync pauses until you remove 1.")
+    fireEvent.click(screen.getByRole("button", { name: "Save 3 tabs" }))
+    await waitFor(() => expect(groups()).toHaveLength(2))
+    useAuthStore.setState({ isAuthenticated: false })
+    usePlanStore.setState({ status: null })
   })
 })

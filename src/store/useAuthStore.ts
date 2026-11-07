@@ -10,6 +10,7 @@ import { clearStoredRevision } from "~src/services/revision";
 import { LANDED_SNAPSHOT_KEY } from "~src/services/landedSnapshot";
 import { clearMergeBase } from "~src/services/mergeBase";
 import { clearConflictPending } from "~src/services/conflictState";
+import { LIMIT_NOTICE_KEY } from "~src/services/syncLimit";
 import type { TokenData } from "~src/services/api";
 
 const SYNC_HYDRATED_KEY = "flextab_sync_hydrated";
@@ -104,7 +105,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       // Preserve local work for the existing explicit sync reconciliation flow.
       await clearStoredRevision();
       try { await chrome.storage.local.set({ [FRESH_LOGIN_KEY]: true }); } catch (_) { /* ok */ }
-      try { await chrome.storage.local.remove(SYNC_HYDRATED_KEY); } catch (_) { /* ok */ }
+      try { await chrome.storage.local.remove([SYNC_HYDRATED_KEY, LIMIT_NOTICE_KEY]); } catch (_) { /* ok */ }
       // Invalidate the previous identity before releasing the login lock.
       // Account-bound work must wait for /me for the newly accepted tokens.
       set({ isAuthenticated: true, user: null });
@@ -141,7 +142,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       // local work and reconciles it explicitly, whichever account it is.
       await clearMergeBase();
       await clearConflictPending(); // per-account, like the merge base
-      const keys = [SYNC_HYDRATED_KEY, FRESH_LOGIN_KEY, LANDED_SNAPSHOT_KEY];
+      const keys = [SYNC_HYDRATED_KEY, FRESH_LOGIN_KEY, LANDED_SNAPSHOT_KEY, LIMIT_NOTICE_KEY]; // the limit is per-account too
       if (localData === "remove") keys.push("spaces");
       try { await chrome.storage.local.remove(keys); } catch (_) { /* ok */ }
       set({ user: null, isAuthenticated: false });

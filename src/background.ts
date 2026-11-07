@@ -12,13 +12,13 @@ import {
 } from "~src/lib/yjsDoc";
 import { recordLandedSnapshot, LANDED_SNAPSHOT_KEY } from "~src/services/landedSnapshot";
 import type { SavedSpace } from "~src/types";
+import { clearLimitNotice, LIMIT_RECHECK_KEY, saveLimitNotice } from "~src/services/syncLimit";
 import { captureFromBackground, commandKind, menuKind, registerCaptureMenus } from "~src/services/backgroundCapture";
 
 const API_BASE_URL = process.env.PLASMO_PUBLIC_API_URL || "http://localhost:3000";
 const AUTH_SUCCESS_PATH = "/auth/success";
 const BILLING_SUCCESS_PATH = "/billing/success";
 const BILLING_CANCEL_PATH = "/billing/cancel";
-const LIMIT_NOTICE_KEY = "flextab_limit_notice";
 // Set after a provider-link (bind) OAuth round-trip so the open new-tab can
 // refresh its linked-accounts list + toast the result.
 const BIND_RESULT_KEY = "flextab_bind_result";
@@ -187,13 +187,12 @@ async function pushLatestStructuredData() {
       await clearConflictPending(); // successful land clears any stale OCC deferral
       await recordLandedSnapshot(spaces as SavedSpace[], localAtAttempt as SavedSpace[]);
     },
-    // Plan-limit rejection: stash a notice the open new-tab picks up and toasts,
-    // since the background worker can't render UI itself.
-    (message) => {
-      try { void chrome.storage.local.set({ [LIMIT_NOTICE_KEY]: { message, at: Date.now() } }); } catch (_) { /* ok */ }
-    },
+    // Plan-limit rejection: keep a notice the new-tab shows as "Sync paused"
+    // until a push lands (TASK-9), since the background worker can't render UI.
+    (message, detail) => saveLimitNotice(message, detail),
     automaticPushAllowed,
   );
+  if (result === "ok") await clearLimitNotice();
 
   // "error" / "paused" → keep PENDING_PUSH for a later allowed retry.
   // "ok" / "limit" / "skipped" → clear it: skipped is handled by conflictPending
@@ -226,6 +225,12 @@ chrome.storage.onChanged.addListener((changes, area) => {
     pushAgain = false;
   }
   if (changes[LANDED_SNAPSHOT_KEY]?.oldValue && !changes[LANDED_SNAPSHOT_KEY]?.newValue) {
+    void pushStructuredData();
+  }
+  // The plan may fit now (e.g. after an upgrade): retry the push that the limit
+  // stopped, without waiting for the next edit.
+  if (changes[LIMIT_RECHECK_KEY]?.newValue) {
+    void chrome.storage.local.remove(LIMIT_RECHECK_KEY);
     void pushStructuredData();
   }
   if (!changes[PERSIST_KEY]) return;

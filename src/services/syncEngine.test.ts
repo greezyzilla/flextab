@@ -414,6 +414,7 @@ describe('syncNow', () => {
     vi.mocked(apiFetch).mockResolvedValue({ spaces: [beSpace('last', [{ id: 't1' }])], revision: 1 });
     vi.mocked(pushSync).mockResolvedValue({ status: 'ok', revision: 2 });
     expect(await syncNow()).toEqual({ status: 'ok' });
+    expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_limit_notice'); // a landed push ends "Sync paused"
     expect(pushSync).toHaveBeenCalledWith([], 1, expect.any(Function));
     expect(getSpaces()).toEqual([]);
     expect(await getMergeBase()).toEqual([]);
@@ -473,6 +474,8 @@ describe('syncNow', () => {
     (apiFetch as any).mockResolvedValue({ spaces: [], revision: 1 });
     (pushSync as any).mockResolvedValue({ status, message: 'Quota reached' });
     expect(await syncNow()).toEqual(status === 'limit' ? { status, message: 'Quota reached' } : { status });
+    // A limit is kept as the lasting "Sync paused" state (TASK-9).
+    if (status === 'limit') expect(chrome.storage.local.set).toHaveBeenCalledWith({ flextab_limit_notice: expect.objectContaining({ message: 'Quota reached' }) });
     expect(getSpaces()).toEqual(local);
     expect(useSyncStore.getState().dirty).toBe(true);
     expect(useSyncStore.getState().lastSyncedAt).toBeNull();

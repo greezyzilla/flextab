@@ -1,5 +1,6 @@
 import { withSyncWriteLock } from "./syncPolicy";
 import { syncStructuredSnapshot } from "./structuredSync";
+import { clearLimitNotice, saveLimitNotice } from "./syncLimit";
 import { recordLandedSnapshot } from "./landedSnapshot";
 import { doc, getSpaces, setSpaces, persistState, installExternalPersistBridge } from "~src/lib/yjsDoc";
 import { spacesSignature } from "~src/lib/spacesSignature";
@@ -619,9 +620,10 @@ export function syncNow(): Promise<ManualSyncResult> {
           await recordLandedSnapshot(spaces as SavedSpace[], local as SavedSpace[]);
           await applyPendingLandedSnapshot();
         },
-        message => { limitMessage = message; },
+        async (message, detail) => { limitMessage = message; await saveLimitNotice(message, detail); },
         async () => authorized(),
       );
+      if (pushed === "ok") await clearLimitNotice();
       if (!authorized()) return { status: "signed_out" };
       if (await adoptStoredOccConflict()) { manualResolution = null; return { status: "conflict" }; }
       if (!authorized()) return { status: "signed_out" };

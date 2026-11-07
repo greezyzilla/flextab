@@ -234,6 +234,11 @@ describe('pushSync', () => {
     (global.fetch as any).mockResolvedValueOnce(res({ error: 'Forbidden' }, 403));
     expect(await pushSync([], 7)).toEqual({ status: 'error' });
   });
+  it('carries which cap a plan limit hit and by how much (TASK-9)', async () => {
+    await validToken();
+    (global.fetch as any).mockResolvedValueOnce(res({ code: 'plan_limit_exceeded', error: 'total tab limit reached (190/150) on the free plan', limit: 'max_tabs_total', cap: 150, got: 190 }, 403));
+    expect(await pushSync([], 7)).toEqual({ status: 'limit', message: 'total tab limit reached (190/150) on the free plan', limit: 'max_tabs_total', cap: 150, got: 190 });
+  });
   it('returns error without a token', async () => {
     (chrome.storage.local.get as any).mockResolvedValue({});
     expect(await pushSync([], 1)).toEqual({ status: 'error' });

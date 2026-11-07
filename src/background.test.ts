@@ -109,6 +109,19 @@ describe("production background push", () => {
     expect(disk.flextab_push_pending).toBeUndefined();
   });
 
+  it("keeps a plan-limit rejection until a push lands, and retries when asked to recheck (TASK-9)", async () => {
+    await edit([space("big")]);
+    vi.mocked(api.pushSync).mockResolvedValueOnce({ status: "limit", message: "total tab limit reached (190/150) on the free plan", limit: "max_tabs_total", cap: 150, got: 190 });
+    await background.pushStructuredData();
+    expect(disk.flextab_limit_notice).toMatchObject({ limit: "max_tabs_total", cap: 150, got: 190 });
+    // A new-tab page saw the plan grow: the worker retries without a new edit.
+    vi.mocked(api.pushSync).mockResolvedValueOnce({ status: "ok", revision: 2 });
+    await chrome.storage.local.set({ flextab_limit_recheck: 1 });
+    await until(() => disk.flextab_limit_notice === undefined);
+    expect(disk.flextab_limit_recheck).toBeUndefined();
+    expect(api.pushSync).toHaveBeenCalledTimes(2);
+  });
+
   it("keeps edits local after manual hydration when auto-sync is off, across every trigger", async () => {
     disk["flextab-settings"] = JSON.stringify({ state: { autoSync: false }, version: 2 });
     await edit([space("private")]);

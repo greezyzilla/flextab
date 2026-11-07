@@ -9,6 +9,9 @@ import { showUndoToast } from "~src/components/ui/sonner"
 import { DestinationPicker, describeTarget } from "~src/components/DestinationPicker"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import { useUIStore } from "~src/store/useUIStore"
+import { useAuthStore } from "~src/store/useAuthStore"
+import { tabCap, usePlanStore } from "~src/store/usePlanStore"
+import { spaceTabCount } from "~src/services/spacesTree"
 import { isSavableTabUrl, type SaveTabsTarget } from "~src/services/saveTabsAsGroup"
 import { resolveSaveTargetIds } from "~src/services/resolveSaveTarget"
 import {
@@ -35,6 +38,7 @@ export function SaveAllDialog() {
 
   useEffect(() => {
     if (!open) return
+    if (useAuthStore.getState().isAuthenticated) void usePlanStore.getState().load()
     setTarget(resolveSaveTargetIds(savedSpaces, { spaceId: activeSpaceId, projectId: activeProjectId, categoryId: activeCategoryId }))
     void loadCloseAfterSave().then(setCloseAfter)
     void Promise.all([chrome.windows.getAll({ populate: true }), chrome.windows.getCurrent()])
@@ -56,6 +60,12 @@ export function SaveAllDialog() {
   const chosen = scope === "window" ? (current ? [current] : []) : withTabs
   const chosenCount = chosen.reduce((n, w) => n + savable(w).length, 0)
   const destination = describeTarget(savedSpaces, target)
+  // Say before saving when this crosses the plan's sync cap (TASK-9). Saving
+  // locally is never blocked; only sync pauses until tabs are removed.
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const cap = tabCap(usePlanStore((s) => s.status))
+  const after = savedSpaces.reduce((n, sp) => n + spaceTabCount(sp), 0) + chosenCount
+  const overCap = isAuthenticated && cap !== undefined && cap > 0 && after > cap
 
   const save = async () => {
     if (!destination || chosenCount === 0 || saving) return
@@ -114,6 +124,11 @@ export function SaveAllDialog() {
             <Switch checked={closeAfter} aria-label="Close tabs after saving"
               onCheckedChange={(v) => { setCloseAfter(v); void saveCloseAfterSave(v) }} />
           </label>
+          {overCap && (
+            <p role="note" className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-amber-200/90 text-xs leading-relaxed">
+              This puts you at {after} of {cap} tabs. Sync pauses until you remove {after - cap}. The tabs still save on this device.
+            </p>
+          )}
         </div>
 
         <DialogFooter>

@@ -119,7 +119,7 @@ export function PlanTab() {
       <div className="flex flex-col gap-7">
         <SettingRow label="Plan & Usage" description="Your plan limits and how much you've used.">
           <Card className="px-5 py-4 text-fg-subtle text-sm font-sans leading-relaxed shadow-none">
-            Sign in to see your plan and usage. Local-only workspaces have no limits.
+            Sign in to see your plan and usage. Tabs on this device have no limit. Syncing them follows your plan's tab limit.
           </Card>
         </SettingRow>
       </div>

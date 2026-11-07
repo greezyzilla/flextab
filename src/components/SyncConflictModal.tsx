@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react"
 import { ChevronRight } from "lucide-react"
 import { useSyncConflict } from "~src/store/useSyncConflict"
+import { tabCap, usePlanStore } from "~src/store/usePlanStore"
 import { resolveConflict } from "~src/services/syncEngine"
 import { mergeSpacesGuest } from "~src/services/spacesMerge"
 import { spaceTabCount } from "~src/services/spacesTree"
@@ -173,6 +174,12 @@ export function SyncConflictModal() {
         { id: "server", label: "Keep my account's", effect: `Removes this device's ${tabsLabel(deviceTabs)}` },
         { id: "local", label: "Keep this device's", effect: `Replaces the account's ${tabsLabel(accountTabs)}` },
       ]
+  // The plan's sync cap (TASK-9): say so before a choice uploads more tabs than
+  // the account may sync. Keeping the account's own tabs never grows it.
+  const cap = tabCap(usePlanStore((s) => s.status))
+  const resultTabs = choice === "merge" ? mergedTabs : choice === "local" ? deviceTabs : accountTabs
+  const overCap = cap !== undefined && cap > 0 && resultTabs > cap && resultTabs > accountTabs
+  useEffect(() => { if (pending) void usePlanStore.getState().load() }, [pending])
   const deviceRemoved = choice === "server"
   const accountRemoved = choice === "local" && !accountEmpty
 
@@ -213,6 +220,12 @@ export function SyncConflictModal() {
             </Label>
           ))}
         </RadioGroup>
+
+        {overCap && (
+          <p role="note" className="mx-6 mt-3 shrink-0 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-amber-200/90 text-xs leading-relaxed">
+            Your plan syncs up to {cap} tabs. With {resultTabs}, sync pauses until you remove {resultTabs - cap}. Nothing is lost on this device.
+          </p>
+        )}
 
         <AlertDialogFooter className="mt-4 flex-row items-center justify-between gap-2 border-t border-black-800 p-6 pt-4 shrink-0 sm:justify-between sm:space-x-0">
           {/* Lower the anxiety of removing: a copy first, in one click, kept apart

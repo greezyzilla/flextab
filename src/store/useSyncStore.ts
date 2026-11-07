@@ -1,4 +1,5 @@
 import { create } from "zustand"
+import type { SyncLimitNotice } from "~src/services/syncLimit"
 
 export type SyncStatus =
   | "paused" // engine not running (auto-sync off, signed out, or guest/local-only)
@@ -22,9 +23,14 @@ interface SyncState {
   // survives a reload; cleared once the data converges. Takes visual priority
   // over `dirty` on the indicator.
   conflictPending: boolean
+  // The server refused the last push over a plan limit (TASK-9). Sync stays
+  // paused until a push lands, so this is a lasting state, not a toast.
+  // Mirrors chrome.storage (services/syncLimit) via useBackgroundNotices.
+  limit: SyncLimitNotice | null
   setStatus: (status: SyncStatus) => void
   setDirty: (dirty: boolean) => void
   setConflictPending: (conflictPending: boolean) => void
+  setLimit: (limit: SyncLimitNotice | null) => void
   markSynced: () => void
   reset: () => void
 }
@@ -38,11 +44,13 @@ export const useSyncStore = create<SyncState>((set) => ({
   lastSyncedAt: null,
   dirty: false,
   conflictPending: false,
+  limit: null,
   setStatus: (status) => set({ status }),
   setDirty: (dirty) => set({ dirty }),
   setConflictPending: (conflictPending) => set({ conflictPending }),
+  setLimit: (limit) => set({ limit }),
   markSynced: () => set({ lastSyncedAt: Date.now() }),
-  reset: () => set({ status: "paused", lastSyncedAt: null, dirty: false, conflictPending: false }),
+  reset: () => set({ status: "paused", lastSyncedAt: null, dirty: false, conflictPending: false, limit: null }),
 }))
 
 /** Display metadata per status — shared by the settings tab + the global indicator. */

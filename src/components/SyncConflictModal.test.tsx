@@ -3,6 +3,10 @@ import { fireEvent, render, screen, within } from "@testing-library/react"
 import { SyncConflictModal } from "./SyncConflictModal"
 import { useSyncConflict } from "~src/store/useSyncConflict"
 import type { SavedSpace } from "~src/types"
+import { usePlanStore } from "~src/store/usePlanStore"
+import type { PlanStatus } from "~src/services/api"
+
+vi.mock("~src/services/api", async (orig) => ({ ...(await orig<object>()), apiGetPlan: vi.fn(() => new Promise(() => {})) }))
 
 vi.mock("~src/services/exportWorkspace", () => ({ exportWorkspace: vi.fn() }))
 import { exportWorkspace } from "~src/services/exportWorkspace"
@@ -74,5 +78,18 @@ describe("SyncConflictModal", () => {
     expect(within(device).getByText("home-tab0")).toBeInTheDocument()
     expect(within(device).getByRole("button", { name: "+5 more" })).toBeInTheDocument()
     useSyncConflict.getState().close()
+  })
+
+  it("says before applying when a choice uploads more tabs than the plan syncs (TASK-9)", () => {
+    usePlanStore.setState({ status: { plan: "free", limits: { max_tabs_total: 2, max_tree_bytes: 0, max_snapshots: 0 }, usage: { total_tabs: 0, tree_bytes: 0, snapshots: 0 } } as PlanStatus })
+    useSyncConflict.getState().open([space("account", ["A"])], [space("device", ["B", "C"])])
+    render(<SyncConflictModal />)
+    // Merge keeps 3 tabs on a 2-tab plan.
+    expect(screen.getByRole("note")).toHaveTextContent("Your plan syncs up to 2 tabs. With 3, sync pauses until you remove 1.")
+    // Keeping the account's own tabs never grows it.
+    fireEvent.click(screen.getByRole("radio", { name: /Keep my account's/ }))
+    expect(screen.queryByRole("note")).not.toBeInTheDocument()
+    useSyncConflict.getState().close()
+    usePlanStore.setState({ status: null })
   })
 })
