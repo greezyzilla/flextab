@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useSyncConflict } from "~src/store/useSyncConflict"
 import { resolveConflict } from "~src/services/syncEngine"
 import { mergeSpacesGuest } from "~src/services/spacesMerge"
@@ -38,19 +38,30 @@ function totals(spaces: SavedSpace[]) {
 }
 
 // Shown on sign-in when this device has local tabs AND the account already has
-// tabs. Nothing is overwritten until the user picks; each option is previewed.
+// tabs, or when the device kept tabs from an earlier sign-out (TASK-11): then
+// the account may be empty, and those tabs must not move into it unasked.
+// Nothing is overwritten until the user picks; each option is previewed.
 export function SyncConflictModal() {
   const { pending, server, local } = useSyncConflict()
+  // An empty account makes "merge" and "keep this device's" the same thing, so
+  // the choice is only: bring these tabs into the account, or start it empty.
+  const accountEmpty = totals(server).tabs === 0
   const [choice, setChoice] = useState<Choice>("merge")
+  useEffect(() => { if (pending) setChoice(accountEmpty ? "local" : "merge") }, [pending, accountEmpty])
 
   const merged = useMemo(() => mergeSpacesGuest(server, local), [server, local])
   const result = choice === "merge" ? merged : choice === "server" ? server : local
 
-  const opts: { id: Choice; label: string; spaces: SavedSpace[] }[] = [
-    { id: "merge", label: "Merge both", spaces: merged },
-    { id: "server", label: "Keep my account's", spaces: server },
-    { id: "local", label: "Keep this device's", spaces: local },
-  ]
+  const opts: { id: Choice; label: string; spaces: SavedSpace[] }[] = accountEmpty
+    ? [
+        { id: "local", label: "Add this device's tabs to this account", spaces: local },
+        { id: "server", label: "Start with an empty account", spaces: server },
+      ]
+    : [
+        { id: "merge", label: "Merge both", spaces: merged },
+        { id: "server", label: "Keep my account's", spaces: server },
+        { id: "local", label: "Keep this device's", spaces: local },
+      ]
 
   // Controlled solely by store pending — no Esc/outside dismiss until Apply
   // clears pending (same as the previous hand-rolled shell).
@@ -62,8 +73,9 @@ export function SyncConflictModal() {
             Choose what to keep
           </AlertDialogTitle>
           <AlertDialogDescription className="text-fg-subtle text-sm leading-relaxed">
-            This device has local tabs and your account already has saved tabs.
-            Pick an option. Nothing changes until you apply.
+            {accountEmpty
+              ? "This device has tabs from an earlier sign-in. Choose whether they belong in this account. Nothing changes until you apply."
+              : "This device has local tabs and your account already has saved tabs. Pick an option. Nothing changes until you apply."}
           </AlertDialogDescription>
         </AlertDialogHeader>
 
@@ -103,7 +115,9 @@ export function SyncConflictModal() {
         </div>
         <div className="px-6 flex-1 overflow-y-auto min-h-[80px]">
           {result.length === 0 ? (
-            <div className="text-fg-subtle text-xs py-4">Nothing here. The workspace is empty.</div>
+            <div className="text-fg-subtle text-xs py-4">
+              {accountEmpty ? "The tabs on this device are removed. The workspace starts empty." : "Nothing here. The workspace is empty."}
+            </div>
           ) : (
             <div className="flex flex-col gap-2.5 pb-2">
               {result.map((s) => {
@@ -113,7 +127,7 @@ export function SyncConflictModal() {
                     <div className="flex items-center justify-between">
                       <span className="text-fg-muted text-xs font-medium truncate">{s.name}</span>
                       <span className="text-fg-subtle text-[10px] shrink-0">
-                        {groups.length} group{groups.length !== 1 ? "s" : ""} · {spaceTabCount(s)} tabs
+                        {groups.length} group{groups.length !== 1 ? "s" : ""} · {spaceTabCount(s)} tab{spaceTabCount(s) !== 1 ? "s" : ""}
                       </span>
                     </div>
                     {groups.length > 0 && (

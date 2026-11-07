@@ -23,6 +23,7 @@ import {
 import { syncActiveSelection } from "~src/store/useSavedSpacesStore";
 import { mergeSpacesGuest } from "./spacesMerge";
 import { spaceTabCount } from "./spacesTree";
+import { clearKeptOnSignOut, loadKeptOnSignOut } from "./keptWorkspace";
 import { merge3, type Conflict, type Resolutions } from "./spacesMerge3";
 import type { SavedSpace } from "~src/types";
 import type { SyncStatus } from "~src/store/useSyncStore";
@@ -170,14 +171,17 @@ export type Reconciliation =
 /**
  * Guest / no-merge-base reconciliation only (FE-C3).
  * - explicit login + BOTH sides have real tabs → conflict (SyncConflictModal)
+ * - after a "keep tabs" sign-out + local tabs → conflict too, on any reconcile
+ *   without a base and even into an empty account: those tabs came from an
+ *   earlier sign-in (TASK-11)
  * - server only → take server; local only → keep local; both → mergeSpacesGuest
  * Live OCC with a base uses decideReconciliation3 → merge3.
  */
-export function decideReconciliation(server: SavedSpace[], local: SavedSpace[], freshLogin: boolean): Reconciliation {
+export function decideReconciliation(server: SavedSpace[], local: SavedSpace[], freshLogin: boolean, askBeforeUpload = false): Reconciliation {
   const serverReal = hasRealData(server);
   const localReal = hasRealData(local);
 
-  if (freshLogin && serverReal && localReal) return { kind: "conflict" };
+  if (localReal && ((freshLogin && serverReal) || askBeforeUpload)) return { kind: "conflict" };
 
   let spaces: SavedSpace[];
   if (serverReal && !localReal) spaces = server;
@@ -197,8 +201,9 @@ export function decideReconciliation3(
   server: SavedSpace[],
   local: SavedSpace[],
   freshLogin: boolean,
+  askBeforeUpload = false,
 ): Reconciliation {
-  if (!base) return decideReconciliation(server, local, freshLogin);
+  if (!base) return decideReconciliation(server, local, freshLogin, askBeforeUpload);
   const { merged, conflicts } = merge3(base, server, local);
   return conflicts.length > 0
     ? { kind: "item-conflict", spaces: merged, conflicts }
@@ -271,9 +276,10 @@ async function reconcileState(freshLogin: boolean, manual: boolean, allowed: () 
   }
 
   const base = await getMergeBase();
+  const askBeforeUpload = await loadKeptOnSignOut();
   if (!allowed()) return "paused";
   const local = getSpaces();
-  const decision = decideReconciliation3(base, server, local, freshLogin);
+  const decision = decideReconciliation3(base, server, local, freshLogin, askBeforeUpload);
 
   if (decision.kind === "conflict") {
     pendingServer = server;
@@ -308,6 +314,7 @@ async function reconcileState(freshLogin: boolean, manual: boolean, allowed: () 
     serverConfirmed: spacesSignature(decision.spaces) === spacesSignature(server),
   });
   if (freshLogin) await clearFreshLogin(); // acted on
+  if (askBeforeUpload && !base) await clearKeptOnSignOut(); // nothing local to ask about
   return "ok";
 }
 
@@ -317,6 +324,7 @@ export function resolveConflict(choice: "merge" | "server" | "local") {
   pendingServer = pendingLocal = null;
   useSyncConflict.getState().close();
   if (!s || !l) return;
+  void clearKeptOnSignOut(); // the kept tabs have their answer
   void clearFreshLogin();
   // Jump to first space/group after resolving; always needs push (not server-only GET).
   applyUserResolution(resolveChoice(choice, s, l), true);

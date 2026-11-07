@@ -40,8 +40,10 @@ describe('local-first sign-out (TASK-7)', () => {
     expect(useAuthStore.getState().isAuthenticated).toBe(false);
     expect(chrome.storage.local.remove).toHaveBeenCalledWith(['flextab_sync_hydrated', 'flextab_fresh_login', 'flextab_landed_snapshot']);
     expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_sync_revision');
-    // No base afterwards: the next sign-in, to any account, reconciles explicitly.
+    // No base afterwards: the next sign-in, to any account, reconciles explicitly,
+    // and must ask before these tabs go anywhere (TASK-11).
     expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_merge_base');
+    expect(chrome.storage.local.set).toHaveBeenCalledWith({ flextab_kept_on_signout: true });
   });
 
   it('logout "remove" also deletes the local workspace', async () => {
@@ -50,6 +52,7 @@ describe('local-first sign-out (TASK-7)', () => {
     expect(getSpaces()).toEqual([]);
     expect(chrome.storage.local.remove).toHaveBeenCalledWith(['flextab_sync_hydrated', 'flextab_fresh_login', 'flextab_landed_snapshot', 'spaces']);
     expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_merge_base');
+    expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_kept_on_signout');
   });
 });
 

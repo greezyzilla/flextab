@@ -490,6 +490,39 @@ describe('syncNow', () => {
     expect(useSyncConflict.getState().pending).toBe(true);
   });
 
+  it('asks before tabs kept from an earlier sign-out go into an empty account (TASK-11)', async () => {
+    useSettingsStore.setState({ autoSync: false });
+    setSpaces([localSpace('previous-account', [{ id: 'p' }])]);
+    const flags: Record<string, boolean> = { flextab_fresh_login: true, flextab_kept_on_signout: true };
+    (chrome.storage.local.get as any).mockImplementation(async (key: string) => key in flags ? { [key]: flags[key] } : {});
+    (apiFetch as any).mockResolvedValue({ spaces: [], revision: 0 });
+    expect(await syncNow()).toEqual({ status: 'conflict' });
+    expect(pushSync).not.toHaveBeenCalled();
+    expect(getSpaces()[0].id).toBe('previous-account');
+    expect(useSyncConflict.getState().pending).toBe(true);
+    resolveConflict('server');
+    expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_kept_on_signout');
+  });
+
+  it('asks about kept tabs even when the fresh-login flag was lost (TASK-11)', async () => {
+    useSettingsStore.setState({ autoSync: false });
+    setSpaces([localSpace('previous-account', [{ id: 'p' }])]);
+    (chrome.storage.local.get as any).mockImplementation(async (key: string) => key === 'flextab_kept_on_signout' ? { flextab_kept_on_signout: true } : {});
+    (apiFetch as any).mockResolvedValue({ spaces: [], revision: 0 });
+    expect(await syncNow()).toEqual({ status: 'conflict' });
+    expect(pushSync).not.toHaveBeenCalled();
+  });
+
+  it('drops the kept marker when the device has no tabs to ask about', async () => {
+    useSettingsStore.setState({ autoSync: false });
+    const flags: Record<string, boolean> = { flextab_fresh_login: true, flextab_kept_on_signout: true };
+    (chrome.storage.local.get as any).mockImplementation(async (key: string) => key in flags ? { [key]: flags[key] } : {});
+    (apiFetch as any).mockResolvedValue({ spaces: [beSpace('account', [{ id: 'a' }])], revision: 1 });
+    expect(await syncNow()).toEqual({ status: 'ok' });
+    expect(useSyncConflict.getState().pending).toBe(false);
+    expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_kept_on_signout');
+  });
+
   it('uploads the explicit keep-local choice on the next manual sync instead of asking again', async () => {
     useSettingsStore.setState({ autoSync: false });
     setSpaces([localSpace('guest', [{ id: 'g' }])]);

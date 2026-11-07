@@ -46,6 +46,17 @@ describe('decideReconciliation', () => {
   });
 });
 
+describe('decideReconciliation after a kept sign-out (TASK-11)', () => {
+  const local = [space('l', 'Kept', [tab('k')])];
+  it('asks even when the account is empty', () => {
+    expect(decideReconciliation([], local, true, true)).toEqual({ kind: 'conflict' });
+    expect(decideReconciliation3(null, [], local, true, true)).toEqual({ kind: 'conflict' });
+  });
+  it('has nothing to ask when the device holds no tabs', () => {
+    expect(decideReconciliation([], [space('e', 'Empty', [])], true, true).kind).toBe('apply');
+  });
+});
+
 describe('decideReconciliation3 (with a merge-base)', () => {
   it('no base → falls back to 2-way (fresh login + both real → conflict)', () => {
     const d = decideReconciliation3(null, withTabs, [space('l', 'Research', [tab('t2')])], true);

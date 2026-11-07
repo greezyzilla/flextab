@@ -1,3 +1,4 @@
+import { clearKeptOnSignOut, markKeptOnSignOut } from "~src/services/keptWorkspace";
 import { toast } from "sonner";
 import { cancelPendingOAuth, OAUTH_START } from "~src/services/oauthLogin";
 import { withSyncWriteLock } from "~src/services/syncPolicy";
@@ -132,6 +133,10 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       if (localData === "remove") {
         await clearState();
         resetYjsHydration();
+        await clearKeptOnSignOut();
+      } else {
+        // The next sign-in, to any account, must ask before these tabs go anywhere.
+        await markKeptOnSignOut();
       }
       await clearStoredRevision();
       // The merge base is per-account, so it belongs here (real, explicit
