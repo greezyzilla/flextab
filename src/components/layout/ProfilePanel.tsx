@@ -53,12 +53,12 @@ export function ProfilePanel() {
 
 
   return (
-    <nav aria-label="Spaces" className="w-16 h-full flex flex-col border-r border-black-800">
+    <nav aria-label="Spaces" className="w-16 h-full flex flex-col border-r border-line">
       <SignOutDialog open={signOutOpen} onOpenChange={setSignOutOpen} />
       <div className="flex flex-col items-center flex-1">
         {/* Header — h-16 to line up with the brand header in LeftPanel / the
             search-bar row in the middle column / "Opened Tabs" in RightPanel. */}
-        <div className="h-16 w-full flex items-center justify-center border-b border-black-800 shrink-0">
+        <div className="h-16 w-full flex items-center justify-center border-b border-line shrink-0">
           <div
             className="w-10 h-10 rounded-2xl border flex items-center justify-center"
             style={{
@@ -98,7 +98,7 @@ export function ProfilePanel() {
                 aria-pressed={!inSettings && activeSpaceId === space.id}
                 onClick={() => { setActiveSpace(space.id); navigate("/"); }}
                 className={`w-10 h-10 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-black-900 cursor-pointer transition-all flex items-center justify-center text-xs font-normal font-sans ${
-                  !inSettings && activeSpaceId === space.id ? "ring-2 ring-white/50" : "hover:brightness-125"
+                  !inSettings && activeSpaceId === space.id ? "ring-2 ring-ink/50" : "hover:brightness-125"
                 }`}
                 style={{
                   ...spaceAvatarColors(space, !inSettings && activeSpaceId === space.id),
@@ -113,7 +113,7 @@ export function ProfilePanel() {
         ))}
         {creatingSpace && (
           <div className="relative">
-            <div aria-hidden className="w-10 h-10 rounded-full border border-dashed border-white/50 flex items-center justify-center text-xs font-medium text-fg-muted">
+            <div aria-hidden className="w-10 h-10 rounded-full border border-dashed border-ink/50 flex items-center justify-center text-xs font-medium text-fg-muted">
               {(newSpaceName.trim().slice(0, 2) || "··").toUpperCase()}
             </div>
             <div className="absolute left-14 top-0 z-50 bg-black-800 border border-black-700 rounded-lg shadow-xl p-2 w-48 flex flex-col gap-1">
@@ -141,7 +141,7 @@ export function ProfilePanel() {
               type="button"
               aria-label="Add space"
               onClick={handleAddSpace}
-              className="w-10 h-10 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring border border-white/30 border-dashed text-fg-subtle flex items-center justify-center cursor-pointer hover:border-white/50 hover:text-fg-muted transition-colors"
+              className="w-10 h-10 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring border border-ink/30 border-dashed text-fg-subtle flex items-center justify-center cursor-pointer hover:border-ink/50 hover:text-fg-muted transition-colors"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -161,7 +161,7 @@ export function ProfilePanel() {
           aria-pressed={inSettings}
           onClick={() => navigate(SETTINGS_ROUTE)}
           className={`w-10 h-10 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-black-900 cursor-pointer flex items-center justify-center transition-colors ${
-            inSettings ? "bg-black-700 ring-2 ring-white/50" : "bg-black-800 hover:bg-black-700"
+            inSettings ? "bg-black-700 ring-2 ring-ink/50" : "bg-black-800 hover:bg-black-700"
           }`}
         >
           <svg className={`w-5 h-5 ${inSettings ? "text-fg" : "text-fg-subtle"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
@@ -219,7 +219,7 @@ function DroppableSpace({ spaceId, children }: { spaceId: string; children: Reac
   });
 
   return (
-    <div ref={setNodeRef} className={`rounded-full transition-all ${isOver ? 'ring-2 ring-white/40 scale-110' : ''}`}>
+    <div ref={setNodeRef} className={`rounded-full transition-all ${isOver ? 'ring-2 ring-ink/40 scale-110' : ''}`}>
       {children}
     </div>
   );

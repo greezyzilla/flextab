@@ -94,7 +94,7 @@ export function OnboardingScreen({ onBack }: {
         <AppMark />
 
         {sessionExpired && (
-          <div className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-amber-200/90 text-xs leading-relaxed">
+          <div className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-warning-body/90 text-xs leading-relaxed">
             Your session expired. Sign in again to keep syncing. Your tabs are still saved on this device.
           </div>
         )}
@@ -134,9 +134,9 @@ export function OnboardingScreen({ onBack }: {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex-1 h-px bg-white/10" />
+          <div className="flex-1 h-px bg-ink/10" />
           <span className="text-fg-subtle text-xs">or sign in with email</span>
-          <div className="flex-1 h-px bg-white/10" />
+          <div className="flex-1 h-px bg-ink/10" />
         </div>
 
         {/* Labels stay visible while typing (WCAG 1.3.1 / 3.3.2). */}
@@ -152,7 +152,7 @@ export function OnboardingScreen({ onBack }: {
               value={password} onChange={e => setPassword(e.target.value)} className="w-full" required
               aria-describedby={error ? "signin-error" : undefined} />
           </div>
-          {error && <div id="signin-error" role="alert" className="text-red-400 text-xs">{error}</div>}
+          {error && <div id="signin-error" role="alert" className="text-danger text-xs">{error}</div>}
           <Button variant="secondary" type="submit" disabled={loading} className="w-full">
             {loading ? 'Please wait…' : 'Sign in'}
           </Button>

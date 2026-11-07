@@ -24,9 +24,9 @@ module.exports = {
         input: "var(--border-control)",
         ring: "var(--accent)",
         background: "var(--color-black-900)",
-        foreground: "hsl(0 0% 100% / 0.92)",
+        foreground: "hsl(var(--ink) / 0.92)",
         primary: { DEFAULT: "var(--accent)", foreground: "hsl(0 0% 100%)" },
-        secondary: { DEFAULT: "var(--color-black-800)", foreground: "hsl(0 0% 100% / 0.88)" },
+        secondary: { DEFAULT: "var(--color-black-800)", foreground: "hsl(var(--ink) / 0.88)" },
         destructive: { DEFAULT: "hsl(0 72% 51% / <alpha-value>)", foreground: "hsl(0 0% 100%)" },
         muted: { DEFAULT: "var(--color-black-800)", foreground: "var(--text-tertiary)" },
         // Text tiers (TASK-6, style.css): text-fg / -muted / -subtle / -disabled.
@@ -38,11 +38,22 @@ module.exports = {
           accent: "var(--accent-text)",
         },
         control: "var(--border-control)",
+        // Ink: the colour that contrasts with the surfaces (white on dark,
+        // near-black on light). Hairlines, washes and hover fills use it with
+        // an alpha (border-ink/10, bg-ink/[0.03]) so they follow the theme.
+        ink: "hsl(var(--ink) / <alpha-value>)",
+        // Hairline between panels and sections.
+        line: "var(--color-line)",
+        // Status text. Each theme picks shades that read on its own surfaces.
+        danger: { DEFAULT: "rgb(var(--danger) / <alpha-value>)", strong: "rgb(var(--danger-strong) / <alpha-value>)" },
+        warning: { DEFAULT: "rgb(var(--warning) / <alpha-value>)", body: "rgb(var(--warning-body) / <alpha-value>)" },
+        success: "rgb(var(--success) / <alpha-value>)",
+        caution: "rgb(var(--caution) / <alpha-value>)",
         // item-hover surface — lighter than the menu bg so hover reads
-        accent: { DEFAULT: "var(--color-black-700)", foreground: "hsl(0 0% 100% / 0.92)" },
+        accent: { DEFAULT: "var(--color-black-700)", foreground: "hsl(var(--ink) / 0.92)" },
         // elevated surfaces (menus/dropdowns/tooltips) — LIGHTER than the page base
-        popover: { DEFAULT: "var(--color-black-800)", foreground: "hsl(0 0% 100% / 0.92)" },
-        card: { DEFAULT: "var(--color-black-800)", foreground: "hsl(0 0% 100% / 0.92)" },
+        popover: { DEFAULT: "var(--color-black-800)", foreground: "hsl(var(--ink) / 0.92)" },
+        card: { DEFAULT: "var(--color-black-800)", foreground: "hsl(var(--ink) / 0.92)" },
         'black-50': 'var(--color-black-50)',
         'black-100': 'var(--color-black-100)',
         'black-200': 'var(--color-black-200)',

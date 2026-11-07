@@ -121,7 +121,7 @@ export function DevicesSection({ refresh }: { refresh: number }) {
           {!failed && devices === null && <div className="text-fg-subtle text-xs font-sans">Loading…</div>}
           {!failed && devices?.length === 0 && <div className="text-fg-subtle text-xs font-sans">No devices recorded yet.</div>}
           {devices?.map(d => (
-            <div key={d.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/[0.08] bg-white/[0.02] px-4 py-3">
+            <div key={d.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-ink/[0.08] bg-ink/[0.02] px-4 py-3">
               <div className="flex flex-wrap items-center gap-2 min-w-0 max-w-full">
                 <span className="text-fg-muted text-sm font-sans truncate">{d.label}</span>
                 {d.id === thisDeviceId && (

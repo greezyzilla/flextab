@@ -47,7 +47,7 @@ export function TransactionsTab() {
           <Card className="overflow-hidden shadow-none">
             {txns.map((t, i) => (
               <div key={t.id}>
-                {i > 0 && <Separator className="bg-white/[0.06]" />}
+                {i > 0 && <Separator className="bg-ink/[0.06]" />}
                 <div className="flex flex-wrap items-center justify-between gap-2 px-4 sm:px-5 py-3">
                   <div className="flex flex-col gap-0.5 min-w-0">
                     <span className="text-fg-muted text-sm font-sans">

@@ -178,22 +178,22 @@ export function AccountTab() {
       {/* Sign-in methods */}
       <SettingRow label="Sign-in methods" description="Providers linked to your account. Link more or remove ones you don't use.">
         <div className="flex flex-col gap-2">
-          {idError && <div className="text-red-400 text-xs font-sans">{idError}</div>}
+          {idError && <div className="text-danger text-xs font-sans">{idError}</div>}
           {/* A password-only account has no way back in if the password is lost:
               FlexTab sends no email, so there is no reset (TASK-8). */}
           {identities?.length === 0 && hasPassword && (
-            <p role="note" className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-amber-200 text-xs font-sans leading-relaxed">
+            <p role="note" className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-warning-body text-xs font-sans leading-relaxed">
               Only a password protects this account, and FlexTab can't reset it. Link Google or GitHub so you can always get back in.
             </p>
           )}
           {identities === null && <div className="text-fg-subtle text-xs font-sans">Loading…</div>}
           {identities?.map(id => (
-            <div key={id.provider} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/[0.08] bg-white/[0.02] px-4 py-3">
+            <div key={id.provider} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-ink/[0.08] bg-ink/[0.02] px-4 py-3">
               <div className="flex flex-wrap items-center gap-2 min-w-0 max-w-full">
                 <span className="text-fg-muted text-sm font-sans capitalize">{id.provider}</span>
                 {id.email && <span className="text-fg-subtle text-xs font-sans truncate">{id.email}</span>}
               </div>
-              <Button variant="ghost" size="sm" onClick={() => handleUnlink(id.provider)} disabled={unlinking === id.provider} className="!text-red-400 hover:!text-red-300">
+              <Button variant="ghost" size="sm" onClick={() => handleUnlink(id.provider)} disabled={unlinking === id.provider} className="!text-danger hover:!text-danger-strong">
                 {unlinking === id.provider ? 'Unlinking…' : 'Unlink'}
               </Button>
             </div>
@@ -218,7 +218,7 @@ export function AccountTab() {
             <Button variant="secondary" size="sm" className="self-start" onClick={() => { setPwSuccess(''); setPwOpen(true); }}>
               {hasPassword ? 'Change password…' : 'Add a password…'}
             </Button>
-            {pwSuccess && <div role="status" className="text-green-400 text-xs">{pwSuccess}</div>}
+            {pwSuccess && <div role="status" className="text-success text-xs">{pwSuccess}</div>}
           </div>
         ) : (
           <form onSubmit={handleChangePassword} className="flex flex-col gap-2.5">
@@ -237,7 +237,7 @@ export function AccountTab() {
               <Label htmlFor="account-confirm-password">Confirm new password</Label>
               <Input id="account-confirm-password" type="password" autoComplete="new-password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} className="w-full" minLength={8} required />
             </div>
-            {pwError && <div role="alert" className="text-red-400 text-xs">{pwError}</div>}
+            {pwError && <div role="alert" className="text-danger text-xs">{pwError}</div>}
             <div className="flex items-center gap-2">
               <Button variant="secondary" size="sm" type="submit" disabled={pwLoading}>
                 {pwLoading ? 'Saving…' : hasPassword ? 'Update password' : 'Set password'}
@@ -257,7 +257,7 @@ export function AccountTab() {
       </SettingRow>
 
       {/* Same danger zone as Settings › Spaces (TASK-17): last, set apart, red. */}
-      <section className="flex flex-col gap-3 border-t border-white/10 pt-6" aria-labelledby="account-danger-heading">
+      <section className="flex flex-col gap-3 border-t border-ink/10 pt-6" aria-labelledby="account-danger-heading">
         <h3 id="account-danger-heading" className="text-fg-subtle text-[11px] font-medium font-sans uppercase tracking-wider">Danger zone</h3>
         <div className="flex items-start justify-between gap-4 rounded-lg border border-red-400/25 p-4">
           <div className="min-w-0">

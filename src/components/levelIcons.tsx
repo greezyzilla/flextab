@@ -42,8 +42,8 @@ export function spaceAvatarColors(space: { color?: string } | undefined, active:
   return {
     backgroundColor: space?.color
       ? `${space.color}${active ? "40" : "25"}`
-      : active ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.08)",
-    color: active ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.7)",
+      : active ? "hsl(var(--ink) / 0.2)" : "hsl(var(--ink) / 0.08)",
+    color: active ? "var(--text-primary)" : "var(--text-secondary)",
   };
 }
 

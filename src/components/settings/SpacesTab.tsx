@@ -63,7 +63,7 @@ export function SpacesTab() {
             const isSelected = space.id === selected?.id;
             return (
               <li key={space.id}
-                className={`flex items-center gap-1 rounded-lg pr-1 transition-colors ${isSelected ? "bg-white/[0.06]" : "hover:bg-white/[0.03]"}`}>
+                className={`flex items-center gap-1 rounded-lg pr-1 transition-colors ${isSelected ? "bg-ink/[0.06]" : "hover:bg-ink/[0.03]"}`}>
                 <button
                   type="button"
                   aria-current={isSelected ? "true" : undefined}
@@ -131,8 +131,8 @@ function SpaceDetail({ space, isLast }: { space: SavedSpace; isLast: boolean }) 
             {SPACE_COLORS.map(c => (
               <button key={c || "default"} type="button" onClick={() => setColor(c)}
                 aria-label={`${SPACE_COLOR_NAMES[c] ?? c} color`} aria-pressed={color === c}
-                className={`h-6 w-6 rounded-full border-2 outline-none transition-all focus-visible:ring-1 focus-visible:ring-ring ${color === c ? "border-white/70 scale-110" : "border-transparent hover:border-white/30"}`}
-                style={{ backgroundColor: c || "rgba(255,255,255,0.15)" }} />
+                className={`h-6 w-6 rounded-full border-2 outline-none transition-all focus-visible:ring-1 focus-visible:ring-ring ${color === c ? "border-ink/70 scale-110" : "border-transparent hover:border-ink/30"}`}
+                style={{ backgroundColor: c || "hsl(var(--ink) / 0.15)" }} />
             ))}
           </div>
         </div>
@@ -164,7 +164,7 @@ function DangerZone({ space, isLast }: { space: SavedSpace; isLast: boolean }) {
   };
 
   return (
-    <section className="flex flex-col gap-3 border-t border-white/10 pt-6" aria-labelledby="danger-zone-heading">
+    <section className="flex flex-col gap-3 border-t border-ink/10 pt-6" aria-labelledby="danger-zone-heading">
       <h3 id="danger-zone-heading" className="text-fg-subtle text-[11px] font-medium font-sans uppercase tracking-wider">Danger zone</h3>
       <div className="flex items-start justify-between gap-4 rounded-lg border border-red-400/25 p-4">
         <div className="min-w-0">

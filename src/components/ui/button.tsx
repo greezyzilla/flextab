@@ -16,10 +16,10 @@ const buttonVariants = cva(
         outline:
           // Own text colour: dialogs render in a portal, where inherited colour is the browser's black.
           "border border-input bg-background text-fg-muted shadow-sm hover:bg-accent hover:text-accent-foreground",
-        secondary: "bg-white/[0.08] text-fg hover:bg-white/[0.13]",
+        secondary: "bg-ink/[0.08] text-fg hover:bg-ink/[0.13]",
         ghost:
-          "border border-white/10 text-fg-muted hover:border-white/25 hover:bg-white/[0.04] hover:text-white",
-        link: "text-fg-subtle underline-offset-4 hover:text-white hover:underline",
+          "border border-ink/10 text-fg-muted hover:border-ink/25 hover:bg-ink/[0.04] hover:text-ink",
+        link: "text-fg-subtle underline-offset-4 hover:text-ink hover:underline",
       },
       size: {
         default: "h-9 px-3.5 py-2",
@@ -61,14 +61,14 @@ const iconButtonVariants = cva(
   {
     variants: {
       variant: {
-        default: "text-fg-subtle hover:bg-white/10 hover:text-fg",
+        default: "text-fg-subtle hover:bg-ink/10 hover:text-fg",
         subtle: "text-fg-subtle hover:text-fg-muted",
       },
       danger: { true: "", false: "" },
     },
     compoundVariants: [
-      { variant: "default", danger: true, class: "text-fg-subtle hover:bg-red-400/10 hover:text-red-400" },
-      { variant: "subtle", danger: true, class: "text-fg-subtle hover:text-red-400" },
+      { variant: "default", danger: true, class: "text-fg-subtle hover:bg-red-400/10 hover:text-danger" },
+      { variant: "subtle", danger: true, class: "text-fg-subtle hover:text-danger" },
     ],
     defaultVariants: { variant: "default", danger: false },
   },

@@ -49,7 +49,7 @@ function NewProjectSlot({ onClick }: { onClick: () => void }) {
       <button
         type="button"
         onClick={onClick}
-        className="w-full flex items-center gap-2 rounded-md border border-dashed border-white/15 pl-[23px] pr-[7px] py-1 text-left text-[13px] font-sans text-fg-subtle hover:border-white/35 hover:bg-white/[0.03] hover:text-fg transition-colors outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        className="w-full flex items-center gap-2 rounded-md border border-dashed border-ink/15 pl-[23px] pr-[7px] py-1 text-left text-[13px] font-sans text-fg-subtle hover:border-ink/35 hover:bg-ink/[0.03] hover:text-fg transition-colors outline-none focus-visible:ring-1 focus-visible:ring-ring"
       >
         <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden />
         <span className="truncate">New project…</span>
@@ -267,7 +267,7 @@ export function LeftPanel() {
           Settings. Its ⋯ is the same "actions for this thing" as every row's;
           deleting a space stays in Settings › Spaces (TASK-27). pr-3 keeps
           the ⋯ in the tree rows' trailing slot column. */}
-      <div className="h-16 flex items-end justify-between gap-2 pl-4 pr-3 pb-4 border-b border-black-800">
+      <div className="h-16 flex items-end justify-between gap-2 pl-4 pr-3 pb-4 border-b border-line">
         {currentSpace && renamingId === currentSpace.id ? (
           <Input variant="inline" ref={renameRef} type="text" value={renameValue}
             aria-label="Space name"
@@ -303,7 +303,7 @@ export function LeftPanel() {
                     projectId={project.id}
                   >
                     <div className={`group/proj flex items-center gap-1 mx-2 pl-1 pr-1 rounded-md transition-colors ${
-                      activeProjectId === project.id ? 'text-fg' : 'text-fg-muted hover:bg-white/[0.04]'
+                      activeProjectId === project.id ? 'text-fg' : 'text-fg-muted hover:bg-ink/[0.04]'
                     }`}>
                       <button
                         type="button"
@@ -390,7 +390,7 @@ export function LeftPanel() {
                             ) : (
                               <div
                                 className={`group/cat flex items-center gap-1 mx-2 pr-1 rounded-md transition-colors ${
-                                  isActive ? 'text-fg' : 'text-fg-muted hover:text-fg hover:bg-white/[0.04]'
+                                  isActive ? 'text-fg' : 'text-fg-muted hover:text-fg hover:bg-ink/[0.04]'
                                 }`}
                                 style={isActive ? { backgroundColor: 'var(--accent-subtle)' } : undefined}
                               >
@@ -458,12 +458,12 @@ export function LeftPanel() {
       </nav>
 
       {/* Footer */}
-      <div className="flex items-center justify-end gap-2 px-4 py-2 border-t border-black-800">
+      <div className="flex items-center justify-end gap-2 px-4 py-2 border-t border-line">
         {/* The one visible way in to every shortcut (TASK-13). */}
         <button
           type="button"
           onClick={() => useUIStore.getState().setShortcutsOpen(true)}
-          className="flex shrink-0 items-center gap-1.5 rounded-md px-1.5 py-1 text-[11px] font-sans text-fg-subtle outline-none transition-colors hover:bg-white/[0.06] hover:text-fg focus-visible:ring-1 focus-visible:ring-ring"
+          className="flex shrink-0 items-center gap-1.5 rounded-md px-1.5 py-1 text-[11px] font-sans text-fg-subtle outline-none transition-colors hover:bg-ink/[0.06] hover:text-fg focus-visible:ring-1 focus-visible:ring-ring"
         >
           Shortcuts
           <Kbd shortcut="?" />

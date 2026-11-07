@@ -159,7 +159,7 @@ export function SearchBar() {
       // pointer must not steal the row Enter acts on.
       onMouseMove: () => { if (activeKey !== item.key) setActiveKey(item.key); },
       onClick: (e: React.MouseEvent) => choose(item, e.shiftKey),
-      className: cn("flex w-full cursor-pointer items-center gap-3 px-3 py-2 text-left", selected ? "bg-white/10" : "hover:bg-white/5"),
+      className: cn("flex w-full cursor-pointer items-center gap-3 px-3 py-2 text-left", selected ? "bg-ink/10" : "hover:bg-ink/5"),
     };
     if ("more" in item) {
       return <div key={item.key} {...common}><span className="pl-7 text-fg-muted text-xs">Show {item.hidden} more {NOUN[item.more]}</span></div>;
@@ -173,7 +173,7 @@ export function SearchBar() {
     } else if (hit.kind === "saved") {
       icon = <FaviconImg src={hit.tab.favicon} alt="" className="w-4 h-4 shrink-0" />;
       title = hit.tab.title || hit.tab.url; detail = `${host(hit.tab.url)} · ${hit.path.join(" › ")}`;
-      aside = hit.isOpen && <span className="rounded border border-white/10 px-1.5 text-fg-muted text-[11px] leading-[18px]">Open</span>;
+      aside = hit.isOpen && <span className="rounded border border-ink/10 px-1.5 text-fg-muted text-[11px] leading-[18px]">Open</span>;
     } else {
       const space = savedSpaces.find((s) => s.id === hit.spaceId);
       icon = hit.level === "space" ? <SpaceAvatar space={space} size={16} />
@@ -197,7 +197,7 @@ export function SearchBar() {
 
   return (
     <div className="relative flex-1 max-w-lg">
-      <div className="flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-1.5 transition-colors focus-within:border-white/30">
+      <div className="flex items-center gap-2 rounded-md border border-ink/10 bg-ink/5 px-3 py-1.5 transition-colors focus-within:border-ink/30">
         <svg className="w-4 h-4 text-fg-subtle shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
@@ -235,7 +235,7 @@ export function SearchBar() {
 
       {showDropdown && (
         // Clicks keep focus in the input, so the list never closes under them.
-        <div className="absolute top-full left-0 right-0 z-50 mt-1 flex max-h-[min(70vh,36rem)] flex-col overflow-hidden rounded-md border border-white/10 bg-black-800 shadow-lg" onMouseDown={(e) => e.preventDefault()}>
+        <div className="absolute top-full left-0 right-0 z-50 mt-1 flex max-h-[min(70vh,36rem)] flex-col overflow-hidden rounded-md border border-ink/10 bg-black-800 shadow-lg" onMouseDown={(e) => e.preventDefault()}>
           <div ref={listRef} id="search-listbox" role="listbox" aria-label="Search results" className="flex-1 overflow-y-auto py-1">
             {sections.map(({ section, items }) => (
               <div key={section} role="group" aria-labelledby={`search-group-${section}`}>
@@ -249,7 +249,7 @@ export function SearchBar() {
             {total === 0 && <div className="px-3 py-4 text-center text-fg-subtle text-xs">No results for “{query.trim()}”</div>}
           </div>
           {total > 0 && (
-            <div className="flex shrink-0 items-center gap-1 border-t border-white/10 px-3 py-1.5 text-fg-subtle text-[11px]" aria-hidden>
+            <div className="flex shrink-0 items-center gap-1 border-t border-ink/10 px-3 py-1.5 text-fg-subtle text-[11px]" aria-hidden>
               {hintFor(active)}
             </div>
           )}

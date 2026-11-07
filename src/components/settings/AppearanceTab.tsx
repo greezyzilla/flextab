@@ -52,14 +52,14 @@ export function AppearanceTab() {
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-3">
                 <HueSlider {...controlProps} value={hue} onChange={setHue} />
-                <span className="w-10 shrink-0 rounded-md border border-white/10 py-0.5 text-center text-xs font-sans text-fg-subtle">{hue}°</span>
+                <span className="w-10 shrink-0 rounded-md border border-ink/10 py-0.5 text-center text-xs font-sans text-fg-subtle">{hue}°</span>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 {HUE_PRESETS.map(p => (
                   <button
                     key={p.hue}
                     onClick={() => setHue(p.hue)}
-                    className={`h-5 w-5 rounded-full border transition-all ${hue === p.hue ? 'border-white/70 scale-110' : 'border-transparent hover:border-white/40'}`}
+                    className={`h-5 w-5 rounded-full border transition-all ${hue === p.hue ? 'border-ink/70 scale-110' : 'border-transparent hover:border-ink/40'}`}
                     style={{ backgroundColor: `hsl(${p.hue} 85% 56%)` }}
                     title={p.label}
                   />
@@ -174,7 +174,7 @@ export function AppearanceTab() {
         </SettingRow>
       </section>
 
-      <div className="pt-2 border-t border-white/5">
+      <div className="pt-2 border-t border-ink/5">
         <Button variant="ghost" size="sm" onClick={resetAppearance} className="!text-fg-subtle hover:!text-fg">
           Reset to defaults
         </Button>

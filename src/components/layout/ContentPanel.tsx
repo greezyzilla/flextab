@@ -78,7 +78,7 @@ function LevelEmptyState({ icon, title, body, action }: {
   return (
     <div className="flex-1 flex items-center justify-center p-12">
       <div className="flex flex-col items-center gap-5 max-w-sm text-center">
-        <div className="w-14 h-14 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center text-fg-subtle">
+        <div className="w-14 h-14 rounded-2xl bg-ink/[0.03] border border-ink/[0.08] flex items-center justify-center text-fg-subtle">
           {icon}
         </div>
         <div className="flex flex-col gap-2">
@@ -159,7 +159,7 @@ function NewGroupRow({ categoryName, onCommit, onCancel }: {
     // Same card shell as the group it will become (title row inside the card),
     // so the row doesn't change shape or position when Enter creates it.
     <div style={{ paddingTop: 'var(--density-p-section)', paddingInline: GROUP_INLINE }}>
-    <div className="flex flex-col gap-1 rounded-xl border border-white/[0.08] bg-white/[0.015]" style={{ padding: 'var(--density-p-group)' }}>
+    <div className="flex flex-col gap-1 rounded-xl border border-ink/[0.08] bg-ink/[0.015]" style={{ padding: 'var(--density-p-group)' }}>
       <div className="flex items-center gap-2.5" style={{ paddingInline: 'var(--density-px-tab)' }}>
         <span className="w-5 flex justify-center shrink-0"><GroupIcon className="h-3.5 w-3.5 text-fg-subtle" /></span>
         <Input
@@ -207,7 +207,7 @@ function EmptySectionDrop({ location }: { location: GroupLocation }) {
   return (
     <div
       ref={setNodeRef}
-      className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-lg border border-dashed border-white/[0.12] font-sans"
+      className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-lg border border-dashed border-ink/[0.12] font-sans"
       style={{ padding: 'var(--density-p-group) var(--density-px-tab)' }}
     >
       <div className="flex flex-col gap-1">
@@ -279,8 +279,8 @@ function CategorySection({ space, project, category, layout, gridColumns, isCurr
       // -mt-px: the top line overlaps the previous section's last pixel, so
       // while the previous header is pushed out its bottom line and this top
       // line coincide (one line, never a double line).
-      className={`${isFirst ? '' : '-mt-px border-t border-white/[0.12]'} ${isLast ? 'min-h-full' : ''}`}>
-      <div className="sticky top-0 z-20 bg-black-900 h-12 px-6 flex items-center justify-between gap-3 border-b border-white/[0.12]">
+      className={`${isFirst ? '' : '-mt-px border-t border-ink/[0.12]'} ${isLast ? 'min-h-full' : ''}`}>
+      <div className="sticky top-0 z-20 bg-black-900 h-12 px-6 flex items-center justify-between gap-3 border-b border-ink/[0.12]">
         {/* h2 under the panel's h1 (the space); groups are h3 (TASK-28). */}
         <h2 id={`section-${category.id}`} className={`flex items-center gap-2 min-w-0 font-sans text-base ${isCurrent ? 'text-fg' : 'text-fg'}`}>
           <CategoryIcon className="h-4 w-4 shrink-0" />
@@ -328,7 +328,7 @@ function Breadcrumb({ space, project, category, onProject, onCategory }: {
         <>
           {sep}
           <button type="button" onClick={onProject}
-            className="flex items-center gap-1.5 min-w-0 rounded px-1 -mx-1 text-fg hover:text-white outline-none focus-visible:ring-1 focus-visible:ring-ring">
+            className="flex items-center gap-1.5 min-w-0 rounded px-1 -mx-1 text-fg hover:text-ink outline-none focus-visible:ring-1 focus-visible:ring-ring">
             <ProjectIcon className="h-3.5 w-3.5 shrink-0" />
             <span className="truncate max-w-[14rem] font-medium">{project.name}</span>
           </button>
@@ -484,7 +484,7 @@ export function ContentPanel() {
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden min-h-0">
       {/* Location header */}
-      <div className="flex justify-between items-center gap-3 h-14 px-6 border-b border-black-800 shrink-0">
+      <div className="flex justify-between items-center gap-3 h-14 px-6 border-b border-line shrink-0">
         <Breadcrumb
           space={activeSpace}
           project={activeProject}
@@ -494,7 +494,7 @@ export function ContentPanel() {
         />
         <div className="flex items-center gap-2 shrink-0">
           {projectHasGroups && (
-            <div className="flex items-center bg-white/[0.05] rounded-md p-0.5">
+            <div className="flex items-center bg-ink/[0.05] rounded-md p-0.5">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
@@ -502,7 +502,7 @@ export function ContentPanel() {
                     aria-label="List view"
                     aria-pressed={groupLayout === 'list'}
                     onClick={() => setGroupLayout('list')}
-                    className={`p-1 rounded transition-colors ${groupLayout === 'list' ? 'bg-white/10 text-fg' : 'text-fg-subtle hover:text-fg-muted'}`}
+                    className={`p-1 rounded transition-colors ${groupLayout === 'list' ? 'bg-ink/10 text-fg' : 'text-fg-subtle hover:text-fg-muted'}`}
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
@@ -518,7 +518,7 @@ export function ContentPanel() {
                     aria-label="Grid view"
                     aria-pressed={groupLayout === 'grid'}
                     onClick={() => setGroupLayout('grid')}
-                    className={`p-1 rounded transition-colors ${groupLayout === 'grid' ? 'bg-white/10 text-fg' : 'text-fg-subtle hover:text-fg-muted'}`}
+                    className={`p-1 rounded transition-colors ${groupLayout === 'grid' ? 'bg-ink/10 text-fg' : 'text-fg-subtle hover:text-fg-muted'}`}
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25a2.25 2.25 0 0 1-2.25-2.25v-2.25Z" />

@@ -134,7 +134,7 @@ export function MergeConflictModal() {
               {plural(mergedCount, "other change")} merged automatically
             </button>
             {showMerged && (
-              <div className="mt-2 flex max-h-40 flex-col gap-3 overflow-y-auto rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2.5">
+              <div className="mt-2 flex max-h-40 flex-col gap-3 overflow-y-auto rounded-lg border border-ink/10 bg-ink/[0.02] px-3 py-2.5">
                 <MergedList title="From your account, arriving on this device" changes={merged.fromAccount} />
                 <MergedList title="From this device, going to your account" changes={merged.fromDevice} />
               </div>
@@ -152,10 +152,10 @@ export function MergeConflictModal() {
 
         {/* The list scrolls under a fixed header: the same rule as the footer's
             marks where it starts, so a card cut by the edge reads as scrolled. */}
-        <div className="min-h-[100px] flex-1 overflow-y-auto border-t border-black-800 px-6">
+        <div className="min-h-[100px] flex-1 overflow-y-auto border-t border-line px-6">
           <div className="flex flex-col gap-3 py-3">
             {items.map(({ c, level, path, name, lead, options }) => (
-              <section key={c.key} aria-label={`${LEVEL_LABEL[level]} ${name}`} className="flex flex-col gap-2 rounded-lg border border-white/10 p-3">
+              <section key={c.key} aria-label={`${LEVEL_LABEL[level]} ${name}`} className="flex flex-col gap-2 rounded-lg border border-ink/10 p-3">
                 <div className="flex min-w-0 flex-col gap-0.5">
                   <div className="flex min-w-0 items-baseline gap-2">
                     <span className="shrink-0 text-fg-subtle text-[11px] uppercase tracking-wide">{LEVEL_LABEL[level]}</span>
@@ -179,7 +179,7 @@ export function MergeConflictModal() {
                         className={cn(
                           "flex cursor-pointer items-start gap-2.5 rounded-md border px-3 py-2 font-normal transition-colors",
                           opt.side === "both" && "sm:col-span-2",
-                          choices[c.key] === opt.side ? "border-[var(--accent)] bg-[var(--accent-subtle)]" : "border-white/10 bg-white/[0.02] hover:bg-white/[0.05]",
+                          choices[c.key] === opt.side ? "border-[var(--accent)] bg-[var(--accent-subtle)]" : "border-ink/10 bg-ink/[0.02] hover:bg-ink/[0.05]",
                         )}
                       >
                         <RadioGroupItem value={opt.side} id={id} className="mt-0.5" />
@@ -196,7 +196,7 @@ export function MergeConflictModal() {
           </div>
         </div>
 
-        <AlertDialogFooter className="p-6 pt-4 flex-row items-center justify-between gap-2 shrink-0 border-t border-black-800 sm:justify-between sm:space-x-0">
+        <AlertDialogFooter className="p-6 pt-4 flex-row items-center justify-between gap-2 shrink-0 border-t border-line sm:justify-between sm:space-x-0">
           <span className="text-fg-subtle text-[11px]" aria-live="polite">
             {complete ? `${plural(resolvedCount, "tab")} after apply` : `${chosen} of ${conflicts.length} chosen`}
           </span>

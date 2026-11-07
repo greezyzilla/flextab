@@ -71,7 +71,7 @@ export function ImportDialog({ parsed, fileName, onClose, onDone }: {
       className={cn(
         "flex cursor-pointer items-start gap-2.5 rounded-lg border px-3 py-2.5 font-normal transition-colors",
         // The destructive choice reads as such once chosen, like its red button.
-        mode !== value ? "border-white/10 bg-white/[0.02] hover:bg-white/[0.05]"
+        mode !== value ? "border-ink/10 bg-ink/[0.02] hover:bg-ink/[0.05]"
           : value === "replace" ? "border-red-500/50 bg-red-500/10" : "border-[var(--accent)] bg-[var(--accent-subtle)]",
       )}
     >
@@ -98,7 +98,7 @@ export function ImportDialog({ parsed, fileName, onClose, onDone }: {
         </DialogHeader>
 
         <div className="flex flex-col gap-5 pt-4 pb-5">
-          <div className="flex flex-col gap-1.5 rounded-lg border border-white/10 bg-white/[0.02] px-3.5 py-3">
+          <div className="flex flex-col gap-1.5 rounded-lg border border-ink/10 bg-ink/[0.02] px-3.5 py-3">
             <p className="text-fg-subtle text-sm"><span className="text-fg text-base font-medium tabular-nums">{plural(tabs, "tab")}</span> {where}</p>
             {parsed.skipped > 0 && (
               <p className="text-fg-subtle text-xs leading-relaxed">
@@ -117,7 +117,7 @@ export function ImportDialog({ parsed, fileName, onClose, onDone }: {
               <p className="text-fg-muted text-sm leading-relaxed">Adds {spacesText} beside your workspace. Nothing you have changes.</p>
             )}
             {overCap && (
-              <p role="note" className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-amber-200/90 text-xs leading-relaxed">
+              <p role="note" className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-warning-body/90 text-xs leading-relaxed">
                 This puts you at {after} of {cap} tabs. Sync pauses until you remove {after - cap}. Everything still saves on this device.
               </p>
             )}

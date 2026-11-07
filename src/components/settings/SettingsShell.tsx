@@ -28,7 +28,7 @@ export function SettingsNav() {
   const active = tabFromRoute(useRoute())
   return (
     <nav aria-label="Settings" className="hidden md:flex w-64 h-full flex-col bg-black-900 shrink-0 font-sans">
-      <div className="h-16 p-4 flex items-end border-b border-black-800 shrink-0">
+      <div className="h-16 p-4 flex items-end border-b border-line shrink-0">
         <h1 className="text-fg font-sans text-2xl">Settings</h1>
       </div>
       {/* Sections are pages (one route each), so this is navigation with
@@ -42,7 +42,7 @@ export function SettingsNav() {
               aria-current={active === item.id ? "page" : undefined}
               className={cn(
                 "flex w-full items-center gap-2.5 whitespace-nowrap rounded-lg px-2.5 py-2 text-sm font-medium font-sans outline-none transition-colors focus-visible:ring-1 focus-visible:ring-ring",
-                active === item.id ? "bg-[var(--accent-subtle)] text-fg-accent" : "text-fg-subtle hover:bg-white/[0.03] hover:text-fg-muted",
+                active === item.id ? "bg-[var(--accent-subtle)] text-fg-accent" : "text-fg-subtle hover:bg-ink/[0.03] hover:text-fg-muted",
               )}
             >
               {item.icon}
@@ -53,7 +53,7 @@ export function SettingsNav() {
       </ul>
       {/* Where people look for it (TASK-15): the workspace header no longer
           spends its top-left on the version. */}
-      <div className="shrink-0 border-t border-black-800 px-4 py-3 text-[11px] text-fg-subtle">
+      <div className="shrink-0 border-t border-line px-4 py-3 text-[11px] text-fg-subtle">
         FlexTab v{config.version || "0.0.1"}
       </div>
     </nav>
@@ -85,14 +85,14 @@ export function SettingsContent() {
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden min-h-0 min-w-0">
-      <div className="min-h-16 px-4 py-3 sm:px-6 md:px-8 flex flex-col justify-center gap-1.5 border-b border-black-800 shrink-0">
+      <div className="min-h-16 px-4 py-3 sm:px-6 md:px-8 flex flex-col justify-center gap-1.5 border-b border-line shrink-0">
         <h2 className="hidden md:block text-fg text-sm font-medium font-sans">{SECTION_LABEL[tab]}</h2>
         <label htmlFor={sectionSelectId} className="md:hidden text-fg-muted text-xs font-sans">Settings section</label>
         <select
           id={sectionSelectId}
           value={tab}
           onChange={(event) => navigate(`${SETTINGS_ROUTE}/${event.target.value}`)}
-          className="md:hidden w-full min-w-0 rounded-md border border-white/15 bg-black-900 px-2 py-2 text-sm text-fg font-sans focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="md:hidden w-full min-w-0 rounded-md border border-ink/15 bg-black-900 px-2 py-2 text-sm text-fg font-sans focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {NAV.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
         </select>

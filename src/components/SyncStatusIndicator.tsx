@@ -83,7 +83,7 @@ export function SyncStatusIndicator() {
     detail = "No connection. Changes stay on this device until you reconnect"
   } else if (status === "error") {
     Icon = CloudOff
-    cls = "text-red-400"
+    cls = "text-danger"
     label = "Sync error"
     detail = "Last sync failed. Changes are still saved locally"
   }
@@ -97,13 +97,13 @@ export function SyncStatusIndicator() {
   const paused = isAuthenticated && limit !== null
   if (paused) {
     Icon = CloudOff
-    cls = "text-amber-300"
+    cls = "text-warning"
     label = "Sync paused"
     detail = `${limitSummary(limit, tabs)} Everything stays on this device.`
     spin = false
   } else if (showConflict) {
     Icon = CloudOff
-    cls = "text-red-300"
+    cls = "text-danger-strong"
     label = "Sync conflict"
     detail = "Sync is paused until you choose which changes to keep. Your tabs are safe on this device."
   } else if (showDirty) {
@@ -120,7 +120,7 @@ export function SyncStatusIndicator() {
           <button
             type="button"
             onClick={() => navigate(SIGN_IN_ROUTE)}
-            className="flex h-9 shrink-0 items-center gap-2 rounded-md px-2.5 text-fg-muted text-xs font-sans outline-none transition-colors hover:bg-white/[0.06] hover:text-fg focus-visible:ring-1 focus-visible:ring-ring"
+            className="flex h-9 shrink-0 items-center gap-2 rounded-md px-2.5 text-fg-muted text-xs font-sans outline-none transition-colors hover:bg-ink/[0.06] hover:text-fg focus-visible:ring-1 focus-visible:ring-ring"
           >
             <Icon className="h-4 w-4" strokeWidth={1.75} aria-hidden />
             Sign in to sync
@@ -146,16 +146,16 @@ export function SyncStatusIndicator() {
         <button
           type="button"
           aria-label={`Sync status: ${label}${usage ? `, ${tabs} of ${cap} tabs` : ""}`}
-          className="relative flex h-9 shrink-0 items-center gap-1.5 rounded-md px-1.5 text-xs font-sans outline-none transition-colors hover:bg-white/[0.06] focus-visible:ring-1 focus-visible:ring-ring"
+          className="relative flex h-9 shrink-0 items-center gap-1.5 rounded-md px-1.5 text-xs font-sans outline-none transition-colors hover:bg-ink/[0.06] focus-visible:ring-1 focus-visible:ring-ring"
         >
           <Icon
             className={`h-[18px] w-[18px] ${cls} ${spin ? "animate-spin" : ""}`}
             strokeWidth={1.75}
             aria-hidden
           />
-          {paused && <span className="text-amber-300">Sync paused</span>}
-          {showConflict && !paused && <span className="text-red-300">Sync conflict</span>}
-          {usage && <span className="text-amber-300 tabular-nums">{usage}</span>}
+          {paused && <span className="text-warning">Sync paused</span>}
+          {showConflict && !paused && <span className="text-danger-strong">Sync conflict</span>}
+          {usage && <span className="text-warning tabular-nums">{usage}</span>}
           {!paused && showDirty && (
             <span
               className="absolute left-[19px] top-1.5 h-[7px] w-[7px] rounded-full bg-amber-400 ring-2 ring-black-900"

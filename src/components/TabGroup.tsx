@@ -66,7 +66,7 @@ function SavedTabItem({ tab, groupId, location, isDuplicate, unsorted }: { tab: 
     <div
       ref={(el) => { setNodeRef(el); flash.ref.current = el; }}
       style={{ ...style, padding: `var(--density-py-tab) var(--density-px-tab)` }}
-      className={`flex flex-col gap-1 rounded-lg transition-[background-color,box-shadow] group ${isDuplicate ? 'bg-yellow-500/[0.06] ring-1 ring-yellow-500/20' : 'bg-white/[0.03] hover:bg-white/[0.06]'} ${flash.on ? '!ring-2 !ring-[var(--accent)]' : ''}`}
+      className={`flex flex-col gap-1 rounded-lg transition-[background-color,box-shadow] group ${isDuplicate ? 'bg-yellow-500/[0.06] ring-1 ring-yellow-500/20' : 'bg-ink/[0.03] hover:bg-ink/[0.06]'} ${flash.on ? '!ring-2 !ring-[var(--accent)]' : ''}`}
     >
       <div className="flex items-center gap-2.5">
         {/* Favicon slot doubles as the drag handle on hover/focus, so no empty
@@ -144,7 +144,7 @@ export function EmptyDropRow({ isOver, label }: { isOver: boolean; label: string
     // As tall as one saved-tab row at every density, so an empty slot keeps
     // the same rhythm as a filled one and is a comfortable drop target.
     <div
-      className={`flex items-center font-sans text-xs rounded-lg border border-dashed transition-colors ${isOver ? 'border-transparent' : 'border-white/[0.12] text-fg-subtle'}`}
+      className={`flex items-center font-sans text-xs rounded-lg border border-dashed transition-colors ${isOver ? 'border-transparent' : 'border-ink/[0.12] text-fg-subtle'}`}
       style={{
         minHeight: 'calc(var(--density-py-tab) * 2 + 2rem)',
         paddingInline: 'var(--density-px-tab)',
@@ -240,7 +240,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: 
         (bordered card for user groups, borderless tinted tray for Unsorted). */}
     <div
       ref={(el) => { setDroppableRef(el); flash.ref.current = el; }}
-      className={`flex flex-col rounded-xl border transition-[background-color,box-shadow,border-color] ${isOver ? '' : unsorted ? 'border-transparent bg-white/[0.04]' : 'border-white/[0.08] bg-white/[0.015]'} ${flash.on ? 'ring-2 ring-[var(--accent)]' : ''}`}
+      className={`flex flex-col rounded-xl border transition-[background-color,box-shadow,border-color] ${isOver ? '' : unsorted ? 'border-transparent bg-ink/[0.04]' : 'border-ink/[0.08] bg-ink/[0.015]'} ${flash.on ? 'ring-2 ring-[var(--accent)]' : ''}`}
       style={{
         padding: 'var(--density-p-group)',
         gap: 'var(--density-p-group)',
@@ -300,7 +300,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: 
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <DropdownMenuTrigger asChild>
-                      <IconButton aria-label={`Open all tabs in ${group.name}`} className={openAllMenu ? 'bg-white/10 text-fg' : ''}>
+                      <IconButton aria-label={`Open all tabs in ${group.name}`} className={openAllMenu ? 'bg-ink/10 text-fg' : ''}>
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M13 5h6v6M19 5l-8 8M11 5H6a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1v-5" />
                         </svg>

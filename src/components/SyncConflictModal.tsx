@@ -49,7 +49,7 @@ function hostOf(url: string) {
 function Disclosure({ open, onToggle, label, children }: { open: boolean; onToggle: () => void; label: string; children: ReactNode }) {
   return (
     <button type="button" aria-expanded={open} aria-label={label} onClick={onToggle}
-      className="flex w-full min-w-0 items-center gap-2 rounded-md px-1 py-1 text-left outline-none hover:bg-white/[0.04] focus-visible:ring-1 focus-visible:ring-ring">
+      className="flex w-full min-w-0 items-center gap-2 rounded-md px-1 py-1 text-left outline-none hover:bg-ink/[0.04] focus-visible:ring-1 focus-visible:ring-ring">
       <ChevronRight className={cn("h-3.5 w-3.5 shrink-0 text-fg-subtle transition-transform", open && "rotate-90")} aria-hidden />
       {children}
     </button>
@@ -99,7 +99,7 @@ function SpaceBlock({ space, removed, inBoth, openAll }: { space: SavedSpace; re
       <Disclosure open={open} onToggle={() => setOpen(o => !o)} label={`${space.name}, ${groupsLabel(groups.length)}, ${tabsLabel(tabs)}${inBoth ? ", in both" : ""}`}>
         <SpaceAvatar space={space} size={18} active={!removed} />
         <span className={cn("truncate text-sm", removed ? "text-fg-subtle line-through" : "text-fg")}>{space.name}</span>
-        {inBoth && <span className="shrink-0 rounded bg-white/[0.08] px-1.5 py-0.5 text-[10px] font-medium text-fg-muted">In both</span>}
+        {inBoth && <span className="shrink-0 rounded bg-ink/[0.08] px-1.5 py-0.5 text-[10px] font-medium text-fg-muted">In both</span>}
         <span className="text-fg-subtle ml-auto shrink-0 text-[11px]">{groupsLabel(groups.length)} · {tabsLabel(tabs)}</span>
       </Disclosure>
       {open && (
@@ -125,11 +125,11 @@ function SourceColumn({ title, spaces, removed, inBoth, emptyText }: {
   return (
     // Removal is shown by a label and struck-through text at fg-subtle, never by
     // opacity, so the list stays readable (>= 4.5:1, TASK-6).
-    <section aria-label={title} className={cn("flex min-h-0 min-w-0 flex-col gap-2 rounded-lg border p-3 transition-colors", removed ? "border-red-400/30" : "border-white/10")}>
+    <section aria-label={title} className={cn("flex min-h-0 min-w-0 flex-col gap-2 rounded-lg border p-3 transition-colors", removed ? "border-red-400/30" : "border-ink/10")}>
       <div className="flex shrink-0 items-center justify-between gap-2 px-1">
         <h3 className="text-fg text-xs font-medium">{title}</h3>
         {removed
-          ? <span className="rounded bg-red-400/10 px-1.5 py-0.5 text-[11px] font-medium text-red-400">Removed</span>
+          ? <span className="rounded bg-red-400/10 px-1.5 py-0.5 text-[11px] font-medium text-danger">Removed</span>
           : <span className="text-fg-subtle text-[11px]">{tabsLabel(tabCount(spaces))}</span>}
       </div>
       {withTabs.length === 0
@@ -209,7 +209,7 @@ export function SyncConflictModal() {
               htmlFor={`sync-choice-${opt.id}`}
               className={cn(
                 "flex cursor-pointer items-center justify-between gap-3 rounded-lg border px-4 py-2.5 font-normal transition-colors",
-                choice === opt.id ? "border-[var(--accent)] bg-[var(--accent-subtle)]" : "border-white/10 bg-white/[0.02] hover:bg-white/[0.05]",
+                choice === opt.id ? "border-[var(--accent)] bg-[var(--accent-subtle)]" : "border-ink/10 bg-ink/[0.02] hover:bg-ink/[0.05]",
               )}
             >
               <span className="flex items-center gap-2.5">
@@ -222,12 +222,12 @@ export function SyncConflictModal() {
         </RadioGroup>
 
         {overCap && (
-          <p role="note" className="mx-6 mt-3 shrink-0 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-amber-200/90 text-xs leading-relaxed">
+          <p role="note" className="mx-6 mt-3 shrink-0 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-warning-body/90 text-xs leading-relaxed">
             Your plan syncs up to {cap} tabs. With {resultTabs}, sync pauses until you remove {resultTabs - cap}. Nothing is lost on this device.
           </p>
         )}
 
-        <AlertDialogFooter className="mt-4 flex-row items-center justify-between gap-2 border-t border-black-800 p-6 pt-4 shrink-0 sm:justify-between sm:space-x-0">
+        <AlertDialogFooter className="mt-4 flex-row items-center justify-between gap-2 border-t border-line p-6 pt-4 shrink-0 sm:justify-between sm:space-x-0">
           {/* Lower the anxiety of removing: a copy first, in one click, kept apart
               from the destructive Apply (left vs right). */}
           {deviceRemoved

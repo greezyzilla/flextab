@@ -67,7 +67,7 @@ export function RowActions({ label, items, reveal = "", conceal = "", rest, note
               aria-label={label}
               title={label}
               onClick={(e) => e.stopPropagation()}
-              className={`absolute inset-0 ${open ? "opacity-100 bg-white/10 text-fg" : reveal}`}
+              className={`absolute inset-0 ${open ? "opacity-100 bg-ink/10 text-fg" : reveal}`}
             >
               <MoreHorizontal className="h-3.5 w-3.5" aria-hidden />
             </IconButton>
@@ -90,7 +90,7 @@ export function RowActions({ label, items, reveal = "", conceal = "", rest, note
                 {item.separatorBefore && <DropdownMenuSeparator />}
                 <DropdownMenuItem
                   onSelect={() => { if (item.takesFocus) afterClose.current = item.onSelect; else item.onSelect() }}
-                  className={item.danger ? "text-red-400 focus:bg-red-400/10 focus:text-red-400" : undefined}
+                  className={item.danger ? "text-danger focus:bg-red-400/10 focus:text-danger" : undefined}
                 >
                   {item.label}
                 </DropdownMenuItem>

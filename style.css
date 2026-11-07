@@ -79,13 +79,28 @@
        primary 0.9 → 11:1, secondary 0.7 → 7.1:1, tertiary 0.55 → 5.05:1
        (the lowest alpha that keeps 4.5:1 on 900/800/700). Disabled text is
        exempt from WCAG contrast and is only for disabled controls. */
-    --text-primary: hsl(0 0% 100% / 0.9);
-    --text-secondary: hsl(0 0% 100% / 0.7);
-    --text-tertiary: hsl(0 0% 100% / 0.55);
-    --text-disabled: hsl(0 0% 100% / 0.35);
+    /* Ink = the colour that contrasts with the surfaces, as HSL channels so
+       Tailwind can add an alpha (`border-ink/10`). Text tiers, hairlines,
+       washes and hover fills are all ink at an alpha. */
+    --ink: 0 0% 100%;
+    --text-primary: hsl(var(--ink) / 0.9);
+    --text-secondary: hsl(var(--ink) / 0.7);
+    --text-tertiary: hsl(var(--ink) / 0.55);
+    --text-disabled: hsl(var(--ink) / 0.35);
     /* Boundary of a control that is not identified by its own text (inputs,
        select triggers, switch tracks, radios): ≥3:1 on 900/800 (WCAG 1.4.11). */
-    --border-control: hsl(0 0% 100% / 0.4);
+    --border-control: hsl(var(--ink) / 0.4);
+    /* Hairline between panels and sections. */
+    --color-line: var(--color-black-800);
+    /* Status text as RGB channels (alpha via Tailwind): light shades that
+       read on the dark surfaces (Tailwind red-400/300, amber-300/200,
+       green-400, yellow-500). */
+    --danger: 248 113 113;
+    --danger-strong: 252 165 165;
+    --warning: 252 211 77;
+    --warning-body: 253 230 138;
+    --success: 74 222 128;
+    --caution: 234 179 8;
 
     --radius: 0.5rem;
 

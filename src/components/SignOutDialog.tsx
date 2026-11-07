@@ -84,7 +84,7 @@ export function SignOutDialog({ open, onOpenChange }: {
                 "flex cursor-pointer items-start gap-2.5 rounded-lg border px-4 py-2.5 font-normal transition-colors",
                 localData === choice.id
                   ? "border-[var(--accent)] bg-[var(--accent-subtle)]"
-                  : "border-white/10 bg-white/[0.02] hover:bg-white/[0.05]",
+                  : "border-ink/10 bg-ink/[0.02] hover:bg-ink/[0.05]",
               )}
             >
               <RadioGroupItem value={choice.id} id={`signout-${choice.id}`} className="mt-0.5" />
@@ -98,7 +98,7 @@ export function SignOutDialog({ open, onOpenChange }: {
         {removing && (
           <>
             {unsynced && (
-              <p className="text-sm text-amber-300">Your workspace may contain unsynced changes or an unresolved conflict. Download a backup first, or cancel to finish syncing.</p>
+              <p className="text-sm text-warning">Your workspace may contain unsynced changes or an unresolved conflict. Download a backup first, or cancel to finish syncing.</p>
             )}
             <Button variant="secondary" disabled={busy} onClick={download}>Download backup</Button>
             {notice && <p role="status" className="text-xs text-fg-muted">{notice}</p>}
@@ -111,7 +111,7 @@ export function SignOutDialog({ open, onOpenChange }: {
         {!removing && unsynced && (
           <p className="text-xs text-fg-muted">Changes that have not synced stay on this device and sync when you sign in again.</p>
         )}
-        {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
+        {error && <p role="alert" className="text-sm text-danger">{error}</p>}
         <div className="flex flex-col gap-2">
           <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
           <Button variant={removing ? "destructive" : "default"} disabled={(removing && !confirmed) || busy} onClick={confirm}>

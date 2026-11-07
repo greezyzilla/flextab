@@ -38,7 +38,7 @@ describe("AccountTab sign-in methods (TASK-8)", () => {
 
   it("keeps red for the danger zone: sign out is a neutral row, password fields have labels", async () => {
     render(<AccountTab />)
-    expect(screen.getByRole("button", { name: "Sign out…" })).not.toHaveClass("!text-red-400")
+    expect(screen.getByRole("button", { name: "Sign out…" })).not.toHaveClass("!text-danger")
     // The password form opens on demand, with labels that stay visible.
     expect(screen.queryByLabelText("Current password")).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole("button", { name: "Change password…" }))

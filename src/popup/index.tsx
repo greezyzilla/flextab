@@ -162,7 +162,7 @@ function IndexPopup() {
       <h1 className="text-fg text-base font-medium">FlexTab</h1>
 
       {lastBackground && (
-        <div className="flex items-center justify-between gap-2 rounded-md border border-white/10 px-2.5 py-1.5 text-xs text-fg-muted">
+        <div className="flex items-center justify-between gap-2 rounded-md border border-ink/10 px-2.5 py-1.5 text-xs text-fg-muted">
           <span className="min-w-0 truncate">
             Last shortcut save: {lastBackground.tabIds.length} tab{lastBackground.tabIds.length === 1 ? "" : "s"}
             {lastBackground.closed.length > 0 ? `, ${lastBackground.closed.length} closed` : ""}
@@ -171,11 +171,11 @@ function IndexPopup() {
         </div>
       )}
 
-      <section role="status" aria-live="polite" className="rounded-lg border border-white/10 bg-white/[0.03] p-3 flex flex-col gap-2">
+      <section role="status" aria-live="polite" className="rounded-lg border border-ink/10 bg-ink/[0.03] p-3 flex flex-col gap-2">
         {status.kind === "saving" && <p className="text-fg-muted text-xs">Saving this page…</p>}
         {status.kind === "saved" && (
           <>
-            <p className="text-xs text-fg"><span className="text-green-400">✓ Saved</span> to</p>
+            <p className="text-xs text-fg"><span className="text-success">✓ Saved</span> to</p>
             <p className="text-xs text-fg-muted break-words">{where}</p>
             {/* Same page already saved elsewhere (TASK-4): say where, don't block. */}
             {describeAlsoSaved(status.receipt.alsoIn ?? []) && (
@@ -198,9 +198,9 @@ function IndexPopup() {
         {status.kind === "choose" && <p className="text-xs text-fg">Choose where to save this page</p>}
         {status.kind === "removed" && <p className="text-xs text-fg">Removed from FlexTab.</p>}
         {status.kind === "failed" && (
-          <p role="alert" className="text-xs text-red-400">Could not save to this device. Keep this popup open and retry.</p>
+          <p role="alert" className="text-xs text-danger">Could not save to this device. Keep this popup open and retry.</p>
         )}
-        {status.kind === "error" && <p role="alert" className="text-xs text-red-400">{status.message}</p>}
+        {status.kind === "error" && <p role="alert" className="text-xs text-danger">{status.message}</p>}
 
         <div className="flex flex-wrap gap-2">
           {status.kind === "saved" && (

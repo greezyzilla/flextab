@@ -59,7 +59,7 @@ export function ShortcutsDialog() {
         <div className="flex flex-col gap-6 pt-5">
           <section aria-labelledby="shortcuts-flextab" className="flex flex-col gap-1">
             <h3 id="shortcuts-flextab" className={heading}>In FlexTab</h3>
-            <ul className="divide-y divide-white/[0.06]">
+            <ul className="divide-y divide-ink/[0.06]">
               {IN_FLEXTAB.map((s) => (
                 <Row key={s.label} label={s.label}>
                   {s.keys.map((k, i) => <span key={k} className="flex items-center gap-1.5">{i > 0 && "or"}<Kbd shortcut={k} /></span>)}
@@ -82,7 +82,7 @@ export function ShortcutsDialog() {
                 Change
               </Button>
             </div>
-            <ul className="divide-y divide-white/[0.06]">
+            <ul className="divide-y divide-ink/[0.06]">
               {commands.map((c) => (
                 <Row key={c.name} label={c.label}>
                   {c.shortcut ? <Kbd shortcut={c.shortcut} /> : <span>Not set</span>}

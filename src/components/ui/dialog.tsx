@@ -37,13 +37,13 @@ const DialogContent = React.forwardRef<
       ref={ref}
       className={cn(
         // overflow-visible: portaled Select/menus mounted inside the dialog can paint past the card
-        "fixed left-[50%] top-[50%] z-[90] w-full translate-x-[-50%] translate-y-[-50%] overflow-visible rounded-xl border border-white/10 bg-black-900 text-foreground shadow-[0_18px_50px_-16px_rgba(0,0,0,0.6)] outline-none duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]",
+        "fixed left-[50%] top-[50%] z-[90] w-full translate-x-[-50%] translate-y-[-50%] overflow-visible rounded-xl border border-ink/10 bg-black-900 text-foreground shadow-[0_18px_50px_-16px_rgba(0,0,0,0.6)] outline-none duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]",
         className
       )}
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-md text-fg-subtle outline-none transition-colors hover:bg-white/10 hover:text-fg focus-visible:ring-1 focus-visible:ring-ring">
+      <DialogPrimitive.Close className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-md text-fg-subtle outline-none transition-colors hover:bg-ink/10 hover:text-fg focus-visible:ring-1 focus-visible:ring-ring">
         <X className="h-4 w-4" />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>

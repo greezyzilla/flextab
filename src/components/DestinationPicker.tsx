@@ -109,7 +109,7 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
                   title={describeDestination(savedSpaces, target) ?? undefined}
                   onClick={() => onChange(target)}
                   className={`flex max-w-full items-center gap-1.5 rounded-md border px-2 py-1 text-xs outline-none transition-colors focus-visible:ring-1 focus-visible:ring-ring ${
-                    selected ? "border-[var(--accent)] text-fg" : "border-white/10 text-fg-muted hover:bg-white/[0.05]"
+                    selected ? "border-[var(--accent)] text-fg" : "border-ink/10 text-fg-muted hover:bg-ink/[0.05]"
                   }`}
                   style={selected ? { backgroundColor: "var(--accent-subtle)" } : undefined}
                 >
@@ -125,7 +125,7 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
       <div
         role="radiogroup"
         aria-label="Destination"
-        className={`${maxHeightClass} overflow-y-auto rounded-md border border-white/10 bg-white/[0.02] py-1`}
+        className={`${maxHeightClass} overflow-y-auto rounded-md border border-ink/10 bg-ink/[0.02] py-1`}
       >
         {visible.length === 0 && (
           <div className="px-3 py-3 text-xs text-fg-subtle">No match.</div>
@@ -280,7 +280,7 @@ function Choice({ name, indentClass, selected, icon, label, onSelect }: {
   return (
     <label
       className={`flex cursor-pointer items-center gap-2 ${indentClass} pr-3 py-1.5 text-xs transition-colors focus-within:ring-1 focus-within:ring-inset focus-within:ring-ring ${
-        selected ? "text-fg" : "text-fg-muted hover:bg-white/[0.05]"
+        selected ? "text-fg" : "text-fg-muted hover:bg-ink/[0.05]"
       }`}
       style={selected ? { backgroundColor: "var(--accent-subtle)" } : undefined}
     >
@@ -312,7 +312,7 @@ function CreateChoice({ indentClass, iconClass, label, ariaLabel, onClick }: {
         type="button"
         aria-label={ariaLabel}
         onClick={onClick}
-        className="flex w-full items-center gap-2 rounded-md border border-dashed border-white/15 px-[7px] py-1 text-left text-xs text-fg-subtle transition-colors hover:border-white/35 hover:bg-white/[0.03] hover:text-fg outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        className="flex w-full items-center gap-2 rounded-md border border-dashed border-ink/15 px-[7px] py-1 text-left text-xs text-fg-subtle transition-colors hover:border-ink/35 hover:bg-ink/[0.03] hover:text-fg outline-none focus-visible:ring-1 focus-visible:ring-ring"
       >
         <Plus className={`${iconClass} shrink-0`} aria-hidden />
         <span className="truncate">{label}…</span>

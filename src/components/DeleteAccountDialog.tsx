@@ -79,7 +79,7 @@ export function DeleteAccountDialog({ open, onOpenChange }: { open: boolean; onO
 
         <div className="flex flex-col gap-4">
           {paidUntil && (
-            <p role="note" className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-amber-200/90 text-xs leading-relaxed">
+            <p role="note" className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-warning-body/90 text-xs leading-relaxed">
               <span className="capitalize">{billing!.plan}</span> until {formatDate(paidUntil)} ends now. Paid time isn&apos;t refunded.
             </p>
           )}
@@ -91,7 +91,7 @@ export function DeleteAccountDialog({ open, onOpenChange }: { open: boolean; onO
                 htmlFor={`delete-account-${choice.id}`}
                 className={cn(
                   "flex cursor-pointer items-start gap-2.5 rounded-lg border px-4 py-2.5 font-normal transition-colors",
-                  localData === choice.id ? "border-[var(--accent)] bg-[var(--accent-subtle)]" : "border-white/10 bg-white/[0.02] hover:bg-white/[0.05]",
+                  localData === choice.id ? "border-[var(--accent)] bg-[var(--accent-subtle)]" : "border-ink/10 bg-ink/[0.02] hover:bg-ink/[0.05]",
                 )}
               >
                 <RadioGroupItem value={choice.id} id={`delete-account-${choice.id}`} className="mt-0.5" />
@@ -114,10 +114,10 @@ export function DeleteAccountDialog({ open, onOpenChange }: { open: boolean; onO
           </div>
 
           {error && (
-            <p role="alert" className="text-sm text-red-400">
+            <p role="alert" className="text-sm text-danger">
               {error.text}{" "}
               {error.toPlan && (
-                <button type="button" className="underline underline-offset-2 hover:text-red-300" onClick={() => { onOpenChange(false); navigate("/settings/plan"); }}>
+                <button type="button" className="underline underline-offset-2 hover:text-danger-strong" onClick={() => { onOpenChange(false); navigate("/settings/plan"); }}>
                   Open Plan &amp; Usage
                 </button>
               )}

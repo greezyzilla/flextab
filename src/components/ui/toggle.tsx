@@ -10,9 +10,9 @@ const toggleVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-transparent text-fg-subtle hover:bg-white/[0.05] hover:text-fg-muted data-[state=on]:bg-[var(--accent-subtle)] data-[state=on]:text-fg",
+          "bg-transparent text-fg-subtle hover:bg-ink/[0.05] hover:text-fg-muted data-[state=on]:bg-[var(--accent-subtle)] data-[state=on]:text-fg",
         outline:
-          "border border-white/[0.06] bg-white/[0.03] text-fg-subtle shadow-sm hover:border-white/15 hover:text-fg-muted data-[state=on]:border-[var(--accent)] data-[state=on]:bg-[var(--accent-subtle)] data-[state=on]:text-fg",
+          "border border-ink/[0.06] bg-ink/[0.03] text-fg-subtle shadow-sm hover:border-ink/15 hover:text-fg-muted data-[state=on]:border-[var(--accent)] data-[state=on]:bg-[var(--accent-subtle)] data-[state=on]:text-fg",
       },
       size: {
         default: "h-9 px-2.5 min-w-9",

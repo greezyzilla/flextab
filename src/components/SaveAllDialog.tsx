@@ -125,7 +125,7 @@ export function SaveAllDialog() {
               onCheckedChange={(v) => { setCloseAfter(v); void saveCloseAfterSave(v) }} />
           </label>
           {overCap && (
-            <p role="note" className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-amber-200/90 text-xs leading-relaxed">
+            <p role="note" className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-warning-body/90 text-xs leading-relaxed">
               This puts you at {after} of {cap} tabs. Sync pauses until you remove {after - cap}. The tabs still save on this device.
             </p>
           )}

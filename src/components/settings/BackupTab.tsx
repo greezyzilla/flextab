@@ -105,7 +105,7 @@ function DataTab() {
           <Button variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()} className="self-start">Import…</Button>
           <input ref={fileInputRef} type="file" accept=".json,.html,.htm,.txt" onChange={handleImport} className="hidden" />
           {importStatus && (
-            <div role="status" className={`text-xs font-sans ${importStatus.type === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+            <div role="status" className={`text-xs font-sans ${importStatus.type === 'success' ? 'text-success' : 'text-danger'}`}>
               {importStatus.message}
             </div>
           )}
@@ -155,7 +155,7 @@ function HistoryTab() {
     return (
       <div className="flex flex-col gap-7">
         <SettingRow label="Version history" description="Snapshots of your tabs you can restore.">
-          <div className="rounded-lg border border-white/[0.08] bg-white/[0.02] px-5 py-4 text-fg-subtle text-sm font-sans leading-relaxed">
+          <div className="rounded-lg border border-ink/[0.08] bg-ink/[0.02] px-5 py-4 text-fg-subtle text-sm font-sans leading-relaxed">
             Sign in to keep a version history of your spaces and restore earlier states.
           </div>
         </SettingRow>
@@ -213,7 +213,7 @@ function HistoryTab() {
           {!failed && snapshots === null && <div className="text-fg-subtle text-xs font-sans">Loading…</div>}
           {!failed && snapshots?.length === 0 && <div className="text-fg-subtle text-xs font-sans">No snapshots yet. They appear after your tabs sync.</div>}
           {restoring && <div className="text-fg-subtle text-xs font-sans">Restoring…</div>}
-          {restoreError && <div role="alert" className="text-red-400 text-xs font-sans">{restoreError}</div>}
+          {restoreError && <div role="alert" className="text-danger text-xs font-sans">{restoreError}</div>}
           {pendingPull && (
             <Button variant="secondary" size="sm" className="self-start" disabled={restoring} onClick={() => { void handleRestore(); }}>
               Retry loading workspace
@@ -264,7 +264,7 @@ function SnapshotRow({ snapshot, onPreview, onRestore, restoreDisabled }: {
   restoreDisabled: boolean;
 }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/[0.08] bg-white/[0.02] px-4 py-3.5">
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-ink/[0.08] bg-ink/[0.02] px-4 py-3.5">
       <div className="min-w-0 flex flex-col gap-0.5">
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-fg-subtle text-[11px] font-mono shrink-0">v{snapshot.revision}</span>
@@ -383,7 +383,7 @@ function SnapshotPreviewModal({ snapshot, open, onOpenChange, onRestore, restore
         {/* Header: just the title + meta. The Dialog's close (X) lives in the
             top-right corner; the title is short so it never reaches it. The
             primary action sits in the footer instead of colliding here. */}
-        <div className="flex flex-col gap-1 p-5 pr-12 border-b border-black-800 shrink-0">
+        <div className="flex flex-col gap-1 p-5 pr-12 border-b border-line shrink-0">
           <DialogTitle className="text-fg text-sm font-medium">Version v{snapshot.revision}</DialogTitle>
           <span className="text-fg-subtle text-xs font-sans">
             {formatRelativeTime(new Date(snapshot.created_at).getTime())} · {snapshot.space_count} space{snapshot.space_count !== 1 ? 's' : ''} · {snapshot.tab_count} tab{snapshot.tab_count !== 1 ? 's' : ''}
@@ -399,7 +399,7 @@ function SnapshotPreviewModal({ snapshot, open, onOpenChange, onRestore, restore
           ))}
         </div>
 
-        <div className="flex justify-end gap-2 p-4 border-t border-black-800 shrink-0">
+        <div className="flex justify-end gap-2 p-4 border-t border-line shrink-0">
           <Button variant="default" size="sm" disabled={restoreDisabled} onClick={onRestore}>Restore this version</Button>
         </div>
       </DialogContent>
@@ -423,7 +423,7 @@ function PreviewNode({ node, depth, expanded, onToggle }: {
     <div className="flex flex-col">
       <button
         onClick={() => onToggle(node.id)}
-        className="group flex w-full items-center gap-2 rounded-md py-1.5 pr-2.5 text-left transition-colors hover:bg-white/[0.04]"
+        className="group flex w-full items-center gap-2 rounded-md py-1.5 pr-2.5 text-left transition-colors hover:bg-ink/[0.04]"
         style={{ paddingLeft: indent }}
         aria-expanded={isOpen}
       >
@@ -451,7 +451,7 @@ function PreviewNode({ node, depth, expanded, onToggle }: {
             <div key={t.id} className="flex items-center gap-2 min-w-0 py-1 pr-2.5" style={{ paddingLeft: indent + 24 }}>
               {t.favicon
                 ? <img src={t.favicon} alt="" referrerPolicy="no-referrer" className="h-4 w-4 rounded shrink-0" onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }} />
-                : <span className="h-4 w-4 rounded bg-white/10 shrink-0" />}
+                : <span className="h-4 w-4 rounded bg-ink/10 shrink-0" />}
               <span className="text-fg-subtle text-xs font-sans truncate">{t.title || t.url}</span>
             </div>
           ))

@@ -8,10 +8,10 @@ const inputVariants = cva("flex w-full font-sans outline-none disabled:cursor-no
     variant: {
       // form field
       default:
-        "h-9 rounded-lg border border-input bg-white/[0.06] px-3 py-1 text-sm text-fg shadow-sm transition-colors placeholder:text-fg-subtle focus-visible:border-white/70",
+        "h-9 rounded-lg border border-input bg-ink/[0.06] px-3 py-1 text-sm text-fg shadow-sm transition-colors placeholder:text-fg-subtle focus-visible:border-ink/70",
       // inline rename
       inline:
-        "rounded bg-white/10 px-2 py-0.5 text-sm text-fg min-w-0 focus:ring-1 focus:ring-[var(--accent)]",
+        "rounded bg-ink/10 px-2 py-0.5 text-sm text-fg min-w-0 focus:ring-1 focus:ring-[var(--accent)]",
     },
   },
   defaultVariants: { variant: "default" },

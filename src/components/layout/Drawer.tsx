@@ -25,7 +25,7 @@ export function Drawer({ id, side, open, onClose, children }: DrawerProps) {
         id={id}
         aria-modal="true"
         aria-describedby={undefined}
-        className={`fixed top-0 ${positionClass} z-50 h-full max-w-[calc(100vw-4rem)] flex flex-col bg-black-900 border-black-800 shadow-2xl outline-none`}
+        className={`fixed top-0 ${positionClass} z-50 h-full max-w-[calc(100vw-4rem)] flex flex-col bg-black-900 border-line shadow-2xl outline-none`}
         onOpenAutoFocus={() => {
           // Triggers live in the shell rather than under this Dialog.Root.
           opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
@@ -35,11 +35,11 @@ export function Drawer({ id, side, open, onClose, children }: DrawerProps) {
           if (opener.current?.isConnected) opener.current.focus()
         }}
       >
-        <div className="h-11 px-3 flex items-center justify-between gap-2 border-b border-black-800 shrink-0">
+        <div className="h-11 px-3 flex items-center justify-between gap-2 border-b border-line shrink-0">
           <Dialog.Title className="text-sm text-fg font-sans font-medium">
             {side === "left" ? "Navigation" : "Opened tabs"}
           </Dialog.Title>
-          <Dialog.Close aria-label="Close panel" className="h-8 w-8 flex items-center justify-center rounded-md text-fg-muted hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <Dialog.Close aria-label="Close panel" className="h-8 w-8 flex items-center justify-center rounded-md text-fg-muted hover:bg-ink/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <X className="h-4 w-4" />
           </Dialog.Close>
         </div>

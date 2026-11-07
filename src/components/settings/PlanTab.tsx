@@ -149,13 +149,13 @@ export function PlanTab() {
             upgrading={upgradingPlan === 'pro'}
           />
         </div>
-        {upgradeError && <div className="text-amber-300/80 text-xs font-sans mt-1.5">{upgradeError}</div>}
+        {upgradeError && <div className="text-warning/80 text-xs font-sans mt-1.5">{upgradeError}</div>}
         {confirming && <div className="text-fg-subtle text-xs font-sans mt-1.5">Confirming your payment. This can take a few seconds…</div>}
       </SettingRow>
 
       {billing?.active && (
         <SettingRow label="Billing" description="Your subscription, managed by our payment provider.">
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/[0.08] bg-white/[0.02] px-5 py-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-ink/[0.08] bg-ink/[0.02] px-5 py-4">
             <div className="flex flex-col gap-0.5">
               <span className="text-fg-muted text-sm font-sans">
                 {billing.status === 'cancelled' && billing.ends_at
