@@ -9,15 +9,18 @@ import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import type { GroupLocation } from "~src/services/dragDrop";
 import { showUndoToast } from "./ui/sonner";
 import { ConfirmDialog } from "./ui/confirm-dialog";
-import { Tooltip, TooltipTrigger, TooltipContent } from "./ui/tooltip";
-import { IconButton } from "./ui/button";
 import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
 import { GroupIcon, UnsortedIcon } from "./levelIcons";
 import { ensureUnsortedGroup, isUnsortedGroup } from "~src/lib/defaultPath";
 import { normalizeUrl } from "~src/lib/savedUrlIndex";
 import { openInCurrentWindow, openOrFocus } from "~src/services/openTab";
+import { ActionSlot, RowActions } from "./ui/row-actions";
+import { Tooltip, TooltipTrigger, TooltipContent } from "./ui/tooltip";
+import { IconButton } from "./ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
+import { PickDestinationDialog } from "./PickDestinationDialog";
+import { moveGroupTo, moveTabTo } from "~src/services/moveTo";
 import type { GroupLayout } from "~src/store/useSettingsStore";
 
 function SavedTabItem({ tab, groupId, location, isDuplicate, unsorted }: { tab: SavedTab; groupId: string; location: GroupLocation; isDuplicate?: boolean; unsorted?: boolean }) {
@@ -38,6 +41,7 @@ function SavedTabItem({ tab, groupId, location, isDuplicate, unsorted }: { tab: 
 
   const { removeSavedTab, addSavedTab } = useSavedSpacesStore();
   const { spaceId, projectId, categoryId } = location;
+  const [moving, setMoving] = useState(false);
 
   const onClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
     // Modified/middle clicks keep the native "always open a new tab" link
@@ -47,8 +51,7 @@ function SavedTabItem({ tab, groupId, location, isDuplicate, unsorted }: { tab: 
     void openOrFocus(tab.url);
   }
 
-  const handleDelete = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleDelete = () => {
     removeSavedTab(spaceId, projectId, categoryId, groupId, tab);
     showUndoToast(`Removed "${tab.title}"`, () => {
       // Removing Unsorted's last tab removes Unsorted itself; undo brings it back.
@@ -97,17 +100,27 @@ function SavedTabItem({ tab, groupId, location, isDuplicate, unsorted }: { tab: 
           )}
         </a>
 
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <IconButton aria-label={`Remove ${tab.title}`} danger onClick={handleDelete} className="shrink-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100">
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </IconButton>
-          </TooltipTrigger>
-          <TooltipContent>Remove tab</TooltipContent>
-        </Tooltip>
+        {/* Same actions as dragging and the old hover ✕, reachable by keyboard (TASK-5). */}
+        <RowActions
+          label={`Actions for ${tab.title}`}
+          reveal="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
+          items={[
+            { label: "Move to…", onSelect: () => setMoving(true) },
+            { label: "Remove", onSelect: handleDelete, danger: true, separatorBefore: true },
+          ]}
+        />
       </div>
+      {moving && (
+        <PickDestinationDialog
+          title="Move tab"
+          description={`Move “${tab.title}” to another group.`}
+          groupLevel
+          initial={{ spaceId, projectId, categoryId, groupId }}
+          confirmLabel="Move"
+          onConfirm={(target) => moveTabTo({ ...location, groupId }, tab.id, target)}
+          onClose={() => setMoving(false)}
+        />
+      )}
 
     </div>
   )
@@ -162,11 +175,8 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: 
   const renameButtonRef = useRef<HTMLButtonElement>(null);
   const returnRenameFocus = useRef(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  // While the "open all" menu is open, the header actions stay visible: the
-  // trigger shows as active and the other actions as neutral. (Read from our
-  // own state: Tooltip and DropdownMenu both write data-state on the trigger.)
+  const [movingGroup, setMovingGroup] = useState(false);
   const [openAllMenu, setOpenAllMenu] = useState(false);
-  const revealActions = openAllMenu ? 'opacity-100' : 'opacity-0 group-hover/header:opacity-100 group-focus-within/header:opacity-100';
 
   useEffect(() => {
     if (isRenaming && renameRef.current) {
@@ -275,38 +285,44 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: 
             <span className="text-white/40 text-xs font-sans shrink-0">{sortedTabs.length} tab{sortedTabs.length !== 1 ? 's' : ''}</span>
           </div>
         )}
-        <div className="flex items-center gap-0.5">
-          {sortedTabs.length > 0 && (
-            // One "open all" control, two destinations (TASK-4).
-            <DropdownMenu open={openAllMenu} onOpenChange={setOpenAllMenu}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <DropdownMenuTrigger asChild>
-                    <IconButton aria-label={`Open all tabs in ${group.name}`} className={`${revealActions} ${openAllMenu ? 'bg-white/10 text-white/80' : ''}`}>
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 5h6v6M19 5l-8 8M11 5H6a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1v-5" />
-                      </svg>
-                    </IconButton>
-                  </DropdownMenuTrigger>
-                </TooltipTrigger>
-                <TooltipContent>Open all</TooltipContent>
-              </Tooltip>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onSelect={openAllHere}>Open in this window</DropdownMenuItem>
-                <DropdownMenuItem onSelect={openAllInNewWindow}>Open in new window</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+        {/* A group header is a header row (TASK-5): its primary action (open
+            all) and its ⋯ (rename, move, delete) are always visible, ⋯
+            outermost in the slot column. Unsorted is the system's tray: no ⋯,
+            but its slot stays so its open-all lines up with the others. */}
+        <div className="flex items-center gap-0.5 shrink-0">
+          <ActionSlot>
+            {sortedTabs.length > 0 && (
+              // One "open all" control, two destinations (TASK-4).
+              <DropdownMenu open={openAllMenu} onOpenChange={setOpenAllMenu}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DropdownMenuTrigger asChild>
+                      <IconButton aria-label={`Open all tabs in ${group.name}`} className={openAllMenu ? 'bg-white/10 text-white/80' : ''}>
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 5h6v6M19 5l-8 8M11 5H6a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1v-5" />
+                        </svg>
+                      </IconButton>
+                    </DropdownMenuTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>Open all</TooltipContent>
+                </Tooltip>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={openAllHere}>Open in this window</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={openAllInNewWindow}>Open in new window</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </ActionSlot>
+          {unsorted ? <ActionSlot /> : (
+            <RowActions
+              label={`Actions for ${group.name}`}
+              items={[
+                { label: "Rename", onSelect: () => { setRenameValue(group.name); setIsRenaming(true); }, takesFocus: true },
+                { label: "Move to…", onSelect: () => setMovingGroup(true) },
+                { label: "Delete", onSelect: () => setShowDeleteConfirm(true), danger: true, separatorBefore: true },
+              ]}
+            />
           )}
-          {!unsorted && <Tooltip>
-            <TooltipTrigger asChild>
-              <IconButton aria-label={`Delete ${group.name}`} danger onClick={() => setShowDeleteConfirm(true)} className={revealActions}>
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m-1 0v11m-4-11v11M7 7l1 12a1 1 0 001 1h6a1 1 0 001-1l1-12" />
-                </svg>
-              </IconButton>
-            </TooltipTrigger>
-            <TooltipContent>Delete group</TooltipContent>
-          </Tooltip>}
         </div>
       </div>
         {sortedTabs.length > 0 ? (
@@ -335,6 +351,17 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: 
           <EmptyDropRow isOver={false} label="No tabs yet. Drag tabs here." />
         )}
     </div>
+
+      {movingGroup && (
+        <PickDestinationDialog
+          title="Move group"
+          description={`Move “${group.name}” and its ${sortedTabs.length} tab${sortedTabs.length === 1 ? "" : "s"} to another category.`}
+          initial={{ spaceId, projectId, categoryId }}
+          confirmLabel="Move"
+          onConfirm={(target) => moveGroupTo(location, group.id, target)}
+          onClose={() => setMovingGroup(false)}
+        />
+      )}
 
       <ConfirmDialog
         open={showDeleteConfirm}

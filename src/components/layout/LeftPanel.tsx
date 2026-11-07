@@ -8,7 +8,7 @@ import { showUndoToast } from "~src/components/ui/sonner";
 import { ConfirmDialog } from "~src/components/ui/confirm-dialog";
 import { Dialog, DialogContent, DialogTitle } from "~src/components/ui/dialog";
 import { Tooltip, TooltipTrigger, TooltipContent } from "~src/components/ui/tooltip";
-import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from "~src/components/ui/context-menu";
+import { ActionSlot, RowActions } from "~src/components/ui/row-actions";
 import { Button, IconButton } from "~src/components/ui/button";
 import { Input } from "~src/components/ui/input"
 import { Label } from "~src/components/ui/label";
@@ -106,6 +106,10 @@ const SPACE_COLORS = [
   "", "#2274F0", "#8b5cf6", "#ec4899", "#ef4444",
   "#f97316", "#eab308", "#22c55e", "#06b6d4",
 ];
+const SPACE_COLOR_NAMES: Record<string, string> = {
+  "": "Default", "#2274F0": "Blue", "#8b5cf6": "Violet", "#ec4899": "Pink", "#ef4444": "Red",
+  "#f97316": "Orange", "#eab308": "Yellow", "#22c55e": "Green", "#06b6d4": "Cyan",
+};
 
 function SpaceSettings({ onClose }: { onClose: () => void }) {
   const { savedSpaces, activeSpaceId, updateSavedSpace } = useSavedSpacesStore();
@@ -150,7 +154,8 @@ function SpaceSettings({ onClose }: { onClose: () => void }) {
           <Label>Color</Label>
           <div className="flex gap-2 flex-wrap">
             {SPACE_COLORS.map(c => (
-              <button key={c || "default"} onClick={() => setColor(c)}
+              <button key={c || "default"} type="button" onClick={() => setColor(c)}
+                aria-label={`${SPACE_COLOR_NAMES[c] ?? c} color`} aria-pressed={color === c}
                 className={`w-6 h-6 rounded-full border-2 transition-all ${color === c ? 'border-white/70 scale-110' : 'border-transparent hover:border-white/30'}`}
                 style={{ backgroundColor: c || 'rgba(255,255,255,0.15)' }} />
             ))}
@@ -206,9 +211,13 @@ export function LeftPanel() {
 
   const { creating, startCreate, endCreate, requestScrollToCategory } = useUIStore();
 
-  const selectProject = (projectId: string) => {
+  // A project is a folder of categories (it has no page of its own), so its
+  // name toggles like the chevron: a collapsed project opens and shows its
+  // categories; an open one closes and the content panel stays as it is.
+  const toggleProject = (projectId: string) => {
+    if (expandedProjectIds.includes(projectId)) { toggleExpandedProject(projectId); return; }
     if (activeProjectId !== projectId) setActiveProject(projectId);
-    if (!expandedProjectIds.includes(projectId)) toggleExpandedProject(projectId);
+    toggleExpandedProject(projectId);
   };
 
   const selectCategory = (projectId: string, categoryId: string, scrollMode: ScrollMode = "top") => {
@@ -271,6 +280,36 @@ export function LeftPanel() {
     });
   };
 
+  /**
+   * Arrow keys in the project/category tree (TASK-5), the usual tree pattern:
+   * Up/Down move between rows, Right expands a project (or enters its first
+   * category), Left collapses it (or goes from a category back to its
+   * project), Home/End jump to the first/last row. Enter on a project
+   * toggles it, like a click on its name.
+   */
+  const handleTreeKeys = (e: React.KeyboardEvent<HTMLElement>) => {
+    const row = (e.target as HTMLElement).closest<HTMLElement>("[data-tree-row]");
+    if (!row || !["ArrowDown", "ArrowUp", "ArrowRight", "ArrowLeft", "Home", "End"].includes(e.key)) return;
+    const rows = [...e.currentTarget.querySelectorAll<HTMLElement>("[data-tree-row]")];
+    const i = rows.indexOf(row);
+    const projectId = row.dataset.projectId!;
+    const projectRow = rows.find(r => r.dataset.treeRow === "project" && r.dataset.projectId === projectId);
+    let next: HTMLElement | undefined;
+    if (e.key === "ArrowDown") next = rows[i + 1];
+    else if (e.key === "ArrowUp") next = rows[i - 1];
+    else if (e.key === "Home") next = rows[0];
+    else if (e.key === "End") next = rows[rows.length - 1];
+    else if (row.dataset.treeRow === "project") {
+      const expanded = expandedProjectIds.includes(projectId);
+      if (e.key === "ArrowRight") {
+        if (!expanded) toggleExpandedProject(projectId);
+        else if (rows[i + 1]?.dataset.treeRow === "category") next = rows[i + 1];
+      } else if (expanded) toggleExpandedProject(projectId);
+    } else if (e.key === "ArrowLeft") next = projectRow;
+    e.preventDefault();
+    next?.focus();
+  };
+
   return (
     <div className="w-64 h-full flex flex-col bg-black-900 relative">
       <ConfirmDialog
@@ -291,15 +330,18 @@ export function LeftPanel() {
         <p className="text-white/50 font-sans text-sm">v{config.version || '0.0.1'}</p>
       </div>
 
-      {/* Space header */}
-      <div className="flex items-center justify-between h-14 px-4 border-b border-black-800">
+      {/* Space header. pr-3 puts its controls in the same column as the
+          tree rows' trailing slot (mx-2 + pr-1). */}
+      <div className="flex items-center justify-between gap-1 h-14 pl-4 pr-3 border-b border-black-800">
         <div className="flex items-center gap-2.5 min-w-0">
           <h2 className="text-white/70 font-sans text-sm font-medium truncate">{currentSpace?.name || 'No Space'}</h2>
         </div>
         {currentSpace && (
+          // Header control, always visible, in the rows' slot column.
+          <ActionSlot>
           <Tooltip>
           <TooltipTrigger asChild>
-          <IconButton variant="subtle" onClick={() => setShowSettings(!showSettings)}
+          <IconButton variant="subtle" aria-label="Space settings" onClick={() => setShowSettings(!showSettings)}
             className={`shrink-0 ${showSettings ? '!text-white/70' : ''}`}>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
@@ -309,13 +351,14 @@ export function LeftPanel() {
           </TooltipTrigger>
           <TooltipContent>Space settings</TooltipContent>
           </Tooltip>
+          </ActionSlot>
         )}
       </div>
 
       {showSettings && <SpaceSettings onClose={() => setShowSettings(false)} />}
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-4">
+      <nav aria-label="Projects and categories" className="flex-1 overflow-y-auto py-4" onKeyDown={handleTreeKeys}>
         {currentSpace ? (
           <>
             {currentSpace.projects.map((project) => {
@@ -328,8 +371,6 @@ export function LeftPanel() {
                     spaceId={currentSpace.id}
                     projectId={project.id}
                   >
-                    <ContextMenu>
-                    <ContextMenuTrigger asChild>
                     <div className={`group/proj flex items-center gap-1 mx-2 pl-1 pr-1 rounded-md transition-colors ${
                       activeProjectId === project.id ? 'text-white/90' : 'text-white/70 hover:bg-white/[0.04]'
                     }`}>
@@ -355,7 +396,10 @@ export function LeftPanel() {
                       ) : (
                         <button
                           type="button"
-                          onClick={() => selectProject(project.id)}
+                          data-tree-row="project"
+                          data-project-id={project.id}
+                          onClick={() => toggleProject(project.id)}
+                          aria-expanded={isExpanded}
                           aria-current={activeProjectId === project.id ? "page" : undefined}
                           className="flex-1 min-w-0 flex items-center gap-2 py-1.5 text-left rounded outline-none focus-visible:ring-1 focus-visible:ring-ring"
                         >
@@ -364,28 +408,31 @@ export function LeftPanel() {
                         </button>
                       )}
 
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <IconButton
-                            variant="subtle"
-                            aria-label={`New category in ${project.name}`}
-                            onClick={e => { e.stopPropagation(); handleAddCategory(project.id); }}
-                            className="shrink-0"
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                            </svg>
-                          </IconButton>
-                        </TooltipTrigger>
-                        <TooltipContent side="right">New category</TooltipContent>
-                      </Tooltip>
+                      {/* A project is a header row (TASK-5): its primary action
+                          ("+" new category) and its ⋯ are always visible, ⋯
+                          outermost in the slot column. */}
+                      <ActionSlot>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <IconButton
+                              variant="subtle"
+                              aria-label={`New category in ${project.name}`}
+                              onClick={e => { e.stopPropagation(); handleAddCategory(project.id); }}
+                            >
+                              <Plus className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+                            </IconButton>
+                          </TooltipTrigger>
+                          <TooltipContent side="right">New category</TooltipContent>
+                        </Tooltip>
+                      </ActionSlot>
+                      <RowActions
+                        label={`Actions for ${project.name}`}
+                        items={[
+                          { label: "Rename", onSelect: () => startRename(project.id, project.name), takesFocus: true },
+                          { label: "Delete", onSelect: () => requestDeleteProject(project), danger: true, separatorBefore: true },
+                        ]}
+                      />
                     </div>
-                    </ContextMenuTrigger>
-                    <ContextMenuContent>
-                      <ContextMenuItem onSelect={() => startRename(project.id, project.name)}>Rename</ContextMenuItem>
-                      <ContextMenuItem className="text-red-400 focus:bg-red-400/10 focus:text-red-400" onSelect={() => requestDeleteProject(project)}>Delete</ContextMenuItem>
-                    </ContextMenuContent>
-                    </ContextMenu>
                   </DroppableProjectItem>
 
                   {/* Categories */}
@@ -400,8 +447,6 @@ export function LeftPanel() {
                             projectId={project.id}
                             categoryId={category.id}
                           >
-                            <ContextMenu>
-                            <ContextMenuTrigger asChild>
                             {renamingId === category.id ? (
                               <div className="flex items-center gap-2 mx-2 pl-7 pr-2 py-[5px]">
                                 <CategoryIcon className="h-3 w-3 shrink-0 text-white/50" />
@@ -412,32 +457,39 @@ export function LeftPanel() {
                                   className="flex-1 text-xs min-w-0" />
                               </div>
                             ) : (
-                              <button
-                                type="button"
-                                aria-current={isActive ? "location" : undefined}
-                                className={`w-[calc(100%-16px)] flex items-center gap-2 mx-2 pl-7 pr-2 py-[6px] rounded-md text-left transition-colors outline-none focus-visible:ring-1 focus-visible:ring-ring ${
-                                  isActive
-                                    ? 'text-white/90'
-                                    : 'text-white/60 hover:text-white/80 hover:bg-white/[0.04]'
+                              <div
+                                className={`group/cat flex items-center gap-1 mx-2 pr-1 rounded-md transition-colors ${
+                                  isActive ? 'text-white/90' : 'text-white/60 hover:text-white/80 hover:bg-white/[0.04]'
                                 }`}
                                 style={isActive ? { backgroundColor: 'var(--accent-subtle)' } : undefined}
+                              >
+                              <button
+                                type="button"
+                                data-tree-row="category"
+                                data-project-id={project.id}
+                                aria-current={isActive ? "location" : undefined}
+                                className="flex-1 min-w-0 flex items-center gap-2 pl-7 pr-1 py-[6px] rounded-md text-left outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                 onClick={() => selectCategory(project.id, category.id)}
                               >
                                 <CategoryIcon className="h-3 w-3 shrink-0" />
                                 <span className="flex-1 font-sans text-[13px] truncate">{category.name}</span>
-                                {category.groups.some(g => !isUnsortedGroup(g)) && (
-                                  <span className={`text-[10px] font-sans shrink-0 ${isActive ? 'text-white/60' : 'text-white/45'}`}>
+                              </button>
+                              <RowActions
+                                label={`Actions for ${category.name}`}
+                                reveal="opacity-0 group-hover/cat:opacity-100 group-focus-within/cat:opacity-100"
+                                conceal="group-hover/cat:opacity-0 group-focus-within/cat:opacity-0"
+                                rest={category.groups.some(g => !isUnsortedGroup(g)) ? (
+                                  <span className={`text-[10px] font-sans ${isActive ? 'text-white/60' : 'text-white/45'}`}>
                                     {category.groups.filter(g => !isUnsortedGroup(g)).length}
                                   </span>
-                                )}
-                              </button>
+                                ) : undefined}
+                                items={[
+                                  { label: "Rename", onSelect: () => startRename(category.id, category.name), takesFocus: true },
+                                  { label: "Delete", onSelect: () => requestDeleteCategory(project, category), danger: true, separatorBefore: true },
+                                ]}
+                              />
+                              </div>
                             )}
-                            </ContextMenuTrigger>
-                            <ContextMenuContent>
-                              <ContextMenuItem onSelect={() => startRename(category.id, category.name)}>Rename</ContextMenuItem>
-                              <ContextMenuItem className="text-red-400 focus:bg-red-400/10 focus:text-red-400" onSelect={() => requestDeleteCategory(project, category)}>Delete</ContextMenuItem>
-                            </ContextMenuContent>
-                            </ContextMenu>
                           </DroppableCategoryItem>
                         );
                       })}

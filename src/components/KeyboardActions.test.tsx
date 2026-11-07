@@ -133,10 +133,23 @@ describe("primary keyboard actions", () => {
 
   it("removes a saved tab with a named keyboard action without opening it", async () => {
     const user = setup(<GroupHarness />);
-    await tabTo(user, screen.getByRole("button", { name: "Remove Documentation" }));
-    await user.keyboard(" ");
-    expect(screen.queryByRole("link", { name: "Open Documentation" })).not.toBeInTheDocument();
+    // Remove lives in the tab's "⋯" menu (TASK-5): Enter opens it, arrows pick, Enter runs.
+    await tabTo(user, screen.getByRole("button", { name: "Actions for Documentation" }));
+    await user.keyboard("{Enter}");
+    await screen.findByRole("menuitem", { name: "Move to…" });
+    await user.keyboard("{ArrowDown}{Enter}");
+    await waitFor(() => expect(screen.queryByRole("link", { name: "Open Documentation" })).not.toBeInTheDocument());
     expect(chrome.tabs.create).not.toHaveBeenCalled();
+  });
+
+  it("renames a group from its ⋯ menu with focus in the name field", async () => {
+    const user = setup(<GroupHarness />);
+    await tabTo(user, screen.getByRole("button", { name: "Actions for Reading" }));
+    await user.keyboard("{Enter}");
+    await screen.findByRole("menuitem", { name: "Rename" });
+    await user.keyboard("{Enter}");
+    const input = await screen.findByRole("textbox", { name: "Group name" });
+    await waitFor(() => expect(input).toHaveFocus());
   });
 
   it("opens the group in a new window or in this window from its named action", async () => {

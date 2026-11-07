@@ -41,8 +41,9 @@ function SortableGroup({ group, location, layout, gridColumns }: {
     <div ref={setNodeRef} style={style} className="relative group/sortable">
       {/* The handle sits in the left gutter, level with the title row inside the card
           (block top padding + card padding + half of the 26px title row - half the icon). */}
-      <div className="absolute left-1 z-10 opacity-0 group-hover/sortable:opacity-30 hover:!opacity-80 transition-opacity cursor-grab active:cursor-grabbing"
-        style={{ top: 'calc(var(--density-p-section) + var(--density-p-group) + 5px)' }} {...attributes} {...listeners}>
+      <div className="absolute left-1 z-10 opacity-0 group-hover/sortable:opacity-30 hover:!opacity-80 focus-visible:!opacity-100 focus-visible:ring-1 focus-visible:ring-ring outline-none rounded transition-opacity cursor-grab active:cursor-grabbing"
+        style={{ top: 'calc(var(--density-p-section) + var(--density-p-group) + 5px)' }} {...attributes} {...listeners}
+        aria-label={`Reorder ${group.name}`}>
         <DragHandleIcon className="w-4 h-4 text-white/50" />
       </div>
       <TabGroup group={group} location={location} layout={layout} gridColumns={gridColumns} />

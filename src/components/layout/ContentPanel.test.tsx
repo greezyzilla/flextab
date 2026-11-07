@@ -60,8 +60,10 @@ describe("empty states create in place", () => {
     expect(headings).toEqual(["Unsorted", "Reading"])
     expect(screen.getByText("1 tab · drag into a group to file them")).toBeInTheDocument()
     expect(screen.getByText("1 group · 1 unsorted")).toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: /Delete Unsorted|Rename Unsorted/i })).not.toBeInTheDocument()
-    expect(screen.getByRole("button", { name: /Delete Reading/i })).toBeInTheDocument()
+    // Unsorted is the system's tray: it opens its tabs, but has no ⋯ (never renamed, moved or deleted).
+    expect(screen.queryByRole("button", { name: /Actions for Unsorted|Rename Unsorted/i })).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Open all tabs in Unsorted" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Actions for Reading" })).toBeInTheDocument()
   })
 
   const withGroups = () => {
