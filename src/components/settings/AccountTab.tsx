@@ -170,6 +170,13 @@ export function AccountTab() {
       <SettingRow label="Sign-in methods" description="Providers linked to your account. Link more or remove ones you don't use.">
         <div className="flex flex-col gap-2">
           {idError && <div className="text-red-400 text-xs font-sans">{idError}</div>}
+          {/* A password-only account has no way back in if the password is lost:
+              FlexTab sends no email, so there is no reset (TASK-8). */}
+          {identities?.length === 0 && hasPassword && (
+            <p role="note" className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-amber-200 text-xs font-sans leading-relaxed">
+              Only a password protects this account, and FlexTab can't reset it. Link Google or GitHub so you can always get back in.
+            </p>
+          )}
           {identities === null && <div className="text-fg-subtle text-xs font-sans">Loading…</div>}
           {identities?.map(id => (
             <div key={id.provider} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/[0.08] bg-white/[0.02] px-4 py-3">

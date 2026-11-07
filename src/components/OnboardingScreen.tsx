@@ -45,15 +45,13 @@ export function OnboardingScreen({ onBack }: {
   /** Back to the local workspace: sign-in is a place you visit, never a wall (TASK-7). */
   onBack: () => void
 }) {
-  const { loginWithGoogle, loginWithGithub, loginWithEmail, register } = useAuthStore()
+  const { loginWithGoogle, loginWithGithub, loginWithEmail } = useAuthStore()
   // Only show OAuth buttons for providers the server has configured (Google is
   // required; GitHub is optional). Default to Google if the check fails.
   const [providers, setProviders] = useState<string[] | null>(null)
   useEffect(() => { apiGetAuthProviders().then(setProviders).catch(() => setProviders(['google'])) }, [])
-  const [mode, setMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [name, setName] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [sessionExpired, setSessionExpired] = useState(false)
@@ -76,11 +74,7 @@ export function OnboardingScreen({ onBack }: {
     setError('')
     setLoading(true)
     try {
-      if (mode === 'register') {
-        await register(email, password, name)
-      } else {
-        await loginWithEmail(email, password)
-      }
+      await loginWithEmail(email, password)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
@@ -105,11 +99,12 @@ export function OnboardingScreen({ onBack }: {
           </div>
         )}
 
-        {/* One heading for both paths: the same buttons sign in or create an
-            account, so the screen never guesses "welcome back". */}
+        {/* One heading for both: the provider buttons sign in or create the
+            account, so the screen never guesses "welcome back". New accounts are
+            Google/GitHub only (TASK-8): those providers own account recovery. */}
         <div className="flex flex-col gap-2">
           <h1 className="text-fg text-xl font-medium">Sync your tabs</h1>
-          <p className="text-fg-subtle text-sm leading-relaxed">Free account. The tabs on this device stay put.</p>
+          <p className="text-fg-subtle text-sm leading-relaxed">Google or GitHub signs you in, or creates a free account. The tabs on this device stay put.</p>
         </div>
 
         {/* Fastest path first (Hick): one click, no password. Google is the one
@@ -140,18 +135,12 @@ export function OnboardingScreen({ onBack }: {
 
         <div className="flex items-center gap-3">
           <div className="flex-1 h-px bg-white/10" />
-          <span className="text-fg-subtle text-xs">or with email</span>
+          <span className="text-fg-subtle text-xs">or sign in with email</span>
           <div className="flex-1 h-px bg-white/10" />
         </div>
 
         {/* Labels stay visible while typing (WCAG 1.3.1 / 3.3.2). */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          {mode === 'register' && (
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="signin-name">Name</Label>
-              <Input id="signin-name" type="text" autoComplete="name" value={name} onChange={e => setName(e.target.value)} className="w-full" required />
-            </div>
-          )}
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="signin-email">Email</Label>
             <Input id="signin-email" type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full" required
@@ -159,17 +148,13 @@ export function OnboardingScreen({ onBack }: {
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="signin-password">Password</Label>
-            <Input id="signin-password" type="password" autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
-              value={password} onChange={e => setPassword(e.target.value)} className="w-full" required minLength={8}
-              aria-describedby={[mode === 'register' ? "signin-password-hint" : "", error ? "signin-error" : ""].filter(Boolean).join(" ") || undefined} />
-            {mode === 'register' && <span id="signin-password-hint" className="text-fg-subtle text-xs">At least 8 characters.</span>}
+            <Input id="signin-password" type="password" autoComplete="current-password"
+              value={password} onChange={e => setPassword(e.target.value)} className="w-full" required
+              aria-describedby={error ? "signin-error" : undefined} />
           </div>
           {error && <div id="signin-error" role="alert" className="text-red-400 text-xs">{error}</div>}
           <Button variant="secondary" type="submit" disabled={loading} className="w-full">
-            {loading ? 'Please wait…' : mode === 'login' ? 'Sign in' : 'Create account'}
-          </Button>
-          <Button type="button" variant="link" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); }} className="self-center !text-xs !text-fg-muted hover:!text-fg">
-            {mode === 'login' ? "New to FlexTab? Create an account" : 'Have an account? Sign in'}
+            {loading ? 'Please wait…' : 'Sign in'}
           </Button>
         </form>
 

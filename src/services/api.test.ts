@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
-  apiFetch, pushSync, fetchSyncRevision, apiRegister, apiLogin, apiChangePassword,
+  apiFetch, pushSync, fetchSyncRevision, apiLogin, apiChangePassword,
   getAuthUrl, getDeviceId, loadTokens, saveTokens, clearTokens, ApiError, RefreshUnavailableError,
 } from './api';
 
@@ -289,14 +289,6 @@ describe('fetchSyncRevision', () => {
 });
 
 describe('auth endpoints', () => {
-  it('apiRegister returns tokens', async () => {
-    (global.fetch as any).mockResolvedValue(res({ access_token: 'a', refresh_token: 'r', expires_at: 1 }));
-    expect((await apiRegister('e', 'p', 'n')).access_token).toBe('a');
-  });
-  it('apiRegister throws on failure', async () => {
-    (global.fetch as any).mockResolvedValue(res({ error: 'taken' }, 409));
-    await expect(apiRegister('e', 'p', 'n')).rejects.toMatchObject({ status: 409, message: 'taken' });
-  });
   it('apiLogin returns tokens', async () => {
     (global.fetch as any).mockResolvedValue(res({ access_token: 'a', refresh_token: 'r', expires_at: 1 }));
     expect((await apiLogin('e', 'p')).access_token).toBe('a');

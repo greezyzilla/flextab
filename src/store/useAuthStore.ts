@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { cancelPendingOAuth, OAUTH_START } from "~src/services/oauthLogin";
 import { withSyncWriteLock } from "~src/services/syncPolicy";
 import { create } from "zustand";
-import { loadTokens, saveTokens, clearTokens, apiFetch, apiRegister, apiLogin, apiLogout, ApiError } from "~src/services/api";
+import { loadTokens, saveTokens, clearTokens, apiFetch, apiLogin, apiLogout, ApiError } from "~src/services/api";
 import { clearState } from "~src/lib/yjsDoc";
 import { resetYjsHydration } from "~src/store/useSavedSpacesStore";
 import { clearStoredRevision } from "~src/services/revision";
@@ -40,7 +40,6 @@ interface AuthState {
   loginWithGoogle: () => Promise<void>;
   loginWithGithub: () => Promise<void>;
   loginWithEmail: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string) => Promise<void>;
   handleAuthCallback: (tokens: TokenData, alreadyStored?: boolean) => Promise<void>;
   /**
    * Sign out. "keep" leaves this device's workspace in place as a local-only
@@ -88,11 +87,6 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
 
   loginWithEmail: async (email: string, password: string) => {
     const tokens = await apiLogin(email, password);
-    await get().handleAuthCallback(tokens);
-  },
-
-  register: async (email: string, password: string, name: string) => {
-    const tokens = await apiRegister(email, password, name);
     await get().handleAuthCallback(tokens);
   },
 

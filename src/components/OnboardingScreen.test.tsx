@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { render, screen, within } from "@testing-library/react"
+import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { OnboardingScreen } from "./OnboardingScreen"
 import { useAuthStore } from "~src/store/useAuthStore"
@@ -10,11 +10,10 @@ vi.mock("~src/services/api", async importOriginal => ({
 }))
 
 const loginWithEmail = vi.fn()
-const register = vi.fn()
 const loginWithGoogle = vi.fn()
 beforeEach(() => {
   vi.clearAllMocks()
-  useAuthStore.setState({ loginWithEmail, register, loginWithGoogle, loginWithGithub: vi.fn() })
+  useAuthStore.setState({ loginWithEmail, loginWithGoogle, loginWithGithub: vi.fn() })
 })
 
 describe("sign-in screen (TASK-7)", () => {
@@ -39,18 +38,12 @@ describe("sign-in screen (TASK-7)", () => {
     expect(screen.getByLabelText("Email")).toHaveAttribute("aria-describedby", "signin-error")
   })
 
-  it("switches to creating an account with a name field and a password hint", async () => {
-    const user = userEvent.setup()
+  it("creates new accounts only through Google or GitHub (TASK-8)", () => {
     render(<OnboardingScreen onBack={vi.fn()} />)
-    await user.click(screen.getByRole("button", { name: /Create an account/ }))
-    const form = screen.getByRole("button", { name: "Create account" }).closest("form")!
-    expect(within(form).getByLabelText("Name")).toBeInTheDocument()
-    expect(within(form).getByText("At least 8 characters.")).toBeInTheDocument()
-    expect(screen.getByLabelText("Password")).toHaveAttribute("autocomplete", "new-password")
-    await user.type(within(form).getByLabelText("Name"), "Me")
-    await user.type(screen.getByLabelText("Email"), "me@example.com")
-    await user.type(screen.getByLabelText("Password"), "longenough")
-    await user.click(screen.getByRole("button", { name: "Create account" }))
-    expect(register).toHaveBeenCalledWith("me@example.com", "longenough", "Me")
+    expect(screen.getByText(/Google or GitHub signs you in, or creates a free account/)).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /Create an account|Create account/ })).not.toBeInTheDocument()
+    expect(screen.queryByLabelText("Name")).not.toBeInTheDocument()
+    expect(screen.getByLabelText("Password")).toHaveAttribute("autocomplete", "current-password")
   })
+
 })

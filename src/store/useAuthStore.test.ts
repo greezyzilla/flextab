@@ -108,14 +108,6 @@ describe('login flows', () => {
     expect(useAuthStore.getState().user?.id).toBe('u');
     expect(chrome.storage.local.set).toHaveBeenCalledWith(expect.objectContaining({ flextab_fresh_login: true }));
   });
-
-  it('register authenticates', async () => {
-    (global.fetch as any)
-      .mockResolvedValueOnce(jsonRes(tokens()))
-      .mockResolvedValueOnce(jsonRes({ id: 'u2', email: 'e', name: 'n', avatar: '', provider: 'email', has_password: true }));
-    await useAuthStore.getState().register('e', 'p', 'n');
-    expect(useAuthStore.getState().user?.id).toBe('u2');
-  });
 });
 
 describe('chrome.storage.onChanged listener', () => {

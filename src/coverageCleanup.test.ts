@@ -36,10 +36,10 @@ describe('spacesMerge — sparse/deep-collision branches', () => {
 });
 
 describe('api — fallback branches', () => {
-  it('apiRegister falls back to statusText when the error body is empty', async () => {
+  it('apiLogin falls back to statusText when the error body is empty', async () => {
     global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 500, statusText: 'ServerError', json: async () => ({}) } as Response);
-    const { apiRegister } = await import('~src/services/api');
-    await expect(apiRegister('e', 'p', 'n')).rejects.toMatchObject({ message: 'ServerError' });
+    const { apiLogin } = await import('~src/services/api');
+    await expect(apiLogin('e', 'p')).rejects.toMatchObject({ message: 'ServerError' });
   });
 });
 
