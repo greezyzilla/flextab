@@ -26,6 +26,7 @@ import { mergeSpacesGuest } from "./spacesMerge";
 import { spaceTabCount } from "./spacesTree";
 import { clearKeptOnSignOut, loadKeptOnSignOut } from "./keptWorkspace";
 import { merge3, type Conflict, type Resolutions } from "./spacesMerge3";
+import { addAccountCopies } from "./keepBoth";
 import type { SavedSpace } from "~src/types";
 import type { SyncStatus } from "~src/store/useSyncStore";
 
@@ -333,14 +334,17 @@ export function resolveConflict(choice: "merge" | "server" | "local") {
 
 /** Apply the user's per-item choices to a pending 3-way conflict. Re-runs merge3
  *  with the resolutions to produce the final tree, then enables upload; merge-base
- *  advances when the background push lands (FE-A1 / FE-B1). */
-export function resolveMergeConflicts(resolutions: Resolutions) {
-  const b = pendingMergeBase, s = pendingServer, l = pendingLocal;
+ *  advances when the background push lands (FE-A1 / FE-B1). `keepBoth` lists
+ *  tab-address conflicts (by key) where both versions stay (TASK-29): they are
+ *  resolved to this device and the account's version is added after merge3. */
+export function resolveMergeConflicts(resolutions: Resolutions, keepBoth: string[] = []) {
+  const b = pendingMergeBase, s = pendingServer, l = pendingLocal, c = pendingMergeConflicts ?? [];
   pendingServer = pendingLocal = pendingMergeBase = pendingMergeConflicts = null;
   useMergeConflict.getState().close();
   if (!s || !l) return;
-  const { merged } = merge3(b, s, l, resolutions);
-  applyUserResolution(merged);
+  const both = new Set(keepBoth);
+  const { merged } = merge3(b, s, l, { ...resolutions, ...Object.fromEntries(keepBoth.map((k) => [k, "local" as const])) });
+  applyUserResolution(addAccountCopies(merged, s, c.filter((x) => both.has(x.key))));
 }
 
 /** Dismiss the resolver without resolving ("ignore for now"): turn auto-sync OFF

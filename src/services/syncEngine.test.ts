@@ -17,6 +17,7 @@ vi.mock('~src/store/useSavedSpacesStore', () => ({ ensureDefaultData: vi.fn(), s
 import {
   startSyncEngine, stopSyncEngine, syncNow, pullAndOverwrite, resolveConflict,
   dismissMergeConflicts, startLocalPersistence, stopLocalPersistence,
+  adoptStoredOccConflict, resolveMergeConflicts,
 } from './syncEngine';
 import { apiFetch, loadTokens, pushSync } from './api';
 import { useAuthStore } from '~src/store/useAuthStore';
@@ -480,6 +481,20 @@ describe('syncNow', () => {
     expect(useSyncStore.getState().dirty).toBe(true);
     expect(useSyncStore.getState().lastSyncedAt).toBeNull();
     expect(FakeWS.instances).toHaveLength(0);
+  });
+
+  it('keeps both versions of a tab address when asked (TASK-29)', async () => {
+    const tab = (url: string) => ({ id: 't1', url, title: 'PR', favicon: '', order: 0 });
+    const tree = (url: string) => [{ ...localSpace('s'), projects: [{ id: 'sp', name: 'P', order: 0, categories: [{ id: 'sc', name: 'C', order: 0, groups: [{ id: 'sg', name: 'G', order: 0, tabs: [tab(url)] }] }] }] }];
+    const base = tree('https://x/1'), server = tree('https://x/88'), local = tree('https://x/91');
+    const { merge3 } = await import('./spacesMerge3');
+    const { conflicts } = merge3(base as never, server as never, local as never);
+    (chrome.storage.local.get as any).mockImplementation(async (key: string) =>
+      key === 'flextab_occ_conflict' ? { flextab_occ_conflict: { base, server, local, conflicts, at: 1 } } : {});
+    setSpaces(local as never);
+    expect(await adoptStoredOccConflict()).toBe(true);
+    resolveMergeConflicts({}, [conflicts[0].key]);
+    await vi.waitFor(() => expect(getSpaces()[0].projects[0].categories[0].groups[0].tabs.map(t => t.url)).toEqual(['https://x/91', 'https://x/88']));
   });
 
   it('reports a fresh-login conflict without uploading guest data', async () => {

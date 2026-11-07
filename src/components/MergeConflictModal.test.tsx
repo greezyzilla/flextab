@@ -56,7 +56,7 @@ describe("MergeConflictModal (TASK-29)", () => {
     expect(screen.getByText("3 tabs after apply")).toBeInTheDocument() // a, b + the account's n
     fireEvent.click(apply)
     const [name, deleted] = useMergeConflict.getState().conflicts.map((c) => c.key)
-    expect(resolve).toHaveBeenCalledWith({ [name]: "server", [deleted]: "server" })
+    expect(resolve).toHaveBeenCalledWith({ [name]: "server", [deleted]: "server" }, [])
   })
 
   it("chooses one side for every conflict at once", () => {
@@ -84,5 +84,20 @@ describe("MergeConflictModal (TASK-29)", () => {
     expect(screen.queryByRole("button", { name: "Ignore for now" })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole("button", { name: "Pause sync and decide later" }))
     expect(dismiss).toHaveBeenCalledTimes(1)
+  })
+
+  it("offers Keep both for a tab's address and sends it apart from the sides", () => {
+    const server = clone(base), local = clone(base)
+    server[0].projects[0].categories[0].groups[0].tabs[0].url = "https://a.example/88"
+    local[0].projects[0].categories[0].groups[0].tabs[0].url = "https://a.example/91"
+    const { conflicts } = merge3(base, server, local)
+    useMergeConflict.getState().open(conflicts, base, server, local)
+    render(<MergeConflictModal />)
+    const tabBlock = screen.getByRole("region", { name: "Tab a" })
+    expect(tabBlock).toHaveTextContent("Address was “https://a.example/”. Both sides changed it.")
+    fireEvent.click(within(tabBlock).getByRole("radio", { name: /Keep both/ }))
+    expect(screen.getByText("4 tabs after apply")).toBeInTheDocument() // a twice, b, x
+    fireEvent.click(screen.getByRole("button", { name: "Apply" }))
+    expect(resolve).toHaveBeenCalledWith({ [conflicts[0].key]: "local" }, [conflicts[0].key])
   })
 })
