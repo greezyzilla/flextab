@@ -147,9 +147,9 @@ function IndexPopup() {
 
   if (authLoading || !hydrated) {
     return (
-      <div className="w-72 bg-black-900 p-4 font-sans">
+      <main className="w-72 bg-black-900 p-4 font-sans">
         <div className="text-fg-subtle text-xs text-center">Loading...</div>
-      </div>
+      </main>
     )
   }
 
@@ -158,8 +158,8 @@ function IndexPopup() {
   const where = destination ? describeDestination(savedSpaces, destination) : null
 
   return (
-    <div className="w-80 bg-black-900 p-4 font-sans flex flex-col gap-3">
-      <h2 className="text-fg text-base font-medium">FlexTab</h2>
+    <main className="w-80 bg-black-900 p-4 font-sans flex flex-col gap-3">
+      <h1 className="text-fg text-base font-medium">FlexTab</h1>
 
       {lastBackground && (
         <div className="flex items-center justify-between gap-2 rounded-md border border-white/10 px-2.5 py-1.5 text-xs text-fg-muted">
@@ -262,7 +262,7 @@ function IndexPopup() {
           Sign in to sync across devices
         </Button>
       )}
-    </div>
+    </main>
   )
 }
 

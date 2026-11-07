@@ -60,6 +60,8 @@ describe("popup instant save", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Saving this page");
     await act(async () => { finish(); });
     expect(await screen.findByText("✓ Saved")).toBeInTheDocument();
+    // One main landmark with a level-one heading (TASK-28).
+    expect(screen.getByRole("main")).toContainElement(screen.getByRole("heading", { level: 1, name: "FlexTab" }));
     expect(screen.getByRole("status")).toHaveTextContent("Space › Project › Category › Unsorted");
     const savedId = storedGroups()[0].id;
     view.unmount();

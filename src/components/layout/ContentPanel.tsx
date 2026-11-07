@@ -82,7 +82,7 @@ function LevelEmptyState({ icon, title, body, action }: {
           {icon}
         </div>
         <div className="flex flex-col gap-2">
-          <h3 className="text-fg font-sans text-sm font-medium">{title}</h3>
+          <h2 className="text-fg font-sans text-sm font-medium">{title}</h2>
           <p className="text-fg-subtle font-sans text-xs leading-relaxed">{body}</p>
         </div>
         {action}
@@ -281,11 +281,12 @@ function CategorySection({ space, project, category, layout, gridColumns, isCurr
       // line coincide (one line, never a double line).
       className={`${isFirst ? '' : '-mt-px border-t border-white/[0.12]'} ${isLast ? 'min-h-full' : ''}`}>
       <div className="sticky top-0 z-20 bg-black-900 h-12 px-6 flex items-center justify-between gap-3 border-b border-white/[0.12]">
-        <h3 id={`section-${category.id}`} className={`flex items-center gap-2 min-w-0 font-sans text-base ${isCurrent ? 'text-fg' : 'text-fg'}`}>
+        {/* h2 under the panel's h1 (the space); groups are h3 (TASK-28). */}
+        <h2 id={`section-${category.id}`} className={`flex items-center gap-2 min-w-0 font-sans text-base ${isCurrent ? 'text-fg' : 'text-fg'}`}>
           <CategoryIcon className="h-4 w-4 shrink-0" />
           <span className="truncate font-semibold">{category.name}</span>
           {counts && <span className="text-fg-subtle text-xs font-normal shrink-0">{counts}</span>}
-        </h3>
+        </h2>
         {/* Always here, empty or not: one place to create a group. */}
         <ShortcutTooltip label="New group" shortcut="N" side="left">
           <Button variant="ghost" size="sm" onClick={newGroup} aria-label={`New group in ${category.name}`}>+ New group</Button>

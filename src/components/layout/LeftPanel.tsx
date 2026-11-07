@@ -249,7 +249,7 @@ export function LeftPanel() {
   };
 
   return (
-    <div className="w-64 h-full flex flex-col bg-black-900 relative">
+    <aside aria-label="Space" className="w-64 h-full flex flex-col bg-black-900 relative">
       <ConfirmDialog
         open={!!confirmDelete}
         onOpenChange={(o) => { if (!o) setConfirmDelete(null); }}
@@ -470,7 +470,7 @@ export function LeftPanel() {
         </button>
       </div>
 
-    </div>
+    </aside>
   );
 }
 

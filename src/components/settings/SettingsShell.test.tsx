@@ -53,4 +53,22 @@ describe("compact settings navigation", () => {
     render(<SettingsNav />);
     expect(screen.getByText(/^FlexTab v\d/)).toBeInTheDocument();
   });
+
+  it("is navigation, not tabs: each section is a link and the open one is the current page (TASK-28)", () => {
+    window.location.hash = "#/settings/backup";
+    render(<SettingsNav />);
+    const nav = screen.getByRole("navigation", { name: "Settings" });
+    expect(screen.queryByRole("tab")).not.toBeInTheDocument();
+    const backup = screen.getByRole("link", { name: "Backup" });
+    expect(nav).toContainElement(backup);
+    expect(backup).toHaveAttribute("aria-current", "page");
+    expect(backup).toHaveAttribute("href", "#/settings/backup");
+    expect(screen.getByRole("link", { name: "Spaces" })).not.toHaveAttribute("aria-current");
+  });
+
+  it("titles the section with a level-two heading under the nav's Settings (TASK-28)", () => {
+    window.location.hash = "#/settings/spaces";
+    render(<SettingsContent />);
+    expect(screen.getByRole("heading", { level: 2, name: "Spaces" })).toBeInTheDocument();
+  });
 });

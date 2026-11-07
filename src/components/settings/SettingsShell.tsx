@@ -11,7 +11,7 @@ import { PlanTab } from "./PlanTab"
 import { TransactionsTab } from "./TransactionsTab"
 import { AccountTab } from "./AccountTab"
 import { SpacesIcon, PaletteIcon, SyncIcon, HistoryIcon, PlanIcon, ReceiptIcon, UserIcon } from "./icons"
-import { Tabs, TabsList, TabsTrigger } from "~src/components/ui/tabs"
+import { cn } from "~src/lib/utils"
 
 const NAV: { id: SettingsTab; icon: ReactNode; label: string }[] = [
   { id: "spaces", icon: <SpacesIcon />, label: "Spaces" },
@@ -27,35 +27,36 @@ const NAV: { id: SettingsTab; icon: ReactNode; label: string }[] = [
 export function SettingsNav() {
   const active = tabFromRoute(useRoute())
   return (
-    <div className="hidden md:flex w-64 h-full flex-col bg-black-900 shrink-0 font-sans">
+    <nav aria-label="Settings" className="hidden md:flex w-64 h-full flex-col bg-black-900 shrink-0 font-sans">
       <div className="h-16 p-4 flex items-end border-b border-black-800 shrink-0">
         <h1 className="text-fg font-sans text-2xl">Settings</h1>
       </div>
-      <Tabs
-        value={active}
-        onValueChange={(id) => navigate(`${SETTINGS_ROUTE}/${id}`)}
-        orientation="vertical"
-        className="flex-1 min-h-0 flex flex-col"
-      >
-        <TabsList className="flex h-auto w-full flex-col items-stretch gap-1 overflow-y-auto p-3">
-          {NAV.map((item) => (
-            <TabsTrigger
-              key={item.id}
-              value={item.id}
-              className="w-full justify-start"
+      {/* Sections are pages (one route each), so this is navigation with
+          aria-current, not tabs: tabs would point at panels that don't exist
+          (axe aria-valid-attr-value, TASK-28). Same look as before. */}
+      <ul className="flex-1 min-h-0 flex flex-col gap-1 overflow-y-auto p-3">
+        {NAV.map((item) => (
+          <li key={item.id}>
+            <a
+              href={`#${SETTINGS_ROUTE}/${item.id}`}
+              aria-current={active === item.id ? "page" : undefined}
+              className={cn(
+                "flex w-full items-center gap-2.5 whitespace-nowrap rounded-lg px-2.5 py-2 text-sm font-medium font-sans outline-none transition-colors focus-visible:ring-1 focus-visible:ring-ring",
+                active === item.id ? "bg-[var(--accent-subtle)] text-fg-accent" : "text-fg-subtle hover:bg-white/[0.03] hover:text-fg-muted",
+              )}
             >
               {item.icon}
               {item.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
+            </a>
+          </li>
+        ))}
+      </ul>
       {/* Where people look for it (TASK-15): the workspace header no longer
           spends its top-left on the version. */}
       <div className="shrink-0 border-t border-black-800 px-4 py-3 text-[11px] text-fg-subtle">
         FlexTab v{config.version || "0.0.1"}
       </div>
-    </div>
+    </nav>
   )
 }
 
@@ -85,7 +86,7 @@ export function SettingsContent() {
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden min-h-0 min-w-0">
       <div className="min-h-16 px-4 py-3 sm:px-6 md:px-8 flex flex-col justify-center gap-1.5 border-b border-black-800 shrink-0">
-        <span className="hidden md:block text-fg text-sm font-medium font-sans">{SECTION_LABEL[tab]}</span>
+        <h2 className="hidden md:block text-fg text-sm font-medium font-sans">{SECTION_LABEL[tab]}</h2>
         <label htmlFor={sectionSelectId} className="md:hidden text-fg-muted text-xs font-sans">Settings section</label>
         <select
           id={sectionSelectId}

@@ -71,9 +71,9 @@ export function AppShell() {
           // content in the ContentPanel slot. The opened-tabs panel is hidden.
           <>
             <SettingsNav />
-            <div className="border-x border-black-800 flex-1 flex flex-col min-w-0">
+            <main className="border-x border-black-800 flex-1 flex flex-col min-w-0">
               <SettingsContent />
-            </div>
+            </main>
           </>
         ) : (
           <>
@@ -86,7 +86,7 @@ export function AppShell() {
             )}
 
             <div className="border-x border-black-800 flex-1 flex flex-col min-w-0">
-              <div className="h-16 px-3 sm:px-5 flex items-center justify-between gap-2 border-b border-black-800 shrink-0">
+              <header className="h-16 px-3 sm:px-5 flex items-center justify-between gap-2 border-b border-black-800 shrink-0">
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   {!leftInline && (
                     <IconButton onClick={toggleLeftDrawer} className="h-9 w-9 shrink-0" title="Spaces & navigation" aria-label="Toggle navigation" aria-haspopup="dialog" aria-expanded={leftDrawerOpen} aria-controls={leftDrawerOpen ? "navigation-drawer" : undefined}>
@@ -101,8 +101,10 @@ export function AppShell() {
                   )}
                 </div>
                 <SyncStatusIndicator />
-              </div>
-              <ContentPanel />
+              </header>
+              <main className="flex-1 flex flex-col min-h-0 min-w-0">
+                <ContentPanel />
+              </main>
             </div>
 
             {rightInline ? (

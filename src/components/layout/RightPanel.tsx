@@ -124,7 +124,7 @@ export function RightPanel() {
   }, [])
 
   return (
-    <div className="w-80 h-full flex flex-col">
+    <aside aria-label="Opened tabs" className="w-80 h-full flex flex-col">
       {/* Header */}
       <div className="h-16 px-4 flex items-center gap-2 border-b border-black-800 shrink-0">
         <h2 className="text-fg font-sans text-sm font-medium flex-1">Opened Tabs</h2>
@@ -188,6 +188,6 @@ export function RightPanel() {
           onClose={() => setSaveModal(null)}
         />
       )}
-    </div>
+    </aside>
   )
 }

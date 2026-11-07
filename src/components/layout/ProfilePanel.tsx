@@ -53,7 +53,7 @@ export function ProfilePanel() {
 
 
   return (
-    <div className="w-16 h-full flex flex-col border-r border-black-800">
+    <nav aria-label="Spaces" className="w-16 h-full flex flex-col border-r border-black-800">
       <SignOutDialog open={signOutOpen} onOpenChange={setSignOutOpen} />
       <div className="flex flex-col items-center flex-1">
         {/* Header — h-16 to line up with the brand header in LeftPanel / the
@@ -209,7 +209,7 @@ export function ProfilePanel() {
           </button>
         )}
       </div>
-    </div>
+    </nav>
   )
 }
 
