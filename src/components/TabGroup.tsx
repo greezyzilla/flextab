@@ -1,3 +1,4 @@
+import { useFlash } from "~src/hooks/useFlash";
 import { useState, useRef, useEffect } from "react";
 import { SortableContext, useSortable } from "@dnd-kit/sortable";
 import { useDroppable } from "@dnd-kit/core";
@@ -42,6 +43,7 @@ function SavedTabItem({ tab, groupId, location, isDuplicate, unsorted }: { tab: 
   const { removeSavedTab, addSavedTab } = useSavedSpacesStore();
   const { spaceId, projectId, categoryId } = location;
   const [moving, setMoving] = useState(false);
+  const flash = useFlash<HTMLDivElement>("tab", tab.id);
 
   const onClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
     // Modified/middle clicks keep the native "always open a new tab" link
@@ -62,9 +64,9 @@ function SavedTabItem({ tab, groupId, location, isDuplicate, unsorted }: { tab: 
 
   return (
     <div
-      ref={setNodeRef}
+      ref={(el) => { setNodeRef(el); flash.ref.current = el; }}
       style={{ ...style, padding: `var(--density-py-tab) var(--density-px-tab)` }}
-      className={`flex flex-col gap-1 rounded-lg transition-colors group ${isDuplicate ? 'bg-yellow-500/[0.06] ring-1 ring-yellow-500/20' : 'bg-white/[0.03] hover:bg-white/[0.06]'}`}
+      className={`flex flex-col gap-1 rounded-lg transition-[background-color,box-shadow] group ${isDuplicate ? 'bg-yellow-500/[0.06] ring-1 ring-yellow-500/20' : 'bg-white/[0.03] hover:bg-white/[0.06]'} ${flash.on ? '!ring-2 !ring-[var(--accent)]' : ''}`}
     >
       <div className="flex items-center gap-2.5">
         {/* Favicon slot doubles as the drag handle on hover/focus, so no empty
@@ -226,6 +228,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: 
   // (not an editable name), a borderless tinted tray (not a bordered card),
   // no rename, no delete, and a hint saying what to do with it.
   const unsorted = isUnsortedGroup(group);
+  const flash = useFlash<HTMLDivElement>("group", group.id);
 
   return (
     // Space only ABOVE each group: a section then ends exactly at its last
@@ -236,8 +239,8 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: 
     {/* One region per group: its title, actions and tabs share one boundary
         (bordered card for user groups, borderless tinted tray for Unsorted). */}
     <div
-      ref={setDroppableRef}
-      className={`flex flex-col rounded-xl border transition-colors ${isOver ? '' : unsorted ? 'border-transparent bg-white/[0.04]' : 'border-white/[0.08] bg-white/[0.015]'}`}
+      ref={(el) => { setDroppableRef(el); flash.ref.current = el; }}
+      className={`flex flex-col rounded-xl border transition-[background-color,box-shadow,border-color] ${isOver ? '' : unsorted ? 'border-transparent bg-white/[0.04]' : 'border-white/[0.08] bg-white/[0.015]'} ${flash.on ? 'ring-2 ring-[var(--accent)]' : ''}`}
       style={{
         padding: 'var(--density-p-group)',
         gap: 'var(--density-p-group)',

@@ -56,6 +56,13 @@ interface UIState {
   /** The keyboard shortcut sheet (TASK-13), opened with "?" or its footer button. */
   shortcutsOpen: boolean
   setShortcutsOpen: (open: boolean) => void
+  /**
+   * A tab or group to point at briefly after search revealed it (TASK-14):
+   * it scrolls into view and is outlined for a moment. The nonce lets the
+   * same item be revealed twice in a row.
+   */
+  flashTarget: { kind: "tab" | "group"; id: string; nonce: number } | null
+  flash: (kind: "tab" | "group", id: string) => void
 }
 
 export type ScrollMode = "top" | "ifNeeded"
@@ -93,4 +100,6 @@ export const useUIStore = create<UIState>((set) => ({
   setSaveAllOpen: (saveAllOpen) => set({ saveAllOpen }),
   shortcutsOpen: false,
   setShortcutsOpen: (shortcutsOpen) => set({ shortcutsOpen }),
+  flashTarget: null,
+  flash: (kind, id) => set((s) => ({ flashTarget: { kind, id, nonce: (s.flashTarget?.nonce ?? 0) + 1 } })),
 }))

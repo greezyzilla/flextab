@@ -9,7 +9,7 @@ import { useCommandShortcuts } from "~src/hooks/useCommandShortcuts"
 // are not typing; letters were chosen because Chrome keeps Ctrl/⌘+N for
 // itself (TASK-13).
 const IN_FLEXTAB: { label: string; keys: string[] }[] = [
-  { label: "Search saved tabs", keys: ["/", "Mod+K"] },
+  { label: "Search tabs, groups and spaces", keys: ["/", "Mod+K"] },
   { label: "New group in this category", keys: ["N"] },
   { label: "New project in this space", keys: ["Shift+N"] },
   { label: "Save all tabs", keys: ["Mod+Shift+S"] },

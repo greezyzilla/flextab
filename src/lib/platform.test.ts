@@ -13,6 +13,7 @@ describe("platform shortcut labels (TASK-13)", () => {
     expect(shortcutKeys("?", false)).toEqual(["?"])
     expect(shortcutKeys("⌥⇧S", true)).toEqual(["⌥", "⇧", "S"]) // how Chrome reports it on macOS
     expect(shortcutKeys("", true)).toEqual([])
+    expect(shortcutKeys("Shift+Enter", false)).toEqual(["Shift", "↵"])
   })
 
   it("reads the platform from userAgentData, falling back to navigator.platform", () => {

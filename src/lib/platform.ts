@@ -16,6 +16,7 @@ export function shortcutKeys(shortcut: string, mac = isMac()): string[] {
   const parts = shortcut.includes("+") ? shortcut.split("+") : shortcut.match(/[⌘⌥⇧⌃]|[^⌘⌥⇧⌃]+/g) ?? []
   return parts.filter(Boolean).map((part) => {
     if (part === "Mod") return mac ? "⌘" : "Ctrl"
+    if (part === "Enter") return "↵"
     return mac ? (MAC_SYMBOLS[part] ?? part) : part === "Command" ? "Ctrl" : part
   })
 }
