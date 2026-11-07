@@ -1,4 +1,5 @@
 import type { SavedGroup } from "~src/types"
+import { groupTintEdge, groupTintSurface } from "~src/lib/groupColors"
 import { DragHandleIcon } from "../icons/DragHandleIcon"
 import { FaviconImg } from "../FaviconImg"
 
@@ -24,7 +25,11 @@ export function DraggedTabGroup({ group }: DraggedTabGroupProps) {
     <div className="flex flex-col gap-2 p-4">
       <h3 className="pl-6 text-fg-muted font-sans text-sm">{group.name}</h3>
       {sortedTabs.length > 0 ? (
-        <div className="grid grid-cols-4 gap-2 border border-line rounded-md p-2 transition-colors">
+        <div
+          className="grid grid-cols-4 gap-2 border border-line rounded-md p-2 transition-colors"
+          // A lifted coloured group keeps its tint (TASK-18).
+          style={group.color ? { borderColor: groupTintEdge(group.color), backgroundColor: groupTintSurface(group.color) } : undefined}
+        >
           {displayTabs.map((tab) => (
             <div
               key={tab.id}

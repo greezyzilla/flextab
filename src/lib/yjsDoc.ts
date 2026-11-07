@@ -1,5 +1,6 @@
 import * as Y from "yjs";
 import { spacesSignature } from "./spacesSignature";
+import { isGroupColor } from "./groupColors";
 export { spacesSignature as lightSpacesSig } from "./spacesSignature";
 import type { SavedSpace, SavedProject, SavedCategory, SavedGroup, SavedTab, GroupConfig } from "~src/types";
 
@@ -251,12 +252,14 @@ function yMapToTab(m: Y.Map<unknown>): SavedTab {
 function yMapToGroup(m: Y.Map<unknown>): SavedGroup {
   const tabs = m.get("tabs") as Y.Array<Y.Map<unknown>>;
   const kind = m.get("kind") as GroupConfig["kind"] | undefined;
+  const color = m.get("color");
   return {
     id: m.get("id") as string,
     name: m.get("name") as string,
     tabs: tabs ? tabs.toArray().map(yMapToTab) : [],
     order: m.get("order") as number,
     ...(kind ? { config: { kind } } : {}),
+    ...(isGroupColor(color) ? { color } : {}),
   };
 }
 
@@ -320,6 +323,7 @@ function groupToYMap(g: SavedGroup): Y.Map<unknown> {
   m.set("name", g.name);
   m.set("order", g.order ?? 0);
   if (g.config?.kind) m.set("kind", g.config.kind);
+  if (g.color) m.set("color", g.color);
   const tabs = new Y.Array<Y.Map<unknown>>();
   tabs.push(g.tabs.map(tabToYMap));
   m.set("tabs", tabs);
@@ -560,6 +564,8 @@ export function updateGroup(spaceId: string, projectId: string, categoryId: stri
     if (!found) return;
     found.map.set("name", group.name);
     if (group.order !== undefined) found.map.set("order", group.order);
+    if (group.color) found.map.set("color", group.color);
+    else if (found.map.has("color")) found.map.delete("color");
     const newTabs = new Y.Array<Y.Map<unknown>>();
     newTabs.push(group.tabs.map(tabToYMap));
     found.map.set("tabs", newTabs);

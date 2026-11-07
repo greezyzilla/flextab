@@ -21,6 +21,7 @@ describe("appearance control accessibility", () => {
     for (const [name, value, description] of [
       ["Accent hue", "214 degrees", "The colour for accents and highlights."],
       ["Colour intensity", "100 percent", "How much colour shows. 0 = neutral grayscale; higher = vivid accent + tinted surfaces."],
+      ["Group tint", "35 percent", "How strongly a coloured group tints its card. 0 = no tint, the colour shows only as its dot."],
       ["Roundness", "8 pixels", "Corner radius across the UI. 0 = sharp, higher = softer."],
       ["Interface scale", "100 percent", "Zoom the whole UI in or out."],
     ]) {
@@ -28,7 +29,7 @@ describe("appearance control accessibility", () => {
       expect(slider).toHaveAccessibleDescription(description);
       expect(slider).toHaveAttribute("aria-valuetext", value);
     }
-    expect(screen.getAllByRole("slider")).toHaveLength(4);
+    expect(screen.getAllByRole("slider")).toHaveLength(5);
   });
 
   it("updates the setting and announced value from the keyboard", async () => {

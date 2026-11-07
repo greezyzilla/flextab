@@ -171,7 +171,7 @@ function sameCategory(a: GroupLocation, b: GroupLocation): boolean {
 }
 
 /** The group an over-id points at: a group zone, a group card, or a tab inside one. */
-function resolveOverGroupId(spaces: SavedSpace[], overId: string): string | null {
+export function resolveOverGroupId(spaces: SavedSpace[], overId: string): string | null {
   const zone = parseGroupDroppable(overId)
   if (zone) return zone
   if (findGroupLocation(spaces, overId)) return overId

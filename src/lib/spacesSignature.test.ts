@@ -78,6 +78,17 @@ describe('complete persisted workspace signature', () => {
     expect(spacesSignature(a)).toBe(spacesSignature(y.decodeSpacesFromStorage(y.encodeSpacesAsStorage(a))));
   });
 
+  it('detects and applies a group colour (TASK-18), set and cleared', () => {
+    const before = y.getSpaces();
+    const coloured = structuredClone(before);
+    coloured[0].projects[0].categories[0].groups[0].color = 'pink';
+    expect(spacesSignature(coloured)).not.toBe(spacesSignature(before));
+    expect(y.applyExternalPersistUpdate(y.encodeSpacesAsStorage(coloured), 'snapshot')).toBe(true);
+    expect(y.getSpaces()).toEqual(coloured);
+    expect(y.applyExternalPersistUpdate(y.encodeSpacesAsStorage(before), 'snapshot')).toBe(true);
+    expect(y.getSpaces()).toEqual(before);
+  });
+
   it.each(['icon', 'color', 'abbreviation'])('detects clearing optional metadata: %s', (field) => {
     const before = fixture();
     const after = structuredClone(before);

@@ -1,7 +1,7 @@
 import { Fragment, useRef, useState, type ReactNode } from "react"
 import { MoreHorizontal } from "lucide-react"
 import { IconButton } from "./button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "./dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "./dropdown-menu"
 
 export type RowAction = {
   label: string
@@ -10,6 +10,8 @@ export type RowAction = {
   separatorBefore?: boolean
   /** The action moves focus itself (e.g. an inline rename input): don't send it back to "⋯". */
   takesFocus?: boolean
+  /** Opens a submenu with these items instead of running `onSelect` (e.g. a group's Colour). */
+  sub?: ReactNode
 }
 
 /**
@@ -88,12 +90,19 @@ export function RowActions({ label, items, reveal = "", conceal = "", rest, note
             {items.map((item) => (
               <Fragment key={item.label}>
                 {item.separatorBefore && <DropdownMenuSeparator />}
-                <DropdownMenuItem
-                  onSelect={() => { if (item.takesFocus) afterClose.current = item.onSelect; else item.onSelect() }}
-                  className={item.danger ? "text-danger focus:bg-red-400/10 focus:text-danger" : undefined}
-                >
-                  {item.label}
-                </DropdownMenuItem>
+                {item.sub ? (
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>{item.label}</DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent>{item.sub}</DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                ) : (
+                  <DropdownMenuItem
+                    onSelect={() => { if (item.takesFocus) afterClose.current = item.onSelect; else item.onSelect() }}
+                    className={item.danger ? "text-danger focus:bg-red-400/10 focus:text-danger" : undefined}
+                  >
+                    {item.label}
+                  </DropdownMenuItem>
+                )}
               </Fragment>
             ))}
           </DropdownMenuContent>

@@ -23,6 +23,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { PickDestinationDialog } from "./PickDestinationDialog";
 import { moveGroupTo, moveTabTo } from "~src/services/moveTo";
 import type { GroupLayout } from "~src/store/useSettingsStore";
+import { GroupColorMenuItems } from "./GroupColorMenu";
+import { GROUP_COLORS, groupColorFill, groupTintEdge, groupTintSurface } from "~src/lib/groupColors";
+import type { GroupColor } from "~src/types";
 
 function SavedTabItem({ tab, groupId, location, isDuplicate, unsorted }: { tab: SavedTab; groupId: string; location: GroupLocation; isDuplicate?: boolean; unsorted?: boolean }) {
   const {
@@ -179,6 +182,8 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [movingGroup, setMovingGroup] = useState(false);
   const [openAllMenu, setOpenAllMenu] = useState(false);
+  // The colour highlighted in ⋯ › Color, shown live before it is picked.
+  const [previewColor, setPreviewColor] = useState<GroupColor | "none" | null>(null);
 
   useEffect(() => {
     if (isRenaming && renameRef.current) {
@@ -216,6 +221,14 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: 
     });
   };
 
+  const setColor = (color: SavedGroup["color"]) => {
+    const next: SavedGroup = { ...group };
+    if (color) next.color = color; else delete next.color;
+    updateSavedGroup(spaceId, projectId, categoryId, next);
+  };
+  const colorLabel = group.color ? GROUP_COLORS.find((c) => c.id === group.color)?.label : undefined;
+  const shownColor = previewColor === "none" ? undefined : previewColor ?? group.color;
+
   const handleRenameSubmit = () => {
     if (renameValue.trim() && renameValue.trim() !== group.name) {
       updateSavedGroup(spaceId, projectId, categoryId, { ...group, name: renameValue.trim() });
@@ -240,11 +253,23 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: 
         (bordered card for user groups, borderless tinted tray for Unsorted). */}
     <div
       ref={(el) => { setDroppableRef(el); flash.ref.current = el; }}
-      className={`flex flex-col rounded-xl border transition-[background-color,box-shadow,border-color] ${isOver ? '' : unsorted ? 'border-transparent bg-ink/[0.04]' : 'border-ink/[0.08] bg-ink/[0.015]'} ${flash.on ? 'ring-2 ring-[var(--accent)]' : ''}`}
+      className={`flex flex-col rounded-xl border transition-[background-color,box-shadow,border-color] ${isOver || shownColor ? '' : unsorted ? 'border-transparent bg-ink/[0.04]' : 'border-ink/[0.08] bg-ink/[0.015]'} ${flash.on ? 'ring-2 ring-[var(--accent)]' : ''}`}
       style={{
         padding: 'var(--density-p-group)',
         gap: 'var(--density-p-group)',
-        ...(isOver ? { borderColor: 'var(--accent)', backgroundColor: 'var(--accent-subtle)' } : {}),
+        // A coloured group (TASK-18) is tinted as a whole: its surface and
+        // edge take the colour's hue at the surface's own lightness, so the
+        // region the ⋯ menu belongs to is what changes, and the colour stays
+        // in view while its tabs scroll.
+        ...(shownColor && !isOver ? {
+          borderColor: groupTintEdge(shownColor),
+          backgroundColor: groupTintSurface(shownColor),
+        } : {}),
+        // Drop target: an uncoloured group lights up in the accent; a coloured
+        // one keeps its own hue and leans in (full-colour edge, deeper tint),
+        // so a drop never repaints the group in a colour it doesn't have.
+        ...(isOver && !shownColor ? { borderColor: 'var(--accent)', backgroundColor: 'var(--accent-subtle)' } : {}),
+        ...(isOver && shownColor ? { borderColor: groupColorFill(shownColor), backgroundColor: groupTintSurface(shownColor, { strength: 2 }) } : {}),
       }}
     >
       <div className="flex items-center justify-between gap-2 min-h-[26px] group/header" style={{ paddingInline: 'var(--density-px-tab)' }}>
@@ -279,7 +304,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: 
                 type="button"
                 className="block max-w-full text-left truncate rounded outline-none focus-visible:ring-1 focus-visible:ring-ring hover:text-fg transition-colors"
                 onClick={() => { setRenameValue(group.name); setIsRenaming(true); }}
-                aria-label={`Rename ${group.name}`}
+                aria-label={`Rename ${group.name}${colorLabel ? ` (${colorLabel})` : ''}`}
                 title="Rename group"
               >
                 {group.name}
@@ -321,6 +346,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: 
               label={`Actions for ${group.name}`}
               items={[
                 { label: "Rename", onSelect: () => { setRenameValue(group.name); setIsRenaming(true); }, takesFocus: true },
+                { label: "Color", onSelect: () => {}, sub: <GroupColorMenuItems value={group.color} onChange={setColor} onPreview={setPreviewColor} /> },
                 { label: "Move to…", onSelect: () => setMovingGroup(true) },
                 { label: "Delete", onSelect: () => setShowDeleteConfirm(true), danger: true, separatorBefore: true },
               ]}

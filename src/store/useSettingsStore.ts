@@ -56,6 +56,7 @@ export const APPEARANCE_DEFAULTS = {
   density: 'comfortable' as Density,
   hue: 214,
   intensity: 100,
+  groupTint: 35,       // 0-100, how strongly a coloured group tints its card (TASK-18)
   radius: 8,           // px — drives --radius (Tailwind rounded-*). 0 = sharp.
   reduceMotion: false,
   fontFamily: 'inter' as FontKey,
@@ -69,6 +70,7 @@ interface SettingsState {
   density: Density;
   hue: number;         // 0-360, accent hue
   intensity: number;   // 0-100, overall colour strength (0 = grayscale)
+  groupTint: number;   // 0-100, coloured group card tint (TASK-18)
   radius: number;      // 0-16 px, UI corner roundness
   reduceMotion: boolean;
   fontFamily: FontKey;
@@ -81,6 +83,7 @@ interface SettingsState {
   setDensity: (density: Density) => void;
   setHue: (hue: number) => void;
   setIntensity: (intensity: number) => void;
+  setGroupTint: (groupTint: number) => void;
   setRadius: (radius: number) => void;
   setReduceMotion: (reduceMotion: boolean) => void;
   setFontFamily: (fontFamily: FontKey) => void;
@@ -106,6 +109,7 @@ export const useSettingsStore = create<SettingsState>()(
       setDensity: (density) => set({ density }),
       setHue: (hue) => set({ hue }),
       setIntensity: (intensity) => set({ intensity }),
+      setGroupTint: (groupTint) => set({ groupTint }),
       setRadius: (radius) => set({ radius }),
       setReduceMotion: (reduceMotion) => set({ reduceMotion }),
       setFontFamily: (fontFamily) => set({ fontFamily }),

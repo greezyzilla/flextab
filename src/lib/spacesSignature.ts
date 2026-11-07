@@ -14,7 +14,7 @@ export function spacesSignature(spaces: SavedSpace[]): string {
       categories: (p.categories || []).map(c => ({
         id: c.id, name: c.name, order: c.order ?? 0,
         groups: (c.groups || []).map(g => ({
-          id: g.id, name: g.name, order: g.order ?? 0,
+          id: g.id, name: g.name, order: g.order ?? 0, color: g.color || "",
           tabs: (g.tabs || []).map(t => ({
             id: t.id, url: t.url, title: t.title, favicon: t.favicon, order: t.order ?? 0,
           })),

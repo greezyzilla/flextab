@@ -39,7 +39,7 @@ export function HueSlider({ value, onChange, ...controlProps }: { value: number;
 // into one surface since they're all "how the workspace looks".
 export function AppearanceTab() {
   const {
-    theme, setTheme, hue, setHue, intensity, setIntensity, radius, setRadius,
+    theme, setTheme, hue, setHue, intensity, setIntensity, groupTint, setGroupTint, radius, setRadius,
     fontFamily, setFontFamily, uiScale, setUiScale,
     groupLayout, setGroupLayout, gridColumns, setGridColumns, density, setDensity,
     reduceMotion, setReduceMotion, resetAppearance,
@@ -91,6 +91,15 @@ export function AppearanceTab() {
             <div className="flex items-center gap-3">
               <Slider {...controlProps} aria-valuetext={`${intensity} percent`} min={0} max={100} value={[intensity]} onValueChange={(v) => setIntensity(v[0])} className="flex-1" />
               <span className="text-fg-subtle text-xs font-sans w-9 text-right shrink-0">{intensity}%</span>
+            </div>
+          )}
+        </SettingRow>
+
+        <SettingRow label="Group tint" description="How strongly a coloured group tints its card. 0 = no tint, the colour shows only as its dot.">
+          {(controlProps) => (
+            <div className="flex items-center gap-3">
+              <Slider {...controlProps} aria-valuetext={`${groupTint} percent`} min={0} max={100} value={[groupTint]} onValueChange={(v) => setGroupTint(v[0])} className="flex-1" />
+              <span className="text-fg-subtle text-xs font-sans w-9 text-right shrink-0">{groupTint}%</span>
             </div>
           )}
         </SettingRow>

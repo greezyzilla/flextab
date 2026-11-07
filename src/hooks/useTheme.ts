@@ -21,6 +21,7 @@ export function useTheme() {
   const theme = useSettingsStore(s => s.theme);
   const hue = useSettingsStore(s => s.hue);
   const intensity = useSettingsStore(s => s.intensity);
+  const groupTint = useSettingsStore(s => s.groupTint);
   const density = useSettingsStore(s => s.density);
   const radius = useSettingsStore(s => s.radius);
   const reduceMotion = useSettingsStore(s => s.reduceMotion);
@@ -31,6 +32,7 @@ export function useTheme() {
     const root = document.documentElement;
     root.style.setProperty('--hue', String(hue));
     root.style.setProperty('--intensity', String(intensity));
+    root.style.setProperty('--group-tint', String(groupTint));
     root.style.setProperty('--radius', `${radius}px`);
     root.style.setProperty('--font-sans', FONT_STACKS[fontFamily] ?? FONT_STACKS.inter);
     // UI scale = scale the rem base, so all rem-based sizing (Tailwind spacing,
@@ -39,7 +41,7 @@ export function useTheme() {
     // a viewport zoom that left white gaps below 100% and just zoomed in above.
     root.style.fontSize = `${uiScale * 100}%`;
     root.style.removeProperty('zoom'); // clear any value from the old approach
-  }, [hue, intensity, radius, fontFamily, uiScale]);
+  }, [hue, intensity, groupTint, radius, fontFamily, uiScale]);
 
   useEffect(() => {
     applyThemeMode(theme);

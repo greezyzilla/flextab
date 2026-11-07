@@ -128,6 +128,32 @@ describe('project / category / group mutations', () => {
   });
 });
 
+describe('group colour (TASK-18)', () => {
+  it('round-trips through setSpaces / getSpaces and drops unknown values', () => {
+    const t = tree();
+    t[0].projects[0].categories[0].groups[0].color = 'pink';
+    (t[0].projects[0].categories[0].groups[1] as { color?: string }).color = 'magenta';
+    y.setSpaces(t);
+    const spaces = y.getSpaces();
+    expect(group(spaces, 's1', 'p1', 'c1', 'g1').color).toBe('pink');
+    expect(group(spaces, 's1', 'p1', 'c1', 'g2')).not.toHaveProperty('color');
+  });
+  it('updateGroup sets, changes and clears the colour', () => {
+    const g = () => group(y.getSpaces(), 's1', 'p1', 'c1', 'g1');
+    y.updateGroup('s1', 'p1', 'c1', { ...g(), color: 'yellow' });
+    expect(g().color).toBe('yellow');
+    y.updateGroup('s1', 'p1', 'c1', { ...g(), color: 'cyan' });
+    expect(g().color).toBe('cyan');
+    const plain = { ...g() };
+    delete plain.color;
+    y.updateGroup('s1', 'p1', 'c1', plain);
+    expect(g()).not.toHaveProperty('color');
+    // Clearing an uncoloured group is a no-op.
+    y.updateGroup('s1', 'p1', 'c1', plain);
+    expect(g()).not.toHaveProperty('color');
+  });
+});
+
 describe('tab mutations', () => {
   it('add / addBatch / update / remove (and guards)', () => {
     y.addTab('s1', 'p1', 'c1', 'g2', tab('t4'));

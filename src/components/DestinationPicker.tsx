@@ -8,6 +8,8 @@ import type { SaveTabsTarget } from "~src/services/saveTabsAsGroup"
 import { Input } from "~src/components/ui/input"
 import { CategoryIcon, GroupIcon, ProjectIcon, SpaceAvatar, UnsortedIcon } from "~src/components/levelIcons"
 import { loadRecentDestinations, type RecentDestination } from "~src/lib/recentDestinations"
+import { GroupColorSwatch } from "~src/components/GroupColorMenu"
+import { groupColorFill } from "~src/lib/groupColors"
 import { ensureCategoryPath, findUnsorted, isUnsortedGroup, orderedGroups, UNSORTED_NAME } from "~src/lib/defaultPath"
 
 /** A picked destination. With `groupLevel`, it names a group, or a new group to create. */
@@ -115,6 +117,7 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
                 >
                   {group ? (isUnsortedGroup(group) ? <UnsortedIcon className="h-3 w-3 shrink-0" /> : <GroupIcon className="h-3 w-3 shrink-0" />) : <CategoryIcon className="h-3 w-3 shrink-0" />}
                   <span className="truncate">{group ? group.name : parts.category.name}</span>
+                  {group?.color && <GroupColorSwatch fill={groupColorFill(group.color)} className="h-2 w-2" />}
                   <span className="truncate text-fg-subtle">{group ? parts.category.name : parts.project.name}</span>
                 </button>
               )
@@ -188,6 +191,7 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
                           selected={inCategory && value.groupId === group.id}
                           icon={<GroupIcon className="h-3 w-3 shrink-0" />}
                           label={group.name}
+                          trailing={group.color && <GroupColorSwatch fill={groupColorFill(group.color)} className="h-2 w-2" />}
                           onSelect={() => onChange({ ...at, groupId: group.id })}
                         />
                       ))}
@@ -274,8 +278,11 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
 }
 
 /** One selectable row (a radio, visually a list item). */
-function Choice({ name, indentClass, selected, icon, label, onSelect }: {
-  name: string; indentClass: string; selected: boolean; icon: React.ReactNode; label: string; onSelect: () => void
+function Choice({ name, indentClass, selected, icon, label, trailing, onSelect }: {
+  name: string; indentClass: string; selected: boolean; icon: React.ReactNode; label: string
+  /** A mark after the label, e.g. the group's colour (TASK-18). */
+  trailing?: React.ReactNode
+  onSelect: () => void
 }) {
   return (
     <label
@@ -286,7 +293,9 @@ function Choice({ name, indentClass, selected, icon, label, onSelect }: {
     >
       <input type="radio" name={name} className="sr-only" checked={selected} onChange={onSelect} />
       {icon}
-      <span className="flex-1 truncate">{label}</span>
+      <span className="min-w-0 truncate">{label}</span>
+      {trailing}
+      <span className="flex-1" />
       {selected && <Check className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--accent-text)" }} aria-hidden />}
     </label>
   )

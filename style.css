@@ -107,6 +107,31 @@
     --warning: 252 211 77;
     --warning-body: 253 230 138;
     --success: 74 222 128;
+    /* Group colours (TASK-18): Chrome's tab group palette, as swatches/dots.
+       A coloured group TINTS its card the way the theme tints surfaces: same
+       lightness as the panel surface, only hue + chroma change (OKLCH, so the
+       nine read equally light). --group-tint (0-100, Settings › Appearance)
+       sets the chroma; --group-<c>-h is each colour's OKLCH hue, and grey
+       keeps a near-neutral chroma (-k). */
+    --group-tint: 35;
+    --group-grey-h: 254; --group-grey-k: 0.15;
+    --group-blue-h: 260;
+    --group-red-h: 27;
+    --group-yellow-h: 88;
+    --group-green-h: 151;
+    --group-pink-h: 350;
+    --group-purple-h: 305;
+    --group-cyan-h: 210;
+    --group-orange-h: 58;
+    --group-grey: #bdc1c6;
+    --group-blue: #8ab4f8;
+    --group-red: #f28b82;
+    --group-yellow: #fdd663;
+    --group-green: #81c995;
+    --group-pink: #ff8bcb;
+    --group-purple: #d7aefb;
+    --group-cyan: #78d9ec;
+    --group-orange: #fcad70;
     --caution: 234 179 8;
 
     --radius: 0.5rem;
@@ -158,6 +183,16 @@
       --warning-body: 120 53 15;
       --success: 22 101 52;
       --caution: 133 77 14;
+      /* Group colours, light: the deeper shades of the same nine. */
+      --group-grey: #5f6368;
+      --group-blue: #1a66d6;
+      --group-red: #c5221f;
+      --group-yellow: #f2b100;
+      --group-green: #137333;
+      --group-pink: #b80672;
+      --group-purple: #8430ce;
+      --group-cyan: #007480;
+      --group-orange: #f08a24;
     }
   }
   :root.light {
@@ -188,6 +223,16 @@
     --warning-body: 120 53 15;
     --success: 22 101 52;
     --caution: 133 77 14;
+    /* Group colours, light: the deeper shades of the same nine. */
+    --group-grey: #5f6368;
+    --group-blue: #1a66d6;
+    --group-red: #c5221f;
+    --group-yellow: #f2b100;
+    --group-green: #137333;
+    --group-pink: #b80672;
+    --group-purple: #8430ce;
+    --group-cyan: #007480;
+    --group-orange: #f08a24;
   }
 }
 
