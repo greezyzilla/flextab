@@ -150,8 +150,10 @@ export function MergeConflictModal() {
           </div>
         )}
 
-        <div className="min-h-[100px] flex-1 overflow-y-auto px-6">
-          <div className="flex flex-col gap-3 pb-3">
+        {/* The list scrolls under a fixed header: the same rule as the footer's
+            marks where it starts, so a card cut by the edge reads as scrolled. */}
+        <div className="min-h-[100px] flex-1 overflow-y-auto border-t border-black-800 px-6">
+          <div className="flex flex-col gap-3 py-3">
             {items.map(({ c, level, path, name, lead, options }) => (
               <section key={c.key} aria-label={`${LEVEL_LABEL[level]} ${name}`} className="flex flex-col gap-2 rounded-lg border border-white/10 p-3">
                 <div className="flex min-w-0 flex-col gap-0.5">
