@@ -20,6 +20,16 @@ export function ReceiptIcon() {
 // --- Shared Components ---
 
 // --- Plan & Usage Tab ---
+/** Stacked layers: a space holds everything below it. */
+export function SpacesIcon() {
+  return (
+    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5} aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3 3 7.5l9 4.5 9-4.5L12 3Z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="m3 12 9 4.5 9-4.5M3 16.5 12 21l9-4.5" />
+    </svg>
+  );
+}
+
 export function PaletteIcon() {
   return (
     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>

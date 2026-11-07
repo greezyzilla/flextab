@@ -54,32 +54,12 @@ describe("primary keyboard actions", () => {
     expect(useSavedSpacesStore.getState().activeSpaceId).toBe("personal");
   });
 
-  it("opens space actions with Shift+F10 and returns focus on Escape", async () => {
+  it("keeps the rail for switching only: no space menu on Shift+F10 or right-click", async () => {
     const user = setup(<ProfilePanel />);
     await user.tab();
     await user.keyboard("{Shift>}{F10}{/Shift}");
-    expect(screen.getByRole("menuitem", { name: "Rename" })).toBeInTheDocument();
-    expect(screen.getByRole("menuitem", { name: "Move down" })).toBeInTheDocument();
-    await user.keyboard("{Escape}");
-    await waitFor(() => expect(screen.queryByRole("menu")).not.toBeInTheDocument());
-    expect(screen.getByRole("button", { name: "Switch to Personal" })).toHaveFocus();
-  });
-
-  it("focuses the space rename input from its menu and restores focus after saving", async () => {
-    const user = setup(<ProfilePanel />);
-    await user.tab();
-    await user.keyboard("{Shift>}{F10}{/Shift}");
-    await user.keyboard("{Enter}");
-    const input = await screen.findByRole("textbox", { name: "Space name" });
-    await waitFor(() => expect(input).toHaveFocus());
-    await user.clear(input);
-    await user.type(input, "Home{Enter}");
-    expect(screen.getByRole("button", { name: "Switch to Home" })).toHaveFocus();
-    await user.keyboard("{Shift>}{F10}{/Shift}");
-    await user.keyboard("{Enter}");
-    await waitFor(() => expect(screen.getByRole("textbox", { name: "Space name" })).toHaveFocus());
-    await user.keyboard("Discard{Escape}");
-    expect(screen.getByRole("button", { name: "Switch to Home" })).toHaveFocus();
+    await user.pointer({ keys: "[MouseRight]", target: screen.getByRole("button", { name: "Switch to Personal" }) });
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
   });
 
   it("adds a space, enters Settings and invokes sign-in without a pointer", async () => {

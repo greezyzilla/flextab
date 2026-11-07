@@ -6,12 +6,12 @@ import { v7 as uuidv7 } from "uuid";
 import config from '../../../package.json';
 import { showUndoToast } from "~src/components/ui/sonner";
 import { ConfirmDialog } from "~src/components/ui/confirm-dialog";
-import { Dialog, DialogContent, DialogTitle } from "~src/components/ui/dialog";
 import { Tooltip, TooltipTrigger, TooltipContent } from "~src/components/ui/tooltip";
 import { ActionSlot, RowActions } from "~src/components/ui/row-actions";
-import { Button, IconButton } from "~src/components/ui/button";
+import { navigate } from "~src/lib/route";
+import { SPACES_ROUTE } from "~src/components/settings/SpacesTab";
+import { IconButton } from "~src/components/ui/button";
 import { Input } from "~src/components/ui/input"
-import { Label } from "~src/components/ui/label";
 import type { SavedProject, SavedCategory } from "~src/types";
 import { useUIStore, type CreateRequest, type ScrollMode } from "~src/store/useUIStore";
 import { ProjectIcon, CategoryIcon } from "~src/components/levelIcons";
@@ -102,71 +102,6 @@ function CreateRow({ kind, onCommit, onCancel }: {
   );
 }
 
-const SPACE_COLORS = [
-  "", "#2274F0", "#8b5cf6", "#ec4899", "#ef4444",
-  "#f97316", "#eab308", "#22c55e", "#06b6d4",
-];
-const SPACE_COLOR_NAMES: Record<string, string> = {
-  "": "Default", "#2274F0": "Blue", "#8b5cf6": "Violet", "#ec4899": "Pink", "#ef4444": "Red",
-  "#f97316": "Orange", "#eab308": "Yellow", "#22c55e": "Green", "#06b6d4": "Cyan",
-};
-
-function SpaceSettings({ onClose }: { onClose: () => void }) {
-  const { savedSpaces, activeSpaceId, updateSavedSpace } = useSavedSpacesStore();
-  const currentSpace = savedSpaces.find(s => s.id === activeSpaceId);
-  const nameRef = useRef<HTMLInputElement>(null);
-  const [name, setName] = useState(currentSpace?.name ?? "");
-  const [abbreviation, setAbbreviation] = useState(currentSpace?.abbreviation ?? "");
-  const [color, setColor] = useState(currentSpace?.color ?? "");
-
-  useEffect(() => { nameRef.current?.focus(); }, []);
-
-  if (!currentSpace) return null;
-
-  const handleSave = () => {
-    updateSavedSpace({
-      ...currentSpace,
-      name: name.trim() || currentSpace.name,
-      abbreviation: abbreviation.trim() || undefined,
-      color: color || undefined,
-    });
-    onClose();
-  };
-
-  return (
-    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="w-80 p-5 flex flex-col gap-4">
-        <DialogTitle className="text-white/80 font-sans text-sm font-medium">Space Settings</DialogTitle>
-        <div className="flex flex-col gap-1">
-          <Label>Name</Label>
-          <Input ref={nameRef} type="text" value={name} onChange={e => setName(e.target.value)}
-            onKeyDown={e => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") onClose(); }}
-            className="w-full" />
-        </div>
-        <div className="flex flex-col gap-1">
-          <Label>Abbreviation (max 2)</Label>
-          <Input type="text" value={abbreviation} onChange={e => setAbbreviation(e.target.value.slice(0, 2))}
-            placeholder={currentSpace.name.slice(0, 2).toUpperCase()}
-            onKeyDown={e => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") onClose(); }}
-            className="w-20" />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label>Color</Label>
-          <div className="flex gap-2 flex-wrap">
-            {SPACE_COLORS.map(c => (
-              <button key={c || "default"} type="button" onClick={() => setColor(c)}
-                aria-label={`${SPACE_COLOR_NAMES[c] ?? c} color`} aria-pressed={color === c}
-                className={`w-6 h-6 rounded-full border-2 transition-all ${color === c ? 'border-white/70 scale-110' : 'border-transparent hover:border-white/30'}`}
-                style={{ backgroundColor: c || 'rgba(255,255,255,0.15)' }} />
-            ))}
-          </div>
-        </div>
-        <Button variant="default" onClick={handleSave} className="mt-1 w-full">Save</Button>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 export function LeftPanel() {
   const {
     savedSpaces, activeSpaceId, activeProjectId, activeCategoryId,
@@ -178,7 +113,6 @@ export function LeftPanel() {
   } = useSavedSpacesStore();
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
-  const [showSettings, setShowSettings] = useState(false);
   const renameRef = useRef<HTMLInputElement>(null);
 
   const currentSpace = savedSpaces.find(s => s.id === activeSpaceId);
@@ -337,12 +271,13 @@ export function LeftPanel() {
           <h2 className="text-white/70 font-sans text-sm font-medium truncate">{currentSpace?.name || 'No Space'}</h2>
         </div>
         {currentSpace && (
-          // Header control, always visible, in the rows' slot column.
+          // Header control, always visible, in the rows' slot column. Managing
+          // a space (order, look, deletion) lives in Settings › Spaces.
           <ActionSlot>
           <Tooltip>
           <TooltipTrigger asChild>
-          <IconButton variant="subtle" aria-label="Space settings" onClick={() => setShowSettings(!showSettings)}
-            className={`shrink-0 ${showSettings ? '!text-white/70' : ''}`}>
+          <IconButton variant="subtle" aria-label="Space settings" className="shrink-0"
+            onClick={() => navigate(`${SPACES_ROUTE}/${encodeURIComponent(currentSpace.id)}`)}>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
@@ -354,8 +289,6 @@ export function LeftPanel() {
           </ActionSlot>
         )}
       </div>
-
-      {showSettings && <SpaceSettings onClose={() => setShowSettings(false)} />}
 
       {/* Navigation */}
       <nav aria-label="Projects and categories" className="flex-1 overflow-y-auto py-4" onKeyDown={handleTreeKeys}>

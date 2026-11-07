@@ -89,4 +89,11 @@ describe("sidebar tree by keyboard (TASK-5)", () => {
     await user.keyboard("Admin{Enter}")
     expect(yjs.getSpaces()[0].projects[0].categories.map((c) => c.name)).toEqual(["Research", "Design", "Admin"])
   })
+
+  it("sends the space gear to Settings › Spaces for that space (no space actions in the sidebar)", async () => {
+    const user = setup()
+    expect(screen.queryByRole("button", { name: "Actions for Work" })).not.toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Space settings" }))
+    await waitFor(() => expect(window.location.hash).toBe("#/settings/spaces/s"))
+  })
 })

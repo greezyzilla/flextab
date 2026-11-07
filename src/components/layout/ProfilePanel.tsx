@@ -1,24 +1,21 @@
 import { SignOutDialog } from "~src/components/SignOutDialog";
 import { commitOnBlur } from "~src/lib/inlineEdit";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { useAuthStore } from "~src/store/useAuthStore";
 import { v7 as uuidv7 } from "uuid";
-import { showUndoToast } from "~src/components/ui/sonner";
 import { navigate, useRoute } from "~src/lib/route";
 import { SETTINGS_ROUTE, isSettingsRoute } from "~src/components/SettingsPage";
-import { ConfirmDialog } from "~src/components/ui/confirm-dialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "~src/components/ui/dropdown-menu";
 import { Tooltip, TooltipTrigger, TooltipContent } from "~src/components/ui/tooltip";
-import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from "~src/components/ui/context-menu";
 import { Input } from "~src/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "~src/components/ui/avatar";
 import { spaceAvatarColors } from "~src/components/levelIcons";
 import { SIGN_IN_ROUTE } from "~src/lib/workspaceAccess";
 
 export function ProfilePanel() {
-  const { savedSpaces, activeSpaceId, setActiveSpace, addSavedSpace, updateSavedSpace, removeSavedSpace, reorderSpaces } = useSavedSpacesStore();
+  const { savedSpaces, activeSpaceId, setActiveSpace, addSavedSpace } = useSavedSpacesStore();
   const { user, isAuthenticated } = useAuthStore();
   const manifestIcon = typeof chrome !== "undefined" && chrome.runtime?.getManifest
     ? chrome.runtime.getManifest().icons?.["128"]
@@ -27,19 +24,7 @@ export function ProfilePanel() {
     ? chrome.runtime.getURL(manifestIcon)
     : undefined;
   const [signOutOpen, setSignOutOpen] = useState(false);
-  const [renaming, setRenaming] = useState<string | null>(null);
-  const [renameValue, setRenameValue] = useState("");
-  const renameInputRef = useRef<HTMLInputElement>(null);
-  const spaceButtons = useRef(new Map<string, HTMLButtonElement>());
-  const returnRenameFocus = useRef<string | null>(null);
   const inSettings = isSettingsRoute(useRoute());
-
-  useEffect(() => {
-    if (!renaming && returnRenameFocus.current) {
-      spaceButtons.current.get(returnRenameFocus.current)?.focus();
-      returnRenameFocus.current = null;
-    }
-  }, [renaming]);
 
   // Name-first, like projects/categories: nothing is created until the user
   // commits a name. No chained project prompt: saving into the new space
@@ -67,51 +52,9 @@ export function ProfilePanel() {
   };
 
 
-  const handleRenameStart = (spaceId: string) => {
-    const space = savedSpaces.find(s => s.id === spaceId);
-    if (!space) return;
-    setRenameValue(space.name);
-    setRenaming(spaceId);
-  };
-
-  const handleRenameSubmit = () => {
-    if (!renaming) return;
-    const space = savedSpaces.find(s => s.id === renaming);
-    if (space && renameValue.trim()) {
-      updateSavedSpace({ ...space, name: renameValue.trim() });
-    }
-    setRenaming(null);
-  };
-
-  const [confirmDeleteSpace, setConfirmDeleteSpace] = useState<(typeof savedSpaces)[number] | null>(null);
-
-  const handleDeleteSpace = (spaceId: string) => {
-    const space = savedSpaces.find(s => s.id === spaceId);
-    if (!space) return;
-    if (savedSpaces.length <= 1) return; // Don't delete the last space
-    setConfirmDeleteSpace(space);
-  };
-
   return (
     <div className="w-16 h-full flex flex-col border-r border-black-800">
       <SignOutDialog open={signOutOpen} onOpenChange={setSignOutOpen} />
-      <ConfirmDialog
-        open={!!confirmDeleteSpace}
-        onOpenChange={(o) => { if (!o) setConfirmDeleteSpace(null); }}
-        title="Delete space?"
-        message={
-          <>
-            This permanently removes <span className="text-white/80">{confirmDeleteSpace?.name}</span> and all its projects, groups, and tabs.
-          </>
-        }
-        confirmLabel="Delete space"
-        onConfirm={() => {
-          const space = confirmDeleteSpace;
-          if (!space) return;
-          removeSavedSpace(space);
-          showUndoToast(`Deleted space "${space.name}"`, () => addSavedSpace(space));
-        }}
-      />
       <div className="flex flex-col items-center flex-1">
         {/* Header — h-16 to line up with the brand header in LeftPanel / the
             search-bar row in the middle column / "Opened Tabs" in RightPanel. */}
@@ -147,42 +90,12 @@ export function ProfilePanel() {
         {savedSpaces.map((space) => (
           <DroppableSpace key={space.id} spaceId={space.id}>
             <div className="relative">
-              {renaming === space.id ? (
-                <div className="absolute left-14 top-0 z-50 bg-black-800 border border-black-700 rounded-lg shadow-xl p-2 w-40">
-                  <Input
-                    variant="inline"
-                    ref={renameInputRef}
-                    aria-label="Space name"
-                    type="text"
-                    value={renameValue}
-                    onChange={e => setRenameValue(e.target.value)}
-                    onBlur={handleRenameSubmit}
-                    onKeyDown={e => {
-                      if (e.key === "Enter") { e.preventDefault(); returnRenameFocus.current = space.id; handleRenameSubmit(); }
-                      if (e.key === "Escape") { e.preventDefault(); returnRenameFocus.current = space.id; setRenaming(null); }
-                    }}
-                    className="w-full text-xs"
-                  />
-                </div>
-              ) : null}
-              <ContextMenu>
-              <ContextMenuTrigger asChild>
+              {/* Switching only. Managing spaces (order, rename, delete)
+                  lives in Settings › Spaces. */}
               <button
                 type="button"
-                ref={node => { if (node) spaceButtons.current.set(space.id, node); else spaceButtons.current.delete(space.id); }}
                 aria-label={`Switch to ${space.name}`}
                 aria-pressed={!inSettings && activeSpaceId === space.id}
-                aria-keyshortcuts="Shift+F10"
-                onKeyDown={(event) => {
-                  if (event.key !== "ContextMenu" && !(event.shiftKey && event.key === "F10")) return;
-                  event.preventDefault();
-                  // Radix positions this menu from a contextmenu event. Some
-                  // browsers do not emit one for the keyboard shortcut.
-                  const rect = event.currentTarget.getBoundingClientRect();
-                  event.currentTarget.dispatchEvent(new MouseEvent("contextmenu", {
-                    bubbles: true, cancelable: true, clientX: rect.right, clientY: rect.top,
-                  }));
-                }}
                 onClick={() => { setActiveSpace(space.id); navigate("/"); }}
                 className={`w-10 h-10 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-black-900 cursor-pointer transition-all flex items-center justify-center text-xs font-normal font-sans ${
                   !inSettings && activeSpaceId === space.id ? "ring-2 ring-white/50" : "hover:brightness-125"
@@ -195,30 +108,6 @@ export function ProfilePanel() {
               >
                 {(space.abbreviation || space.name.slice(0, 2)).toUpperCase()}
               </button>
-              </ContextMenuTrigger>
-              <ContextMenuContent onCloseAutoFocus={event => {
-                if (renaming === space.id && renameInputRef.current) {
-                  event.preventDefault();
-                  renameInputRef.current.focus();
-                  renameInputRef.current.select();
-                }
-              }}>
-                <ContextMenuItem onSelect={() => handleRenameStart(space.id)}>Rename</ContextMenuItem>
-                {(() => {
-                  const sorted = [...savedSpaces].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-                  const idx = sorted.findIndex(s => s.id === space.id);
-                  return (
-                    <>
-                      {idx > 0 && <ContextMenuItem onSelect={() => reorderSpaces(idx, idx - 1)}>Move up</ContextMenuItem>}
-                      {idx < sorted.length - 1 && <ContextMenuItem onSelect={() => reorderSpaces(idx, idx + 1)}>Move down</ContextMenuItem>}
-                    </>
-                  );
-                })()}
-                {savedSpaces.length > 1 && (
-                  <ContextMenuItem className="text-red-400 focus:bg-red-400/10 focus:text-red-400" onSelect={() => handleDeleteSpace(space.id)}>Delete</ContextMenuItem>
-                )}
-              </ContextMenuContent>
-              </ContextMenu>
             </div>
           </DroppableSpace>
         ))}

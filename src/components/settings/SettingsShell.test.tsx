@@ -5,6 +5,7 @@ import { SettingsContent } from "./SettingsShell";
 import { SECTION_LABEL, SETTINGS_TABS } from "./types";
 
 // Keep route integration real; section data loading is covered by its own tests.
+vi.mock("./SpacesTab", () => ({ SpacesTab: () => <p>Spaces content</p> }));
 vi.mock("./AppearanceTab", () => ({ AppearanceTab: () => <p>Appearance content</p> }));
 vi.mock("./SyncTab", () => ({ SyncTab: () => <p>Sync content</p> }));
 vi.mock("./BackupTab", () => ({ BackupTab: () => <p>Backup content</p> }));
