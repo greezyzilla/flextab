@@ -9,6 +9,7 @@ import {
 import { ConfirmDialog } from "~src/components/ui/confirm-dialog";
 import { Button } from "~src/components/ui/button";
 import { Input } from "~src/components/ui/input";
+import { Label } from "~src/components/ui/label";
 import { Badge } from "~src/components/ui/badge";
 import { SettingRow, GroupHeading } from "./shared";
 
@@ -116,6 +117,10 @@ export function AccountTab() {
   const [pwError, setPwError] = useState('');
   const [pwSuccess, setPwSuccess] = useState('');
   const [pwLoading, setPwLoading] = useState(false);
+  // The form opens on demand: setting a password is optional for an OAuth
+  // account, so it should not take a third of the page (progressive disclosure).
+  const [pwOpen, setPwOpen] = useState(false);
+  const closePassword = () => { setPwOpen(false); setPwError(''); setCurrentPw(''); setNewPw(''); setConfirmPw(''); };
 
   const handleChangePassword = async (e: FormEvent) => {
     e.preventDefault();
@@ -128,6 +133,7 @@ export function AccountTab() {
       await apiChangePassword(currentPw, newPw);
       setPwSuccess('Password updated. Sign in again to continue.');
       setCurrentPw(''); setNewPw(''); setConfirmPw('');
+      setPwOpen(false);
       loadIdentities(); // Let the API handle the revoked session without clearing local spaces.
     } catch (err: unknown) {
       setPwError(err instanceof Error ? err.message : 'Failed to update password');
@@ -200,28 +206,46 @@ export function AccountTab() {
         </div>
       </SettingRow>
 
-      {/* Password */}
+      {/* Password: one line until asked for. */}
       <SettingRow
-        label={hasPassword ? 'Change password' : 'Set password'}
-        description={hasPassword ? 'Changing your password signs out all devices.' : 'Add email sign-in. Setting a password signs out all devices.'}
+        label="Password"
+        description={hasPassword
+          ? 'You can sign in with your email and password. Changing it signs out all devices.'
+          : `Optional. Lets you sign in with ${user?.email ?? 'your email'} too; your linked providers keep working. Setting one signs out all devices.`}
       >
-        <form onSubmit={handleChangePassword} className="flex flex-col gap-2.5">
-          {!hasPassword && (
-            <p className="text-fg-subtle text-xs leading-relaxed">
-              Adding a password lets you sign in with {user?.email ?? 'your email'} too. Your linked providers keep working.
-            </p>
-          )}
-          {hasPassword && (
-            <Input type="password" placeholder="Current password" value={currentPw} onChange={e => setCurrentPw(e.target.value)} className="w-full" />
-          )}
-          <Input type="password" placeholder="New password" value={newPw} onChange={e => setNewPw(e.target.value)} className="w-full" minLength={8} required />
-          <Input type="password" placeholder="Confirm new password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} className="w-full" minLength={8} required />
-          {pwError && <div className="text-red-400 text-xs">{pwError}</div>}
-          {pwSuccess && <div className="text-green-400 text-xs">{pwSuccess}</div>}
-          <Button variant="default" size="sm" type="submit" disabled={pwLoading} className="self-start">
-            {pwLoading ? 'Saving…' : hasPassword ? 'Update password' : 'Set password'}
-          </Button>
-        </form>
+        {!pwOpen ? (
+          <div className="flex flex-col gap-2">
+            <Button variant="secondary" size="sm" className="self-start" onClick={() => { setPwSuccess(''); setPwOpen(true); }}>
+              {hasPassword ? 'Change password…' : 'Add a password…'}
+            </Button>
+            {pwSuccess && <div role="status" className="text-green-400 text-xs">{pwSuccess}</div>}
+          </div>
+        ) : (
+          <form onSubmit={handleChangePassword} className="flex flex-col gap-2.5">
+            {/* Labels stay visible while typing (WCAG 3.3.2), as on the sign-in screen. */}
+            {hasPassword && (
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="account-current-password">Current password</Label>
+                <Input id="account-current-password" type="password" autoComplete="current-password" autoFocus value={currentPw} onChange={e => setCurrentPw(e.target.value)} className="w-full" />
+              </div>
+            )}
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="account-new-password">New password</Label>
+              <Input id="account-new-password" type="password" autoComplete="new-password" autoFocus={!hasPassword} value={newPw} onChange={e => setNewPw(e.target.value)} className="w-full" minLength={8} required />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="account-confirm-password">Confirm new password</Label>
+              <Input id="account-confirm-password" type="password" autoComplete="new-password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} className="w-full" minLength={8} required />
+            </div>
+            {pwError && <div role="alert" className="text-red-400 text-xs">{pwError}</div>}
+            <div className="flex items-center gap-2">
+              <Button variant="secondary" size="sm" type="submit" disabled={pwLoading}>
+                {pwLoading ? 'Saving…' : hasPassword ? 'Update password' : 'Set password'}
+              </Button>
+              <Button variant="ghost" size="sm" type="button" onClick={closePassword} disabled={pwLoading}>Cancel</Button>
+            </div>
+          </form>
+        )}
       </SettingRow>
 
       {/* Sign out is a row like the others, and neutral: it keeps this
