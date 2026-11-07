@@ -12,6 +12,8 @@ import type { SavedSpace } from "~src/types"
 
 const { getPlan } = vi.hoisted(() => ({ getPlan: vi.fn() }))
 vi.mock("~src/services/api", async (orig) => ({ ...(await orig<object>()), apiGetPlan: getPlan }))
+const { syncNow } = vi.hoisted(() => ({ syncNow: vi.fn(async () => ({ status: "conflict" })) }))
+vi.mock("~src/services/syncEngine", () => ({ syncNow }))
 
 const plan = (cap: number) => ({ plan: "free", limits: { max_tabs_total: cap, max_tree_bytes: 0, max_snapshots: 0 }, usage: { total_tabs: 0, tree_bytes: 0, snapshots: 0 } }) as PlanStatus
 const withTabs = (n: number): SavedSpace[] => [{ id: "s", name: "Work", order: 0, projects: [{ id: "p", name: "P", order: 0, categories: [{ id: "c", name: "C", order: 0,
@@ -71,5 +73,20 @@ describe("SyncStatusIndicator", () => {
     expect(await screen.findByText("170 of 150 tabs. Remove 20 to sync again, or upgrade. Everything stays on this device.")).toBeInTheDocument()
     await userEvent.click(screen.getByRole("button", { name: "See plan" }))
     await waitFor(() => expect(window.location.hash).toBe("#/settings/plan"))
+  })
+
+  it("names a paused conflict in words and reopens the resolver from the popover (TASK-10)", async () => {
+    useAuthStore.setState({ isAuthenticated: true, user: { id: "u1" } as never })
+    useSyncStore.setState({ status: "paused", conflictPending: true })
+    useSavedSpacesStore.setState({ savedSpaces: withTabs(130) })
+    render(<TooltipProvider><SyncStatusIndicator /></TooltipProvider>)
+    await waitFor(() => expect(usePlanStore.getState().status).not.toBeNull())
+    expect(screen.queryByText("130/150")).not.toBeInTheDocument() // one label at a time
+    const trigger = screen.getByRole("button", { name: "Sync status: Sync conflict" })
+    expect(trigger).toHaveTextContent("Sync conflict")
+    await userEvent.click(trigger)
+    expect(await screen.findByText(/Sync is paused until you choose which changes to keep/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "Resolve conflict" }))
+    expect(syncNow).toHaveBeenCalledTimes(1)
   })
 })

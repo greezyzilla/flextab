@@ -559,7 +559,7 @@ export function stopSyncEngine() {
   disconnectWebSocket();
   clearHydrated();
   // Torn down with a conflict still unresolved (e.g. auto-sync toggled off from
-  // settings while the resolver was open, bypassing "Ignore for now") → persist
+  // settings while the resolver was open, bypassing "Pause sync and decide later") → persist
   // the conflict flag so it isn't silently dropped. The dismiss path already set
   // it and nulled pendingMergeConflicts before this runs, so it's not double-set.
   if (pendingMergeConflicts) setConflictPending(true);

@@ -7,6 +7,7 @@ import { NEAR_CAP, tabCap, usePlanStore } from "~src/store/usePlanStore"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import { spaceTabCount } from "~src/services/spacesTree"
 import { limitSummary } from "~src/services/syncLimit"
+import { syncNow } from "~src/services/syncEngine"
 import { Tooltip, TooltipTrigger, TooltipContent } from "./ui/tooltip"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 import { Button } from "./ui/button"
@@ -22,6 +23,8 @@ import { SIGN_IN_ROUTE } from "~src/lib/workspaceAccess"
  *   also the one global way in to sign-in (TASK-7), so it is a labelled button.
  * - signed in + no transport → Offline (CloudOff)
  * - signed in + auto-sync off → paused (Cloud)
+ * - signed in + a conflict the user paused on → "Sync conflict" in words, and
+ *   the popover reopens the resolver (TASK-10)
  * - signed in + over the plan's tab cap → "Sync paused" in words (TASK-9), so
  *   the state never rests on colour alone; the button opens the details.
  */
@@ -99,8 +102,10 @@ export function SyncStatusIndicator() {
     detail = `${limitSummary(limit, tabs)} Everything stays on this device.`
     spin = false
   } else if (showConflict) {
+    Icon = CloudOff
+    cls = "text-red-300"
     label = "Sync conflict"
-    detail = "Turn on sync to resolve the conflict"
+    detail = "Sync is paused until you choose which changes to keep. Your tabs are safe on this device."
   } else if (showDirty) {
     detail =
       status === "paused"
@@ -130,8 +135,9 @@ export function SyncStatusIndicator() {
   }
 
   const cap = tabCap(plan)
-  // Usage joins the header only when it matters: near the cap (Von Restorff).
-  const near = !paused && cap !== undefined && cap > 0 && tabs >= cap * NEAR_CAP
+  // Usage joins the header only when it matters: near the cap (Von Restorff),
+  // and never beside another state label, so one thing asks for attention.
+  const near = !paused && !showConflict && cap !== undefined && cap > 0 && tabs >= cap * NEAR_CAP
   const usage = near ? `${tabs}/${cap}` : null
 
   return (
@@ -148,12 +154,11 @@ export function SyncStatusIndicator() {
             aria-hidden
           />
           {paused && <span className="text-amber-300">Sync paused</span>}
+          {showConflict && !paused && <span className="text-red-300">Sync conflict</span>}
           {usage && <span className="text-amber-300 tabular-nums">{usage}</span>}
-          {!paused && (showConflict || showDirty) && (
+          {!paused && showDirty && (
             <span
-              className={`absolute left-[19px] top-1.5 h-[7px] w-[7px] rounded-full ring-2 ring-black-900 ${
-                showConflict ? "bg-red-500" : "bg-amber-400"
-              }`}
+              className="absolute left-[19px] top-1.5 h-[7px] w-[7px] rounded-full bg-amber-400 ring-2 ring-black-900"
               aria-hidden
             />
           )}
@@ -169,9 +174,15 @@ export function SyncStatusIndicator() {
           <Button variant="link" size="sm" className="!px-0" onClick={() => { setOpen(false); navigate("/settings/sync") }}>
             Sync settings
           </Button>
-          {paused && (
+          {paused ? (
             <Button variant="default" size="sm" onClick={() => { setOpen(false); navigate("/settings/plan") }}>
               See plan
+            </Button>
+          ) : showConflict && (
+            // A one-shot Sync now reopens the resolver (the stored conflict, or a
+            // fresh detection); it never turns auto-sync back on by itself.
+            <Button variant="default" size="sm" onClick={() => { setOpen(false); void syncNow() }}>
+              Resolve conflict
             </Button>
           )}
         </div>

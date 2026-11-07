@@ -47,7 +47,8 @@ function optionsFor(c: Conflict): { side: Side; label: string; detail: string }[
 
 // Shown when a 3-way reconcile finds true conflicts. Each item is resolved
 // individually; everything non-conflicting is already merged. Nothing is written
-// until Apply — "Ignore for now" keeps local data and pauses sync.
+// until Apply. "Pause sync and decide later" keeps local data and pauses sync;
+// the header sync indicator reopens it (TASK-10).
 export function MergeConflictModal() {
   const { pending, conflicts, base, server, local } = useMergeConflict()
   const [choices, setChoices] = useState<Resolutions>({})
@@ -149,7 +150,7 @@ export function MergeConflictModal() {
                 setChoices({})
               }}
             >
-              Ignore for now
+              Pause sync and decide later
             </Button>
             <Button
               variant="default"

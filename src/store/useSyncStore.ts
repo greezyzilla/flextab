@@ -17,7 +17,7 @@ interface SyncState {
   // offline with pending changes; clears once a push lands. Drives the
   // "unsynced changes" hint on the global indicator.
   dirty: boolean
-  // A merge conflict was detected and abandoned (the user hit "Ignore for now",
+  // A merge conflict was detected and abandoned (the user hit "Pause sync and decide later",
   // which turns auto-sync off) — so the paused state isn't ordinary "unsynced",
   // it needs the conflict resolved. Persisted (via services/conflictState) so it
   // survives a reload; cleared once the data converges. Takes visual priority
