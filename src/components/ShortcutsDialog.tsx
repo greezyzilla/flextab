@@ -1,0 +1,97 @@
+import { useRef } from "react"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "~src/components/ui/dialog"
+import { Button } from "~src/components/ui/button"
+import { Kbd } from "~src/components/ui/kbd"
+import { useUIStore } from "~src/store/useUIStore"
+import { useCommandShortcuts } from "~src/hooks/useCommandShortcuts"
+
+// The page's own shortcuts. They work while the new tab is focused and you
+// are not typing; letters were chosen because Chrome keeps Ctrl/⌘+N for
+// itself (TASK-13).
+const IN_FLEXTAB: { label: string; keys: string[] }[] = [
+  { label: "Search saved tabs", keys: ["/", "Mod+K"] },
+  { label: "New group in this category", keys: ["N"] },
+  { label: "New project in this space", keys: ["Shift+N"] },
+  { label: "Save all tabs", keys: ["Mod+Shift+S"] },
+]
+
+// The extension's commands work from any tab. People can change them in
+// Chrome, so show what is set now, not what we suggested.
+const COMMANDS: Record<string, string> = {
+  "save-page": "Save this page",
+  "save-window": "Save this window",
+}
+
+// Label in the primary colour (it is the content), keys quieter; a rule
+// between rows ties each label to its keys across the gap.
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <li className="flex items-center justify-between gap-4 py-2">
+      <span className="text-fg text-sm">{label}</span>
+      <span className="flex shrink-0 items-center gap-1.5 text-fg-subtle text-xs">{children}</span>
+    </li>
+  )
+}
+
+const heading = "text-fg-subtle text-[11px] font-medium uppercase tracking-wider"
+
+/** Every keyboard shortcut in one place, opened with "?" or the panel footer. */
+export function ShortcutsDialog() {
+  const open = useUIStore((s) => s.shortcutsOpen)
+  const setOpen = useUIStore((s) => s.setShortcutsOpen)
+  const set = useCommandShortcuts(open)
+  const commands = Object.keys(COMMANDS).filter((name) => name in set).map((name) => ({ name, label: COMMANDS[name], shortcut: set[name] }))
+  const contentRef = useRef<HTMLDivElement>(null)
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent
+        ref={contentRef}
+        className="w-full max-w-sm p-5"
+        // A sheet to read: start on the dialog itself, so no control is
+        // highlighted before anyone touches it. Esc still closes it.
+        onOpenAutoFocus={(e) => { e.preventDefault(); contentRef.current?.focus() }}
+      >
+        <DialogHeader>
+          <DialogTitle className="text-fg font-sans text-base font-medium">Keyboard shortcuts</DialogTitle>
+          <DialogDescription className="text-xs">Single keys work when you&apos;re not typing in a field.</DialogDescription>
+        </DialogHeader>
+
+        <div className="flex flex-col gap-6 pt-5">
+          <section aria-labelledby="shortcuts-flextab" className="flex flex-col gap-1">
+            <h3 id="shortcuts-flextab" className={heading}>In FlexTab</h3>
+            <ul className="divide-y divide-white/[0.06]">
+              {IN_FLEXTAB.map((s) => (
+                <Row key={s.label} label={s.label}>
+                  {s.keys.map((k, i) => <span key={k} className="flex items-center gap-1.5">{i > 0 && "or"}<Kbd shortcut={k} /></span>)}
+                </Row>
+              ))}
+            </ul>
+          </section>
+
+          <section aria-labelledby="shortcuts-chrome" className="flex flex-col gap-1">
+            {/* "Change" sits on its section's heading, so it is clear what it changes. */}
+            <div className="flex items-center justify-between">
+              <h3 id="shortcuts-chrome" className={heading}>Anywhere in Chrome</h3>
+              <Button
+                variant="link"
+                size="sm"
+                className="h-auto !px-0 text-xs"
+                aria-label="Change the Chrome shortcuts"
+                onClick={() => { try { void chrome.tabs.create({ url: "chrome://extensions/shortcuts" }) } catch (_) { /* ok */ } }}
+              >
+                Change
+              </Button>
+            </div>
+            <ul className="divide-y divide-white/[0.06]">
+              {commands.map((c) => (
+                <Row key={c.name} label={c.label}>
+                  {c.shortcut ? <Kbd shortcut={c.shortcut} /> : <span>Not set</span>}
+                </Row>
+              ))}
+            </ul>
+          </section>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}

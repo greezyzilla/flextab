@@ -90,6 +90,11 @@ global.chrome = {
   },
   commands: {
     onCommand: { addListener: vi.fn(), removeListener: vi.fn() },
+    // The manifest's suggested keys, as Chrome reports them before anyone changes them.
+    getAll: vi.fn(async () => [
+      { name: "save-page", shortcut: "Alt+Shift+S" },
+      { name: "save-window", shortcut: "Alt+Shift+W" },
+    ]),
   },
   runtime: {
     getURL: vi.fn((path: string) => `chrome-extension://test/${path}`),

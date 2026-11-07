@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { render, screen } from "@testing-library/react"
+import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { DndContext } from "@dnd-kit/core"
 import { ContentPanel } from "./ContentPanel"
@@ -101,6 +101,16 @@ describe("empty states create in place", () => {
     expect(groupNames()).toHaveLength(2)
   })
 
+  it("names the save-page keys as set in Chrome, and says nothing when they were cleared (TASK-13)", async () => {
+    vi.mocked(chrome.commands.getAll).mockResolvedValueOnce([{ name: "save-page", shortcut: "" }] as never)
+    yjs.setSpaces([{ id: "s", name: "Work", order: 0, projects: [{ id: "p", name: "Site", order: 0, categories: [{ id: "c", name: "Research", order: 0, groups: [] }] }] }])
+    useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces(), activeSpaceId: "s", activeProjectId: "p", activeCategoryId: "c", expandedProjectIds: ["p"] })
+    setup()
+    expect(await screen.findByText("Drag tabs here from Opened Tabs")).toBeInTheDocument()
+    await waitFor(() => expect(chrome.commands.getAll).toHaveBeenCalled())
+    expect(screen.queryByText(/on any page to save it/)).not.toBeInTheDocument()
+  })
+
   it("guides a first run from the empty section, with one real save action (TASK-7)", async () => {
     yjs.setSpaces([{ id: "s", name: "Work", order: 0, projects: [{ id: "p", name: "Site", order: 0, categories: [
       { id: "c", name: "Research", order: 0, groups: [] },
@@ -108,7 +118,7 @@ describe("empty states create in place", () => {
     ] }] }])
     useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces(), activeSpaceId: "s", activeProjectId: "p", activeCategoryId: "c", expandedProjectIds: ["p"] })
     const user = setup()
-    expect(screen.getAllByText("Or press Alt+Shift+S on any page to save it.")).toHaveLength(2)
+    expect(await screen.findAllByText("Or press Alt+Shift+S on any page to save it.")).toHaveLength(2)
     // [0] is the header's Save all tabs; then one per empty section.
     await user.click(screen.getAllByRole("button", { name: "Save all tabs" })[2])
     expect(useSavedSpacesStore.getState().activeCategoryId).toBe("c2")

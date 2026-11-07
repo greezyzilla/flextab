@@ -53,6 +53,9 @@ interface UIState {
   /** The "Save all tabs" dialog (button + keyboard shortcut). */
   saveAllOpen: boolean
   setSaveAllOpen: (open: boolean) => void
+  /** The keyboard shortcut sheet (TASK-13), opened with "?" or its footer button. */
+  shortcutsOpen: boolean
+  setShortcutsOpen: (open: boolean) => void
 }
 
 export type ScrollMode = "top" | "ifNeeded"
@@ -88,4 +91,6 @@ export const useUIStore = create<UIState>((set) => ({
 
   saveAllOpen: false,
   setSaveAllOpen: (saveAllOpen) => set({ saveAllOpen }),
+  shortcutsOpen: false,
+  setShortcutsOpen: (shortcutsOpen) => set({ shortcutsOpen }),
 }))

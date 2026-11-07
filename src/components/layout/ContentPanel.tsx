@@ -1,4 +1,7 @@
 import { useActiveCategory, useActiveSpace, useActiveProject, useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
+import { ShortcutTooltip } from "~src/components/ui/kbd";
+import { shortcutLabel } from "~src/lib/platform";
+import { useCommandShortcuts } from "~src/hooks/useCommandShortcuts";
 import { commitOnBlur } from "~src/lib/inlineEdit";
 import type { SavedCategory, SavedGroup, SavedProject, SavedSpace } from "~src/types";
 import { EmptyDropRow, GROUP_INLINE, TabGroup } from "../TabGroup";
@@ -192,6 +195,8 @@ function EmptySectionDrop({ location }: { location: GroupLocation }) {
   const firstRun = useSavedSpacesStore((s) => !spacesHaveTabs(s.savedSpaces));
   const { setActiveCategory } = useSavedSpacesStore();
   const setSaveAllOpen = useUIStore((s) => s.setSaveAllOpen);
+  // The keys as set in Chrome now; no sentence when the command was cleared.
+  const savePage = useCommandShortcuts(firstRun)["save-page"];
   if (!firstRun || isOver) {
     return (
       <div ref={setNodeRef}>
@@ -210,15 +215,17 @@ function EmptySectionDrop({ location }: { location: GroupLocation }) {
           Drag tabs here from Opened Tabs
           <ArrowRight className="h-3.5 w-3.5 text-fg-subtle" aria-hidden />
         </span>
-        <span className="text-fg-subtle text-xs">Or press Alt+Shift+S on any page to save it.</span>
+        {savePage && <span className="text-fg-subtle text-xs">Or press {shortcutLabel(savePage)} on any page to save it.</span>}
       </div>
-      <Button
-        variant="secondary"
-        size="sm"
-        onClick={() => { setActiveCategory(location.categoryId); setSaveAllOpen(true); }}
-      >
-        Save all tabs
-      </Button>
+      <ShortcutTooltip label="Save all tabs" shortcut="Mod+Shift+S" side="left">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => { setActiveCategory(location.categoryId); setSaveAllOpen(true); }}
+        >
+          Save all tabs
+        </Button>
+      </ShortcutTooltip>
     </div>
   );
 }
@@ -280,7 +287,9 @@ function CategorySection({ space, project, category, layout, gridColumns, isCurr
           {counts && <span className="text-fg-subtle text-xs font-normal shrink-0">{counts}</span>}
         </h3>
         {/* Always here, empty or not: one place to create a group. */}
-        <Button variant="ghost" size="sm" onClick={newGroup} aria-label={`New group in ${category.name}`}>+ New group</Button>
+        <ShortcutTooltip label="New group" shortcut="N" side="left">
+          <Button variant="ghost" size="sm" onClick={newGroup} aria-label={`New group in ${category.name}`}>+ New group</Button>
+        </ShortcutTooltip>
       </div>
       {unsorted && <TabGroup group={unsorted} location={location} layout={layout} gridColumns={gridColumns} />}
       {naming && <NewGroupRow categoryName={category.name} onCommit={createGroup} onCancel={endNamingGroup} />}
@@ -520,7 +529,9 @@ export function ContentPanel() {
             </div>
           )}
           {activeCategory && (
-            <Button variant="ghost" size="sm" onClick={() => setSaveAllOpen(true)}>Save all tabs</Button>
+            <ShortcutTooltip label="Save all tabs" shortcut="Mod+Shift+S" side="left">
+              <Button variant="ghost" size="sm" onClick={() => setSaveAllOpen(true)}>Save all tabs</Button>
+            </ShortcutTooltip>
           )}
         </div>
       </div>

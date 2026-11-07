@@ -17,8 +17,10 @@ const tree = (): SavedSpace[] => [
   { id: "s2", name: "Home", order: 1, projects: [] },
 ]
 
-const press = (key: string, shift = false) =>
-  document.dispatchEvent(new KeyboardEvent("keydown", { key, metaKey: true, shiftKey: shift, bubbles: true }))
+const press = (key: string, shift = false, metaKey = true) =>
+  document.dispatchEvent(new KeyboardEvent("keydown", { key, metaKey, shiftKey: shift, bubbles: true }))
+// The letters fire on their own (TASK-13): Chrome keeps Ctrl/⌘+N for windows.
+const letter = (key: string, shift = false) => press(key, shift, false)
 const spaces = () => yjs.getSpaces()
 
 beforeEach(async () => {
@@ -37,21 +39,21 @@ beforeEach(async () => {
 })
 
 describe("keyboard shortcuts follow the destination policy", () => {
-  it("Cmd+Shift+N asks for a project name instead of creating a placeholder", () => {
-    press("N", true)
+  it("Shift+N asks for a project name instead of creating a placeholder", () => {
+    letter("N", true)
     expect(useUIStore.getState().creating).toEqual({ kind: "project", spaceId: "s1" })
     expect(spaces()[0].projects).toHaveLength(1)
   })
 
-  it("Cmd+N opens the group name row in the current category, without writing a group", () => {
-    press("n")
+  it("N opens the group name row in the current category, without writing a group", () => {
+    letter("n")
     expect(useUIStore.getState().namingGroupIn).toBe("c1")
     expect(spaces()[0].projects[0].categories[0].groups).toHaveLength(0)
   })
 
-  it("Cmd+N in a space without a project opens the name row on the default path", () => {
+  it("N in a space without a project opens the name row on the default path", () => {
     useSavedSpacesStore.setState({ activeSpaceId: "s2", activeProjectId: null, activeCategoryId: null })
-    press("n")
+    letter("n")
     expect(useUIStore.getState().creating).toBeNull()
     const [project] = spaces().find(s => s.id === "s2")!.projects
     expect(project.name).toBe("General")
@@ -66,5 +68,32 @@ describe("keyboard shortcuts follow the destination policy", () => {
     useUIStore.setState({ saveAllOpen: false })
     press("S", true)
     expect(useUIStore.getState().saveAllOpen).toBe(true)
+  })
+
+  it("leaves Cmd/Ctrl+N to the browser", () => {
+    press("n")
+    press("N", true)
+    expect(useUIStore.getState().namingGroupIn).toBeNull()
+    expect(useUIStore.getState().creating).toBeNull()
+  })
+
+  it("ignores letters while typing in a field", () => {
+    const input = document.createElement("input")
+    document.body.appendChild(input)
+    input.dispatchEvent(new KeyboardEvent("keydown", { key: "n", bubbles: true }))
+    expect(useUIStore.getState().namingGroupIn).toBeNull()
+    input.remove()
+  })
+
+  it("/ focuses search and ? opens the shortcut sheet", () => {
+    const search = document.createElement("input")
+    search.setAttribute("data-search-input", "")
+    document.body.appendChild(search)
+    letter("/")
+    expect(document.activeElement).toBe(search)
+    search.blur(); search.remove()
+    useUIStore.setState({ shortcutsOpen: false })
+    letter("?", true)
+    expect(useUIStore.getState().shortcutsOpen).toBe(true)
   })
 })

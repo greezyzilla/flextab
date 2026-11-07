@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
+import { shortcutLabel } from "~src/lib/platform";
 import { openOrFocus } from "~src/services/openTab";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { Input } from "~src/components/ui/input";
@@ -112,7 +113,8 @@ export function SearchBar() {
           onKeyDown={handleKeyDown}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setTimeout(() => setIsFocused(false), 150)}
-          placeholder="Search saved tabs… (Cmd+K)"
+          data-search-input
+          placeholder={`Search saved tabs… (${shortcutLabel("Mod+K")})`}
           className="h-auto flex-1 border-0 bg-transparent px-0 py-0 shadow-none focus-visible:border-0"
         />
         {query && (

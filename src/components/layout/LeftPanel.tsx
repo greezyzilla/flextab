@@ -16,6 +16,7 @@ import type { SavedProject, SavedCategory } from "~src/types";
 import { useUIStore, type CreateRequest, type ScrollMode } from "~src/store/useUIStore";
 import { ProjectIcon, CategoryIcon } from "~src/components/levelIcons";
 import { Plus } from "lucide-react";
+import { Kbd, ShortcutTooltip } from "~src/components/ui/kbd";
 import { isUnsortedGroup } from "~src/lib/defaultPath";
 
 /**
@@ -45,6 +46,7 @@ function ChevronSlot() {
 function NewProjectSlot({ onClick }: { onClick: () => void }) {
   return (
     <div className="mx-2 pl-1 pr-2 mt-3">
+      <ShortcutTooltip label="New project" shortcut="Shift+N">
       <button
         type="button"
         onClick={onClick}
@@ -53,6 +55,7 @@ function NewProjectSlot({ onClick }: { onClick: () => void }) {
         <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden />
         <span className="truncate">New project…</span>
       </button>
+      </ShortcutTooltip>
     </div>
   );
 }
@@ -460,7 +463,7 @@ export function LeftPanel() {
       </nav>
 
       {/* Footer */}
-      <div className="px-4 py-3 border-t border-black-800">
+      <div className="flex items-center justify-between gap-2 px-4 py-2 border-t border-black-800">
         <div className="text-[11px] font-sans text-fg-subtle">
           {currentSpace ? (() => {
             const pc = currentSpace.projects.length;
@@ -468,6 +471,15 @@ export function LeftPanel() {
             return `${pc} project${pc !== 1 ? 's' : ''} · ${cc} ${cc !== 1 ? 'categories' : 'category'}`;
           })() : ''}
         </div>
+        {/* The one visible way in to every shortcut (TASK-13). */}
+        <button
+          type="button"
+          onClick={() => useUIStore.getState().setShortcutsOpen(true)}
+          className="flex shrink-0 items-center gap-1.5 rounded-md px-1.5 py-1 text-[11px] font-sans text-fg-subtle outline-none transition-colors hover:bg-white/[0.06] hover:text-fg focus-visible:ring-1 focus-visible:ring-ring"
+        >
+          Shortcuts
+          <Kbd shortcut="?" />
+        </button>
       </div>
 
     </div>

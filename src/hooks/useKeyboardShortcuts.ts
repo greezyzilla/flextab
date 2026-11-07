@@ -38,10 +38,28 @@ export function useKeyboardShortcuts() {
         return;
       }
 
-      // Ctrl+Shift+N / Cmd+Shift+N — new project in the active space, named
-      // first like every other way of creating one (no "New Project" node).
-      // (must be checked BEFORE Ctrl+N to avoid shadowing)
-      if (mod && e.shiftKey && e.key.toLowerCase() === "n") {
+      // Single keys, only while not typing (the check above), like Gmail and
+      // GitHub. Ctrl/⌘+N and Ctrl/⌘+Shift+N were used before, but Chrome keeps
+      // those for new and incognito windows and never hands them to the page.
+      const plain = !mod && !e.altKey
+
+      // "?" — the shortcut sheet.
+      if (plain && e.key === "?") {
+        e.preventDefault();
+        useUIStore.getState().setShortcutsOpen(true);
+        return;
+      }
+
+      // "/" — search (⌘K / Ctrl+K also works; SearchBar owns that one).
+      if (plain && e.key === "/") {
+        e.preventDefault();
+        document.querySelector<HTMLInputElement>("[data-search-input]")?.focus();
+        return;
+      }
+
+      // Shift+N — new project in the active space, named first like every
+      // other way of creating one (no "New Project" node).
+      if (plain && e.shiftKey && e.key.toLowerCase() === "n") {
         e.preventDefault();
         const { activeSpaceId, savedSpaces } = useSavedSpacesStore.getState();
         if (!activeSpaceId || !savedSpaces.some(s => s.id === activeSpaceId)) return;
@@ -49,8 +67,8 @@ export function useKeyboardShortcuts() {
         return;
       }
 
-      // Ctrl+N / Cmd+N — create new group in the current category
-      if (mod && !e.shiftKey && e.key.toLowerCase() === "n") {
+      // N — new group in the current category.
+      if (plain && !e.shiftKey && e.key.toLowerCase() === "n") {
         e.preventDefault();
         // Same as "+ New group": name it first, it is created at the top.
         withActiveCategory(({ projectId, categoryId }) => {
