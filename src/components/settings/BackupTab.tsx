@@ -5,10 +5,11 @@ import { formatRelativeTime } from "~src/store/useSyncStore";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { apiListSnapshots, apiGetSnapshot, apiRestoreSnapshot, type SnapshotInfo } from "~src/services/snapshots";
 import { pullAndOverwrite } from "~src/services/syncEngine";
-import { parseWorkspaceBackup } from "~src/services/workspaceBackup";
+import { parseImport, type ParsedImport } from "~src/services/importFormats";
 import type { SavedSpace, SavedGroup, SavedTab } from "~src/types";
 import * as yjs from "~src/lib/yjsDoc";
 import { ConfirmDialog } from "~src/components/ui/confirm-dialog";
+import { ImportDialog } from "./ImportDialog";
 import { Dialog, DialogContent, DialogTitle } from "~src/components/ui/dialog";
 import { Button } from "~src/components/ui/button";
 import { SettingRow, GroupHeading, formatDate, formatBytes } from "./shared";
@@ -34,7 +35,7 @@ function DataTab() {
   const { savedSpaces } = useSavedSpacesStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importStatus, setImportStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const [pendingImport, setPendingImport] = useState<SavedSpace[] | null>(null);
+  const [pendingImport, setPendingImport] = useState<{ parsed: ParsedImport; fileName: string } | null>(null);
 
   const totalTabs = savedSpaces.reduce((sum, s) =>
     sum + s.projects.reduce((pSum, p) =>
@@ -68,15 +69,14 @@ function DataTab() {
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
-        const data = parseWorkspaceBackup(JSON.parse(ev.target?.result as string));
-        // Validated — defer the destructive replace until the user confirms.
-        setPendingImport(data);
+        // Validated and previewed first: nothing is written until the user applies.
+        setPendingImport({ parsed: parseImport(ev.target?.result as string), fileName: file.name });
       } catch (err) {
         setImportStatus({ type: 'error', message: err instanceof Error ? err.message : 'Failed to import' });
       }
     };
     reader.onerror = () => {
-      setImportStatus({ type: 'error', message: 'Could not read this backup. Please try again.' });
+      setImportStatus({ type: 'error', message: 'Could not read this file. Please try again.' });
     };
     reader.readAsText(file);
     // Reset so the same file can be re-imported
@@ -85,29 +85,11 @@ function DataTab() {
 
   return (
     <div className="flex flex-col gap-7">
-      <ConfirmDialog
-        open={!!pendingImport}
-        onOpenChange={(o) => { if (!o) setPendingImport(null); }}
-        title="Replace your workspace?"
-        message={
-          <>
-            Importing replaces your current workspace with{" "}
-            <span className="text-fg">{pendingImport?.length ?? 0} space{(pendingImport?.length ?? 0) !== 1 ? "s" : ""}</span>.
-            This can&apos;t be undone.
-          </>
-        }
-        confirmLabel="Import & replace"
-        onConfirm={() => {
-          if (!pendingImport) return;
-          try {
-            yjs.setSpaces(pendingImport);
-            setImportStatus({ type: 'success', message: `Imported ${pendingImport.length} space${pendingImport.length !== 1 ? 's' : ''}` });
-          } catch (err) {
-            setImportStatus({ type: 'error', message: err instanceof Error ? err.message : 'Failed to import' });
-          } finally {
-            setPendingImport(null);
-          }
-        }}
+      <ImportDialog
+        parsed={pendingImport?.parsed ?? null}
+        fileName={pendingImport?.fileName ?? ""}
+        onClose={() => setPendingImport(null)}
+        onDone={(message) => setImportStatus({ type: 'success', message })}
       />
       <SettingRow label="Export" description="Download all your data as a JSON file.">
         <div className="flex flex-wrap items-center gap-3">
@@ -118,10 +100,10 @@ function DataTab() {
         </div>
       </SettingRow>
 
-      <SettingRow label="Import" description="Replace all data from a JSON backup. This overwrites existing data.">
+      <SettingRow label="Import" description="Add tabs from a FlexTab backup (.json), a bookmarks export from any browser (.html), or a OneTab export (.txt). You see what's inside before anything changes.">
         <div className="flex flex-col gap-2">
-          <Button variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()} className="self-start">Import JSON</Button>
-          <input ref={fileInputRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
+          <Button variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()} className="self-start">Import…</Button>
+          <input ref={fileInputRef} type="file" accept=".json,.html,.htm,.txt" onChange={handleImport} className="hidden" />
           {importStatus && (
             <div role="status" className={`text-xs font-sans ${importStatus.type === 'success' ? 'text-green-400' : 'text-red-400'}`}>
               {importStatus.message}

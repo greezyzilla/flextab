@@ -203,47 +203,88 @@ describe("version history recovery", () => {
   });
 });
 
-function upload(contents: string) {
+function upload(contents: string, name = "backup.json") {
   const { container } = render(<BackupTab />);
   const input = container.querySelector('input[type="file"]')!;
-  fireEvent.change(input, { target: { files: [new File([contents], "backup.json", { type: "application/json" })] } });
+  fireEvent.change(input, { target: { files: [new File([contents], name)] } });
 }
 
-describe("workspace import", () => {
+const BACKUP = '[{"id":"new","name":"Imported","projects":[{"id":"p","name":"P","categories":[{"id":"c","name":"C","groups":[{"id":"g","name":"G","tabs":[{"id":"t","url":"https://a.example/","title":"A","favicon":""}]}]}]}]}]';
+
+describe("workspace import (TASK-12)", () => {
   it.each([
-    ["malformed JSON", "not JSON"],
+    ["malformed JSON", "{ not JSON"],
+    ["text with no links", "not JSON"],
     ["the audit data-loss payload", '[{"id":"broken","name":"Broken","projects":[{"id":"p"}]}]'],
     ["missing nested categories", '[{"id":"broken","name":"Broken","projects":[{"id":"p","name":"P"}]}]'],
-  ])("rejects %s before confirmation and leaves the live document untouched", async (_name, contents) => {
+  ])("rejects %s before any preview and leaves the live document untouched", async (_name, contents) => {
     const before = yjs.encodeState();
     upload(contents);
     await waitFor(() => expect(screen.getByRole("status").textContent).not.toBe(""));
-    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(yjs.encodeState()).toEqual(before);
     expect(yjs.getSpaces()[0].name).toBe("Keep my work");
   });
 
-  it("keeps the old workspace until confirmation and preserves it on Cancel", async () => {
+  it("previews first and changes nothing on Cancel", async () => {
     const before = yjs.encodeState();
-    upload('[{"id":"new","name":"Imported","projects":[]}]');
-    await screen.findByRole("alertdialog");
+    upload(BACKUP);
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog).toHaveTextContent("Import from FlexTab backup");
+    expect(dialog).toHaveTextContent("backup.json");
+    expect(dialog).toHaveTextContent("1 tab in 1 group");
+    // Focus starts on the action, not on Cancel.
+    await waitFor(() => expect(within(dialog).getByRole("button", { name: "Add 1 tab" })).toHaveFocus());
     expect(yjs.encodeState()).toEqual(before);
-    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+    fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(yjs.encodeState()).toEqual(before);
   });
 
-  it("replaces the workspace after confirming a valid backup", async () => {
-    upload('[{"id":"new","name":"Imported","projects":[]}]');
-    fireEvent.click(await screen.findByRole("button", { name: "Import & replace" }));
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Imported 1 space"));
+  it("adds a backup beside the workspace by default, with fresh ids", async () => {
+    upload(BACKUP);
+    expect(await screen.findByRole("radio", { name: /Add to my workspace/ })).toBeChecked();
+    fireEvent.click(screen.getByRole("button", { name: "Add 1 tab" }));
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Added 1 tab as a new space “Imported”"));
+    const spaces = yjs.getSpaces();
+    expect(spaces.map(s => s.name)).toEqual(["Keep my work", "Imported"]);
+    expect(spaces[1].id).not.toBe("new");
+  });
+
+  it("replaces the workspace only when chosen, as a restore", async () => {
+    upload(BACKUP);
+    fireEvent.click(await screen.findByRole("radio", { name: /Replace everything/ }));
+    expect(screen.getByRole("dialog")).toHaveTextContent("This can't be undone.");
+    fireEvent.click(screen.getByRole("button", { name: "Replace workspace" }));
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Replaced your workspace with 1 space"));
     expect(yjs.getSpaces().map(s => s.id)).toEqual(["new"]);
   });
 
-  it("allows an explicitly confirmed empty backup", async () => {
+  it("allows an explicitly chosen empty restore", async () => {
     upload("[]");
-    fireEvent.click(await screen.findByRole("button", { name: "Import & replace" }));
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Imported 0 spaces"));
+    fireEvent.click(await screen.findByRole("radio", { name: /Replace everything/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Replace workspace" }));
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Replaced your workspace with 0 spaces"));
     expect(yjs.getSpaces()).toEqual([]);
+  });
+
+  it("adds a bookmarks export as a new space, says what it left out, and never offers replace", async () => {
+    upload('<!DOCTYPE NETSCAPE-Bookmark-file-1><DL><p><DT><H3>Bar</H3><DL><p><DT><A HREF="https://a.example/">A</A><DT><A HREF="javascript:x">x</A></DL></DL>', "bookmarks.html");
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog).toHaveTextContent("Import from Bookmarks");
+    expect(dialog).toHaveTextContent("1 link left out: not a web page");
+    expect(within(dialog).queryByRole("radio")).not.toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Add 1 tab" }));
+    await waitFor(() => expect(yjs.getSpaces().map(s => s.name)).toEqual(["Keep my work", "Bookmarks"]));
+  });
+
+  it("warns before an import crosses the plan's sync cap when signed in", async () => {
+    const { usePlanStore } = await import("~src/store/usePlanStore");
+    useAuthStore.setState({ isAuthenticated: true });
+    vi.mocked(apiListSnapshots).mockResolvedValue([]); // the history section loads when signed in
+    usePlanStore.setState({ status: { plan: "free", limits: { max_tabs_total: 1, max_tree_bytes: 0, max_snapshots: 0 }, usage: { total_tabs: 0, tree_bytes: 0, snapshots: 0 } } as never, load: async () => {} });
+    upload("https://a.example/ | A\nhttps://b.example/ | B", "onetab.txt");
+    expect(await screen.findByRole("note")).toHaveTextContent("This puts you at 2 of 1 tabs. Sync pauses until you remove 1.");
+    usePlanStore.setState({ status: null });
   });
 });
