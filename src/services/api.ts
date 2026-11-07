@@ -348,6 +348,14 @@ export async function apiLogout(): Promise<void> {
   } catch (_) { /* offline — the token still expires on its own */ }
 }
 
+/**
+ * Delete the signed-in account and its cloud data (TASK-17). The server checks
+ * the typed email too. 409 means a renewing subscription must be cancelled first.
+ */
+export async function apiDeleteAccount(email: string): Promise<void> {
+  await apiFetch("/api/me", { method: "DELETE", body: JSON.stringify({ email }) });
+}
+
 export async function apiChangePassword(currentPassword: string, newPassword: string): Promise<void> {
   await apiFetch("/api/auth/password", {
     method: "PUT",

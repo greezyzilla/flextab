@@ -1,4 +1,5 @@
 import { SignOutDialog } from "~src/components/SignOutDialog";
+import { DeleteAccountDialog } from "~src/components/DeleteAccountDialog";
 import { useState, useEffect, type FormEvent } from "react";
 import { useAuthStore } from "~src/store/useAuthStore";
 import {
@@ -24,6 +25,7 @@ export function AccountTab() {
   const { user, fetchUser } = useAuthStore();
 
   const [signOutOpen, setSignOutOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   // Display name
   const [name, setName] = useState(user?.name ?? '');
@@ -137,6 +139,7 @@ export function AccountTab() {
   return (
     <div className="flex flex-col gap-7">
       <SignOutDialog open={signOutOpen} onOpenChange={setSignOutOpen} />
+      <DeleteAccountDialog open={deleteOpen} onOpenChange={setDeleteOpen} />
       {/* Profile */}
       <SettingRow label="Profile" description="Your FlexTab account.">
         {user && (
@@ -221,12 +224,29 @@ export function AccountTab() {
         </form>
       </SettingRow>
 
-      {/* Sign out */}
-      <div className="pt-2 border-t border-white/5">
-        <Button variant="link" onClick={() => setSignOutOpen(true)} className="!text-sm !text-red-400 hover:!text-red-300">
-          Sign out
+      {/* Sign out is a row like the others, and neutral: it keeps this
+          device's tabs by default. Red is left to the danger zone alone. */}
+      <SettingRow label="Sign out" description="Signs this device out. Your account keeps everything that synced, and you choose what happens to the tabs here.">
+        <Button variant="secondary" size="sm" onClick={() => setSignOutOpen(true)} className="self-start">
+          Sign out…
         </Button>
-      </div>
+      </SettingRow>
+
+      {/* Same danger zone as Settings › Spaces (TASK-17): last, set apart, red. */}
+      <section className="flex flex-col gap-3 border-t border-white/10 pt-6" aria-labelledby="account-danger-heading">
+        <h3 id="account-danger-heading" className="text-fg-subtle text-[11px] font-medium font-sans uppercase tracking-wider">Danger zone</h3>
+        <div className="flex items-start justify-between gap-4 rounded-lg border border-red-400/25 p-4">
+          <div className="min-w-0">
+            <div className="text-sm font-sans font-medium text-fg">Delete account</div>
+            <p className="mt-0.5 text-xs font-sans leading-relaxed text-fg-subtle">
+              Deletes your account and its cloud data on every device. Tabs on this device can stay.
+            </p>
+          </div>
+          <Button variant="destructive" size="sm" onClick={() => setDeleteOpen(true)}>
+            Delete account…
+          </Button>
+        </div>
+      </section>
     </div>
   );
 }

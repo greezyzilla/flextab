@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { cancelPendingOAuth, OAUTH_START } from "~src/services/oauthLogin";
 import { withSyncWriteLock } from "~src/services/syncPolicy";
 import { create } from "zustand";
-import { loadTokens, saveTokens, clearTokens, apiFetch, apiLogin, apiLogout, ApiError } from "~src/services/api";
+import { loadTokens, saveTokens, clearTokens, apiFetch, apiLogin, apiLogout, apiDeleteAccount, ApiError } from "~src/services/api";
 import { clearState } from "~src/lib/yjsDoc";
 import { resetYjsHydration } from "~src/store/useSavedSpacesStore";
 import { clearStoredRevision } from "~src/services/revision";
@@ -48,6 +48,11 @@ interface AuthState {
    * the same guest→account path as a first login. "remove" also deletes it.
    */
   logout: (choice: { localData: "keep" | "remove" }) => Promise<void>;
+  /**
+   * Delete the account and its cloud data (TASK-17), then leave this device
+   * signed out like a sign-out does, keeping or removing its tabs as chosen.
+   */
+  deleteAccount: (email: string, choice: { localData: "keep" | "remove" }) => Promise<void>;
   fetchUser: () => Promise<void>;
 }
 
@@ -56,6 +61,35 @@ async function requestOAuthLogin(provider: "google" | "github"): Promise<void> {
     const result = await chrome.runtime.sendMessage({ type: OAUTH_START, provider });
     if (!result?.ok) throw new Error("Sign-in could not start. Please try again.");
   } catch (_) { toast.error("Sign-in could not start. Please try again."); }
+}
+
+
+/**
+ * What signing out (or deleting the account) leaves on this device: no tokens,
+ * no per-account sync state, and the tabs kept or removed as chosen.
+ */
+async function forgetAccountHere(localData: "keep" | "remove"): Promise<void> {
+  await clearTokens();
+  if (localData === "remove") {
+    await clearState();
+    resetYjsHydration();
+    await clearKeptOnSignOut();
+  } else {
+    // The next sign-in, to any account, must ask before these tabs go anywhere.
+    await markKeptOnSignOut();
+  }
+  await clearStoredRevision();
+  // The merge base is per-account, so it belongs here (real, explicit
+  // sign-out) — not in stopSyncEngine's generic pause path, which also runs
+  // on a transient auth drop (e.g. the refresh-token race) where the base
+  // must survive so re-login doesn't manufacture a false merge conflict.
+  // A kept workspace has no base afterwards: the next sign-in treats it as
+  // local work and reconciles it explicitly, whichever account it is.
+  await clearMergeBase();
+  await clearConflictPending(); // per-account, like the merge base
+  const keys = [SYNC_HYDRATED_KEY, FRESH_LOGIN_KEY, LANDED_SNAPSHOT_KEY, LIMIT_NOTICE_KEY]; // the limit is per-account too
+  if (localData === "remove") keys.push("spaces");
+  try { await chrome.storage.local.remove(keys); } catch (_) { /* ok */ }
 }
 
 export const useAuthStore = create<AuthState>()((set, get) => ({
@@ -124,27 +158,20 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       // Drain an in-flight sync before clearing its revision/receipt.
       // Revoke the refresh token server-side before dropping it locally.
       await apiLogout();
-      await clearTokens();
-      if (localData === "remove") {
-        await clearState();
-        resetYjsHydration();
-        await clearKeptOnSignOut();
-      } else {
-        // The next sign-in, to any account, must ask before these tabs go anywhere.
-        await markKeptOnSignOut();
-      }
-      await clearStoredRevision();
-      // The merge base is per-account, so it belongs here (real, explicit
-      // sign-out) — not in stopSyncEngine's generic pause path, which also runs
-      // on a transient auth drop (e.g. the refresh-token race) where the base
-      // must survive so re-login doesn't manufacture a false merge conflict.
-      // A kept workspace has no base afterwards: the next sign-in treats it as
-      // local work and reconciles it explicitly, whichever account it is.
-      await clearMergeBase();
-      await clearConflictPending(); // per-account, like the merge base
-      const keys = [SYNC_HYDRATED_KEY, FRESH_LOGIN_KEY, LANDED_SNAPSHOT_KEY, LIMIT_NOTICE_KEY]; // the limit is per-account too
-      if (localData === "remove") keys.push("spaces");
-      try { await chrome.storage.local.remove(keys); } catch (_) { /* ok */ }
+      await forgetAccountHere(localData);
+      set({ user: null, isAuthenticated: false });
+    });
+  },
+
+  deleteAccount: async (email, choice) => {
+    const localData = choice?.localData;
+    if (localData !== "keep" && localData !== "remove") throw new Error("Choose what happens to local data before deleting the account");
+    await withSyncWriteLock(async () => {
+      await cancelPendingOAuth();
+      // The server revokes every session of the account; a failure here leaves
+      // the account and this device untouched.
+      await apiDeleteAccount(email);
+      await forgetAccountHere(localData);
       set({ user: null, isAuthenticated: false });
     });
   },

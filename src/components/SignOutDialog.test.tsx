@@ -128,7 +128,7 @@ describe("safe sign-out choice", () => {
 
   it("routes the Account settings sign-out button through the guard", async () => {
     render(<AccountTab />);
-    fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
+    fireEvent.click(screen.getByRole("button", { name: "Sign out…" }));
     expect(await screen.findByRole("alertdialog")).toBeInTheDocument();
     expect(logout).not.toHaveBeenCalled();
   });

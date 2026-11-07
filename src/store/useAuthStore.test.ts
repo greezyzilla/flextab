@@ -1,7 +1,7 @@
 import { getSpaces, setSpaces } from "~src/lib/yjsDoc";
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useAuthStore } from './useAuthStore';
-import { clearTokens } from '~src/services/api';
+import { clearTokens, saveTokens } from '~src/services/api';
 
 const GUEST_KEY = 'flextab_guest_mode';
 
@@ -193,5 +193,32 @@ describe('sign-out authorization', () => {
       expect(getSpaces()).toEqual([]);
       expect(useAuthStore.getState().isAuthenticated).toBe(false);
     } finally { Reflect.deleteProperty(navigator, 'locks'); }
+  });
+});
+
+describe('delete account (TASK-17)', () => {
+  it('deletes on the server, then forgets the account here and keeps the tabs when asked', async () => {
+    await saveTokens(tokens());
+    setSpaces([{ id: 'local', name: 'Mine', projects: [] }]);
+    useAuthStore.setState({ isAuthenticated: true });
+    (global.fetch as any).mockResolvedValue(jsonRes({ deleted: true }));
+    await useAuthStore.getState().deleteAccount('me@example.com', { localData: 'keep' });
+    const [url, init] = (global.fetch as any).mock.calls.at(-1);
+    expect(String(url)).toMatch(/\/api\/me$/);
+    expect(init).toMatchObject({ method: 'DELETE', body: JSON.stringify({ email: 'me@example.com' }) });
+    expect(useAuthStore.getState().isAuthenticated).toBe(false);
+    expect(getSpaces()[0].name).toBe('Mine');
+    expect(chrome.storage.local.set).toHaveBeenCalledWith({ flextab_kept_on_signout: true });
+  });
+
+  it('leaves the account and this device untouched when the server refuses', async () => {
+    await saveTokens(tokens());
+    setSpaces([{ id: 'local', name: 'Mine', projects: [] }]);
+    useAuthStore.setState({ isAuthenticated: true });
+    (global.fetch as any).mockResolvedValue(jsonRes({ error: 'Cancel your subscription first, then delete your account.', code: 'subscription_renewing' }, false, 409));
+    await expect(useAuthStore.getState().deleteAccount('me@example.com', { localData: 'remove' })).rejects.toMatchObject({ status: 409 });
+    expect(useAuthStore.getState().isAuthenticated).toBe(true);
+    expect(getSpaces()[0].name).toBe('Mine');
+    await expect(useAuthStore.getState().deleteAccount('x', {} as never)).rejects.toThrow('Choose what happens');
   });
 });
