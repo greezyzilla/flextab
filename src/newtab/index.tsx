@@ -49,11 +49,15 @@ function NewTabPage() {
   }, [hydrated])
 
   // Realtime sync engine: only when signed in AND auto-sync is enabled.
+  // Restarts when the account identity settles (/me after sign-in): that change
+  // makes the running session stale and cancels its first reconcile, so without
+  // a restart the sign-in choice would wait for the next new tab (TASK-11).
+  const userId = user?.id
   useEffect(() => {
     if (!hydrated || !isAuthenticated || !autoSync) return
     startSyncEngine()
     return () => stopSyncEngine()
-  }, [hydrated, isAuthenticated, autoSync])
+  }, [hydrated, isAuthenticated, autoSync, userId])
 
   // Account settings (theme/layout/etc.): pull on sign-in, then push on change.
   useEffect(() => {

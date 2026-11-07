@@ -1,7 +1,8 @@
 import { act, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const settings = vi.hoisted(() => ({ pull: vi.fn(), start: vi.fn(), stop: vi.fn() }));
+const settings = vi.hoisted(() => ({ pull: vi.fn(), start: vi.fn(), stop: vi.fn(), autoSync: false }));
+const engine = vi.hoisted(() => ({ start: vi.fn(), stop: vi.fn() }));
 vi.mock('~src/services/settingsSync', () => ({
   pullSettings: settings.pull, startSettingsSync: settings.start, stopSettingsSync: settings.stop,
 }));
@@ -16,10 +17,10 @@ vi.mock('~src/store/useSavedSpacesStore', () => ({
   useSavedSpacesStore: (select: (s: { savedSpaces: [] }) => unknown) => select({ savedSpaces: [] }),
 }));
 vi.mock('~src/store/useSettingsStore', () => ({
-  useSettingsStore: (select: (s: { autoSync: boolean }) => unknown) => select({ autoSync: false }),
+  useSettingsStore: (select: (s: { autoSync: boolean }) => unknown) => select({ autoSync: settings.autoSync }),
 }));
 vi.mock('~src/services/syncEngine', () => ({
-  startSyncEngine: vi.fn(), stopSyncEngine: vi.fn(), startLocalPersistence: vi.fn(), stopLocalPersistence: vi.fn(),
+  startSyncEngine: engine.start, stopSyncEngine: engine.stop, startLocalPersistence: vi.fn(), stopLocalPersistence: vi.fn(),
 }));
 vi.mock('~src/components/WorkspaceLoadError', () => ({ WorkspaceLoadError: () => null }));
 vi.mock('~src/components/SyncConflictModal', () => ({ SyncConflictModal: () => null }));
@@ -33,6 +34,7 @@ import { useAuthStore } from '~src/store/useAuthStore';
 const user = (id: string) => ({ id, email: `${id}@example.invalid`, name: id, avatar: '', provider: 'email', has_password: true });
 beforeEach(() => {
   vi.clearAllMocks();
+  settings.autoSync = false;
   useAuthStore.setState({ isAuthenticated: true, user: null });
 });
 
@@ -79,5 +81,19 @@ describe('local-first first run (TASK-7)', () => {
     render(<NewTabPage />);
     expect(screen.getByText('Sign-in screen')).toBeInTheDocument();
     window.history.replaceState(null, '', '#/');
+  });
+});
+
+describe('sync engine lifecycle', () => {
+  it('restarts once the signed-in identity settles, so the first reconcile is not lost (TASK-11)', () => {
+    settings.autoSync = true;
+    useAuthStore.setState({ isAuthenticated: true, user: null });
+    render(<NewTabPage />);
+    expect(engine.start).toHaveBeenCalledTimes(1);
+    act(() => useAuthStore.setState({ user: user('B') }));
+    expect(engine.stop).toHaveBeenCalledTimes(1);
+    expect(engine.start).toHaveBeenCalledTimes(2);
+    act(() => useAuthStore.setState({ user: { ...user('B'), name: 'Renamed' } }));
+    expect(engine.start).toHaveBeenCalledTimes(2); // same account: no restart
   });
 });

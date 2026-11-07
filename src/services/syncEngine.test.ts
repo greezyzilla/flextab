@@ -228,6 +228,30 @@ describe('conflict flow', () => {
     expect(chrome.storage.local.set).not.toHaveBeenCalledWith({ flextab_sync_hydrated: true });
   });
 
+  it('keeps the fresh-login flag until a reconcile acts on it, so a cut-short first run still asks', async () => {
+    (apiFetch as any).mockRejectedValueOnce(new Error('offline'));
+    await startSyncEngine();
+    await flush();
+    expect(chrome.storage.local.remove).not.toHaveBeenCalledWith('flextab_fresh_login');
+    expect(useSyncConflict.getState().pending).toBe(false);
+    stopSyncEngine();
+    await startSyncEngine();
+    await flush();
+    expect(useSyncConflict.getState().pending).toBe(true);
+    resolveConflict('merge');
+    expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_fresh_login');
+  });
+
+  it('still applies when storage fails to clear the fresh-login flag', async () => {
+    (apiFetch as any).mockResolvedValue({ spaces: [beSpace('server', [{ id: 'S' }])], revision: 1 });
+    setSpaces([]);
+    (chrome.storage.local.remove as any).mockRejectedValue(new Error('no ctx'));
+    await startSyncEngine();
+    await flush();
+    expect(getSpaces()[0].id).toBe('server');
+    expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_fresh_login');
+  });
+
   it('resolveConflict("merge") applies the union and connects', async () => {
     await startSyncEngine();
     await flush();

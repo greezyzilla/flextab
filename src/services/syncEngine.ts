@@ -67,6 +67,16 @@ const WS_RECONNECT_MAX_MS = 60000;
 const SYNC_HYDRATED_KEY = "flextab_sync_hydrated";
 const FRESH_LOGIN_KEY = "flextab_fresh_login";
 
+/**
+ * The fresh-login flag is only cleared once a reconcile has acted on it (applied
+ * a tree, or the user answered the choice). Clearing it on read lost it when the
+ * first run was cancelled by the /me identity change right after sign-in, and the
+ * next run then applied local tabs to the account without asking.
+ */
+async function clearFreshLogin(): Promise<void> {
+  try { await chrome.storage.local.remove(FRESH_LOGIN_KEY); } catch (_) { /* ok */ }
+}
+
 // --- BE → local mapping ---
 
 interface BeTab { id: string; url: string; title: string; favicon: string; order: number; }
@@ -297,6 +307,7 @@ async function reconcileState(freshLogin: boolean, manual: boolean, allowed: () 
     selectFirst: freshLogin,
     serverConfirmed: spacesSignature(decision.spaces) === spacesSignature(server),
   });
+  if (freshLogin) await clearFreshLogin(); // acted on
   return "ok";
 }
 
@@ -306,6 +317,7 @@ export function resolveConflict(choice: "merge" | "server" | "local") {
   pendingServer = pendingLocal = null;
   useSyncConflict.getState().close();
   if (!s || !l) return;
+  void clearFreshLogin();
   // Jump to first space/group after resolving; always needs push (not server-only GET).
   applyUserResolution(resolveChoice(choice, s, l), true);
 }
@@ -499,8 +511,7 @@ export async function startSyncEngine() {
   try {
     const f = await chrome.storage.local.get(FRESH_LOGIN_KEY);
     if (!active()) return;
-    fresh = f[FRESH_LOGIN_KEY] === true;
-    if (fresh) await chrome.storage.local.remove(FRESH_LOGIN_KEY);
+    fresh = f[FRESH_LOGIN_KEY] === true; // cleared by reconcile once acted on
   } catch (_) { /* ok */ }
 
   // Background may have stashed a true OCC conflict while no newtab was open.
@@ -571,9 +582,7 @@ export function syncNow(): Promise<ManualSyncResult> {
       if (!authorized()) return { status: "signed_out" };
       const flags = await chrome.storage.local.get(FRESH_LOGIN_KEY);
       if (!authorized()) return { status: "signed_out" };
-      const fresh = flags[FRESH_LOGIN_KEY] === true;
-      if (fresh) await chrome.storage.local.remove(FRESH_LOGIN_KEY);
-      if (!authorized()) return { status: "signed_out" };
+      const fresh = flags[FRESH_LOGIN_KEY] === true; // cleared by reconcile once acted on
       const result = manualResolution ? "ok" : await reconcile(fresh, true, authorized);
       if (result !== "ok") return { status: result === "paused" ? "signed_out" : result };
       if (!authorized()) return { status: "signed_out" };
