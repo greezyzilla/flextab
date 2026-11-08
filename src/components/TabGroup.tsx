@@ -166,9 +166,12 @@ export interface TabGroupProps {
   location: GroupLocation;
   layout?: GroupLayout;
   gridColumns?: number;
+  /** A look-only rendering (Settings › Appearance preview, TASK-30): no header
+   *  actions, so nothing that looks clickable is shown where nothing can be done. */
+  preview?: boolean;
 }
 
-export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: TabGroupProps) {
+export function TabGroup({ group, location, layout = 'list', gridColumns = 2, preview = false }: TabGroupProps) {
   const { setNodeRef: setDroppableRef, isOver } = useDroppable({
     id: `droppable-${group.id}`,
   });
@@ -325,7 +328,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: 
             all) and its ⋯ (rename, move, delete) are always visible, ⋯
             outermost in the slot column. Unsorted is the system's tray: no ⋯,
             but its slot stays so its open-all lines up with the others. */}
-        <div className="flex items-center gap-0.5 shrink-0">
+        {!preview && <div className="flex items-center gap-0.5 shrink-0">
           <ActionSlot>
             {sortedTabs.length > 0 && (
               // One "open all" control, two destinations (TASK-4).
@@ -360,7 +363,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: 
               ]}
             />
           )}
-        </div>
+        </div>}
       </div>
         {sortedTabs.length > 0 ? (
           <SortableContext items={sortedTabs.map((tab) => tab.id)}>

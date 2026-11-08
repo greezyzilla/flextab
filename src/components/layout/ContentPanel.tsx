@@ -230,6 +230,28 @@ function EmptySectionDrop({ location }: { location: GroupLocation }) {
   );
 }
 
+/** A category's header bar: its name, counts and the one place to create a
+ *  group. Also drawn by the Appearance previewer (TASK-30), so the preview is
+ *  the real header, not a copy of it. */
+export function CategoryHeader({ id, name, counts, isCurrent = false, onNewGroup }: {
+  id: string; name: string; counts: string; isCurrent?: boolean; onNewGroup?: () => void;
+}) {
+  return (
+      <div className="sticky top-0 z-20 bg-black-900 h-12 px-6 flex items-center justify-between gap-3 border-b border-ink/[0.12]">
+        {/* h2 under the panel's h1 (the space); groups are h3 (TASK-28). */}
+        <h2 id={`section-${id}`} className={`flex items-center gap-2 min-w-0 font-sans text-base ${isCurrent ? 'text-fg' : 'text-fg'}`}>
+          <CategoryIcon className="h-4 w-4 shrink-0" />
+          <span className="truncate font-semibold">{name}</span>
+          {counts && <span className="text-fg-subtle text-xs font-normal shrink-0">{counts}</span>}
+        </h2>
+        {/* Always here, empty or not: one place to create a group. */}
+        <ShortcutTooltip label="New group" shortcut="N" side="left">
+          <Button variant="ghost" size="sm" onClick={onNewGroup} aria-label={`New group in ${name}`}>+ New group</Button>
+        </ShortcutTooltip>
+      </div>
+  );
+}
+
 function CategorySection({ space, project, category, layout, gridColumns, isCurrent, isFirst, isLast }: {
   space: SavedSpace; project: SavedProject; category: SavedCategory;
   layout: GroupLayout; gridColumns: number; isCurrent: boolean; isFirst: boolean; isLast: boolean;
@@ -280,18 +302,7 @@ function CategorySection({ space, project, category, layout, gridColumns, isCurr
       // while the previous header is pushed out its bottom line and this top
       // line coincide (one line, never a double line).
       className={`${isFirst ? '' : '-mt-px border-t border-ink/[0.12]'} ${isLast ? 'min-h-full' : ''}`}>
-      <div className="sticky top-0 z-20 bg-black-900 h-12 px-6 flex items-center justify-between gap-3 border-b border-ink/[0.12]">
-        {/* h2 under the panel's h1 (the space); groups are h3 (TASK-28). */}
-        <h2 id={`section-${category.id}`} className={`flex items-center gap-2 min-w-0 font-sans text-base ${isCurrent ? 'text-fg' : 'text-fg'}`}>
-          <CategoryIcon className="h-4 w-4 shrink-0" />
-          <span className="truncate font-semibold">{category.name}</span>
-          {counts && <span className="text-fg-subtle text-xs font-normal shrink-0">{counts}</span>}
-        </h2>
-        {/* Always here, empty or not: one place to create a group. */}
-        <ShortcutTooltip label="New group" shortcut="N" side="left">
-          <Button variant="ghost" size="sm" onClick={newGroup} aria-label={`New group in ${category.name}`}>+ New group</Button>
-        </ShortcutTooltip>
-      </div>
+      <CategoryHeader id={category.id} name={category.name} counts={counts} isCurrent={isCurrent} onNewGroup={newGroup} />
       {unsorted && <TabGroup group={unsorted} location={location} layout={layout} gridColumns={gridColumns} />}
       {naming && <NewGroupRow categoryName={category.name} onCommit={createGroup} onCancel={endNamingGroup} />}
       {groups.length > 0 ? (
