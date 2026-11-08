@@ -96,3 +96,45 @@ describe("appearance control accessibility", () => {
     expect(screen.getAllByRole("slider", { name: "Roundness" })).toHaveLength(2);
   });
 });
+
+describe("Open as tab groups (TASK-31)", () => {
+  const c = chrome as unknown as Record<string, any>;
+  afterEach(() => { delete c.tabs.group; delete c.permissions; useSettingsStore.setState({ openAsTabGroups: true }); });
+  const supported = (answer: boolean) => {
+    c.tabs.group = vi.fn();
+    c.permissions = { request: vi.fn(async () => answer), remove: vi.fn(async () => true) };
+  };
+
+  it("is not offered in a browser without tab groups", () => {
+    render(<AppearanceTab />);
+    expect(screen.queryByRole("switch", { name: "Open as tab groups" })).not.toBeInTheDocument();
+  });
+
+  it("turns off and gives the permission back", async () => {
+    supported(true);
+    const user = userEvent.setup();
+    render(<AppearanceTab />);
+    const toggle = screen.getByRole("switch", { name: "Open as tab groups" });
+    expect(toggle).toBeChecked();
+    expect(toggle).toHaveAccessibleDescription("Open all puts a group's tabs in a browser tab group with the same name and color.");
+    await user.click(toggle);
+    expect(toggle).not.toBeChecked();
+    expect(useSettingsStore.getState().openAsTabGroups).toBe(false);
+    expect(c.permissions.remove).toHaveBeenCalledWith({ permissions: ["tabGroups"] });
+  });
+
+  it("turns on only when the browser grants the permission", async () => {
+    supported(false);
+    useSettingsStore.setState({ openAsTabGroups: false });
+    const user = userEvent.setup();
+    render(<AppearanceTab />);
+    const toggle = screen.getByRole("switch", { name: "Open as tab groups" });
+    await user.click(toggle);
+    expect(c.permissions.request).toHaveBeenCalledWith({ permissions: ["tabGroups"] });
+    expect(toggle).not.toBeChecked(); // declined: stays off
+
+    c.permissions.request = vi.fn(async () => true);
+    await user.click(toggle);
+    await vi.waitFor(() => expect(toggle).toBeChecked());
+  });
+});

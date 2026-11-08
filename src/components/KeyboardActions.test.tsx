@@ -6,6 +6,7 @@ import { ProfilePanel } from "./layout/ProfilePanel";
 import { TabGroup } from "./TabGroup";
 import { TooltipProvider } from "./ui/tooltip";
 import { useAuthStore } from "~src/store/useAuthStore";
+import { useSettingsStore } from "~src/store/useSettingsStore";
 import { setSpaces } from "~src/lib/yjsDoc";
 import { syncActiveSelection, useSavedSpacesStore, useActiveGroups } from "~src/store/useSavedSpacesStore";
 
@@ -143,6 +144,37 @@ describe("primary keyboard actions", () => {
     await user.click(screen.getByRole("button", { name: "Open all tabs in Reading" }));
     await user.click(await screen.findByRole("menuitem", { name: "Open in this window" }));
     await waitFor(() => expect(chrome.tabs.create).toHaveBeenCalledWith({ url: "https://example.com", windowId: 7, active: false }));
+  });
+
+  it("opens the group as a browser tab group named like it, and stops asking once declined (TASK-31)", async () => {
+    const c = chrome as unknown as Record<string, any>;
+    let answer = true;
+    c.tabs.group = vi.fn(async () => 5);
+    c.tabGroups = { update: vi.fn(async () => ({})) };
+    c.permissions = { request: vi.fn(async () => answer), remove: vi.fn(async () => true) };
+    vi.mocked(chrome.windows.create).mockResolvedValue({ id: 3, tabs: [{ id: 9 }] } as never);
+    useSettingsStore.setState({ openAsTabGroups: true });
+    try {
+      const user = setup(<GroupHarness />);
+      const openAll = screen.getByRole("button", { name: "Open all tabs in Reading" });
+      await user.click(openAll);
+      await user.click(await screen.findByRole("menuitem", { name: "Open in new window" }));
+      await waitFor(() => expect(c.tabGroups.update).toHaveBeenCalledWith(5, { title: "Reading", color: "grey" }));
+      expect(c.tabs.group).toHaveBeenCalledWith({ tabIds: [9], createProperties: { windowId: 3 } });
+
+      answer = false;
+      await user.click(openAll);
+      await user.click(await screen.findByRole("menuitem", { name: "Open in new window" }));
+      await waitFor(() => expect(useSettingsStore.getState().openAsTabGroups).toBe(false));
+      expect(chrome.windows.create).toHaveBeenCalledTimes(2); // declined still opens the tabs
+      await user.click(openAll);
+      await user.click(await screen.findByRole("menuitem", { name: "Open in new window" }));
+      await waitFor(() => expect(chrome.windows.create).toHaveBeenCalledTimes(3));
+      expect(c.permissions.request).toHaveBeenCalledTimes(2); // not asked again
+    } finally {
+      delete c.tabs.group; delete c.tabGroups; delete c.permissions;
+      useSettingsStore.setState({ openAsTabGroups: true });
+    }
   });
 
   it("saves a rename on Tab without pulling focus back from the next action", async () => {

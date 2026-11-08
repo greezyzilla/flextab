@@ -7,6 +7,7 @@ import { Slider } from "~src/components/ui/slider";
 import { Button } from "~src/components/ui/button";
 import { SettingRow, ToggleGroup, GroupHeading, type SettingControlProps } from "./shared";
 import { LayoutIcon, ListIcon, GridIcon } from "./icons";
+import { canGroupTabs, releaseTabGroups, requestTabGroups } from "~src/services/openTab";
 
 const HUE_GRADIENT =
   "linear-gradient(to right, hsl(0 85% 56%), hsl(60 85% 56%), hsl(120 85% 56%), hsl(180 85% 56%), hsl(240 85% 56%), hsl(300 85% 56%), hsl(360 85% 56%))";
@@ -42,8 +43,15 @@ export function AppearanceTab() {
     theme, setTheme, hue, setHue, intensity, setIntensity, groupTint, setGroupTint, radius, setRadius,
     fontFamily, setFontFamily, uiScale, setUiScale,
     groupLayout, setGroupLayout, gridColumns, setGridColumns, density, setDensity,
-    reduceMotion, setReduceMotion, resetAppearance,
+    reduceMotion, setReduceMotion, resetAppearance, openAsTabGroups, setOpenAsTabGroups,
   } = useSettingsStore();
+
+  // TASK-31. Turning it on asks for `tabGroups` right in this click (Chrome
+  // needs the gesture) and only sticks when granted; off gives it back.
+  const changeOpenAsTabGroups = (on: boolean) => {
+    if (!on) { setOpenAsTabGroups(false); void releaseTabGroups(); return; }
+    void requestTabGroups().then((answer) => { if (answer === "granted") setOpenAsTabGroups(true); });
+  };
 
   return (
     <div className="flex flex-col gap-8">
@@ -103,6 +111,17 @@ export function AppearanceTab() {
             </div>
           )}
         </SettingRow>
+
+        {canGroupTabs() && (
+          <SettingRow label="Open as tab groups" description="Open all puts a group's tabs in a browser tab group with the same name and color.">
+            {(controlProps) => (
+              <div className="flex items-center gap-2">
+                <Switch {...controlProps} checked={openAsTabGroups} onCheckedChange={changeOpenAsTabGroups} />
+                <span className="text-fg-muted text-sm font-sans">{openAsTabGroups ? 'On' : 'Off'}</span>
+              </div>
+            )}
+          </SettingRow>
+        )}
 
         <SettingRow label="Roundness" description="Corner radius across the UI. 0 = sharp, higher = softer.">
           {(controlProps) => (

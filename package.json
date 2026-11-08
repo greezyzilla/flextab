@@ -94,6 +94,9 @@
       "alarms",
       "contextMenus"
     ],
+    "optional_permissions": [
+      "tabGroups"
+    ],
     "commands": {
       "save-page": {
         "suggested_key": { "default": "Alt+Shift+S" },

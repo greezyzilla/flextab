@@ -76,6 +76,10 @@ interface SettingsState {
   fontFamily: FontKey;
   uiScale: number;     // 0.8-1.2 whole-UI zoom
   autoSync: boolean;
+  /** Open all gives a group back as a browser tab group (TASK-31). Device-only:
+   *  the `tabGroups` permission it needs is per browser, so it is not synced to
+   *  the account and Reset appearance leaves it alone. */
+  openAsTabGroups: boolean;
 
   setTheme: (theme: ThemeMode) => void;
   setGroupLayout: (layout: GroupLayout) => void;
@@ -89,6 +93,7 @@ interface SettingsState {
   setFontFamily: (fontFamily: FontKey) => void;
   setUiScale: (uiScale: number) => void;
   setAutoSync: (autoSync: boolean) => void;
+  setOpenAsTabGroups: (openAsTabGroups: boolean) => void;
   /** Restore appearance & layout to defaults (leaves autoSync untouched). */
   resetAppearance: () => void;
 }
@@ -101,6 +106,7 @@ export const useSettingsStore = create<SettingsState>()(
       // theme the entry already applied (see lib/theme.ts).
       theme: readStoredThemeMode(),
       autoSync: true,
+      openAsTabGroups: true, // asked for on the first Open all; declining turns it off
 
       setTheme: (theme) => set({ theme }),
 
@@ -115,6 +121,7 @@ export const useSettingsStore = create<SettingsState>()(
       setFontFamily: (fontFamily) => set({ fontFamily }),
       setUiScale: (uiScale) => set({ uiScale }),
       setAutoSync: (autoSync) => set({ autoSync }),
+      setOpenAsTabGroups: (openAsTabGroups) => set({ openAsTabGroups }),
       resetAppearance: () => set({ ...APPEARANCE_DEFAULTS }),
     }),
     {

@@ -15,14 +15,14 @@ import { Badge } from "./ui/badge";
 import { GroupIcon, UnsortedIcon } from "./levelIcons";
 import { ensureUnsortedGroup, isUnsortedGroup } from "~src/lib/defaultPath";
 import { normalizeUrl } from "~src/lib/savedUrlIndex";
-import { openInCurrentWindow, openOrFocus } from "~src/services/openTab";
+import { openGroupTabs, openOrFocus } from "~src/services/openTab";
 import { ActionSlot, RowActions } from "./ui/row-actions";
 import { Tooltip, TooltipTrigger, TooltipContent } from "./ui/tooltip";
 import { IconButton } from "./ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { PickDestinationDialog } from "./PickDestinationDialog";
 import { moveGroupTo, moveTabTo } from "~src/services/moveTo";
-import type { GroupLayout } from "~src/store/useSettingsStore";
+import { useSettingsStore, type GroupLayout } from "~src/store/useSettingsStore";
 import { GroupColorMenuItems } from "./GroupColorMenu";
 import { GROUP_COLORS, groupColorFill, groupTintEdge, groupTintSurface } from "~src/lib/groupColors";
 import type { GroupColor } from "~src/types";
@@ -211,8 +211,16 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2 }: 
   const duplicateUrls = new Set([...urlCounts.entries()].filter(([, c]) => c > 1).map(([u]) => u));
 
   const urls = sortedTabs.map(t => t.url).filter(Boolean);
-  const openAllInNewWindow = () => { if (urls.length) chrome.windows.create({ url: urls }); };
-  const openAllHere = () => { if (urls.length) void openInCurrentWindow(urls); };
+  // As a browser tab group when allowed (TASK-31). openGroupTabs asks for the
+  // permission inside this click; declining turns the setting off, so it asks once.
+  const openAll = (where: "here" | "new-window") => {
+    if (!urls.length) return;
+    const { openAsTabGroups, setOpenAsTabGroups } = useSettingsStore.getState();
+    void openGroupTabs(urls, where, { title: group.name, color: group.color }, openAsTabGroups)
+      .then(({ permission }) => { if (permission === "declined") setOpenAsTabGroups(false); });
+  };
+  const openAllInNewWindow = () => openAll("new-window");
+  const openAllHere = () => openAll("here");
 
   const handleDeleteGroup = () => {
     removeSavedGroup(spaceId, projectId, categoryId, group);
