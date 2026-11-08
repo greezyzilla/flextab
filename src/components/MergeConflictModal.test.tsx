@@ -42,6 +42,21 @@ describe("MergeConflictModal (TASK-29)", () => {
     expect(within(group).getByRole("radio", { name: /Delete it/ })).toBeInTheDocument()
   })
 
+  it("names group colours as the menu does, and an uncoloured side as None (TASK-18)", () => {
+    const b = clone(base), server = clone(base), local = clone(base)
+    b[0].projects[0].categories[0].groups[0].color = "blue"
+    server[0].projects[0].categories[0].groups[0].color = "red"
+    delete local[0].projects[0].categories[0].groups[0].color // this device cleared it
+    const { conflicts } = merge3(b, server, local)
+    useMergeConflict.getState().open(conflicts, b, server, local)
+    render(<MergeConflictModal />)
+    const group = screen.getByRole("region", { name: "Group Inbox" })
+    expect(group).toHaveTextContent("Color was Blue. Both sides changed it.")
+    expect(within(group).getByRole("radio", { name: /This device.*None/ })).toBeInTheDocument()
+    expect(within(group).getByRole("radio", { name: /Your account.*Red/ })).toBeInTheDocument()
+    expect(group).not.toHaveTextContent("“")
+  })
+
   it("chooses nothing for the user: Apply waits for every conflict", () => {
     open()
     render(<MergeConflictModal />)

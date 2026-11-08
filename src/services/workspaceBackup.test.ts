@@ -7,7 +7,7 @@ const backup = (): SavedSpace[] => [{
   projects: [{
     id: "p", name: "Project", categories: [{
       id: "c", name: "Category", groups: [{
-        id: "g", name: "Group", tabs: [{
+        id: "g", name: "Group", color: "blue", tabs: [{
           id: "t", url: "https://example.com", title: "Example", favicon: "", order: 0,
         }],
       }],
@@ -40,6 +40,18 @@ describe("parseWorkspaceBackup", () => {
     const parsed = parseWorkspaceBackup(input)[0].projects[0].categories[0].groups;
     expect(parsed.map(g => g.config)).toEqual([undefined, { kind: "unsorted" }]);
     expect("config" in parsed[0]).toBe(false);
+  });
+
+  it("drops a group colour outside the palette instead of failing the restore", () => {
+    const input = backup();
+    const [group] = input[0].projects[0].categories[0].groups;
+    input[0].projects[0].categories[0].groups.push(
+      { ...group, id: "m", tabs: [], color: "magenta" as never },
+      { ...group, id: "n", tabs: [], color: 7 as never },
+    );
+    const parsed = parseWorkspaceBackup(input)[0].projects[0].categories[0].groups;
+    expect(parsed.map(g => g.color)).toEqual(["blue", undefined, undefined]);
+    expect("color" in parsed[1] || "color" in parsed[2]).toBe(false);
   });
 
   it("discards unknown fields rather than importing them into the workspace", () => {

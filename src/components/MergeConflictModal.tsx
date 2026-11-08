@@ -7,6 +7,7 @@ import { spaceTabCount } from "~src/services/spacesTree"
 import { autoMerged, changeText, editSummary, LEVEL_LABEL, locate, locatedName, type Change, type Level } from "~src/services/syncChanges"
 import { addAccountCopies, canKeepBoth } from "~src/services/keepBoth"
 import { cn } from "~src/lib/utils"
+import { GROUP_COLORS } from "~src/lib/groupColors"
 import { Button } from "~src/components/ui/button"
 import { Label } from "~src/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "~src/components/ui/radio-group"
@@ -29,6 +30,8 @@ const FIELD_LABEL: Record<string, string> = {
   name: "Name", title: "Title", url: "Address", favicon: "Icon", icon: "Icon", color: "Color", abbreviation: "Short name",
 }
 const shown = (v: unknown) => (v === undefined || v === null || v === "" ? "(empty)" : `“${String(v)}”`)
+/** A group colour reads as its menu name (Red, None), not its stored id. */
+const shownGroupColor = (v: unknown) => GROUP_COLORS.find((c) => c.id === v)?.label ?? "None"
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`
 
 interface Option { side: Choice; label: string; detail: string }
@@ -45,13 +48,14 @@ function describe(c: Conflict, level: Level, base: ReturnType<typeof locate>): {
   const what = LEVEL_LABEL[level].toLowerCase()
   if (c.kind === "field") {
     const field = FIELD_LABEL[c.field ?? ""] ?? c.field ?? "Value"
+    const show = level === "group" && c.field === "color" ? shownGroupColor : shown
     const options: Option[] = [
-      { side: "local", label: SIDE_NAME.local, detail: shown(c.local) },
-      { side: "server", label: SIDE_NAME.server, detail: shown(c.server) },
+      { side: "local", label: SIDE_NAME.local, detail: show(c.local) },
+      { side: "server", label: SIDE_NAME.server, detail: show(c.server) },
     ]
     // Two addresses are two pages: both can stay, as two tabs.
     if (canKeepBoth(c, level)) options.push({ side: "both", label: "Keep both", detail: "Two tabs, one for each address" })
-    return { lead: `${field} was ${shown(c.base)}. Both sides changed it.`, options }
+    return { lead: `${field} was ${show(c.base)}. Both sides changed it.`, options }
   }
   // Delete on one side, edit on the other: say who did what.
   const deleter: Side = c.deletedOn ?? "server"

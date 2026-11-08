@@ -123,6 +123,34 @@ describe("merge3 — true conflicts", () => {
   });
 });
 
+describe("merge3 — group colour (TASK-18)", () => {
+  const coloured = (id: string, name: string, color?: SavedGroup["color"]): SavedGroup => ({ ...grp(id, name), ...(color ? { color } : {}) });
+
+  it("a colour set on this device survives a server change elsewhere", () => {
+    const base = wrap([coloured("a", "A")]);
+    const r = merge3(base, wrap([coloured("a", "Renamed")]), wrap([coloured("a", "A", "red")]));
+    expect(r.conflicts).toEqual([]);
+    expect(groupsOf(r.merged)[0]).toMatchObject({ name: "Renamed", color: "red" });
+  });
+
+  it("a colour changed or cleared on the server is applied", () => {
+    const base = wrap([coloured("a", "A", "blue"), coloured("b", "B", "green")]);
+    const r = merge3(base, wrap([coloured("a", "A", "red"), coloured("b", "B")]), base);
+    expect(r.conflicts).toEqual([]);
+    expect(groupsOf(r.merged).map(g => g.color || undefined)).toEqual(["red", undefined]);
+  });
+
+  it("both sides recolouring the same group differently is a Color conflict", () => {
+    const base = wrap([coloured("a", "A", "blue")]);
+    const r = merge3(base, wrap([coloured("a", "A", "red")]), wrap([coloured("a", "A", "green")]));
+    expect(r.conflicts).toHaveLength(1);
+    expect(r.conflicts[0]).toMatchObject({ kind: "field", field: "color", base: "blue", server: "red", local: "green" });
+    expect(groupsOf(r.merged)[0].color).toBe("green"); // default: this device
+    const pick = merge3(base, wrap([coloured("a", "A", "red")]), wrap([coloured("a", "A", "green")]), { [r.conflicts[0].key]: "server" });
+    expect(groupsOf(pick.merged)[0].color).toBe("red");
+  });
+});
+
 describe("merge3 — keep-both", () => {
   it("concurrent create, same name, different id → both kept (no conflict)", () => {
     const r = merge3([], [spc("x", "Work")], [spc("y", "Work")]);

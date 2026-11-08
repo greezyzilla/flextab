@@ -1,3 +1,4 @@
+import { isGroupColor } from "~src/lib/groupColors";
 import type { GroupConfig, SavedCategory, SavedGroup, SavedProject, SavedSpace, SavedTab } from "~src/types";
 
 /**
@@ -68,6 +69,9 @@ export function parseWorkspaceBackup(input: unknown): SavedSpace[] {
       name: text(node.name, path + ".name"),
       tabs: collection(node.tabs, path + ".tabs", tab),
       ...order(node.order, path + ".order"),
+      // A colour outside the palette (a newer version's, a hand edit) is
+      // dropped, not an error: it is cosmetic and must not block a restore.
+      ...(isGroupColor(node.color) ? { color: node.color } : {}),
       ...groupConfig(node.config),
     };
   }

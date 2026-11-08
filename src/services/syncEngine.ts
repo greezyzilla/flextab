@@ -4,6 +4,7 @@ import { clearLimitNotice, saveLimitNotice } from "./syncLimit";
 import { recordLandedSnapshot } from "./landedSnapshot";
 import { doc, getSpaces, setSpaces, persistState, installExternalPersistBridge } from "~src/lib/yjsDoc";
 import { spacesSignature } from "~src/lib/spacesSignature";
+import { isGroupColor } from "~src/lib/groupColors";
 export { spacesSignature } from "~src/lib/spacesSignature";
 import { useAuthStore } from "~src/store/useAuthStore";
 import { useSyncStore } from "~src/store/useSyncStore";
@@ -83,7 +84,7 @@ async function clearFreshLogin(): Promise<void> {
 // --- BE → local mapping ---
 
 interface BeTab { id: string; url: string; title: string; favicon: string; order: number; }
-interface BeGroup { id: string; name: string; order: number; tabs: BeTab[]; config?: { kind?: unknown } | null; }
+interface BeGroup { id: string; name: string; order: number; tabs: BeTab[]; color?: unknown; config?: { kind?: unknown } | null; }
 interface BeCategory { id: string; name: string; order: number; groups: BeGroup[]; }
 interface BeProject { id: string; name: string; order: number; categories: BeCategory[]; }
 interface BeSpace { id: string; name: string; icon: string; color?: string; abbreviation?: string; order: number; projects: BeProject[]; }
@@ -98,6 +99,7 @@ function mapBeToLocal(spaces: BeSpace[]): SavedSpace[] {
         id: c.id, name: c.name, order: c.order,
         groups: (c.groups || []).map(g => ({
           id: g.id, name: g.name, order: g.order,
+          ...(isGroupColor(g.color) ? { color: g.color } : {}),
           ...(g.config?.kind === "unsorted" ? { config: { kind: "unsorted" as const } } : {}),
           tabs: (g.tabs || []).map(t => ({
             id: t.id, url: t.url, title: t.title, favicon: t.favicon, order: t.order,

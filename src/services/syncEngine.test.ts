@@ -173,6 +173,21 @@ describe('startSyncEngine', () => {
     expect(gs.find(g => g.id === 'x')!.config).toBeUndefined();
   });
 
+  it('keeps a palette group colour from the server and drops an unknown one (TASK-18)', async () => {
+    const srv: any = beSpace('srv', [{ id: 't1' }]);
+    srv.projects[0].categories[0].groups[0].color = 'red';
+    srv.projects[0].categories[0].groups.push(
+      { id: 'm', name: 'M', order: 1, color: 'magenta', tabs: [] },
+      { id: 'e', name: 'E', order: 2, color: '', tabs: [] },
+    );
+    (apiFetch as any).mockResolvedValue({ spaces: [srv], revision: 2 });
+    await startSyncEngine();
+    await flush();
+    const gs = getSpaces()[0].projects[0].categories[0].groups;
+    expect(gs.map(g => g.color)).toEqual(['red', undefined, undefined]);
+    expect(gs.filter(g => 'color' in g)).toHaveLength(1);
+  });
+
   it('advances merge-base when applied tree equals the GET server (FE-B1 serverConfirmed)', async () => {
     await clearMergeBase();
     (apiFetch as any).mockResolvedValue({ spaces: [beSpace('srv', [{ id: 't1' }])], revision: 2 });

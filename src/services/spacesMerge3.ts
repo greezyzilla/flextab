@@ -84,7 +84,7 @@ interface LevelCfg {
 }
 
 const tabCfg: LevelCfg = { scalars: ["url", "title", "favicon"], label: (t) => String(t.title ?? t.url ?? "") };
-const groupCfg: LevelCfg = { scalars: ["name"], childrenKey: "tabs", child: tabCfg, label: (g) => String(g.name ?? "") };
+const groupCfg: LevelCfg = { scalars: ["name", "color"], childrenKey: "tabs", child: tabCfg, label: (g) => String(g.name ?? "") };
 const categoryCfg: LevelCfg = { scalars: ["name"], childrenKey: "groups", child: groupCfg, label: (c) => String(c.name ?? "") };
 const projectCfg: LevelCfg = { scalars: ["name"], childrenKey: "categories", child: categoryCfg, label: (p) => String(p.name ?? "") };
 const spaceCfg: LevelCfg = {
