@@ -49,6 +49,7 @@ Contact us below to request account/data deletion and information about retained
 - `tabs` — to read open tab titles, URLs, and favicons so you can view and save them.
 - `storage` and `unlimitedStorage` — to store the workspace and preferences; browser sync is used for the limited UI state described above.
 - `alarms` — to schedule background sync work.
+- `contextMenus` to add Save page, Save link and Save all tabs in this window to FlexTab to the right-click menu. FlexTab reads the page or link only when you choose one of them.
 - `tabGroups` (optional, asked for only when you first open a group as a tab group, and given back when you turn it off in Settings) to give the browser tab group the saved group's name and color. FlexTab does not read your existing tab groups.
 - API host access — for authentication, workspace sync, account settings, and billing. This permission list does not mean image requests can only reach the API host.
 
