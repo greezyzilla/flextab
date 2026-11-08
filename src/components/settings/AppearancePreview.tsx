@@ -63,7 +63,7 @@ export function AppearancePreview() {
     : ""
 
   return (
-    <section aria-label="Preview" className="rounded-xl border border-line bg-black-900 overflow-hidden xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
+    <section aria-label="Preview" className="rounded-xl border border-line bg-black-900 overflow-hidden min-[1400px]:max-h-[calc(100vh-8rem)] min-[1400px]:overflow-y-auto">
       <p className="px-6 pt-4 text-fg-muted text-xs font-medium font-sans">Preview</p>
       <div ref={frame} inert className="select-none pb-6">
         {/* Its own providers: self-contained wherever Appearance renders. */}

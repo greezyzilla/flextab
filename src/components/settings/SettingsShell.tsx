@@ -101,14 +101,20 @@ export function SettingsContent() {
       <div className="flex-1 min-h-0 overflow-y-auto px-4 py-5 sm:px-6 md:px-8 md:py-7">
         {tab === "appearance" ? (
           // TASK-30: the previewer sits on the right and stays in view while the
-          // controls scroll. Where there is no room beside them (below xl) it
-          // sits above them and scrolls with the page: pinned, it would cover
-          // most of a narrow screen.
-          <div className="flex flex-col xl:flex-row xl:items-start gap-6 xl:gap-10">
-            <div className="max-w-xl min-w-0 break-words order-2 xl:order-1 xl:flex-1">
+          // controls scroll. Side by side needs the controls (36rem), the gap and
+          // a previewer of at least 24rem: about 1400px of window. Narrower, it
+          // sits above the controls in their 36rem column (as wide as every
+          // settings page, never wider than the workspace) and scrolls with
+          // the page (pinned, it would cover most of the screen).
+          <div className="flex flex-col min-[1400px]:flex-row min-[1400px]:items-start gap-6 min-[1400px]:gap-10">
+            <div className="max-w-xl min-w-0 break-words order-2 min-[1400px]:order-1 min-[1400px]:w-full min-[1400px]:shrink-0">
               <SectionContent tab={tab} />
             </div>
-            <div className="order-1 xl:order-2 xl:sticky xl:top-0 xl:w-[26rem] xl:shrink-0">
+            {/* The previewer takes all the width the controls leave, so no dead
+                space sits beside it and wide windows fit more grid columns. It can
+                never outgrow the workspace column (settings column minus the
+                20rem opened-tabs panel), so it never shows more than is possible. */}
+            <div className="order-1 max-w-xl min-[1400px]:max-w-none min-[1400px]:order-2 min-[1400px]:sticky min-[1400px]:top-0 min-[1400px]:flex-1 min-[1400px]:min-w-0">
               <AppearancePreview />
             </div>
           </div>
