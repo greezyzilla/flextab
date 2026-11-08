@@ -8,6 +8,7 @@
 
 import type { SavedSpace } from "~src/types"
 import { merge3, type Conflict, type Resolutions } from "./spacesMerge3"
+import { GROUP_COLORS } from "~src/lib/groupColors"
 
 export type Level = "space" | "project" | "category" | "group" | "tab"
 
@@ -82,6 +83,9 @@ function tabsUnder(n: Node, level: Level): number {
 
 export type ChangeKind = "added" | "removed" | "moved" | "renamed" | "edited"
 
+/** A look-only field that changed on an item kept under the same name. */
+export type StyleField = "color" | "abbreviation"
+
 export interface Change {
   kind: ChangeKind
   level: Level
@@ -90,8 +94,11 @@ export interface Change {
   name: string
   /** Where it is (or was, for a removal), outermost first. */
   path: string[]
-  /** renamed: the new name; moved: the destination path. */
+  /** renamed: the new name; moved: the destination path; a style edit: the
+   *  new value in words, when it has one ("" when it was cleared). */
   to?: string
+  /** edited: which look-only field changed. Absent for a tab's address. */
+  field?: StyleField
   /** Tabs inside an added/removed container. */
   tabs?: number
 }
@@ -135,6 +142,11 @@ export function diffTrees(from: SavedSpace[] | null, to: SavedSpace[], names?: S
     else if (loc.level === "tab" && prev.node.url !== loc.node.url) {
       out.push({ kind: "edited", level: "tab", count: 1, name: after, path: place(loc) })
     }
+    for (const field of STYLE_FIELDS[loc.level]) {
+      const was = styleValue(prev.node[field]), now = styleValue(loc.node[field])
+      if (was === now) continue
+      out.push({ kind: "edited", level: loc.level, count: 1, name: after, path: place(loc), field, to: styleText(loc.level, field, now) })
+    }
   }
   for (const [id, loc] of a) {
     if (b.has(id)) continue
@@ -143,6 +155,23 @@ export function diffTrees(from: SavedSpace[] | null, to: SavedSpace[], names?: S
     else out.push({ kind: "removed", level: loc.level, count: 1, name: nameOf(loc.node, loc.level), path: place(loc), tabs: tabsUnder(loc.node, loc.level) })
   }
   return out
+}
+
+// The look-only fields people can change per level (Settings › Spaces, and a
+// group's ⋯ › Color). A space's icon has no editor, so it is not listed.
+const STYLE_FIELDS: Record<Level, StyleField[]> = {
+  space: ["color", "abbreviation"], project: [], category: [], group: ["color"], tab: [],
+}
+const FIELD_NOUN: Record<StyleField, string> = { color: "color", abbreviation: "short name" }
+/** Missing, null and "" are the same unset value, as in merge3. */
+const styleValue = (v: unknown): string => (v === undefined || v === null ? "" : String(v))
+/** The new value in words: a group colour by its menu name, a short name as
+ *  typed. A space colour is a swatch with no stable name here, so it has none. */
+function styleText(level: Level, field: StyleField, value: string): string | undefined {
+  if (!value) return ""
+  if (field === "abbreviation") return `“${value}”`
+  if (level === "group") return GROUP_COLORS.find((c) => c.id === value)?.label
+  return undefined
 }
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`
@@ -159,6 +188,11 @@ export function changeText(c: Change): string {
   const what = `${LEVEL_LABEL[c.level].toLowerCase()} “${c.name}”`
   const inside = c.tabs !== undefined ? ` (${plural(c.tabs, "tab")})` : ""
   const suffix = at ? ` in ${at}` : ""
+  if (c.kind === "edited" && c.field) {
+    const noun = FIELD_NOUN[c.field]
+    if (c.to === "") return `Removed the ${noun} of ${what}${suffix}`
+    return `Changed the ${noun} of ${what}${c.to ? ` to ${c.to}` : ""}${suffix}`
+  }
   switch (c.kind) {
     case "added": return `Added ${what}${suffix}${inside}`
     case "removed": return `Removed ${what}${suffix ? ` from ${at}` : ""}${inside}`
@@ -195,6 +229,7 @@ export function editSummary(baseNode: Node | undefined, edited: Node, level: Lev
   const parts: string[] = []
   for (const c of changes) {
     if (c.kind === "renamed" && c.level === level) parts.push(`renamed it to “${c.to}”`)
+    else if (c.kind === "edited" && c.field) parts.push(styleSummary(c, c.level === level))
     else if (c.kind === "edited" && c.level === level) parts.push("changed its address")
     else if (c.level === "tab" && c.kind === "added") parts.push(`added ${plural(c.count, "tab")}`)
     else if (c.level === "tab" && c.kind === "removed") parts.push(`removed ${plural(c.count, "tab")}`)
@@ -204,4 +239,13 @@ export function editSummary(baseNode: Node | undefined, edited: Node, level: Lev
     else parts.push(`${c.kind} ${LEVEL_LABEL[c.level].toLowerCase()} “${c.name}”`)
   }
   return parts.length ? parts.join(", ") : "changed it"
+}
+
+/** One style edit inside a short phrase: on the item itself "changed its
+ *  color to Red", on something inside it "removed the color of group “Later”". */
+function styleSummary(c: Change, own: boolean): string {
+  const noun = FIELD_NOUN[c.field!]
+  const object = own ? `its ${noun}` : `the ${noun} of ${LEVEL_LABEL[c.level].toLowerCase()} “${c.name}”`
+  if (c.to === "") return `removed ${object}`
+  return `changed ${object}${c.to ? ` to ${c.to}` : ""}`
 }

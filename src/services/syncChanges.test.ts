@@ -47,6 +47,68 @@ describe("diffTrees", () => {
   })
 })
 
+describe("diffTrees: colours and short names", () => {
+  const inbox = (t: SavedSpace[]) => t[0].projects[0].categories[0].groups[0]
+
+  it("says a group's colour changed, by its menu name, or that it was removed", () => {
+    const before = tree({ g: [tab("a")] })
+    const red = clone(before); inbox(red).color = "red"
+    expect(texts(before, red)).toEqual(["Changed the color of group “Inbox” to Red in Work › General › Reading"])
+    const green = clone(red); inbox(green).color = "green"
+    expect(texts(red, green)).toEqual(["Changed the color of group “Inbox” to Green in Work › General › Reading"])
+    expect(texts(red, before)).toEqual(["Removed the color of group “Inbox” in Work › General › Reading"])
+  })
+
+  it("says a space's colour and short name changed", () => {
+    const before = tree({ g: [tab("a")] })
+    const styled = clone(before); styled[0].color = "#22c55e"; styled[0].abbreviation = "WK"
+    expect(texts(before, styled)).toEqual([
+      "Changed the color of space “Work”", // a swatch: no name to give
+      "Changed the short name of space “Work” to “WK”",
+    ])
+    expect(texts(styled, before)).toEqual(["Removed the color of space “Work”", "Removed the short name of space “Work”"])
+  })
+
+  it("lists a rename and a recolour of one group as two changes", () => {
+    const before = tree({ g: [tab("a")] })
+    const after = clone(before); inbox(after).name = "Queue"; inbox(after).color = "blue"
+    expect(texts(before, after)).toEqual([
+      "Renamed group “Inbox” to “Queue” in Work › General › Reading",
+      "Changed the color of group “Queue” to Blue in Work › General › Reading",
+    ])
+  })
+
+  it("treats missing, null and empty as the same unset value", () => {
+    const before = tree({ g: [tab("a")] })
+    const empty = clone(before); empty[0].color = ""; (empty[0] as { abbreviation?: unknown }).abbreviation = null
+    ;(inbox(empty) as { color?: unknown }).color = ""
+    expect(texts(before, empty)).toEqual([])
+  })
+
+  it("summarises a style edit on the item itself and inside it", () => {
+    const space = tree({ g: [tab("a")] })[0]
+    const group = space.projects[0].categories[0].groups[0]
+    expect(editSummary(group as never, { ...clone(group), color: "red" } as never, "group")).toBe("changed its color to Red")
+    const coloured = clone(space); coloured.projects[0].categories[0].groups[0].color = "red"
+    expect(editSummary(coloured as never, space as never, "space")).toBe("removed the color of group “Inbox”")
+    expect(editSummary(space as never, { ...clone(space), abbreviation: "WK" } as never, "space")).toBe("changed its short name to “WK”")
+    expect(editSummary(space as never, { ...clone(space), color: "#ef4444" } as never, "space")).toBe("changed its color")
+  })
+
+  it("shows a one-sided recolour as merged automatically, and a two-sided one only as a conflict", () => {
+    const base = tree({ g: [tab("a")], Later: [tab("b")] })
+    const server = clone(base), local = clone(base)
+    server[0].projects[0].categories[0].groups[0].color = "red" // only the account
+    server[0].projects[0].categories[0].groups[1].color = "cyan" // both, differently
+    local[0].projects[0].categories[0].groups[1].color = "pink"
+    const { conflicts } = merge3(base, server, local)
+    expect(conflicts.map((c) => `${c.name}:${c.field}`)).toEqual(["Later:color"])
+    const { fromAccount, fromDevice } = autoMerged(base, server, local, conflicts)
+    expect(fromAccount.map(changeText)).toEqual(["Changed the color of group “Inbox” to Red in Work › General › Reading"])
+    expect(fromDevice.map(changeText)).toEqual([])
+  })
+})
+
 describe("autoMerged", () => {
   it("lists what each side brings, leaving the conflicts out", () => {
     const base = tree({ g: [tab("a"), tab("b")] })
