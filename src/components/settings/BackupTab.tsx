@@ -1,16 +1,17 @@
 import { useRef, useState, useEffect, useMemo, type ChangeEvent } from "react";
-import { ChevronRight } from "lucide-react";
 import { useAuthStore } from "~src/store/useAuthStore";
 import { formatRelativeTime } from "~src/store/useSyncStore";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { apiListSnapshots, apiGetSnapshot, apiRestoreSnapshot, type SnapshotInfo } from "~src/services/snapshots";
 import { pullAndOverwrite } from "~src/services/syncEngine";
 import { parseImport, type ParsedImport } from "~src/services/importFormats";
-import type { SavedSpace, SavedGroup, SavedTab } from "~src/types";
+import type { SavedSpace } from "~src/types";
 import * as yjs from "~src/lib/yjsDoc";
 import { ConfirmDialog } from "~src/components/ui/confirm-dialog";
+import { Modal, ModalFooter, ModalHeader, ModalLink } from "~src/components/ui/modal";
+import { exportWorkspace } from "~src/services/exportWorkspace";
 import { ImportDialog } from "./ImportDialog";
-import { Dialog, DialogContent, DialogTitle } from "~src/components/ui/dialog";
+import { SourceColumn } from "~src/components/WorkspaceTree";
 import { Button } from "~src/components/ui/button";
 import { SettingRow, GroupHeading, formatDate, formatBytes } from "./shared";
 import { HistoryIcon, DataIcon } from "./icons";
@@ -247,9 +248,11 @@ function HistoryTab() {
         onOpenChange={(o) => { if (!o) setConfirming(null); }}
         title={confirmingSnap ? `Restore version v${confirmingSnap.revision}?` : 'Restore version?'}
         message={confirmingSnap
-          ? `This replaces your current tabs with this snapshot from ${formatRelativeTime(new Date(confirmingSnap.created_at).getTime())} (${confirmingSnap.space_count} space${confirmingSnap.space_count !== 1 ? 's' : ''} · ${confirmingSnap.tab_count} tab${confirmingSnap.tab_count !== 1 ? 's' : ''}). The current cloud version is saved first and can be restored while it remains in history. Export JSON first to keep any unsynced local changes.`
+          ? `Your current tabs are replaced with this snapshot from ${formatRelativeTime(new Date(confirmingSnap.created_at).getTime())} (${confirmingSnap.space_count} space${confirmingSnap.space_count !== 1 ? 's' : ''} · ${confirmingSnap.tab_count} tab${confirmingSnap.tab_count !== 1 ? 's' : ''}). The current cloud version is saved to history first, so you can restore it.`
           : ''}
-        confirmLabel="Restore"
+        // The one thing restoring can lose is unsynced local work: offer the export right here.
+        start={<ModalLink onClick={exportWorkspace}>Export JSON</ModalLink>}
+        confirmLabel="Restore version"
         destructive={false}
         onConfirm={() => { if (confirming !== null) handleRestore(confirming); }}
       />
@@ -284,68 +287,12 @@ function SnapshotRow({ snapshot, onPreview, onRestore, restoreDisabled }: {
   );
 }
 
-// --- Snapshot preview: a collapsible tree of the stored workspace ---
+// --- Snapshot preview ---
 //
-// Goal: let someone UNDERSTAND a snapshot before restoring — how many spaces,
-// which projects/categories, which groups and what's inside — not read a dump of
-// every tab. Each level (space → project → category → group) is a collapsible
-// branch showing its tab count; tabs only appear when their group is opened. The
-// structure is expanded by default; tabs stay collapsed so the default view is a
-// scannable overview.
-
-type PKind = 'space' | 'project' | 'category' | 'group';
-interface PNode {
-  id: string;
-  name: string;
-  kind: PKind;
-  count: number;      // tabs contained
-  color?: string;     // space accent
-  abbr?: string;      // space initials
-  children?: PNode[]; // sub-branches
-  tabs?: SavedTab[];  // group leaves
-}
-
-const tabsInGroups = (groups: SavedGroup[] | undefined) =>
-  (groups ?? []).reduce((n, g) => n + (g.tabs ?? []).length, 0);
-
-function buildPreviewTree(spaces: SavedSpace[]): PNode[] {
-  return (spaces ?? []).map(s => ({
-    id: s.id,
-    name: s.name || 'Untitled space',
-    kind: 'space' as const,
-    color: s.color,
-    abbr: (s.abbreviation || (s.name || '?').slice(0, 2)).toUpperCase(),
-    count: (s.projects ?? []).reduce((n, p) => n + (p.categories ?? []).reduce((m, c) => m + tabsInGroups(c.groups), 0), 0),
-    children: (s.projects ?? []).map(p => ({
-      id: p.id,
-      name: p.name || 'Untitled project',
-      kind: 'project' as const,
-      count: (p.categories ?? []).reduce((m, c) => m + tabsInGroups(c.groups), 0),
-      children: (p.categories ?? []).map(c => ({
-        id: c.id,
-        name: c.name || 'Untitled category',
-        kind: 'category' as const,
-        count: tabsInGroups(c.groups),
-        children: (c.groups ?? []).map(g => ({
-          id: g.id,
-          name: g.name || 'Untitled group',
-          kind: 'group' as const,
-          count: (g.tabs ?? []).length,
-          tabs: g.tabs ?? [],
-        })),
-      })),
-    })),
-  }));
-}
-
-// Every branch id except groups — the default-expanded set (structure shown,
-// tabs hidden until a group is opened).
-function structureIds(nodes: PNode[]): string[] {
-  const ids: string[] = [];
-  const walk = (n: PNode) => { if (n.kind !== 'group') { ids.push(n.id); (n.children ?? []).forEach(walk); } };
-  nodes.forEach(walk);
-  return ids;
-}
+// Goal: let someone UNDERSTAND a snapshot before restoring (how many spaces, which
+// groups, what is inside), not read a dump of every tab. It uses the same tree as
+// the sign-in choice (WorkspaceTree): spaces, then each group as one path line
+// (project › category › group), then tabs on demand. A small snapshot opens fully.
 
 function SnapshotPreviewModal({ snapshot, open, onOpenChange, onRestore, restoreDisabled }: {
   snapshot: SnapshotInfo;
@@ -354,109 +301,34 @@ function SnapshotPreviewModal({ snapshot, open, onOpenChange, onRestore, restore
   onRestore: () => void;
   restoreDisabled: boolean;
 }) {
-  const [tree, setTree] = useState<PNode[] | null>(null);
+  const [tree, setTree] = useState<SavedSpace[] | null>(null);
   const [failed, setFailed] = useState(false);
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!open) return;
     setTree(null);
     setFailed(false);
     apiGetSnapshot(snapshot.revision)
-      .then(spaces => {
-        const t = buildPreviewTree(spaces);
-        setTree(t);
-        setExpanded(new Set(structureIds(t)));
-      })
+      .then(setTree)
       .catch(() => setFailed(true));
   }, [open, snapshot.revision]);
 
-  const toggle = (id: string) => setExpanded(prev => {
-    const next = new Set(prev);
-    next.has(id) ? next.delete(id) : next.add(id);
-    return next;
-  });
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[560px] max-w-[92vw] max-h-[85vh] p-0 flex flex-col gap-0">
-        {/* Header: just the title + meta. The Dialog's close (X) lives in the
-            top-right corner; the title is short so it never reaches it. The
-            primary action sits in the footer instead of colliding here. */}
-        <div className="flex flex-col gap-1 p-5 pr-12 border-b border-line shrink-0">
-          <DialogTitle className="text-fg text-sm font-medium">Version v{snapshot.revision}</DialogTitle>
-          <span className="text-fg-subtle text-xs font-sans">
-            {formatRelativeTime(new Date(snapshot.created_at).getTime())} · {snapshot.space_count} space{snapshot.space_count !== 1 ? 's' : ''} · {snapshot.tab_count} tab{snapshot.tab_count !== 1 ? 's' : ''}
-          </span>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-2 min-h-[160px]">
-          {failed && <div className="text-fg-subtle text-xs font-sans p-3">Couldn't load this snapshot.</div>}
-          {!failed && tree === null && <div className="text-fg-subtle text-xs font-sans p-3">Loading…</div>}
-          {tree?.length === 0 && <div className="text-fg-subtle text-xs font-sans p-3">This snapshot is empty.</div>}
-          {tree?.map(node => (
-            <PreviewNode key={node.id} node={node} depth={0} expanded={expanded} onToggle={toggle} />
-          ))}
-        </div>
-
-        <div className="flex justify-end gap-2 p-4 border-t border-line shrink-0">
-          <Button variant="default" size="sm" disabled={restoreDisabled} onClick={onRestore}>Restore this version</Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+    // Opening a preview focuses Close, not Restore: one Enter must not restore (modal standard §8).
+    // The tree is the same one the sign-in choice shows (spaces, then group paths, then tabs),
+    // in its own bounded box so the footer stays in view (§3).
+    <Modal kind="dialog" size="m" open={open} onOpenChange={onOpenChange} initialFocus="close">
+      <ModalHeader title={`Version v${snapshot.revision}`}
+        description={`${formatRelativeTime(new Date(snapshot.created_at).getTime())} · ${snapshot.space_count} space${snapshot.space_count !== 1 ? 's' : ''} · ${snapshot.tab_count} tab${snapshot.tab_count !== 1 ? 's' : ''}`} />
+      <div className="flex min-h-[160px] flex-1 flex-col">
+        {tree === null
+          ? <p className="rounded-lg border border-ink/10 p-3 text-xs text-fg-subtle">{failed ? "Couldn't load this snapshot." : "Loading…"}</p>
+          : <SourceColumn spaces={tree} includeEmpty emptyText="This snapshot is empty." />}
+      </div>
+      <ModalFooter primary={{ label: "Restore version", disabled: restoreDisabled, onClick: onRestore }} />
+    </Modal>
   );
 }
 
-// One branch of the snapshot tree (space/project/category/group); its tabs render
-// as favicon rows when a group is opened.
-function PreviewNode({ node, depth, expanded, onToggle }: {
-  node: PNode; depth: number; expanded: Set<string>; onToggle: (id: string) => void;
-}) {
-  const isOpen = expanded.has(node.id);
-  const indent = 8 + depth * 16;
-  const nameCls =
-    node.kind === 'space' ? 'text-fg text-sm font-medium'
-      : node.kind === 'group' ? 'text-fg-subtle text-xs'
-        : 'text-fg text-xs font-medium';
-
-  return (
-    <div className="flex flex-col">
-      <button
-        onClick={() => onToggle(node.id)}
-        className="group flex w-full items-center gap-2 rounded-md py-1.5 pr-2.5 text-left transition-colors hover:bg-ink/[0.04]"
-        style={{ paddingLeft: indent }}
-        aria-expanded={isOpen}
-      >
-        <ChevronRight className={`h-3.5 w-3.5 shrink-0 text-fg-subtle transition-transform group-hover:text-fg-muted ${isOpen ? 'rotate-90' : ''}`} strokeWidth={2} />
-        {node.kind === 'space' && (
-          <span
-            className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-[9px] font-semibold text-fg"
-            style={{ backgroundColor: node.color ? `${node.color}55` : 'var(--accent-subtle)' }}
-          >
-            {node.abbr}
-          </span>
-        )}
-        <span className={`min-w-0 flex-1 truncate font-sans ${nameCls}`}>{node.name}</span>
-        <span className="shrink-0 text-fg-subtle text-[11px] font-sans tabular-nums">{node.count}</span>
-      </button>
-
-      {isOpen && (node.children ?? []).map(child => (
-        <PreviewNode key={child.id} node={child} depth={depth + 1} expanded={expanded} onToggle={onToggle} />
-      ))}
-
-      {isOpen && node.tabs && (
-        node.tabs.length === 0
-          ? <div className="text-fg-subtle text-xs font-sans py-1" style={{ paddingLeft: indent + 24 }}>Empty group</div>
-          : node.tabs.map(t => (
-            <div key={t.id} className="flex items-center gap-2 min-w-0 py-1 pr-2.5" style={{ paddingLeft: indent + 24 }}>
-              {t.favicon
-                ? <img src={t.favicon} alt="" referrerPolicy="no-referrer" className="h-4 w-4 rounded shrink-0" onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }} />
-                : <span className="h-4 w-4 rounded bg-ink/10 shrink-0" />}
-              <span className="text-fg-subtle text-xs font-sans truncate">{t.title || t.url}</span>
-            </div>
-          ))
-      )}
-    </div>
-  );
-}
 

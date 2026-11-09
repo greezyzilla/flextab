@@ -1,9 +1,6 @@
-import { useEffect, useRef, useState } from "react"
-import { cn } from "~src/lib/utils"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "~src/components/ui/dialog"
-import { Button } from "~src/components/ui/button"
-import { Label } from "~src/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "~src/components/ui/radio-group"
+import { useEffect, useState } from "react"
+import { RadioGroup } from "~src/components/ui/radio-group"
+import { Modal, ModalBody, ModalFooter, ModalHeader, ModalNote, ModalOptionCard } from "~src/components/ui/modal"
 import { useAuthStore } from "~src/store/useAuthStore"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import { tabCap, usePlanStore } from "~src/store/usePlanStore"
@@ -21,8 +18,9 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`
  * beside the workspace (the default) or replaces it (FlexTab backups only:
  * that is a restore).
  */
-export function ImportDialog({ parsed, fileName, onClose, onDone }: {
+export function ImportDialog({ parsed, onClose, onDone }: {
   parsed: ParsedImport | null
+  /** The chosen file. Not shown: the description says what the file holds instead (modal standard §10). */
   fileName: string
   onClose: () => void
   onDone: (message: string) => void
@@ -32,7 +30,6 @@ export function ImportDialog({ parsed, fileName, onClose, onDone }: {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const cap = tabCap(usePlanStore((s) => s.status))
   const [mode, setMode] = useState<Mode>("add")
-  const primaryRef = useRef<HTMLButtonElement>(null)
   useEffect(() => {
     if (!parsed) return
     setMode("add")
@@ -66,71 +63,39 @@ export function ImportDialog({ parsed, fileName, onClose, onDone }: {
   const groups = countGroups(parsed.spaces)
   const where = parsed.spaces.length > 1 ? `in ${plural(groups, "group")} across ${plural(parsed.spaces.length, "space")}` : `in ${plural(groups, "group")}`
   const option = (value: Mode, title: string, detail: string) => (
-    <Label
-      htmlFor={`import-${value}`}
-      className={cn(
-        "flex cursor-pointer items-start gap-2.5 rounded-lg border px-3 py-2.5 font-normal transition-colors",
-        // The destructive choice reads as such once chosen, like its red button.
-        mode !== value ? "border-ink/10 bg-ink/[0.02] hover:bg-ink/[0.05]"
-          : value === "replace" ? "border-red-500/50 bg-red-500/10" : "border-[var(--accent)] bg-[var(--accent-subtle)]",
-      )}
-    >
-      <RadioGroupItem value={value} id={`import-${value}`} className="mt-0.5" />
-      <span className="flex flex-col gap-0.5">
-        <span className="text-fg text-sm">{title}</span>
-        <span className="text-fg-subtle text-xs">{detail}</span>
-      </span>
-    </Label>
+    <ModalOptionCard id={`import-${value}`} value={value} selected={mode === value} title={title} hint={detail} danger={value === "replace"} />
   )
 
-  // Three groups, spaced apart (Proximity, Common Region): what the file
-  // holds, what importing does to the workspace, and the actions.
+  // Focus opens on the chosen option, never on the primary: with Replace
+  // chosen, one Enter must not replace the workspace (modal standard §8).
   return (
-    <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
-      <DialogContent
-        className="w-full max-w-md p-5"
-        // Start on the action, not on Cancel: Cancel stays one Tab or Esc away.
-        onOpenAutoFocus={(e) => { e.preventDefault(); primaryRef.current?.focus() }}
-      >
-        <DialogHeader>
-          <DialogTitle className="text-fg font-sans text-base font-medium">Import from {SOURCE_LABEL[parsed.source]}</DialogTitle>
-          <DialogDescription className="truncate text-xs">{fileName}</DialogDescription>
-        </DialogHeader>
-
-        <div className="flex flex-col gap-5 pt-4 pb-5">
-          <div className="flex flex-col gap-1.5 rounded-lg border border-ink/10 bg-ink/[0.02] px-3.5 py-3">
-            <p className="text-fg-subtle text-sm"><span className="text-fg text-base font-medium tabular-nums">{plural(tabs, "tab")}</span> {where}</p>
-            {parsed.skipped > 0 && (
-              <p className="text-fg-subtle text-xs leading-relaxed">
-                {plural(parsed.skipped, "link")} left out: not {parsed.skipped === 1 ? "a web page" : "web pages"} (bookmarklets, browser or file pages).
-              </p>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-2.5">
-            {canReplace ? (
-              <RadioGroup value={mode} onValueChange={(v) => setMode(v as Mode)} aria-label="How to import" className="flex flex-col gap-2">
-                {option("add", "Add to my workspace", `As ${spacesText} beside yours.`)}
-                {option("replace", "Replace everything", `Removes your current ${plural(savedSpaces.length, "space")}. This can't be undone.`)}
-              </RadioGroup>
-            ) : (
-              <p className="text-fg-muted text-sm leading-relaxed">Adds {spacesText} beside your workspace. Nothing you have changes.</p>
-            )}
-            {overCap && (
-              <p role="note" className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-warning-body/90 text-xs leading-relaxed">
-                This puts you at {after} of {cap} tabs. Sync pauses until you remove {after - cap}. Everything still saves on this device.
-              </p>
-            )}
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button ref={primaryRef} variant={replace ? "destructive" : "default"} onClick={apply}>
-            {replace ? "Replace workspace" : `Add ${plural(tabs, "tab")}`}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <Modal kind="dialog" size="m" open onOpenChange={(open) => { if (!open) onClose() }} dirty={mode !== "add"}>
+      <ModalHeader title={`Import from ${SOURCE_LABEL[parsed.source]}`} description={`${plural(tabs, "tab")} ${where}.`} />
+      <ModalBody>
+        {parsed.skipped > 0 && (
+          <ModalNote>
+            {plural(parsed.skipped, "link")} left out: not {parsed.skipped === 1 ? "a web page" : "web pages"} (bookmarklets, browser or file pages).
+          </ModalNote>
+        )}
+        {canReplace ? (
+          <RadioGroup value={mode} onValueChange={(v) => setMode(v as Mode)} aria-label="How to import">
+            {option("add", "Add to my workspace", `As ${spacesText} beside yours.`)}
+            {option("replace", "Replace everything", `Removes your current ${plural(savedSpaces.length, "space")}. This can't be undone.`)}
+          </RadioGroup>
+        ) : (
+          <p className="text-fg-muted text-sm leading-5">Adds {spacesText} beside your workspace. Nothing you have changes.</p>
+        )}
+        {overCap && (
+          <p role="note" className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-warning-body/90 text-xs leading-relaxed">
+            This puts you at {after} of {cap} tabs. Sync pauses until you remove {after - cap}. Everything still saves on this device.
+          </p>
+        )}
+      </ModalBody>
+      <ModalFooter primary={{
+        label: replace ? "Replace workspace" : `Add ${plural(tabs, "tab")}`,
+        tone: replace ? "destructive" : "primary",
+        onClick: apply,
+      }} />
+    </Modal>
   )
 }

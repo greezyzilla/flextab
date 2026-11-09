@@ -60,7 +60,7 @@ describe("MergeConflictModal (TASK-29)", () => {
   it("chooses nothing for the user: Apply waits for every conflict", () => {
     open()
     render(<MergeConflictModal />)
-    const apply = screen.getByRole("button", { name: "Apply" })
+    const apply = screen.getByRole("button", { name: "Resolve conflicts" })
     expect(apply).toBeDisabled()
     expect(screen.getByText("0 of 2 chosen")).toBeInTheDocument()
     fireEvent.click(within(screen.getByRole("region", { name: "Space Work" })).getByRole("radio", { name: /Your account/ }))
@@ -78,7 +78,7 @@ describe("MergeConflictModal (TASK-29)", () => {
     open()
     render(<MergeConflictModal />)
     fireEvent.click(screen.getByRole("button", { name: "This device" }))
-    expect(screen.getByRole("button", { name: "Apply" })).toBeEnabled()
+    expect(screen.getByRole("button", { name: "Resolve conflicts" })).toBeEnabled()
     expect(screen.getByText("6 tabs after apply")).toBeInTheDocument() // a, b, n + Later's x, y, z
   })
 
@@ -112,7 +112,7 @@ describe("MergeConflictModal (TASK-29)", () => {
     expect(tabBlock).toHaveTextContent("Address was “https://a.example/”. Both sides changed it.")
     fireEvent.click(within(tabBlock).getByRole("radio", { name: /Keep both/ }))
     expect(screen.getByText("4 tabs after apply")).toBeInTheDocument() // a twice, b, x
-    fireEvent.click(screen.getByRole("button", { name: "Apply" }))
+    fireEvent.click(screen.getByRole("button", { name: "Resolve conflicts" }))
     expect(resolve).toHaveBeenCalledWith({ [conflicts[0].key]: "local" }, [conflicts[0].key])
   })
 })

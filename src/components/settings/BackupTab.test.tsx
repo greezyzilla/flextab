@@ -73,10 +73,10 @@ describe("version history recovery", () => {
     render(<BackupTab />);
     fireEvent.click(await screen.findByRole("button", { name: "Preview" }));
     await screen.findByText("Archived workspace");
-    fireEvent.click(screen.getByRole("button", { name: "Restore this version" }));
+    fireEvent.click(screen.getByRole("button", { name: "Restore version" }));
     const confirmation = await screen.findByRole("alertdialog", { name: "Restore version v42?" });
     expect(apiRestoreSnapshot).not.toHaveBeenCalled();
-    fireEvent.click(within(confirmation).getByRole("button", { name: "Restore" }));
+    fireEvent.click(within(confirmation).getByRole("button", { name: "Restore version" }));
     expect(apiRestoreSnapshot).toHaveBeenCalledExactlyOnceWith(42);
     expect(pullAndOverwrite).not.toHaveBeenCalled();
     expect(screen.getByText("Restoring…")).toBeInTheDocument();
@@ -94,7 +94,7 @@ describe("version history recovery", () => {
   async function confirmRestore() {
     fireEvent.click(await screen.findByRole("button", { name: "Restore" }));
     const confirmation = await screen.findByRole("alertdialog");
-    await act(async () => { fireEvent.click(within(confirmation).getByRole("button", { name: "Restore" })); });
+    await act(async () => { fireEvent.click(within(confirmation).getByRole("button", { name: "Restore version" })); });
   }
 
   it.each(["false", "rejection"])("reports a failed local pull (%s) and retries only the pull", async (failure) => {
@@ -109,7 +109,7 @@ describe("version history recovery", () => {
     expect(apiListSnapshots).toHaveBeenCalledTimes(1);
     expect(screen.getByRole("button", { name: "Restore" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "Preview" }));
-    expect(await screen.findByRole("button", { name: "Restore this version" })).toBeDisabled();
+    expect(await screen.findByRole("button", { name: "Restore version" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
     fireEvent.click(screen.getByRole("button", { name: "Retry loading workspace" }));
     expect(await screen.findByText("Restored.")).toBeInTheDocument();
@@ -231,10 +231,9 @@ describe("workspace import (TASK-12)", () => {
     upload(BACKUP);
     const dialog = await screen.findByRole("dialog");
     expect(dialog).toHaveTextContent("Import from FlexTab backup");
-    expect(dialog).toHaveTextContent("backup.json");
-    expect(dialog).toHaveTextContent("1 tab in 1 group");
-    // Focus starts on the action, not on Cancel.
-    await waitFor(() => expect(within(dialog).getByRole("button", { name: "Add 1 tab" })).toHaveFocus());
+    expect(dialog).toHaveAccessibleDescription("1 tab in 1 group.");
+    // Focus starts on the chosen option, never on the primary (modal standard §8).
+    await waitFor(() => expect(within(dialog).getByRole("radio", { name: /Add to my workspace/ })).toHaveFocus());
     expect(yjs.encodeState()).toEqual(before);
     fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());

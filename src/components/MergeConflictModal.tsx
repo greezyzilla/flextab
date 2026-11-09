@@ -11,14 +11,7 @@ import { GROUP_COLORS } from "~src/lib/groupColors"
 import { Button } from "~src/components/ui/button"
 import { Label } from "~src/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "~src/components/ui/radio-group"
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "~src/components/ui/alert-dialog"
+import { Modal, ModalBody, ModalFooter, ModalHeader, ModalLink } from "~src/components/ui/modal"
 
 type Side = "server" | "local"
 /** A choice: one side, or both versions of a tab's address (TASK-29). */
@@ -114,110 +107,103 @@ export function MergeConflictModal() {
   const chooseAll = (side: Side) => setChoices(Object.fromEntries(conflicts.map((c) => [c.key, side])))
   const reset = () => { setChoices({}); setShowMerged(false) }
 
-  // Controlled solely by store pending. Pause/Apply clear pending via engine
-  // helpers: no Esc/outside path that would pause sync by accident.
+  // A forced decision (modal standard §2): no Esc or outside path that would
+  // pause sync by accident. Pausing is the explicit footer-start action;
+  // resolving clears pending via the engine.
   return (
-    <AlertDialog open={pending}>
-      <AlertDialogContent className="w-[640px] max-w-[94vw] max-h-[88vh] p-0 gap-0 flex flex-col font-sans">
-        <AlertDialogHeader className="p-6 pb-3 space-y-1.5 shrink-0 text-left">
-          <AlertDialogTitle className="text-fg text-base font-medium">Resolve sync conflicts</AlertDialogTitle>
-          <AlertDialogDescription className="text-fg-subtle text-sm leading-relaxed">
-            {plural(conflicts.length, "item")} changed on both this device and your account. Choose a version for each. Nothing changes until you apply.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
+    <Modal kind="alert" size="l" open={pending} onOpenChange={() => {}} dismissible={false}>
+      <ModalHeader title="Resolve sync conflicts"
+        description={`${plural(conflicts.length, "item")} changed on both this device and your account. Choose a version for each. Nothing changes until you apply.`} />
 
-        {mergedCount > 0 && (
-          <div className="px-6 pb-3 shrink-0">
-            <button
-              type="button"
-              aria-expanded={showMerged}
-              onClick={() => setShowMerged((v) => !v)}
-              className="flex items-center gap-1.5 rounded text-fg-muted text-xs outline-none hover:text-fg focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              <ChevronRight className={cn("h-3.5 w-3.5 transition-transform", showMerged && "rotate-90")} aria-hidden />
-              {plural(mergedCount, "other change")} merged automatically
-            </button>
-            {showMerged && (
-              <div className="mt-2 flex max-h-40 flex-col gap-3 overflow-y-auto rounded-lg border border-ink/10 bg-ink/[0.02] px-3 py-2.5">
-                <MergedList title="From your account, arriving on this device" changes={merged.fromAccount} />
-                <MergedList title="From this device, going to your account" changes={merged.fromDevice} />
-              </div>
-            )}
-          </div>
-        )}
+      {mergedCount > 0 && (
+        <div className="shrink-0">
+          <button
+            type="button"
+            aria-expanded={showMerged}
+            onClick={() => setShowMerged((v) => !v)}
+            className="flex items-center gap-1.5 rounded text-fg-muted text-xs outline-none hover:text-fg focus-visible:ring-1 focus-visible:ring-ring"
+          >
+            <ChevronRight className={cn("h-3.5 w-3.5 transition-transform", showMerged && "rotate-90")} aria-hidden />
+            {plural(mergedCount, "other change")} merged automatically
+          </button>
+          {showMerged && (
+            <div className="mt-2 flex max-h-40 flex-col gap-3 overflow-y-auto rounded-lg border border-ink/10 bg-ink/[0.02] px-3 py-2.5">
+              <MergedList title="From your account, arriving on this device" changes={merged.fromAccount} />
+              <MergedList title="From this device, going to your account" changes={merged.fromDevice} />
+            </div>
+          )}
+        </div>
+      )}
 
+      <div className="flex shrink-0 items-center gap-2 text-fg-subtle text-xs">
         {conflicts.length > 1 && (
-          <div className="flex shrink-0 items-center gap-2 px-6 pb-3 text-fg-subtle text-xs">
+          <>
             <span>Choose for all:</span>
             <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs" onClick={() => chooseAll("local")}>This device</Button>
             <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs" onClick={() => chooseAll("server")}>Your account</Button>
-          </div>
+          </>
         )}
+        <span className="ml-auto" aria-live="polite">
+          {complete ? `${plural(resolvedCount, "tab")} after apply` : `${chosen} of ${conflicts.length} chosen`}
+        </span>
+      </div>
 
-        {/* The list scrolls under a fixed header: the same rule as the footer's
-            marks where it starts, so a card cut by the edge reads as scrolled. */}
-        <div className="min-h-[100px] flex-1 overflow-y-auto border-t border-line px-6">
-          <div className="flex flex-col gap-3 py-3">
-            {items.map(({ c, level, path, name, lead, options }) => (
-              <section key={c.key} aria-label={`${LEVEL_LABEL[level]} ${name}`} className="flex flex-col gap-2 rounded-lg border border-ink/10 p-3">
-                <div className="flex min-w-0 flex-col gap-0.5">
-                  <div className="flex min-w-0 items-baseline gap-2">
-                    <span className="shrink-0 text-fg-subtle text-[11px] uppercase tracking-wide">{LEVEL_LABEL[level]}</span>
-                    <span className="truncate text-fg text-sm">{name}</span>
-                  </div>
-                  {path.length > 0 && <span className="truncate text-fg-subtle text-[11px]">in {path.join(" › ")}</span>}
+      {/* The list is the scroll area; hairlines mark its edges while it scrolls (§3). */}
+      <ModalBody>
+        <div className="flex min-h-[100px] flex-col gap-3">
+          {items.map(({ c, level, path, name, lead, options }) => (
+            <section key={c.key} aria-label={`${LEVEL_LABEL[level]} ${name}`} className="flex flex-col gap-2 rounded-lg border border-ink/10 p-3">
+              <div className="flex min-w-0 flex-col gap-0.5">
+                <div className="flex min-w-0 items-baseline gap-2">
+                  <span className="shrink-0 text-fg-subtle text-[11px] uppercase tracking-wide">{LEVEL_LABEL[level]}</span>
+                  <span className="truncate text-fg text-sm">{name}</span>
                 </div>
-                <p className="text-fg-muted text-xs leading-relaxed">{lead}</p>
-                <RadioGroup
-                  value={choices[c.key] ?? ""}
-                  onValueChange={(v) => choose(c.key, v as Choice)}
-                  aria-label={`${LEVEL_LABEL[level]} ${name}: which version to keep`}
-                  className="grid grid-cols-1 gap-2 sm:grid-cols-2"
-                >
-                  {options.map((opt) => {
-                    const id = `merge-${c.key}-${opt.side}`
-                    return (
-                      <Label
-                        key={opt.side}
-                        htmlFor={id}
-                        className={cn(
-                          "flex cursor-pointer items-start gap-2.5 rounded-md border px-3 py-2 font-normal transition-colors",
-                          opt.side === "both" && "sm:col-span-2",
-                          choices[c.key] === opt.side ? "border-[var(--accent)] bg-[var(--accent-subtle)]" : "border-ink/10 bg-ink/[0.02] hover:bg-ink/[0.05]",
-                        )}
-                      >
-                        <RadioGroupItem value={opt.side} id={id} className="mt-0.5" />
-                        <span className="flex min-w-0 flex-col gap-0.5">
-                          <span className="text-fg text-xs font-medium">{opt.label}</span>
-                          <span className="break-all text-fg-subtle text-xs">{opt.detail}</span>
-                        </span>
-                      </Label>
-                    )
-                  })}
-                </RadioGroup>
-              </section>
-            ))}
-          </div>
+                {path.length > 0 && <span className="truncate text-fg-subtle text-[11px]">in {path.join(" › ")}</span>}
+              </div>
+              <p className="text-fg-muted text-xs leading-relaxed">{lead}</p>
+              <RadioGroup
+                value={choices[c.key] ?? ""}
+                onValueChange={(v) => choose(c.key, v as Choice)}
+                aria-label={`${LEVEL_LABEL[level]} ${name}: which version to keep`}
+                className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+              >
+                {options.map((opt) => {
+                  const id = `merge-${c.key}-${opt.side}`
+                  return (
+                    <Label
+                      key={opt.side}
+                      htmlFor={id}
+                      className={cn(
+                        "flex cursor-pointer items-start gap-2.5 rounded-md border px-3 py-2 font-normal transition-colors",
+                        opt.side === "both" && "sm:col-span-2",
+                        choices[c.key] === opt.side ? "border-[var(--accent)] bg-[var(--accent-subtle)]" : "border-ink/10 bg-ink/[0.02] hover:bg-ink/[0.05]",
+                      )}
+                    >
+                      <RadioGroupItem value={opt.side} id={id} className="mt-0.5" />
+                      <span className="flex min-w-0 flex-col gap-0.5">
+                        <span className="text-fg text-xs font-medium">{opt.label}</span>
+                        <span className="break-all text-fg-subtle text-xs">{opt.detail}</span>
+                      </span>
+                    </Label>
+                  )
+                })}
+              </RadioGroup>
+            </section>
+          ))}
         </div>
+      </ModalBody>
 
-        <AlertDialogFooter className="p-6 pt-4 flex-row items-center justify-between gap-2 shrink-0 border-t border-line sm:justify-between sm:space-x-0">
-          <span className="text-fg-subtle text-[11px]" aria-live="polite">
-            {complete ? `${plural(resolvedCount, "tab")} after apply` : `${chosen} of ${conflicts.length} chosen`}
-          </span>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" onClick={() => { dismissMergeConflicts(); reset() }}>
-              Pause sync and decide later
-            </Button>
-            <Button variant="default" disabled={!complete} onClick={() => {
-                const { resolutions, keepBoth } = split(choices, conflicts)
-                resolveMergeConflicts(resolutions, keepBoth.map((c) => c.key))
-                reset()
-              }}>
-              Apply
-            </Button>
-          </div>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+      <ModalFooter
+        start={<ModalLink onClick={() => { dismissMergeConflicts(); reset() }}>Pause sync and decide later</ModalLink>}
+        primary={{
+          label: "Resolve conflicts",
+          disabled: !complete,
+          onClick: () => {
+            const { resolutions, keepBoth } = split(choices, conflicts)
+            resolveMergeConflicts(resolutions, keepBoth.map((c) => c.key))
+            reset()
+          },
+        }} />
+    </Modal>
   )
 }
