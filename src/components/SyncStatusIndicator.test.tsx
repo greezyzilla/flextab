@@ -15,7 +15,8 @@ vi.mock("~src/services/api", async (orig) => ({ ...(await orig<object>()), apiGe
 const { syncNow } = vi.hoisted(() => ({ syncNow: vi.fn(async () => ({ status: "conflict" })) }))
 vi.mock("~src/services/syncEngine", () => ({ syncNow }))
 
-const plan = (cap: number) => ({ plan: "free", limits: { max_tabs_total: cap, max_tree_bytes: 0, max_snapshots: 0 }, usage: { total_tabs: 0, tree_bytes: 0, snapshots: 0 } }) as PlanStatus
+// `synced`: tabs the account already holds on the server (0 = it never received any, TASK-33).
+const plan = (cap: number, synced = 120) => ({ plan: "free", limits: { max_tabs_total: cap, max_tree_bytes: 0, max_snapshots: 0 }, usage: { total_tabs: synced, tree_bytes: 0, snapshots: 0 } }) as PlanStatus
 const withTabs = (n: number): SavedSpace[] => [{ id: "s", name: "Work", order: 0, projects: [{ id: "p", name: "P", order: 0, categories: [{ id: "c", name: "C", order: 0,
   groups: [{ id: "g", name: "G", order: 0, tabs: Array.from({ length: n }, (_, i) => ({ id: `t${i}`, url: `https://${i}.example/`, title: `${i}`, favicon: "", order: i })) }] }] }] }]
 
@@ -60,6 +61,16 @@ describe("SyncStatusIndicator", () => {
     render(<TooltipProvider><SyncStatusIndicator /></TooltipProvider>)
     expect(await screen.findByText("130/150")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Sync status: Connected, 130 of 150 tabs" })).toBeInTheDocument()
+  })
+
+  it("says nothing synced yet when the paused account never received a tab (TASK-33)", async () => {
+    getPlan.mockResolvedValue(plan(150, 0))
+    useAuthStore.setState({ isAuthenticated: true, user: { id: "u1" } as never })
+    useSyncStore.setState({ status: "error", limit: { message: "m", at: 0, limit: "max_tabs_total", cap: 150, got: 200 } })
+    useSavedSpacesStore.setState({ savedSpaces: withTabs(200) })
+    render(<TooltipProvider><SyncStatusIndicator /></TooltipProvider>)
+    await userEvent.click(screen.getByRole("button", { name: "Sync status: Sync paused" }))
+    expect(await screen.findByText("Nothing synced yet. 200 of 150 tabs. Remove 50 to sync, or upgrade. Everything stays on this device.")).toBeInTheDocument()
   })
 
   it("says Sync paused in words over the limit, with what to remove and See plan (TASK-9)", async () => {

@@ -99,7 +99,7 @@ export function SyncStatusIndicator() {
     Icon = CloudOff
     cls = "text-warning"
     label = "Sync paused"
-    detail = `${limitSummary(limit, tabs)} Everything stays on this device.`
+    detail = `${limitSummary(limit, tabs, plan?.usage?.total_tabs === 0)} Everything stays on this device.`
     spin = false
   } else if (showConflict) {
     Icon = CloudOff

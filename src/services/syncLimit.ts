@@ -57,10 +57,13 @@ function sentence(text: string): string {
  * What the user can do about it, in one line. With the device's current tab
  * count the line follows the user's own pruning instead of the old rejection.
  */
-export function limitSummary(notice: SyncLimitNotice, tabs?: number): string {
+export function limitSummary(notice: SyncLimitNotice, tabs?: number, neverSynced = false): string {
   if (notice.limit === "max_tabs_total" && notice.cap !== undefined) {
     const count = tabs ?? notice.got ?? notice.cap
     const over = count - notice.cap
+    // An account that never received a tab (TASK-33) must not read as "again":
+    // a second device would find it empty and think the tabs were lost.
+    if (over > 0 && neverSynced) return `Nothing synced yet. ${count} of ${notice.cap} tabs. Remove ${over} to sync, or upgrade.`
     return over > 0
       ? `${count} of ${notice.cap} tabs. Remove ${over} to sync again, or upgrade.`
       : `Back within ${notice.cap} tabs. Syncing again.`

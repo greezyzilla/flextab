@@ -1,6 +1,7 @@
 import { useEffect } from "react"
 import { WorkspaceLoadError } from "~src/components/WorkspaceLoadError"
 import { SyncConflictModal } from "~src/components/SyncConflictModal"
+import { OverCapNotice } from "~src/components/OverCapNotice"
 import { MergeConflictModal } from "~src/components/MergeConflictModal"
 import { OnboardingScreen } from "~src/components/OnboardingScreen"
 import { AppShell } from "~src/components/layout/AppShell"
@@ -84,6 +85,7 @@ function NewTabPage() {
       <ErrorBoundary>
         <AppShell />
         <SyncConflictModal />
+        <OverCapNotice />
         <MergeConflictModal />
       </ErrorBoundary>
     </TooltipProvider>

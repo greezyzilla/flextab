@@ -1,5 +1,5 @@
 import { completeOAuthLogin, registerOAuthMessages } from "~src/services/oauthLogin";
-import { automaticPushAllowed, SETTINGS_KEY, storedAutoSync, withSyncWriteLock } from "~src/services/syncPolicy";
+import { automaticPushAllowed, PUSH_REQUEST_KEY, SETTINGS_KEY, storedAutoSync, withSyncWriteLock } from "~src/services/syncPolicy";
 import { loadTokens, getDeviceId } from "~src/services/api";
 import { syncStructuredSnapshot } from "~src/services/structuredSync";
 import { merge3 } from "~src/services/spacesMerge3";
@@ -231,6 +231,12 @@ chrome.storage.onChanged.addListener((changes, area) => {
   // stopped, without waiting for the next edit.
   if (changes[LIMIT_RECHECK_KEY]?.newValue) {
     void chrome.storage.local.remove(LIMIT_RECHECK_KEY);
+    void pushStructuredData();
+  }
+  // A page asked for an upload now (TASK-33): its resolution left the document
+  // unchanged, so no persist below would trigger one.
+  if (changes[PUSH_REQUEST_KEY]?.newValue) {
+    void chrome.storage.local.remove(PUSH_REQUEST_KEY);
     void pushStructuredData();
   }
   if (!changes[PERSIST_KEY]) return;

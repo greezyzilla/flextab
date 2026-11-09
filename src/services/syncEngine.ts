@@ -1,4 +1,4 @@
-import { withSyncWriteLock } from "./syncPolicy";
+import { requestPush, withSyncWriteLock } from "./syncPolicy";
 import { syncStructuredSnapshot } from "./structuredSync";
 import { clearLimitNotice, saveLimitNotice } from "./syncLimit";
 import { recordLandedSnapshot } from "./landedSnapshot";
@@ -9,6 +9,8 @@ export { spacesSignature } from "~src/lib/spacesSignature";
 import { useAuthStore } from "~src/store/useAuthStore";
 import { useSyncStore } from "~src/store/useSyncStore";
 import { useSyncConflict } from "~src/store/useSyncConflict";
+import { useOverCapNotice } from "~src/store/useOverCapNotice";
+import { tabCap, usePlanStore } from "~src/store/usePlanStore";
 import { useMergeConflict } from "~src/store/useMergeConflict";
 import { useSettingsStore } from "~src/store/useSettingsStore";
 import { apiFetch, loadTokens, getDeviceId, API_BASE_URL } from "./api";
@@ -164,13 +166,16 @@ let manualResolution: Promise<void> | null = null;
 function applyUserResolution(spaces: SavedSpace[], selectFirst = false) {
   const work = applyResolution(spaces, { selectFirst, serverConfirmed: false });
   if (!automaticSyncActive()) manualResolution = work;
-  void work.catch(() => { manualResolution = null; setStatus("error"); });
+  return work.catch(() => { manualResolution = null; setStatus("error"); });
 }
 
 export type Reconciliation =
   | { kind: "conflict" } // guest↔account sign-in (no shared history) → coarse prompt
   | { kind: "item-conflict"; spaces: SavedSpace[]; conflicts: Conflict[] } // 3-way per-item
-  | { kind: "apply"; spaces: SavedSpace[] };
+  | { kind: "apply"; spaces: SavedSpace[] }
+  // First sign-in uploading more tabs than the plan syncs (TASK-33): say so
+  // before the upload instead of letting the first push end in "Sync paused".
+  | { kind: "over-cap"; spaces: SavedSpace[]; tabs: number; cap: number };
 
 /**
  * Guest / no-merge-base reconciliation only (FE-C3).
@@ -178,14 +183,21 @@ export type Reconciliation =
  * - after a "keep tabs" sign-out + local tabs → conflict too, on any reconcile
  *   without a base and even into an empty account: those tabs came from an
  *   earlier sign-in (TASK-11)
+ * - explicit login + local only + more tabs than the plan's cap → over-cap
+ *   notice first (TASK-33); `cap` undefined (unknown) or 0 (unlimited) skips it
  * - server only → take server; local only → keep local; both → mergeSpacesGuest
  * Live OCC with a base uses decideReconciliation3 → merge3.
  */
-export function decideReconciliation(server: SavedSpace[], local: SavedSpace[], freshLogin: boolean, askBeforeUpload = false): Reconciliation {
+export function decideReconciliation(server: SavedSpace[], local: SavedSpace[], freshLogin: boolean, askBeforeUpload = false, cap?: number): Reconciliation {
   const serverReal = hasRealData(server);
   const localReal = hasRealData(local);
 
   if (localReal && ((freshLogin && serverReal) || askBeforeUpload)) return { kind: "conflict" };
+
+  if (freshLogin && localReal && !serverReal && cap !== undefined && cap > 0) {
+    const tabs = totalTabs(local);
+    if (tabs > cap) return { kind: "over-cap", spaces: local, tabs, cap };
+  }
 
   let spaces: SavedSpace[];
   if (serverReal && !localReal) spaces = server;
@@ -206,8 +218,9 @@ export function decideReconciliation3(
   local: SavedSpace[],
   freshLogin: boolean,
   askBeforeUpload = false,
+  cap?: number,
 ): Reconciliation {
-  if (!base) return decideReconciliation(server, local, freshLogin, askBeforeUpload);
+  if (!base) return decideReconciliation(server, local, freshLogin, askBeforeUpload, cap);
   const { merged, conflicts } = merge3(base, server, local);
   return conflicts.length > 0
     ? { kind: "item-conflict", spaces: merged, conflicts }
@@ -281,9 +294,21 @@ async function reconcileState(freshLogin: boolean, manual: boolean, allowed: () 
 
   const base = await getMergeBase();
   const askBeforeUpload = await loadKeptOnSignOut();
+  // The plan's cap decides whether a first upload needs a notice (TASK-33), so
+  // it is known before deciding, not after the push is rejected.
+  // load() never rejects: a plan that fails to load leaves the cap unknown, and
+  // the server still enforces it, so the old path (push → "Sync paused") remains.
+  if (freshLogin && !base) await usePlanStore.getState().load();
   if (!allowed()) return "paused";
   const local = getSpaces();
-  const decision = decideReconciliation3(base, server, local, freshLogin, askBeforeUpload);
+  const decision = decideReconciliation3(base, server, local, freshLogin, askBeforeUpload, tabCap(usePlanStore.getState().status));
+
+  if (decision.kind === "over-cap") {
+    pendingLocal = decision.spaces;
+    useOverCapNotice.getState().open(decision.tabs, decision.cap);
+    setStatus("online");
+    return "conflict"; // wait for acknowledgeOverCap()
+  }
 
   if (decision.kind === "conflict") {
     pendingServer = server;
@@ -320,6 +345,20 @@ async function reconcileState(freshLogin: boolean, manual: boolean, allowed: () 
   if (freshLogin) await clearFreshLogin(); // acted on
   if (askBeforeUpload && !base) await clearKeptOnSignOut(); // nothing local to ask about
   return "ok";
+}
+
+/** The over-cap notice was read (TASK-33): continue the first upload as before.
+ *  The server stays the judge of the cap, so the push is still sent; it is
+ *  rejected and the lasting "Sync paused" state takes over, now expected. */
+export function acknowledgeOverCap() {
+  const l = pendingLocal;
+  pendingLocal = null;
+  useOverCapNotice.getState().close();
+  if (!l) return;
+  void clearFreshLogin();
+  // The document is unchanged, so ask the worker to upload once hydration is
+  // set. The worker still checks that automatic pushes are allowed.
+  void applyUserResolution(l, true).then(requestPush);
 }
 
 /** Resolve a guest↔account conflict with the user's choice. */

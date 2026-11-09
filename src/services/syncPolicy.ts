@@ -22,6 +22,16 @@ export async function automaticPushAllowed(): Promise<boolean> {
   } catch { return false; }
 }
 
+// A page asks the worker to upload now. The worker otherwise uploads only when
+// the local document changes, so a resolution that keeps the document as it is
+// (e.g. continuing past the over-cap notice, TASK-33) would wait for the
+// 5-minute retry alarm and show a normal sync state in the meantime.
+export const PUSH_REQUEST_KEY = "flextab_push_request";
+
+export async function requestPush(): Promise<void> {
+  try { await chrome.storage.local.set({ [PUSH_REQUEST_KEY]: Date.now() }); } catch { /* the alarm still retries */ }
+}
+
 // Manual page sync and automatic worker sync share revision/receipt storage.
 // Chrome Web Locks serialize the whole read/reconcile/write operation across
 // contexts. The fallback supports environments without the browser API.

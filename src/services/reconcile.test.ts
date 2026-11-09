@@ -16,6 +16,35 @@ const space = (id: string, name: string, tabs: ReturnType<typeof tab>[] = []): S
 const withTabs = [space('s', 'Work', [tab('t1')])];
 const empty = [space('e', 'Personal', [])];
 
+describe('decideReconciliation over the plan cap (TASK-33)', () => {
+  const many = [space('l', 'Research', [tab('a'), tab('b'), tab('c')])];
+
+  it('fresh login, empty account, more local tabs than the cap → over-cap notice first', () => {
+    expect(decideReconciliation([], many, true, false, 2)).toEqual({ kind: 'over-cap', spaces: many, tabs: 3, cap: 2 });
+    expect(decideReconciliation(empty, many, true, false, 2).kind).toBe('over-cap');
+  });
+
+  it('applies as before when the tabs fit, the cap is unknown or unlimited', () => {
+    expect(decideReconciliation([], many, true, false, 3)).toEqual({ kind: 'apply', spaces: many });
+    expect(decideReconciliation([], many, true, false, undefined)).toEqual({ kind: 'apply', spaces: many });
+    expect(decideReconciliation([], many, true, false, 0)).toEqual({ kind: 'apply', spaces: many });
+  });
+
+  it('only on a fresh login: later reconciles go on to the push and its Sync paused state', () => {
+    expect(decideReconciliation([], many, false, false, 2)).toEqual({ kind: 'apply', spaces: many });
+  });
+
+  it('keeps the choice dialog when there is a choice to make (it carries its own cap note)', () => {
+    expect(decideReconciliation(withTabs, many, true, false, 2)).toEqual({ kind: 'conflict' });
+    expect(decideReconciliation([], many, true, true, 2)).toEqual({ kind: 'conflict' });
+  });
+
+  it('passes the cap through without a merge base and ignores it with one', () => {
+    expect(decideReconciliation3(null, [], many, true, false, 2).kind).toBe('over-cap');
+    expect(decideReconciliation3(many, many, many, true, false, 2).kind).toBe('apply');
+  });
+});
+
 describe('decideReconciliation', () => {
   it('explicit login + both sides have tabs → conflict', () => {
     expect(decideReconciliation(withTabs, [space('l', 'Research', [tab('t2')])], true)).toEqual({ kind: 'conflict' });

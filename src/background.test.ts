@@ -122,6 +122,15 @@ describe("production background push", () => {
     expect(api.pushSync).toHaveBeenCalledTimes(2);
   });
 
+  it("uploads now when a page asks, without a new edit (TASK-33)", async () => {
+    await edit([space("first")]);
+    await vi.advanceTimersByTimeAsync(5000);
+    vi.mocked(api.pushSync).mockClear();
+    await chrome.storage.local.set({ flextab_push_request: 1 });
+    await until(() => vi.mocked(api.pushSync).mock.calls.length === 1);
+    expect(disk.flextab_push_request).toBeUndefined();
+  });
+
   it("keeps edits local after manual hydration when auto-sync is off, across every trigger", async () => {
     disk["flextab-settings"] = JSON.stringify({ state: { autoSync: false }, version: 2 });
     await edit([space("private")]);

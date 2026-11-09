@@ -5,6 +5,7 @@ const authListeners = vi.hoisted(() => new Set<(state: any, previous: any) => vo
 
 vi.mock('./api', () => ({
   apiFetch: vi.fn(),
+  apiGetPlan: vi.fn(async () => ({ plan: 'free', limits: {}, usage: { total_tabs: 0, tree_bytes: 0, snapshots: 0 } })),
   pushSync: vi.fn(async () => ({ status: "ok", revision: 2 })),
   loadTokens: vi.fn(async () => ({ access_token: 't', refresh_token: 'r', expires_at: 0 })),
   getDeviceId: vi.fn(async () => 'dev1'),
@@ -17,9 +18,11 @@ vi.mock('~src/store/useSavedSpacesStore', () => ({ ensureDefaultData: vi.fn(), s
 import {
   startSyncEngine, stopSyncEngine, syncNow, pullAndOverwrite, resolveConflict,
   dismissMergeConflicts, startLocalPersistence, stopLocalPersistence,
-  adoptStoredOccConflict, resolveMergeConflicts,
+  adoptStoredOccConflict, resolveMergeConflicts, acknowledgeOverCap,
 } from './syncEngine';
-import { apiFetch, loadTokens, pushSync } from './api';
+import { apiFetch, apiGetPlan, loadTokens, pushSync } from './api';
+import { useOverCapNotice } from '~src/store/useOverCapNotice';
+import { usePlanStore } from '~src/store/usePlanStore';
 import { useAuthStore } from '~src/store/useAuthStore';
 import { useSyncStore } from '~src/store/useSyncStore';
 import { useSyncConflict } from '~src/store/useSyncConflict';
@@ -225,6 +228,61 @@ describe('startSyncEngine', () => {
     await flush();
     expect(useSyncStore.getState().status).toBe('offline');
     expect(FakeWS.instances).toHaveLength(0);
+  });
+});
+
+describe('over-cap first sign-in (TASK-33)', () => {
+  beforeEach(() => {
+    usePlanStore.getState().clear();
+    useOverCapNotice.getState().close();
+    setSpaces([localSpace('local', [{ id: 'A' }, { id: 'B' }, { id: 'C' }])]);
+    (chrome.storage.local.get as any).mockImplementation(async (k: any) =>
+      k === 'flextab_fresh_login' ? { flextab_fresh_login: true } : {});
+    (apiFetch as any).mockResolvedValue({ spaces: [], revision: 1 });
+    (apiGetPlan as any).mockResolvedValue({ plan: 'free', limits: { max_tabs_total: 2 }, usage: { total_tabs: 0, tree_bytes: 0, snapshots: 0 } });
+  });
+  afterEach(() => { usePlanStore.getState().clear(); useOverCapNotice.getState().close(); });
+
+  it('loads the plan and shows the notice before any upload, keeping the fresh-login flag', async () => {
+    await startSyncEngine();
+    await flush();
+    expect(apiGetPlan).toHaveBeenCalled();
+    expect(useOverCapNotice.getState()).toMatchObject({ pending: true, tabs: 3, cap: 2 });
+    expect(useSyncConflict.getState().pending).toBe(false);
+    expect(FakeWS.instances).toHaveLength(0); // waits for the person
+    expect(chrome.storage.local.remove).not.toHaveBeenCalledWith('flextab_fresh_login');
+  });
+
+  it('Got it continues the first upload as before and clears the fresh-login flag', async () => {
+    await startSyncEngine();
+    await flush();
+    acknowledgeOverCap();
+    await flush();
+    expect(useOverCapNotice.getState().pending).toBe(false);
+    expect(getSpaces().map(s => s.id)).toEqual(['local']);
+    expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_fresh_login');
+    expect(FakeWS.instances).toHaveLength(1);
+    // Nothing in the document changed, so the worker is asked to upload now.
+    expect(chrome.storage.local.set).toHaveBeenCalledWith({ flextab_push_request: expect.any(Number) });
+    acknowledgeOverCap(); // a second call has nothing pending
+    expect(useOverCapNotice.getState().pending).toBe(false);
+  });
+
+  it('falls back to the old path when the plan cannot be loaded', async () => {
+    (apiGetPlan as any).mockRejectedValue(new Error('offline'));
+    await startSyncEngine();
+    await flush();
+    expect(useOverCapNotice.getState().pending).toBe(false);
+    expect(getSpaces().map(s => s.id)).toEqual(['local']);
+    expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_fresh_login');
+  });
+
+  it('says nothing when the tabs fit the plan', async () => {
+    (apiGetPlan as any).mockResolvedValue({ plan: 'plus', limits: { max_tabs_total: 2000 }, usage: { total_tabs: 0, tree_bytes: 0, snapshots: 0 } });
+    await startSyncEngine();
+    await flush();
+    expect(useOverCapNotice.getState().pending).toBe(false);
+    expect(FakeWS.instances).toHaveLength(1);
   });
 });
 

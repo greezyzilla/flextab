@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { automaticPushAllowed, SETTINGS_KEY, storedAutoSync, withSyncWriteLock } from "./syncPolicy";
+import { automaticPushAllowed, PUSH_REQUEST_KEY, requestPush, SETTINGS_KEY, storedAutoSync, withSyncWriteLock } from "./syncPolicy";
 
 describe("automatic sync policy", () => {
   it.each([
@@ -20,6 +20,13 @@ describe("automatic sync policy", () => {
     expect(await automaticPushAllowed()).toBe(true);
     delete disk.flextab_sync_hydrated;
     expect(await automaticPushAllowed()).toBe(false);
+  });
+  it("asks the worker to upload now, and tolerates storage failure (TASK-33)", async () => {
+    vi.mocked(chrome.storage.local.set).mockResolvedValue(undefined);
+    await requestPush();
+    expect(chrome.storage.local.set).toHaveBeenCalledWith({ [PUSH_REQUEST_KEY]: expect.any(Number) });
+    vi.mocked(chrome.storage.local.set).mockRejectedValueOnce(new Error("no ctx"));
+    await expect(requestPush()).resolves.toBeUndefined();
   });
   it("fails closed on storage failure", async () => {
     vi.mocked(chrome.storage.local.get).mockRejectedValue(new Error("disk unavailable"));

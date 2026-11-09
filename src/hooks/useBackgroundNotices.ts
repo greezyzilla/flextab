@@ -26,7 +26,7 @@ function applyLimitNotice(value: unknown, announce: boolean) {
   void usePlanStore.getState().load()
   if (announce && !wasPaused) {
     toast.error("Sync paused", {
-      description: `${limitSummary(notice)} Your tabs are still saved on this device.`,
+      description: `${limitSummary(notice, undefined, usePlanStore.getState().status?.usage?.total_tabs === 0)} Your tabs are still saved on this device.`,
       action: { label: "See plan", onClick: () => navigate("/settings/plan") },
     })
   }
