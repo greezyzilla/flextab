@@ -4,7 +4,19 @@ import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { DndContext, useDraggable } from "@dnd-kit/core"
 import { Drawer } from "./Drawer"
-import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "~src/components/ui/dialog"
+import { Modal, ModalHeader } from "~src/components/ui/modal"
+
+// A modal opened from inside the drawer, as the app's own modals are (ui/modal).
+function NestedModal() {
+  const [open, setOpen] = useState(false)
+  return <>
+    <button onClick={() => setOpen(true)}>Open nested dialog</button>
+    <Modal kind="dialog" size="s" open={open} onOpenChange={setOpen}>
+      <ModalHeader title="Nested dialog" />
+      <input aria-label="Nested input" />
+    </Modal>
+  </>
+}
 
 function Harness({ side = "left" }: { side?: "left" | "right" }) {
   const [open, setOpen] = useState(false)
@@ -13,10 +25,7 @@ function Harness({ side = "left" }: { side?: "left" | "right" }) {
     <Drawer side={side} open={open} onClose={() => setOpen(false)}>
       <input aria-label="Panel input" />
       <button>Panel action</button>
-      <Dialog>
-        <DialogTrigger>Open nested dialog</DialogTrigger>
-        <DialogContent><DialogTitle>Nested dialog</DialogTitle><input aria-label="Nested input" /></DialogContent>
-      </Dialog>
+      <NestedModal />
     </Drawer>
     <button>Background action</button>
   </>
