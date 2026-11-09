@@ -79,7 +79,9 @@ export function SettingsContent() {
   const sectionSelectId = useId()
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") goBack() }
+    // An Escape already handled (a modal or menu closing, which Radix marks with
+    // preventDefault) must not also leave Settings.
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && !e.defaultPrevented) goBack() }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
   }, [])

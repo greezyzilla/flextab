@@ -42,6 +42,19 @@ describe("compact settings navigation", () => {
     expect(screen.queryByText("Backup content")).not.toBeInTheDocument();
   });
 
+  it("Escape leaves Settings, but not when a modal or menu already handled it (TASK-43)", () => {
+    const back = vi.spyOn(window.history, "back").mockImplementation(() => {});
+    render(<SettingsContent />);
+    const handled = new KeyboardEvent("keydown", { key: "Escape", cancelable: true });
+    handled.preventDefault();
+    window.dispatchEvent(handled);
+    expect(back).not.toHaveBeenCalled();
+    expect(window.location.hash).toBe("#/settings");
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    expect(back.mock.calls.length + (window.location.hash === "#/" ? 1 : 0)).toBe(1);
+    back.mockRestore();
+  });
+
   it("falls back to Appearance for an unknown section", () => {
     window.history.replaceState(null, "", "#/settings/unknown");
     render(<SettingsContent />);

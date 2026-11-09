@@ -44,6 +44,18 @@ export function modalFocusTarget(root: HTMLElement, rule: ModalFocus, kind: Moda
   return cancel ?? close
 }
 
+/**
+ * What focus should return to. A modal opened from a menu item returns to the menu's trigger
+ * (the "⋯" button): the item is gone once the menu closes. Radix labels the menu by its trigger.
+ */
+export function openerOf(el: Element | null): HTMLElement | null {
+  if (!(el instanceof HTMLElement) || el === document.body) return null
+  const menu = el.closest('[role="menu"]')
+  const triggerId = menu?.getAttribute("aria-labelledby")
+  if (menu) return (triggerId && document.getElementById(triggerId)) || null
+  return el
+}
+
 export function Modal({
   kind, size, open, onOpenChange, dirty = false, dismissible = true, initialFocus = "auto", children,
 }: {
@@ -59,6 +71,13 @@ export function Modal({
   children: React.ReactNode
 }) {
   const P = kind === "alert" ? AlertDialogPrimitive : DialogPrimitive
+  // Return focus to what opened the modal (§8). Radix only does this for its own Trigger, and
+  // these modals open from state, so remember the focused element on the render that opens the
+  // modal, before Radix moves focus inside (its focus scope runs in effects, after this render).
+  const returnTo = React.useRef<HTMLElement | null>(null)
+  const wasOpen = React.useRef(false)
+  if (open && !wasOpen.current) returnTo.current = openerOf(document.activeElement)
+  wasOpen.current = open
   const contentProps = {
     className: cn(
       "fixed left-1/2 top-1/2 z-[100] -translate-x-1/2 -translate-y-1/2",
@@ -70,6 +89,10 @@ export function Modal({
       e.preventDefault()
       const root = e.currentTarget as HTMLElement
       ;(modalFocusTarget(root, initialFocus, kind) ?? root).focus()
+    },
+    onCloseAutoFocus: (e: Event) => {
+      const el = returnTo.current
+      if (el && el.isConnected && el !== document.body) { e.preventDefault(); el.focus() }
     },
     onEscapeKeyDown: (e: KeyboardEvent) => { if (!dismissible) e.preventDefault() },
     ...(kind === "dialog" ? { onPointerDownOutside: (e: Event) => { if (dirty || !dismissible) e.preventDefault() } } : {}),

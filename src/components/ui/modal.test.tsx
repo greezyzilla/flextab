@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest"
 import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { useState } from "react"
-import { Modal, ModalBody, ModalFooter, ModalHeader, ModalLink, ModalNote, ModalField, ModalGroup, ModalOptionCard, ModalRadio, modalFocusTarget } from "./modal"
+import { Modal, ModalBody, ModalFooter, ModalHeader, ModalLink, ModalNote, ModalField, ModalGroup, ModalOptionCard, ModalRadio, modalFocusTarget, openerOf } from "./modal"
 import { RadioGroup } from "./radio-group"
 import { Input } from "./input"
 
@@ -48,6 +48,32 @@ describe("Modal (TASK-43)", () => {
     expect(state()).toBe("open")
     await user.keyboard("{Escape}")
     expect(state()).toBe("closed")
+  })
+
+  it("returns focus to what opened it (TASK-43, §8)", async () => {
+    function Opener() {
+      const [open, setOpen] = useState(false)
+      return <>
+        <button onClick={() => setOpen(true)}>Open it</button>
+        <Modal kind="dialog" size="s" open={open} onOpenChange={setOpen}><ModalHeader title="T" description="D" /></Modal>
+      </>
+    }
+    const user = userEvent.setup()
+    render(<Opener />)
+    await user.click(screen.getByRole("button", { name: "Open it" }))
+    await waitFor(() => expect(screen.getByRole("dialog")).toBeInTheDocument())
+    await user.keyboard("{Escape}")
+    await waitFor(() => expect(screen.getByRole("button", { name: "Open it" })).toHaveFocus())
+  })
+
+  it("from a menu item, focus returns to the menu's trigger", () => {
+    document.body.innerHTML = `<button id="t">More</button><div role="menu" aria-labelledby="t"><div role="menuitem" tabindex="-1" id="i">Delete</div></div><div role="menu"><div role="menuitem" id="j" tabindex="-1">x</div></div><button id="b">B</button>`
+    expect(openerOf(document.getElementById("i"))?.id).toBe("t")
+    expect(openerOf(document.getElementById("j"))).toBeNull()
+    expect(openerOf(document.getElementById("b"))?.id).toBe("b")
+    expect(openerOf(document.body)).toBeNull()
+    expect(openerOf(null)).toBeNull()
+    document.body.innerHTML = ""
   })
 
   it("Cancel closes an alert", async () => {
