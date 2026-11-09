@@ -259,7 +259,7 @@ export function LeftPanel() {
             This permanently removes <span className="text-fg">{confirmDelete?.name}</span> and everything inside it.
           </>
         }
-        confirmLabel="Delete"
+        confirmLabel={`Delete ${confirmDelete?.kind ?? ""}`.trim()}
         onConfirm={() => confirmDelete?.run()}
       />
       {/* The space is this panel's title (TASK-15), where Settings shows

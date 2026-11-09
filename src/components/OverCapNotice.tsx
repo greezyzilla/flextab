@@ -1,16 +1,7 @@
 import { useOverCapNotice } from "~src/store/useOverCapNotice"
 import { acknowledgeOverCap } from "~src/services/syncEngine"
 import { navigate } from "~src/lib/route"
-import { Button } from "~src/components/ui/button"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "~src/components/ui/alert-dialog"
+import { Modal, ModalFooter, ModalHeader, ModalLink } from "~src/components/ui/modal"
 
 /**
  * TASK-33: a first sign-in would upload more tabs than the plan syncs. Say so
@@ -22,19 +13,13 @@ export function OverCapNotice() {
   const { pending, tabs, cap } = useOverCapNotice()
   const over = tabs - cap
   return (
-    <AlertDialog open={pending} onOpenChange={(open) => { if (!open) acknowledgeOverCap() }}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Your plan syncs up to {cap} tabs</AlertDialogTitle>
-          <AlertDialogDescription>
-            This device has {tabs} saved tabs. Nothing will sync until you remove {over} or upgrade. All {tabs} stay on this device.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <Button variant="ghost" size="sm" onClick={() => { acknowledgeOverCap(); navigate("/settings/plan") }}>See plan</Button>
-          <AlertDialogAction size="sm" onClick={() => acknowledgeOverCap()}>Got it</AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <Modal kind="alert" size="s" open={pending} onOpenChange={(open) => { if (!open) acknowledgeOverCap() }}>
+      <ModalHeader title={`Your plan syncs up to ${cap} tabs`}
+        description={`This device has ${tabs} saved tabs. Nothing will sync until you remove ${over} or upgrade. All ${tabs} stay on this device.`} />
+      <ModalFooter
+        start={<ModalLink onClick={() => { acknowledgeOverCap(); navigate("/settings/plan") }}>See plan</ModalLink>}
+        cancel={false}
+        primary={{ label: "Got it", onClick: () => acknowledgeOverCap() }} />
+    </Modal>
   )
 }

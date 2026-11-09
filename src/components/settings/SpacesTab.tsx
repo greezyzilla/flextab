@@ -3,15 +3,11 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { useRoute, navigate } from "~src/lib/route";
 import { showUndoToast } from "~src/components/ui/sonner";
-import { Button, IconButton, buttonVariants } from "~src/components/ui/button";
+import { Button, IconButton } from "~src/components/ui/button";
 import { Input } from "~src/components/ui/input";
 import { Label } from "~src/components/ui/label";
 import { SpaceAvatar } from "~src/components/levelIcons";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "~src/components/ui/alert-dialog";
-import { cn } from "~src/lib/utils";
+import { Modal, ModalBody, ModalField, ModalFooter, ModalHeader } from "~src/components/ui/modal";
 import type { SavedSpace } from "~src/types";
 import { GroupHeading } from "./shared";
 import { SETTINGS_ROUTE } from "./types";
@@ -187,27 +183,18 @@ function DangerZone({ space }: { space: SavedSpace }) {
         </Button>
       </div>
 
-      <AlertDialog open={open} onOpenChange={setOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete “{space.name}”?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This removes {plural(projects, "project")} and {plural(tabs, "tab")} in this space, on every synced device.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="confirm-space-name">Type <span className="text-fg">{space.name}</span> to confirm</Label>
+      <Modal kind="alert" size="s" open={open} onOpenChange={setOpen}>
+        <ModalHeader title={`Delete “${space.name}”?`}
+          description={`This removes ${plural(projects, "project")} and ${plural(tabs, "tab")} in this space, on every synced device.`} />
+        <ModalBody>
+          <ModalField htmlFor="confirm-space-name" label={<>Type <span className="text-fg">{space.name}</span> to confirm</>}>
+            {/* Enter may confirm here: the typed name is the safeguard (modal standard §8). */}
             <Input id="confirm-space-name" placeholder="Type it exactly as shown" value={typed} onChange={e => setTyped(e.target.value)} autoComplete="off" className="w-full"
               onKeyDown={e => { if (e.key === "Enter" && matches) { setOpen(false); remove(); } }} />
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>Cancel</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" size="sm" disabled={!matches} onClick={remove}>
-              Delete space
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+          </ModalField>
+        </ModalBody>
+        <ModalFooter primary={{ label: "Delete space", tone: "destructive", disabled: !matches, onClick: () => { setOpen(false); remove(); } }} />
+      </Modal>
     </section>
   );
 }
