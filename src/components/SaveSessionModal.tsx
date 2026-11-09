@@ -1,17 +1,8 @@
 import { useCallback, useMemo, useState } from "react"
 import { describeAlsoSaved, savedElsewhere } from "~src/lib/savedUrlIndex"
 import { toast } from "sonner"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "~src/components/ui/dialog"
-import { Button } from "~src/components/ui/button"
 import { Input } from "~src/components/ui/input"
-import { Label } from "~src/components/ui/label"
+import { Modal, ModalBody, ModalField, ModalFooter, ModalHeader } from "~src/components/ui/modal"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import { isSavableTabUrl, saveTabsAsGroup } from "~src/services/saveTabsAsGroup"
 import { resolveSaveTargetIds } from "~src/services/resolveSaveTarget"
@@ -36,6 +27,8 @@ export function SaveSessionModal({
   } = useSavedSpacesStore()
 
   const [name, setName] = useState(windowGroupName)
+  // An edited name must survive a stray outside click (modal standard §2).
+  const [initialName] = useState(name)
   const [target, setTarget] = useState<SaveTabsTarget>(() =>
     resolveSaveTargetIds(savedSpaces, {
       spaceId: activeSpaceId,
@@ -92,58 +85,39 @@ export function SaveSessionModal({
   }, [canSave, createsSpace, target, savableTabs, name, onClose])
 
   return (
-    <Dialog open onOpenChange={(o) => { if (!o) onClose() }}>
-      <DialogContent className="w-full max-w-md p-5">
-        <DialogHeader>
-          <DialogTitle className="text-fg font-sans text-base font-medium">
-            Save Session
-          </DialogTitle>
-          <DialogDescription>
-            {savableTabs.length === 0
-              ? "No savable tabs in this window. Browser, extension and local file pages are skipped."
-              : `${savableTabs.length} tab${savableTabs.length === 1 ? "" : "s"} will be saved as a group.${
-                  tabs.length > savableTabs.length
-                    ? ` ${tabs.length - savableTabs.length} browser or extension page${tabs.length - savableTabs.length === 1 ? " is" : "s are"} skipped.`
-                    : ""
-                }`}
-          </DialogDescription>
-        </DialogHeader>
+    <Modal kind="dialog" size="m" open onOpenChange={(o) => { if (!o) onClose() }} dirty={name !== initialName}>
+      <ModalHeader title="Save window as a group"
+        description={savableTabs.length === 0
+          ? "No savable tabs in this window. Browser, extension and local file pages are skipped."
+          : `${savableTabs.length} tab${savableTabs.length === 1 ? "" : "s"} will be saved as a group.${
+              tabs.length > savableTabs.length
+                ? ` ${tabs.length - savableTabs.length} browser or extension page${tabs.length - savableTabs.length === 1 ? " is" : "s are"} skipped.`
+                : ""
+            }`} />
+      <ModalBody>
+        <ModalField label="Name" htmlFor="save-session-name">
+          <Input
+            id="save-session-name"
+            type="text"
+            placeholder="e.g. Research"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && canSave) void handleSave()
+            }}
+            className="w-full"
+          />
+        </ModalField>
 
-        <div className="flex flex-col gap-3 py-2">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="save-session-name">Name</Label>
-            <Input
-              id="save-session-name"
-              type="text"
-              placeholder="e.g. Research"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && canSave) void handleSave()
-              }}
-              autoFocus
-              className="w-full"
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label>Save to</Label>
-            <DestinationPicker value={target} onChange={setTarget} />
-            <span className="text-fg-subtle text-xs font-sans truncate" aria-live="polite">
-              {destination ?? (createsSpace ? null : "Pick or create a category to save into.")}
-            </span>
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="secondary" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button variant="default" onClick={() => void handleSave()} disabled={!canSave || saving}>
-            {saving ? "Saving…" : "Save"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        <ModalField label="Save to">
+          <DestinationPicker value={target} onChange={setTarget} />
+          {/* The picker marks the chosen category itself; only say something when nothing is chosen. */}
+          {!destination && !createsSpace && (
+            <span className="text-fg-subtle text-xs font-sans" aria-live="polite">Pick or create a category to save into.</span>
+          )}
+        </ModalField>
+      </ModalBody>
+      <ModalFooter primary={{ label: saving ? "Saving…" : "Save group", disabled: !canSave || saving, onClick: () => void handleSave() }} />
+    </Modal>
   )
 }

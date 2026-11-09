@@ -1,10 +1,8 @@
 import { useEffect, useState } from "react"
 import { describeAlsoSaved } from "~src/lib/savedUrlIndex"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "~src/components/ui/dialog"
-import { Button } from "~src/components/ui/button"
-import { Label } from "~src/components/ui/label"
 import { Switch } from "~src/components/ui/switch"
-import { RadioGroup, RadioGroupItem } from "~src/components/ui/radio-group"
+import { RadioGroup } from "~src/components/ui/radio-group"
+import { Modal, ModalBody, ModalField, ModalFooter, ModalHeader, ModalRadio } from "~src/components/ui/modal"
 import { showUndoToast } from "~src/components/ui/sonner"
 import { DestinationPicker, describeTarget } from "~src/components/DestinationPicker"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
@@ -94,53 +92,43 @@ export function SaveAllDialog() {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="w-full max-w-md p-5">
-        <DialogHeader>
-          <DialogTitle className="text-fg font-sans text-base font-medium">Save all tabs</DialogTitle>
-          <DialogDescription>
-            {total === 0
-              ? "No savable tabs are open. Browser, extension and local file pages are skipped."
-              : `${total} tab${total === 1 ? "" : "s"} open in ${withTabs.length} window${withTabs.length === 1 ? "" : "s"}.`}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="flex flex-col gap-4 py-2">
-          <RadioGroup value={scope} onValueChange={(v) => setScope(v as Scope)} className="flex flex-col gap-2" aria-label="What to save">
-            <Label htmlFor="save-all-window" className="flex items-center gap-2.5 font-normal">
-              <RadioGroupItem value="window" id="save-all-window" />
-              This window ({currentCount} tab{currentCount === 1 ? "" : "s"})
-            </Label>
-            <Label htmlFor="save-all-all" className="flex items-center gap-2.5 font-normal">
-              <RadioGroupItem value="all" id="save-all-all" />
-              All windows ({total} tab{total === 1 ? "" : "s"}, one group per window)
-            </Label>
-          </RadioGroup>
-
-          <div className="flex flex-col gap-1.5">
-            <Label>Save to</Label>
-            <DestinationPicker value={target} onChange={setTarget} maxHeightClass="max-h-48" />
-          </div>
-
-          <label className="flex items-center justify-between gap-2 text-sm text-fg-muted">
-            <span>Close tabs after saving <span className="text-fg-subtle">(pinned tabs stay open)</span></span>
-            <Switch checked={closeAfter} aria-label="Close tabs after saving"
-              onCheckedChange={(v) => { setCloseAfter(v); void saveCloseAfterSave(v) }} />
-          </label>
-          {overCap && (
-            <p role="note" className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-warning-body/90 text-xs leading-relaxed">
-              This puts you at {after} of {cap} tabs. Sync pauses until you remove {after - cap}. The tabs still save on this device.
-            </p>
+    <Modal kind="dialog" size="m" open={open} onOpenChange={setOpen}>
+      <ModalHeader title="Save all tabs"
+        description={total === 0
+          ? "No savable tabs are open. Browser, extension and local file pages are skipped."
+          : `${total} tab${total === 1 ? "" : "s"} open in ${withTabs.length} window${withTabs.length === 1 ? "" : "s"}.`} />
+      <ModalBody>
+        <RadioGroup value={scope} onValueChange={(v) => setScope(v as Scope)} className="flex flex-col gap-2" aria-label="What to save">
+          {/* A window with nothing savable is not a choice (TASK-42). */}
+          {currentCount > 0 && (
+            <ModalRadio id="save-all-window" value="window" count={`${currentCount} tab${currentCount === 1 ? "" : "s"}`}>This window</ModalRadio>
           )}
-        </div>
+          <ModalRadio id="save-all-all" value="all" count={`${total} tab${total === 1 ? "" : "s"}, one group per window`}>All windows</ModalRadio>
+        </RadioGroup>
 
-        <DialogFooter>
-          <Button variant="secondary" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button variant="default" onClick={() => void save()} disabled={(!destination && !createsSpace) || chosenCount === 0 || saving}>
-            {saving ? "Saving…" : `Save ${chosenCount} tab${chosenCount === 1 ? "" : "s"}`}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        <ModalField label="Save to">
+          <DestinationPicker value={target} onChange={setTarget} maxHeightClass="max-h-48" />
+        </ModalField>
+
+        <label className="flex min-h-6 items-center justify-between gap-3">
+          <span className="flex flex-col gap-0.5">
+            <span className="text-sm leading-5 text-fg">Close tabs after saving</span>
+            <span className="text-xs leading-4 text-fg-subtle">Pinned tabs stay open</span>
+          </span>
+          <Switch checked={closeAfter} aria-label="Close tabs after saving"
+            onCheckedChange={(v) => { setCloseAfter(v); void saveCloseAfterSave(v) }} />
+        </label>
+        {overCap && (
+          <p role="note" className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-warning-body/90 text-xs leading-relaxed">
+            This puts you at {after} of {cap} tabs. Sync pauses until you remove {after - cap}. The tabs still save on this device.
+          </p>
+        )}
+      </ModalBody>
+      <ModalFooter primary={{
+        label: saving ? "Saving…" : `Save ${chosenCount} tab${chosenCount === 1 ? "" : "s"}`,
+        disabled: (!destination && !createsSpace) || chosenCount === 0 || saving,
+        onClick: () => void save(),
+      }} />
+    </Modal>
   )
 }

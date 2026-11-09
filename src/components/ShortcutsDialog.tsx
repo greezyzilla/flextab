@@ -1,5 +1,4 @@
-import { useRef } from "react"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "~src/components/ui/dialog"
+import { Modal, ModalBody, ModalHeader } from "~src/components/ui/modal"
 import { Button } from "~src/components/ui/button"
 import { Kbd } from "~src/components/ui/kbd"
 import { useUIStore } from "~src/store/useUIStore"
@@ -41,57 +40,48 @@ export function ShortcutsDialog() {
   const setOpen = useUIStore((s) => s.setShortcutsOpen)
   const set = useCommandShortcuts(open)
   const commands = Object.keys(COMMANDS).filter((name) => name in set).map((name) => ({ name, label: COMMANDS[name], shortcut: set[name] }))
-  const contentRef = useRef<HTMLDivElement>(null)
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent
-        ref={contentRef}
-        className="w-full max-w-sm p-5"
-        // A sheet to read: start on the dialog itself, so no control is
-        // highlighted before anyone touches it. Esc still closes it.
-        onOpenAutoFocus={(e) => { e.preventDefault(); contentRef.current?.focus() }}
-      >
-        <DialogHeader>
-          <DialogTitle className="text-fg font-sans text-base font-medium">Keyboard shortcuts</DialogTitle>
-          <DialogDescription className="text-xs">Single keys work when you&apos;re not typing in a field.</DialogDescription>
-        </DialogHeader>
+    // A sheet to read (passive, modal standard §10): focus opens on the dialog
+    // itself, so no control is highlighted before anyone touches it. Esc closes it.
+    <Modal kind="dialog" size="m" open={open} onOpenChange={setOpen} initialFocus="dialog">
+      <ModalHeader title="Keyboard shortcuts" description={<>Single keys work when you&apos;re not typing in a field.</>} />
+      <ModalBody>
+          <div className="flex flex-col gap-6">
+            <section aria-labelledby="shortcuts-flextab" className="flex flex-col gap-1">
+              <h3 id="shortcuts-flextab" className={heading}>In FlexTab</h3>
+              <ul className="divide-y divide-ink/[0.06]">
+                {IN_FLEXTAB.map((s) => (
+                  <Row key={s.label} label={s.label}>
+                    {s.keys.map((k, i) => <span key={k} className="flex items-center gap-1.5">{i > 0 && "or"}<Kbd shortcut={k} /></span>)}
+                  </Row>
+                ))}
+              </ul>
+            </section>
 
-        <div className="flex flex-col gap-6 pt-5">
-          <section aria-labelledby="shortcuts-flextab" className="flex flex-col gap-1">
-            <h3 id="shortcuts-flextab" className={heading}>In FlexTab</h3>
-            <ul className="divide-y divide-ink/[0.06]">
-              {IN_FLEXTAB.map((s) => (
-                <Row key={s.label} label={s.label}>
-                  {s.keys.map((k, i) => <span key={k} className="flex items-center gap-1.5">{i > 0 && "or"}<Kbd shortcut={k} /></span>)}
-                </Row>
-              ))}
-            </ul>
-          </section>
-
-          <section aria-labelledby="shortcuts-chrome" className="flex flex-col gap-1">
-            {/* "Change" sits on its section's heading, so it is clear what it changes. */}
-            <div className="flex items-center justify-between">
-              <h3 id="shortcuts-chrome" className={heading}>Anywhere in Chrome</h3>
-              <Button
-                variant="link"
-                size="sm"
-                className="h-auto !px-0 text-xs"
-                aria-label="Change the Chrome shortcuts"
-                onClick={() => { try { void chrome.tabs.create({ url: "chrome://extensions/shortcuts" }) } catch (_) { /* ok */ } }}
-              >
-                Change
-              </Button>
-            </div>
-            <ul className="divide-y divide-ink/[0.06]">
-              {commands.map((c) => (
-                <Row key={c.name} label={c.label}>
-                  {c.shortcut ? <Kbd shortcut={c.shortcut} /> : <span>Not set</span>}
-                </Row>
-              ))}
-            </ul>
-          </section>
-        </div>
-      </DialogContent>
-    </Dialog>
+            <section aria-labelledby="shortcuts-chrome" className="flex flex-col gap-1">
+              {/* "Change" sits on its section's heading, so it is clear what it changes. */}
+              <div className="flex items-center justify-between">
+                <h3 id="shortcuts-chrome" className={heading}>Anywhere in Chrome</h3>
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="h-auto !px-0 text-xs"
+                  aria-label="Change the Chrome shortcuts"
+                  onClick={() => { try { void chrome.tabs.create({ url: "chrome://extensions/shortcuts" }) } catch (_) { /* ok */ } }}
+                >
+                  Change
+                </Button>
+              </div>
+              <ul className="divide-y divide-ink/[0.06]">
+                {commands.map((c) => (
+                  <Row key={c.name} label={c.label}>
+                    {c.shortcut ? <Kbd shortcut={c.shortcut} /> : <span>Not set</span>}
+                  </Row>
+                ))}
+              </ul>
+            </section>
+          </div>
+      </ModalBody>
+    </Modal>
   )
 }

@@ -121,7 +121,7 @@ function SavedTabItem({ tab, groupId, location, isDuplicate, unsorted }: { tab: 
           description={`Move “${tab.title}” to another group.`}
           groupLevel
           initial={{ spaceId, projectId, categoryId, groupId }}
-          confirmLabel="Move"
+          confirmLabel="Move tab"
           onConfirm={(target) => moveTabTo({ ...location, groupId }, tab.id, target)}
           onClose={() => setMoving(false)}
         />
@@ -398,7 +398,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
           title="Move group"
           description={`Move “${group.name}” and its ${sortedTabs.length} tab${sortedTabs.length === 1 ? "" : "s"} to another category.`}
           initial={{ spaceId, projectId, categoryId }}
-          confirmLabel="Move"
+          confirmLabel="Move group"
           onConfirm={(target) => moveGroupTo(location, group.id, target)}
           onClose={() => setMovingGroup(false)}
         />

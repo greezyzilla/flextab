@@ -94,7 +94,7 @@ const OpenedTab = ({ tab, windowId, saved }: { tab: chrome.tabs.Tab, windowId: n
           description={`Save “${tab.title || tab.url}” to a group.`}
           groupLevel
           initial={{ spaceId: activeSpaceId ?? "", projectId: activeProjectId ?? "", categoryId: activeCategoryId ?? "" }}
-          confirmLabel="Save"
+          confirmLabel="Save tab"
           onConfirm={(target) => void saveTo(target)}
           onClose={() => setSaving(false)}
         />

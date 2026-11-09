@@ -1,6 +1,5 @@
 import { useState } from "react"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "~src/components/ui/dialog"
-import { Button } from "~src/components/ui/button"
+import { Modal, ModalBody, ModalFooter, ModalHeader } from "~src/components/ui/modal"
 import { DestinationPicker, describeTarget, type PickerValue } from "~src/components/DestinationPicker"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 
@@ -21,23 +20,14 @@ export function PickDestinationDialog({ title, description, groupLevel = false, 
   const [target, setTarget] = useState<PickerValue>(initial)
   const where = describeTarget(savedSpaces, target)
   return (
-    <Dialog open onOpenChange={(o) => { if (!o) onClose() }}>
-      <DialogContent className="w-full max-w-md p-5">
-        <DialogHeader>
-          <DialogTitle className="text-fg font-sans text-base font-medium">{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
-        <div className="flex flex-col gap-1.5 py-2">
-          <DestinationPicker groupLevel={groupLevel} value={target} onChange={setTarget} />
-          <span className="text-fg-subtle text-xs font-sans truncate" aria-live="polite">
-            {where ?? "Pick or create a category."}
-          </span>
-        </div>
-        <DialogFooter>
-          <Button variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button variant="default" disabled={!where} onClick={() => { onConfirm(target); onClose() }}>{confirmLabel}</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <Modal kind="dialog" size="m" open onOpenChange={(o) => { if (!o) onClose() }}>
+      <ModalHeader title={title} description={description} />
+      <ModalBody>
+        <DestinationPicker groupLevel={groupLevel} value={target} onChange={setTarget} />
+        {/* The picker marks the chosen place itself; only say something when nothing is chosen. */}
+        {!where && <span className="text-fg-subtle text-xs font-sans" aria-live="polite">Pick or create a category.</span>}
+      </ModalBody>
+      <ModalFooter primary={{ label: confirmLabel, disabled: !where, onClick: () => { onConfirm(target); onClose() } }} />
+    </Modal>
   )
 }
