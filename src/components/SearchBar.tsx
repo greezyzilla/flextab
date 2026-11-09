@@ -12,6 +12,7 @@ import { Button } from "~src/components/ui/button";
 import { Kbd } from "~src/components/ui/kbd";
 import { CategoryIcon, GroupIcon, ProjectIcon, SpaceAvatar } from "~src/components/levelIcons";
 import { cn } from "~src/lib/utils";
+import { isInsideModal } from "~src/components/ui/modal";
 import { FaviconImg } from "./FaviconImg";
 
 type Section = "open" | "saved" | "places" | "actions";
@@ -67,6 +68,8 @@ export function SearchBar() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // A modal owns the keyboard: no search behind it (TASK-47).
+      if (isInsideModal(e.target)) return;
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         inputRef.current?.focus();

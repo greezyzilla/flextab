@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest"
 import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { useState } from "react"
-import { Modal, ModalBody, ModalFooter, ModalHeader, ModalLink, ModalNote, ModalField, ModalGroup, ModalOptionCard, ModalRadio, modalFocusTarget, openerOf } from "./modal"
+import { Modal, ModalBody, ModalFooter, ModalHeader, ModalLink, ModalNote, ModalField, ModalGroup, ModalOptionCard, ModalRadio, modalFocusTarget, openerOf, isInsideModal } from "./modal"
 import { RadioGroup } from "./radio-group"
 import { Input } from "./input"
 
@@ -64,6 +64,13 @@ describe("Modal (TASK-43)", () => {
     await waitFor(() => expect(screen.getByRole("dialog")).toBeInTheDocument())
     await user.keyboard("{Escape}")
     await waitFor(() => expect(screen.getByRole("button", { name: "Open it" })).toHaveFocus())
+  })
+
+  it("marks itself so page shortcuts can tell a key came from inside (TASK-47)", () => {
+    render(<Harness />)
+    expect(isInsideModal(screen.getByRole("button", { name: "Do it" }))).toBe(true)
+    expect(isInsideModal(screen.getByText("trigger"))).toBe(false)
+    expect(isInsideModal(null)).toBe(false)
   })
 
   it("from a menu item, focus returns to the menu's trigger", () => {

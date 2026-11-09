@@ -3,6 +3,7 @@ import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import type { SaveTabsTarget } from "~src/services/saveTabsAsGroup";
 import { ensureCategoryPath, ensureSpace } from "~src/lib/defaultPath";
 import { useUIStore } from "~src/store/useUIStore";
+import { isInsideModal } from "~src/components/ui/modal";
 
 /**
  * Run `action` against the current category, following the same rule as
@@ -32,6 +33,8 @@ export function useKeyboardShortcuts() {
     const handler = (e: KeyboardEvent) => {
       // Skip if user is typing in an input / textarea / contenteditable
       if (isEditableTarget(e.target)) return;
+      // A modal owns the keyboard: page shortcuts never act behind it (TASK-47).
+      if (isInsideModal(e.target)) return;
 
       const mod = e.metaKey || e.ctrlKey;
 

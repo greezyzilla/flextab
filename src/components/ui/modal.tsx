@@ -56,6 +56,14 @@ export function openerOf(el: Element | null): HTMLElement | null {
   return el
 }
 
+/**
+ * True when a key event comes from inside a modal. A modal owns the keyboard (§8), so page-wide
+ * shortcuts must not act on the page behind it.
+ */
+export function isInsideModal(target: EventTarget | null): boolean {
+  return target instanceof Element && target.closest("[data-modal]") !== null
+}
+
 export function Modal({
   kind, size, open, onOpenChange, dirty = false, dismissible = true, initialFocus = "auto", children,
 }: {
@@ -79,6 +87,7 @@ export function Modal({
   if (open && !wasOpen.current) returnTo.current = openerOf(document.activeElement)
   wasOpen.current = open
   const contentProps = {
+    "data-modal": "",
     className: cn(
       "fixed left-1/2 top-1/2 z-[100] -translate-x-1/2 -translate-y-1/2",
       SIZE[size], "max-w-[calc(100vw-32px)] max-h-[85vh] flex flex-col gap-4 p-5",

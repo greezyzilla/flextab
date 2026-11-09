@@ -75,6 +75,19 @@ describe("keyboard shortcuts follow the destination policy", () => {
     expect(useUIStore.getState().namingGroupIn).toBe(space.projects[0].categories[0].id)
   })
 
+  it("does nothing behind an open modal (TASK-47)", () => {
+    const modal = document.createElement("div")
+    modal.setAttribute("data-modal", "")
+    const button = document.createElement("button")
+    modal.appendChild(button)
+    document.body.appendChild(modal)
+    button.dispatchEvent(new KeyboardEvent("keydown", { key: "n", bubbles: true }))
+    button.dispatchEvent(new KeyboardEvent("keydown", { key: "N", shiftKey: true, bubbles: true }))
+    expect(useUIStore.getState().namingGroupIn).toBeNull()
+    expect(useUIStore.getState().creating).toBeNull()
+    modal.remove()
+  })
+
   it("Cmd+Shift+S opens the Save all dialog", () => {
     useUIStore.setState({ saveAllOpen: false })
     press("S", true)
