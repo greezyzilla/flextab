@@ -1,0 +1,227 @@
+// The one modal family (docs/modal-standard.md, TASK-43). Every modal renders through these parts,
+// so anatomy, sizes, spacing, type, buttons and focus are the same everywhere. Call sites pass
+// content, never spacing classes.
+import * as React from "react"
+import * as DialogPrimitive from "@radix-ui/react-dialog"
+import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog"
+import { X } from "lucide-react"
+import { cn } from "~src/lib/utils"
+import { Button } from "~src/components/ui/button"
+import { Label } from "~src/components/ui/label"
+import { RadioGroupItem } from "~src/components/ui/radio-group"
+
+export type ModalKind = "dialog" | "alert"
+export type ModalSize = "s" | "m" | "l"
+/** Where focus lands on open (§8). "auto" follows the standard's order; "dialog" focuses the
+ *  modal itself, for a passive sheet where no control should be highlighted before use. */
+export type ModalFocus = "auto" | "cancel" | "close" | "primary" | "dialog"
+
+const SIZE: Record<ModalSize, string> = { s: "w-[400px]", m: "w-[480px]", l: "w-[720px]" }
+
+const ModalContext = React.createContext<{ kind: ModalKind; dismissible: boolean }>({ kind: "dialog", dismissible: true })
+
+const TEXT_FIELD = 'input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([disabled]), textarea:not([disabled])'
+
+/**
+ * Focus on open (§8): a text field, else Cancel in an alert, else the selected (or first) radio,
+ * else a primary that does not destroy, else Cancel, else the close button.
+ */
+export function modalFocusTarget(root: HTMLElement, rule: ModalFocus, kind: ModalKind): HTMLElement | null {
+  const q = (s: string) => root.querySelector<HTMLElement>(s)
+  const cancel = q("[data-modal-cancel]:not([disabled])")
+  const primary = q("[data-modal-primary]:not([disabled])")
+  const close = q("[data-modal-close]")
+  if (rule === "dialog") return null
+  if (rule === "cancel") return cancel
+  if (rule === "close") return close
+  if (rule === "primary") return primary
+  const field = q(TEXT_FIELD)
+  if (field) return field
+  if (kind === "alert" && cancel) return cancel
+  const radio = q('[role="radio"][data-state="checked"]:not([disabled])') ?? q('[role="radio"]:not([disabled])')
+  if (radio) return radio
+  if (primary && primary.dataset.modalTone !== "destructive") return primary
+  return cancel ?? close
+}
+
+export function Modal({
+  kind, size, open, onOpenChange, dirty = false, dismissible = true, initialFocus = "auto", children,
+}: {
+  kind: ModalKind
+  size: ModalSize
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  /** A field was edited: an outside click must not discard it (Primer). */
+  dirty?: boolean
+  /** False for a forced decision: Esc does nothing and there is no Cancel. */
+  dismissible?: boolean
+  initialFocus?: ModalFocus
+  children: React.ReactNode
+}) {
+  const P = kind === "alert" ? AlertDialogPrimitive : DialogPrimitive
+  const contentProps = {
+    className: cn(
+      "fixed left-1/2 top-1/2 z-[100] -translate-x-1/2 -translate-y-1/2",
+      SIZE[size], "max-w-[calc(100vw-32px)] max-h-[85vh] flex flex-col gap-4 p-5",
+      "rounded-xl border border-ink/10 bg-black-900 text-fg font-sans shadow-[0_18px_50px_-16px_rgba(0,0,0,0.6)] outline-none",
+      "duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+    ),
+    onOpenAutoFocus: (e: Event) => {
+      e.preventDefault()
+      const root = e.currentTarget as HTMLElement
+      ;(modalFocusTarget(root, initialFocus, kind) ?? root).focus()
+    },
+    onEscapeKeyDown: (e: KeyboardEvent) => { if (!dismissible) e.preventDefault() },
+    ...(kind === "dialog" ? { onPointerDownOutside: (e: Event) => { if (dirty || !dismissible) e.preventDefault() } } : {}),
+  }
+  return (
+    <P.Root open={open} onOpenChange={onOpenChange}>
+      <P.Portal>
+        <P.Overlay className="fixed inset-0 z-[100] bg-overlay backdrop-blur-[8px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        <P.Content {...contentProps}>
+          <ModalContext.Provider value={{ kind, dismissible }}>
+            {children}
+            {kind === "dialog" && dismissible && (
+              <DialogPrimitive.Close data-modal-close
+                className="absolute right-3.5 top-3.5 flex h-7 w-7 items-center justify-center rounded-md text-fg-subtle outline-none transition-colors hover:bg-ink/10 hover:text-fg focus-visible:ring-1 focus-visible:ring-ring">
+                <X className="h-4 w-4" aria-hidden />
+                <span className="sr-only">Close</span>
+              </DialogPrimitive.Close>
+            )}
+          </ModalContext.Provider>
+        </P.Content>
+      </P.Portal>
+    </P.Root>
+  )
+}
+
+export function ModalHeader({ title, description }: { title: React.ReactNode; description?: React.ReactNode }) {
+  const { kind, dismissible } = React.useContext(ModalContext)
+  const P = kind === "alert" ? AlertDialogPrimitive : DialogPrimitive
+  return (
+    <div className={cn("flex flex-col gap-1.5 shrink-0", kind === "dialog" && dismissible && "pr-8")}>
+      <P.Title className="text-base font-semibold leading-6 text-fg">{title}</P.Title>
+      {description !== undefined && <P.Description className="text-sm leading-5 text-fg-muted">{description}</P.Description>}
+    </div>
+  )
+}
+
+/** The scroll area (§3). Hairlines show above and below only while it scrolls. */
+export function ModalBody({ children }: { children: React.ReactNode }) {
+  const ref = React.useRef<HTMLDivElement>(null)
+  const [scrolls, setScrolls] = React.useState(false)
+  React.useEffect(() => {
+    const el = ref.current
+    if (!el || typeof ResizeObserver === "undefined") return
+    const check = () => setScrolls(el.scrollHeight > el.clientHeight + 1)
+    check()
+    const ro = new ResizeObserver(check)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  return (
+    <div ref={ref} data-scrolls={scrolls || undefined}
+      className={cn("-mx-5 flex min-h-0 flex-col gap-4 overflow-y-auto px-5", scrolls && "border-y border-line py-4")}>
+      {children}
+    </div>
+  )
+}
+
+/** Items that belong together: 8px apart (§5). */
+export function ModalGroup({ children, label }: { children: React.ReactNode; label?: string }) {
+  return <div role={label ? "group" : undefined} aria-label={label} className="flex flex-col gap-2">{children}</div>
+}
+
+/** A field caption and its control: 6px apart (§5). */
+export function ModalField({ label, htmlFor, children }: { label: React.ReactNode; htmlFor?: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={htmlFor}>{label}</Label>
+      {children}
+    </div>
+  )
+}
+
+/** Small print in a modal (§6): notes and footnotes, 12px subtle. */
+export function ModalNote({ children }: { children: React.ReactNode }) {
+  return <p className="text-xs leading-4 text-fg-subtle">{children}</p>
+}
+
+export type ModalPrimary = {
+  label: React.ReactNode
+  onClick: () => void
+  tone?: "primary" | "destructive"
+  disabled?: boolean
+}
+
+/**
+ * Footer (§7): [start] … [Cancel] [Primary]. Cancel closes; the primary never closes by itself,
+ * the caller decides (it may validate or wait).
+ */
+export function ModalFooter({ start, cancel = "Cancel", cancelDisabled, primary }: {
+  start?: React.ReactNode
+  cancel?: React.ReactNode | false
+  cancelDisabled?: boolean
+  primary?: ModalPrimary
+}) {
+  const { kind, dismissible } = React.useContext(ModalContext)
+  const CancelPrimitive = kind === "alert" ? AlertDialogPrimitive.Cancel : DialogPrimitive.Close
+  return (
+    <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+      {start && <div className="mr-auto flex min-w-0 items-center text-xs text-fg-subtle">{start}</div>}
+      {cancel !== false && dismissible && (
+        <CancelPrimitive asChild>
+          <Button type="button" variant="secondary" data-modal-cancel disabled={cancelDisabled}>{cancel}</Button>
+        </CancelPrimitive>
+      )}
+      {primary && (
+        <Button type="button" variant={primary.tone === "destructive" ? "destructive" : "default"}
+          data-modal-primary data-modal-tone={primary.tone ?? "primary"} disabled={primary.disabled} onClick={primary.onClick}>
+          {primary.label}
+        </Button>
+      )}
+    </div>
+  )
+}
+
+/** A footer-start action (§7): reads as an action, underline visible at rest. */
+export const ModalLink = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement>>(
+  ({ className, ...props }, ref) => (
+    <button ref={ref} type="button"
+      className={cn("rounded text-sm text-fg-muted underline underline-offset-4 outline-none hover:text-fg focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50", className)}
+      {...props} />
+  ))
+ModalLink.displayName = "ModalLink"
+
+/** A radio choice on one line (§6): 14px text, an optional count after a middle dot. */
+export function ModalRadio({ id, value, children, count, disabled }: {
+  id: string; value: string; children: React.ReactNode; count?: React.ReactNode; disabled?: boolean
+}) {
+  return (
+    <Label htmlFor={id} className="flex min-h-6 cursor-pointer items-center gap-2.5 text-sm leading-5 text-fg">
+      <RadioGroupItem value={value} id={id} disabled={disabled} />
+      <span>{children}{count !== undefined && <span className="text-fg-subtle"> · {count}</span>}</span>
+    </Label>
+  )
+}
+
+/** A radio choice with a sentence of explanation, drawn as a card (§6). A destructive choice turns red once chosen. */
+export function ModalOptionCard({ id, value, selected, title, hint, danger, aside, disabled }: {
+  id: string; value: string; selected: boolean; title: React.ReactNode; hint?: React.ReactNode
+  danger?: boolean; aside?: React.ReactNode; disabled?: boolean
+}) {
+  return (
+    <Label htmlFor={id}
+      className={cn(
+        "flex cursor-pointer items-start gap-2.5 rounded-lg border px-4 py-2.5 transition-colors",
+        selected ? (danger ? "border-red-500/50 bg-red-500/10" : "border-[var(--accent)] bg-[var(--accent-subtle)]") : "border-ink/10 hover:bg-ink/[0.03]",
+      )}>
+      <RadioGroupItem value={value} id={id} className="mt-0.5" disabled={disabled} />
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="text-sm leading-5 text-fg">{title}</span>
+        {hint && <span className="text-xs leading-4 text-fg-subtle">{hint}</span>}
+      </span>
+      {aside && <span className="shrink-0 self-center text-xs text-fg-subtle">{aside}</span>}
+    </Label>
+  )
+}
