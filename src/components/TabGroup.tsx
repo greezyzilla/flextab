@@ -297,6 +297,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
             variant="inline"
             ref={renameRef}
             aria-label="Group name"
+            placeholder="Group name"
             type="text"
             value={renameValue}
             onChange={e => setRenameValue(e.target.value)}

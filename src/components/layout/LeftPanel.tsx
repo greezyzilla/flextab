@@ -271,6 +271,7 @@ export function LeftPanel() {
         {currentSpace && renamingId === currentSpace.id ? (
           <Input variant="inline" ref={renameRef} type="text" value={renameValue}
             aria-label="Space name"
+            placeholder="Space name"
             onChange={e => setRenameValue(e.target.value)} onBlur={submitRename}
             onKeyDown={e => { if (e.key === "Enter") submitRename(); if (e.key === "Escape") setRenamingId(null); }}
             className="flex-1 min-w-0 text-2xl" />
@@ -321,6 +322,7 @@ export function LeftPanel() {
                       {renamingId === project.id ? (
                         <Input variant="inline" ref={renameRef} type="text" value={renameValue}
                           aria-label="Project name"
+                          placeholder="Project name"
                           onChange={e => setRenameValue(e.target.value)} onBlur={submitRename}
                           onKeyDown={e => { if (e.key === "Enter") submitRename(); if (e.key === "Escape") setRenamingId(null); }}
                           className="flex-1 text-[13px] min-w-0" />
@@ -383,6 +385,7 @@ export function LeftPanel() {
                                 <CategoryIcon className="h-3 w-3 shrink-0 text-fg-subtle" />
                                 <Input variant="inline" ref={renameRef} type="text" value={renameValue}
                                   aria-label="Category name"
+                                  placeholder="Category name"
                                   onChange={e => setRenameValue(e.target.value)} onBlur={submitRename}
                                   onKeyDown={e => { if (e.key === "Enter") submitRename(); if (e.key === "Escape") setRenamingId(null); }}
                                   className="flex-1 text-xs min-w-0" />

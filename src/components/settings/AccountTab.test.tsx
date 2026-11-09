@@ -71,3 +71,24 @@ describe("AccountTab sign-in methods (TASK-8)", () => {
     expect(screen.queryByLabelText("New password")).not.toBeInTheDocument()
   })
 })
+
+describe("AccountTab input labels and placeholders (TASK-36)", () => {
+  it("names the display name field from its visible label, filled or empty, with an example placeholder", async () => {
+    vi.mocked(apiListIdentities).mockResolvedValue({ identities: [], has_password: true })
+    render(<AccountTab />)
+    const field = screen.getByRole("textbox", { name: "Display name" })
+    expect(field).toHaveValue("Me")
+    expect(field).toHaveAccessibleDescription("Shown across FlexTab. Independent of your provider.")
+    fireEvent.change(field, { target: { value: "" } })
+    expect(screen.getByRole("textbox", { name: "Display name" })).toHaveAttribute("placeholder", "e.g. Alex Rivera")
+  })
+
+  it("gives the password fields their placeholders, with the length rule before typing", async () => {
+    vi.mocked(apiListIdentities).mockResolvedValue({ identities: [], has_password: true })
+    render(<AccountTab />)
+    fireEvent.click(screen.getByRole("button", { name: "Change password…" }))
+    expect(screen.getByLabelText("Current password")).toHaveAttribute("placeholder", "Enter your current password")
+    expect(screen.getByLabelText("New password")).toHaveAttribute("placeholder", "At least 8 characters")
+    expect(screen.getByLabelText("Confirm new password")).toHaveAttribute("placeholder", "Enter the new password again")
+  })
+})

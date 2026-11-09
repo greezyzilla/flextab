@@ -109,7 +109,7 @@ export function DeleteAccountDialog({ open, onOpenChange }: { open: boolean; onO
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="confirm-account-email">Type <span className="text-fg">{email}</span> to confirm</Label>
-            <Input id="confirm-account-email" type="email" value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" className="w-full" disabled={busy}
+            <Input id="confirm-account-email" type="email" placeholder="Type your email" value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" className="w-full" disabled={busy}
               onKeyDown={(e) => { if (e.key === "Enter") void confirm(); }} />
           </div>
 

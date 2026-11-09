@@ -49,6 +49,7 @@ describe("Settings › Spaces", () => {
     render(<SpacesTab />)
     const name = screen.getByLabelText("Name")
     expect(name).toHaveValue("Work")
+    expect(name).toHaveAttribute("placeholder", "e.g. Work") // TASK-36
     expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled()
     await user.clear(name)
     await user.type(name, "Office")
@@ -65,6 +66,8 @@ describe("Settings › Spaces", () => {
     await user.click(screen.getByRole("button", { name: "Delete space…" }))
     const confirm = screen.getByRole("button", { name: "Delete space" })
     expect(confirm).toBeDisabled()
+    // The match is exact, so the placeholder says so; never the name itself (TASK-36).
+    expect(screen.getByLabelText(/to confirm/)).toHaveAttribute("placeholder", "Type it exactly as shown")
     await user.type(screen.getByLabelText(/to confirm/), "Hom")
     expect(confirm).toBeDisabled()
     await user.type(screen.getByLabelText(/to confirm/), "e")

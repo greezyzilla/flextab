@@ -25,6 +25,8 @@ describe("DeleteAccountDialog (TASK-17)", () => {
     const button = screen.getByRole("button", { name: "Delete account" })
     expect(button).toBeDisabled()
     expect(screen.getByRole("radio", { name: /Keep tabs on this device/ })).toBeChecked()
+    // An instruction, never the email itself: that would read as already typed (TASK-36).
+    expect(screen.getByLabelText(/to confirm/)).toHaveAttribute("placeholder", "Type your email")
     fireEvent.change(screen.getByLabelText(/to confirm/), { target: { value: "someone@else.com" } })
     expect(button).toBeDisabled()
     fireEvent.change(screen.getByLabelText(/to confirm/), { target: { value: " me@example.com " } })

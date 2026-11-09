@@ -111,6 +111,7 @@ export function SaveSessionModal({
             <Input
               id="save-session-name"
               type="text"
+              placeholder="e.g. Research"
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => {

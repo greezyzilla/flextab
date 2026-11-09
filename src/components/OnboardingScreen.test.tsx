@@ -38,6 +38,12 @@ describe("sign-in screen (TASK-7)", () => {
     expect(screen.getByLabelText("Email")).toHaveAttribute("aria-describedby", "signin-error")
   })
 
+  it("shows an example email and a password instruction as placeholders (TASK-36)", () => {
+    render(<OnboardingScreen onBack={vi.fn()} />)
+    expect(screen.getByLabelText("Email")).toHaveAttribute("placeholder", "you@example.com")
+    expect(screen.getByLabelText("Password")).toHaveAttribute("placeholder", "Enter your password")
+  })
+
   it("creates new accounts only through Google or GitHub (TASK-8)", () => {
     render(<OnboardingScreen onBack={vi.fn()} />)
     expect(screen.getByText(/Google or GitHub signs you in, or creates a free account/)).toBeInTheDocument()

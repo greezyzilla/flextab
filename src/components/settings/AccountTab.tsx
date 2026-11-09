@@ -167,12 +167,14 @@ export function AccountTab() {
 
       {/* Display name */}
       <SettingRow label="Display name" description="Shown across FlexTab. Independent of your provider.">
-        <div className="flex items-center gap-2">
-          <Input value={name} onChange={e => setName(e.target.value)} maxLength={100} placeholder="Your name" className="flex-1 min-w-0" />
-          <Button variant="secondary" size="sm" onClick={handleSaveName} disabled={nameSaving || !name.trim() || name.trim() === user?.name}>
-            {nameSaving ? 'Saving…' : nameSaved ? 'Saved' : 'Save'}
-          </Button>
-        </div>
+        {(controlProps) => (
+          <div className="flex items-center gap-2">
+            <Input {...controlProps} value={name} onChange={e => setName(e.target.value)} maxLength={100} placeholder="e.g. Alex Rivera" className="flex-1 min-w-0" />
+            <Button variant="secondary" size="sm" onClick={handleSaveName} disabled={nameSaving || !name.trim() || name.trim() === user?.name}>
+              {nameSaving ? 'Saving…' : nameSaved ? 'Saved' : 'Save'}
+            </Button>
+          </div>
+        )}
       </SettingRow>
 
       {/* Sign-in methods */}
@@ -226,16 +228,16 @@ export function AccountTab() {
             {hasPassword && (
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="account-current-password">Current password</Label>
-                <Input id="account-current-password" type="password" autoComplete="current-password" autoFocus value={currentPw} onChange={e => setCurrentPw(e.target.value)} className="w-full" />
+                <Input id="account-current-password" type="password" placeholder="Enter your current password" autoComplete="current-password" autoFocus value={currentPw} onChange={e => setCurrentPw(e.target.value)} className="w-full" />
               </div>
             )}
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="account-new-password">New password</Label>
-              <Input id="account-new-password" type="password" autoComplete="new-password" autoFocus={!hasPassword} value={newPw} onChange={e => setNewPw(e.target.value)} className="w-full" minLength={8} required />
+              <Input id="account-new-password" type="password" placeholder="At least 8 characters" autoComplete="new-password" autoFocus={!hasPassword} value={newPw} onChange={e => setNewPw(e.target.value)} className="w-full" minLength={8} required />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="account-confirm-password">Confirm new password</Label>
-              <Input id="account-confirm-password" type="password" autoComplete="new-password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} className="w-full" minLength={8} required />
+              <Input id="account-confirm-password" type="password" placeholder="Enter the new password again" autoComplete="new-password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} className="w-full" minLength={8} required />
             </div>
             {pwError && <div role="alert" className="text-danger text-xs">{pwError}</div>}
             <div className="flex items-center gap-2">

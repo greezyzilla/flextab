@@ -116,7 +116,7 @@ function SpaceDetail({ space, isLast }: { space: SavedSpace; isLast: boolean }) 
         <GroupHeading>{space.name}</GroupHeading>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="space-name">Name</Label>
-          <Input id="space-name" value={name} onChange={e => setName(e.target.value)}
+          <Input id="space-name" placeholder="e.g. Work" value={name} onChange={e => setName(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter") save(); }} className="w-full" />
         </div>
         <div className="flex flex-col gap-1.5">
@@ -190,7 +190,7 @@ function DangerZone({ space, isLast }: { space: SavedSpace; isLast: boolean }) {
           </AlertDialogHeader>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="confirm-space-name">Type <span className="text-fg">{space.name}</span> to confirm</Label>
-            <Input id="confirm-space-name" value={typed} onChange={e => setTyped(e.target.value)} autoComplete="off" className="w-full"
+            <Input id="confirm-space-name" placeholder="Type it exactly as shown" value={typed} onChange={e => setTyped(e.target.value)} autoComplete="off" className="w-full"
               onKeyDown={e => { if (e.key === "Enter" && matches) { setOpen(false); remove(); } }} />
           </div>
           <AlertDialogFooter>
