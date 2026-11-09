@@ -364,6 +364,7 @@ export function ContentPanel() {
   const activeProject = useActiveProject();
   const activeCategory = useActiveCategory();
   const { setActiveCategory, setActiveProject, addSavedProject, addSavedCategory, toggleExpandedProject } = useSavedSpacesStore();
+  const noSpaces = useSavedSpacesStore((s) => s.savedSpaces.length === 0);
   const { groupLayout, setGroupLayout, gridColumns } = useSettingsStore();
   const { scrollTarget, setSaveAllOpen } = useUIStore();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -428,7 +429,29 @@ export function ContentPanel() {
 
 
   let body: React.ReactNode;
-  if (!activeSpace) {
+  if (noSpaces) {
+    // Zero spaces is a valid workspace (TASK-37): say so and offer the first one.
+    body = (
+      <LevelEmptyState
+        icon={<SpaceAvatar size={24} />}
+        title="No spaces yet"
+        body="Spaces keep your tabs apart, like Work and Personal. Saving a tab creates one for you."
+        action={
+          <InlineCreate
+            label="New space"
+            placeholder="Space name"
+            inputLabel="New space name"
+            onCommit={name => {
+              const id = uuidv7();
+              const store = useSavedSpacesStore.getState();
+              store.addSavedSpace({ id, name, projects: [], order: 0 });
+              store.setActiveSpace(id);
+            }}
+          />
+        }
+      />
+    );
+  } else if (!activeSpace) {
     body = <LevelEmptyState icon={<SpaceAvatar size={24} />} title="Pick a space" body="Spaces keep your tabs apart, like Work and Personal. Pick one on the left." />;
   } else if (!activeProject) {
     body = (
@@ -496,13 +519,14 @@ export function ContentPanel() {
     <div className="flex-1 flex flex-col h-full overflow-hidden min-h-0">
       {/* Location header */}
       <div className="flex justify-between items-center gap-3 h-14 px-6 border-b border-line shrink-0">
-        <Breadcrumb
+        {/* No spaces (TASK-37): there is no location to show. */}
+        {!noSpaces && <Breadcrumb
           space={activeSpace}
           project={activeProject}
           category={activeCategory}
           onProject={() => { if (categories[0]) { setActiveCategory(categories[0].id); scrollToCategory(categories[0].id); } }}
           onCategory={() => { if (activeCategory) scrollToCategory(activeCategory.id); }}
-        />
+        />}
         <div className="flex items-center gap-2 shrink-0">
           {projectHasGroups && (
             <div className="flex items-center bg-ink/[0.05] rounded-md p-0.5">

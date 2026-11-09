@@ -89,6 +89,16 @@ describe("captureTabs", () => {
     expect([project.name, project.categories[0].name, project.categories[0].groups[0].name]).toEqual(["General", "Uncategorized", "Unsorted"])
   })
 
+  it("creates a Personal space when the workspace has none, and reuses it (TASK-37)", async () => {
+    yjs.setSpaces([])
+    const first = receipt(await captureTabs([{ url: "https://b.com" }], { spaceId: "", projectId: "", categoryId: "" }))
+    const second = receipt(await captureTabs([{ url: "https://c.com" }], { spaceId: "", projectId: "", categoryId: "" }))
+    const spaces = yjs.getSpaces()
+    expect(spaces.map(s => s.name)).toEqual(["Personal"])
+    expect(first.target).toEqual(second.target)
+    expect(spaces[0].projects[0].categories[0].groups[0].tabs.map(t => t.url)).toEqual(["https://b.com", "https://c.com"])
+  })
+
   it("reports a refused storage write so the caller can retry", async () => {
     vi.mocked(chrome.storage.local.set).mockImplementation((async (items: Record<string, unknown>) => {
       if (yjs.PERSIST_KEY in items) throw new Error("quota")
@@ -167,7 +177,8 @@ describe("defaults and settings", () => {
     expect(defaultDestination(spaces, [{ spaceId: "s", projectId: "p", categoryId: "c", groupId: "g" }])).toMatchObject({ categoryId: "c", groupId: "g" })
     expect(defaultDestination(spaces, [{ spaceId: "s", projectId: "p", categoryId: "c2", groupId: "gone" }])).toEqual({ spaceId: "s", projectId: "p", categoryId: "c2", groupId: undefined })
     expect(defaultDestination(spaces, [{ spaceId: "x", projectId: "p", categoryId: "c" }])).toEqual({ spaceId: "s", projectId: "p", categoryId: "c", groupId: undefined })
-    expect(defaultDestination([], [])).toBeNull()
+    // No space at all: empty ids, and the save itself creates the space (TASK-37).
+    expect(defaultDestination([], [])).toEqual({ spaceId: "", projectId: "", categoryId: "", groupId: undefined })
   })
 
   it("loads the default from stored recents", async () => {

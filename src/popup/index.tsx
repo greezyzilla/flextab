@@ -88,7 +88,6 @@ function IndexPopup() {
         setLastBackground(await loadLastCapture())
         if (!current || !isSavableTabUrl(current.url)) { setStatus({ kind: "unsavable" }); return }
         const dest = await loadDefaultDestination({ spaceId: activeSpaceId, projectId: activeProjectId, categoryId: activeCategoryId })
-        if (!dest) { setStatus({ kind: "choose" }); setPicking(true); return }
         showCapture(await captureTabs([current], dest, { dedupe: true }), dest)
       } catch (_) {
         setStatus({ kind: "error", message: "Could not read your tabs. Please try again." })

@@ -116,13 +116,21 @@ describe("captureFromBackground", () => {
     expect(project.categories[0].groups[0].tabs.map((t) => t.url)).toEqual(["https://a.example"])
   })
 
-  it("opens the popup to choose when there's no space to save into", async () => {
+  it("saves into a new Personal space when the workspace has no spaces (TASK-37)", async () => {
     disk[yjs.PERSIST_KEY] = { version: 1, origin: "snapshot", data: yjs.encodeSpacesAsStorage([]) }
-    expect(await captureFromBackground("page", { tab: { id: 1, url: "https://a.example" } as chrome.tabs.Tab })).toBe("no-destination")
-    expect(chrome.action.openPopup).toHaveBeenCalled()
-    vi.mocked(chrome.action.openPopup).mockRejectedValueOnce(new Error("not allowed"))
-    await captureFromBackground("page", { tab: { id: 1, url: "https://a.example" } as chrome.tabs.Tab })
-    expect(chrome.tabs.create).toHaveBeenCalledWith({ url: "chrome-extension://test/newtab.html" })
+    expect(await captureFromBackground("page", { tab: { id: 1, url: "https://a.example" } as chrome.tabs.Tab })).toBe("saved")
+    expect(chrome.action.openPopup).not.toHaveBeenCalled()
+    const [space] = yjs.getSpaces()
+    expect(space.name).toBe("Personal")
+    expect(space.projects[0].name).toBe("General")
+    expect(space.projects[0].categories[0].name).toBe("Uncategorized")
+    expect(space.projects[0].categories[0].groups[0].tabs.map(t => t.url)).toEqual(["https://a.example"])
+  })
+
+  it("an unsavable page in an empty workspace creates no space", async () => {
+    disk[yjs.PERSIST_KEY] = { version: 1, origin: "snapshot", data: yjs.encodeSpacesAsStorage([]) }
+    expect(await captureFromBackground("page", { tab: { id: 1, url: "chrome://settings" } as chrome.tabs.Tab })).toBe("unsavable")
+    expect(yjs.getSpaces()).toEqual([])
   })
 
   it("reports a refused write with the badge", async () => {

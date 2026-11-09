@@ -10,7 +10,7 @@ import { CategoryIcon, GroupIcon, ProjectIcon, SpaceAvatar, UnsortedIcon } from 
 import { loadRecentDestinations, type RecentDestination } from "~src/lib/recentDestinations"
 import { GroupColorSwatch } from "~src/components/GroupColorMenu"
 import { groupColorFill } from "~src/lib/groupColors"
-import { ensureCategoryPath, findUnsorted, isUnsortedGroup, orderedGroups, UNSORTED_NAME } from "~src/lib/defaultPath"
+import { DEFAULT_SPACE_NAME, ensureCategoryPath, findUnsorted, isUnsortedGroup, orderedGroups, UNSORTED_NAME } from "~src/lib/defaultPath"
 
 /** A picked destination. With `groupLevel`, it names a group, or a new group to create. */
 export type PickerValue = SaveTabsTarget & { groupId?: string; newGroupName?: string }
@@ -81,6 +81,12 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
     store.addSavedCategory(spaceId, projectId, { id, name, groups: [], order: project?.categories.length ?? 0 })
     setCreating(null)
     onChange({ spaceId, projectId, categoryId: id })
+  }
+
+  // No spaces (TASK-37): nothing to find or pick, so no search field and no
+  // list box. One line says where the save goes instead.
+  if (savedSpaces.length === 0) {
+    return <p className="text-xs text-fg-subtle">No spaces yet. Saving creates a space named {DEFAULT_SPACE_NAME}.</p>
   }
 
   return (

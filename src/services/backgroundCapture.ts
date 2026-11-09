@@ -68,7 +68,8 @@ async function openForChoice(): Promise<void> {
  * Save the page / link / window behind a command or menu click.
  * Before the first new tab has created the workspace it opens FlexTab
  * instead of saving. Inside a workspace a
- * save always lands: missing levels follow the default path (TASK-20).
+ * save always lands: missing levels follow the default path (TASK-20), and
+ * a workspace with no spaces gets the default space (TASK-37).
  */
 export async function captureFromBackground(
   kind: BackgroundCaptureKind,
@@ -81,10 +82,6 @@ export async function captureFromBackground(
   }
 
   const destination = await loadDefaultDestination()
-  if (!destination) {
-    await openForChoice()
-    return "no-destination"
-  }
 
   let tabs: ChromeTabLike[]
   if (kind === "link") {

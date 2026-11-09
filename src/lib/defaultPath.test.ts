@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest"
 import * as yjs from "~src/lib/yjsDoc"
-import { ensureCategoryPath, ensureUnsortedGroup, ensureUnsortedPath, findUnsorted, firstGroupOrder, isUnsortedGroup, orderedGroups } from "./defaultPath"
+import { ensureCategoryPath, ensureSpace, ensureUnsortedGroup, ensureUnsortedPath, findUnsorted, firstGroupOrder, isUnsortedGroup, orderedGroups } from "./defaultPath"
 
 beforeEach(async () => {
   await yjs.clearState()
@@ -17,6 +17,16 @@ describe("default path", () => {
     expect(ensureCategoryPath("s", { projectId: "p", categoryId: "c2" })).toEqual({ spaceId: "s", projectId: "p", categoryId: "c2" })
     expect(ensureCategoryPath("s", { projectId: "gone", categoryId: "gone" })).toEqual({ spaceId: "s", projectId: "p", categoryId: "c" })
     expect(ensureCategoryPath("nope")).toBeNull()
+  })
+
+  it("ensureSpace returns the first space, or creates Personal with a fresh id (TASK-37)", () => {
+    expect(ensureSpace()).toBe("s")
+    expect(yjs.getSpaces()).toHaveLength(1)
+    yjs.setSpaces([])
+    const a = ensureSpace()
+    expect(yjs.getSpaces()).toEqual([{ id: a, name: "Personal", order: 0, projects: [] }])
+    yjs.setSpaces([])
+    expect(ensureSpace()).not.toBe(a)
   })
 
   it("creates one Unsorted per category, first and marked", () => {

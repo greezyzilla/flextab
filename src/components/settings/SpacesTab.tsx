@@ -57,6 +57,9 @@ export function SpacesTab() {
     <div className="flex flex-col gap-8">
       <section className="flex flex-col gap-3">
         <GroupHeading>Your spaces</GroupHeading>
+        {sorted.length === 0 && (
+          <p className="px-3 py-2.5 text-sm font-sans text-fg-subtle">No spaces yet. Saving a tab creates one.</p>
+        )}
         <ul className="flex flex-col gap-1" aria-label="Spaces">
           {sorted.map((space, i) => {
             const { projects, tabs } = countOf(space);
@@ -90,12 +93,12 @@ export function SpacesTab() {
         </ul>
       </section>
 
-      {selected && <SpaceDetail key={selected.id} space={selected} isLast={sorted.length <= 1} />}
+      {selected && <SpaceDetail key={selected.id} space={selected} />}
     </div>
   );
 }
 
-function SpaceDetail({ space, isLast }: { space: SavedSpace; isLast: boolean }) {
+function SpaceDetail({ space }: { space: SavedSpace }) {
   const { updateSavedSpace } = useSavedSpacesStore();
   const [name, setName] = useState(space.name);
   const [abbreviation, setAbbreviation] = useState(space.abbreviation ?? "");
@@ -141,7 +144,7 @@ function SpaceDetail({ space, isLast }: { space: SavedSpace; isLast: boolean }) 
         </div>
       </section>
 
-      <DangerZone space={space} isLast={isLast} />
+      <DangerZone space={space} />
     </>
   );
 }
@@ -149,9 +152,11 @@ function SpaceDetail({ space, isLast }: { space: SavedSpace; isLast: boolean }) 
 /**
  * Deleting a space removes everything saved in it, on every synced device, so
  * it lives only here and asks for the space's name before it goes. Undo stays.
+ * The last space can go too (TASK-37): zero spaces is a valid workspace, and
+ * the next save creates the default space again.
  */
-function DangerZone({ space, isLast }: { space: SavedSpace; isLast: boolean }) {
-  const { removeSavedSpace, addSavedSpace } = useSavedSpacesStore();
+function DangerZone({ space }: { space: SavedSpace }) {
+  const { removeSavedSpace, addSavedSpace, setActiveSpace } = useSavedSpacesStore();
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState("");
   const { projects, tabs } = countOf(space);
@@ -159,7 +164,11 @@ function DangerZone({ space, isLast }: { space: SavedSpace; isLast: boolean }) {
 
   const remove = () => {
     removeSavedSpace(space);
-    showUndoToast(`Deleted space "${space.name}"`, () => addSavedSpace(space));
+    showUndoToast(`Deleted space "${space.name}"`, () => {
+      addSavedSpace(space);
+      // Undoing the last space's deletion selects it again.
+      if (!useSavedSpacesStore.getState().activeSpaceId) setActiveSpace(space.id);
+    });
     navigate(SPACES_ROUTE);
   };
 
@@ -170,12 +179,10 @@ function DangerZone({ space, isLast }: { space: SavedSpace; isLast: boolean }) {
         <div className="min-w-0">
           <div className="text-sm font-sans font-medium text-fg">Delete this space</div>
           <p className="mt-0.5 text-xs font-sans leading-relaxed text-fg-subtle">
-            {isLast
-              ? "This is your only space. Create another space before deleting this one."
-              : `Removes ${plural(projects, "project")} and ${plural(tabs, "tab")} on every synced device.`}
+            {`Removes ${plural(projects, "project")} and ${plural(tabs, "tab")} on every synced device.`}
           </p>
         </div>
-        <Button variant="destructive" size="sm" disabled={isLast} onClick={() => { setTyped(""); setOpen(true); }}>
+        <Button variant="destructive" size="sm" onClick={() => { setTyped(""); setOpen(true); }}>
           Delete space…
         </Button>
       </div>

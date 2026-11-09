@@ -18,6 +18,7 @@ import { resolveSaveTargetIds } from "~src/services/resolveSaveTarget"
 import type { SaveTabsTarget } from "~src/services/saveTabsAsGroup"
 import { DestinationPicker, describeTarget } from "~src/components/DestinationPicker"
 import { windowGroupName } from "~src/services/capture"
+import { ensureCategoryPath, ensureSpace } from "~src/lib/defaultPath"
 
 
 export function SaveSessionModal({
@@ -46,12 +47,14 @@ export function SaveSessionModal({
   // The picker can create the destination inline, so validity is "the chosen
   // category exists", read from the live tree.
   const destination = describeTarget(savedSpaces, target)
+  // No spaces at all (TASK-37): the save creates the default space.
+  const createsSpace = savedSpaces.length === 0
 
   const savableTabs = useMemo(
     () => tabs.filter((t) => isSavableTabUrl(t.url)),
     [tabs],
   )
-  const canSave = !!destination && !!name.trim() && savableTabs.length > 0
+  const canSave = (!!destination || createsSpace) && !!name.trim() && savableTabs.length > 0
 
   const handleSave = useCallback(async () => {
     if (!canSave) return
@@ -59,11 +62,12 @@ export function SaveSessionModal({
     // Where these URLs already were, read before saving (TASK-4).
     const alsoIn = savedElsewhere(useSavedSpacesStore.getState().savedSpaces, savableTabs.map((t) => t.url)).map((l) => l.path)
     try {
+      const into = createsSpace ? ensureCategoryPath(ensureSpace())! : target
       const result = await saveTabsAsGroup({
         target: {
-          spaceId: target.spaceId,
-          projectId: target.projectId,
-          categoryId: target.categoryId,
+          spaceId: into.spaceId,
+          projectId: into.projectId,
+          categoryId: into.categoryId,
         },
         name: name.trim(),
         tabs: savableTabs,
@@ -85,7 +89,7 @@ export function SaveSessionModal({
     } finally {
       setSaving(false)
     }
-  }, [canSave, target, savableTabs, name, onClose])
+  }, [canSave, createsSpace, target, savableTabs, name, onClose])
 
   return (
     <Dialog open onOpenChange={(o) => { if (!o) onClose() }}>
@@ -126,7 +130,7 @@ export function SaveSessionModal({
             <Label>Save to</Label>
             <DestinationPicker value={target} onChange={setTarget} />
             <span className="text-fg-subtle text-xs font-sans truncate" aria-live="polite">
-              {destination ?? "Pick or create a category to save into."}
+              {destination ?? (createsSpace ? null : "Pick or create a category to save into.")}
             </span>
           </div>
         </div>

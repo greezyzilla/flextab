@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { render, screen, waitFor, within } from "@testing-library/react"
+import { act, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { SpacesTab, spaceIdFromRoute } from "./SpacesTab"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
@@ -77,11 +77,32 @@ describe("Settings › Spaces", () => {
     await waitFor(() => expect(window.location.hash).toBe("#/settings/spaces"))
   })
 
-  it("never deletes the only space", () => {
+  it("deletes the only space too, and undo selects it again (TASK-37)", async () => {
     yjs.setSpaces([yjs.getSpaces()[1]])
     useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces(), activeSpaceId: "work" })
+    const user = userEvent.setup()
     render(<SpacesTab />)
-    expect(screen.getByRole("button", { name: "Delete space…" })).toBeDisabled()
-    expect(screen.getByText(/This is your only space/)).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Delete space…" }))
+    await user.type(screen.getByLabelText(/to confirm/), "Work")
+    await user.click(screen.getByRole("button", { name: "Delete space" }))
+    expect(yjs.getSpaces()).toEqual([])
+    expect(useSavedSpacesStore.getState().activeSpaceId).toBeNull()
+    expect(screen.getByText("No spaces yet. Saving a tab creates one.")).toBeInTheDocument()
+
+    const undo = vi.mocked(showUndoToast).mock.calls[0][1] as () => void
+    act(() => undo())
+    expect(yjs.getSpaces().map(s => s.name)).toEqual(["Work"])
+    expect(useSavedSpacesStore.getState().activeSpaceId).toBe("work")
+  })
+
+  it("undo after deleting one of several spaces keeps the current selection", async () => {
+    const user = userEvent.setup()
+    render(<SpacesTab />)
+    await user.click(screen.getByRole("button", { name: "Delete space…" }))
+    await user.type(screen.getByLabelText(/to confirm/), "Home")
+    await user.click(screen.getByRole("button", { name: "Delete space" }))
+    expect(useSavedSpacesStore.getState().activeSpaceId).toBe("work")
+    act(() => (vi.mocked(showUndoToast).mock.calls[0][1] as () => void)())
+    expect(useSavedSpacesStore.getState().activeSpaceId).toBe("work")
   })
 })

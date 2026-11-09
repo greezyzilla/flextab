@@ -9,14 +9,15 @@ import * as yjs from "~src/lib/yjsDoc"
 import { rememberDestination, loadRecentDestinations, type RecentDestination } from "~src/lib/recentDestinations"
 import { isSavableTabUrl, toSavedTabs, defaultSavedGroupName } from "~src/services/saveTabsAsGroup"
 import { resolveSaveTargetIds } from "~src/services/resolveSaveTarget"
-import { ensureCategoryPath, ensureUnsortedGroup, findUnsorted, firstGroupOrder } from "~src/lib/defaultPath"
+import { ensureCategoryPath, ensureSpace, ensureUnsortedGroup, findUnsorted, firstGroupOrder } from "~src/lib/defaultPath"
 import type { SavedSpace, SavedTab } from "~src/types"
 
 export type ChromeTabLike = { id?: number; url?: string; title?: string; favIconUrl?: string; pinned?: boolean; windowId?: number; index?: number }
 
 /**
  * Where to capture. Project/category may be empty: missing levels get the
- * default items (TASK-20). Group: an existing one, a new named one, or —
+ * default items (TASK-20). An empty space id means the first space, or a new
+ * "Personal" one when the workspace has none (TASK-37). Group: an existing one, a new named one, or —
  * when neither is given (or the group is gone) — the category's Unsorted.
  */
 export type CaptureDestination = {
@@ -77,7 +78,7 @@ export async function captureTabs(
   const skipped = tabs.length - savable.length
   if (savable.length === 0) return { error: "nothing-savable", skipped }
 
-  const path = ensureCategoryPath(destination.spaceId, destination)
+  const path = ensureCategoryPath(destination.spaceId || ensureSpace(), destination)
   if (!path) return { error: "no-destination", skipped }
   const { spaceId, projectId, categoryId } = path
   // No group chosen (and no new name) → the category's Unsorted group.
@@ -221,27 +222,26 @@ export async function reopenTabs(closed: ClosedTab[]): Promise<void> {
 /**
  * Where a quick capture goes: the last group saved into (if it still exists),
  * else that category's Unsorted, else the preferred/first space's category
- * (created by default if missing) and its Unsorted. Null only with no space.
+ * (created by default if missing) and its Unsorted. With no space at all the
+ * ids are empty and the save itself creates the default space (TASK-37).
  */
 export function defaultDestination(
   spaces: SavedSpace[],
   recent: RecentDestination[],
   preferred: { spaceId?: string | null; projectId?: string | null; categoryId?: string | null } = {},
-): CaptureDestination | null {
+): CaptureDestination {
   for (const r of recent) {
     const category = findCategory(spaces, r)
     if (!category) continue
     const group = r.groupId ? category.groups.find((g) => g.id === r.groupId) : undefined
     return { spaceId: r.spaceId, projectId: r.projectId, categoryId: r.categoryId, groupId: group?.id }
   }
-  const ids = resolveSaveTargetIds(spaces, preferred)
-  if (!ids.spaceId) return null
-  return { ...ids, groupId: undefined }
+  return { ...resolveSaveTargetIds(spaces, preferred), groupId: undefined }
 }
 
 export async function loadDefaultDestination(
   preferred?: Parameters<typeof defaultDestination>[2],
-): Promise<CaptureDestination | null> {
+): Promise<CaptureDestination> {
   return defaultDestination(yjs.getSpaces(), await loadRecentDestinations(), preferred)
 }
 

@@ -60,6 +60,8 @@ export function SaveAllDialog() {
   const chosen = scope === "window" ? (current ? [current] : []) : withTabs
   const chosenCount = chosen.reduce((n, w) => n + savable(w).length, 0)
   const destination = describeTarget(savedSpaces, target)
+  // No spaces at all (TASK-37): the save creates the default space.
+  const createsSpace = savedSpaces.length === 0
   // Say before saving when this crosses the plan's sync cap (TASK-9). Saving
   // locally is never blocked; only sync pauses until tabs are removed.
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
@@ -68,7 +70,7 @@ export function SaveAllDialog() {
   const overCap = isAuthenticated && cap !== undefined && cap > 0 && after > cap
 
   const save = async () => {
-    if (!destination || chosenCount === 0 || saving) return
+    if ((!destination && !createsSpace) || chosenCount === 0 || saving) return
     setSaving(true)
     try {
       const receipts: CaptureReceipt[] = []
@@ -82,7 +84,8 @@ export function SaveAllDialog() {
       const saved = receipts.reduce((n, r) => n + r.tabIds.length, 0)
       setOpen(false)
       const alsoIn = [...new Set(receipts.flatMap((r) => r.alsoIn ?? []))]
-      showUndoToast(`Saved ${saved} tab${saved === 1 ? "" : "s"} to ${destination}`, () => {
+      const where = destination ?? (receipts[0] && describeTarget(useSavedSpacesStore.getState().savedSpaces, receipts[0].target))
+      showUndoToast(`Saved ${saved} tab${saved === 1 ? "" : "s"} to ${where}`, () => {
         void Promise.all(receipts.map((r) => undoCapture(r)))
       }, 5000, describeAlsoSaved(alsoIn) ?? undefined)
     } finally {
@@ -133,7 +136,7 @@ export function SaveAllDialog() {
 
         <DialogFooter>
           <Button variant="secondary" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button variant="default" onClick={() => void save()} disabled={!destination || chosenCount === 0 || saving}>
+          <Button variant="default" onClick={() => void save()} disabled={(!destination && !createsSpace) || chosenCount === 0 || saving}>
             {saving ? "Saving…" : `Save ${chosenCount} tab${chosenCount === 1 ? "" : "s"}`}
           </Button>
         </DialogFooter>

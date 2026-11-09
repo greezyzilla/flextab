@@ -106,3 +106,16 @@ describe("sidebar tree by keyboard (TASK-5)", () => {
     await waitFor(() => expect(window.location.hash).toBe("#/settings/spaces/s"))
   })
 })
+
+describe("sidebar with no space selected (TASK-37)", () => {
+  it("asks to select a space only when there is one to select", () => {
+    useSavedSpacesStore.setState({ activeSpaceId: null, activeProjectId: null, activeCategoryId: null })
+    const { unmount } = render(<TooltipProvider><DndContext><LeftPanel /></DndContext></TooltipProvider>)
+    expect(screen.getByText("Select a space")).toBeInTheDocument()
+    unmount()
+    yjs.setSpaces([])
+    useSavedSpacesStore.setState({ savedSpaces: [] })
+    setup()
+    expect(screen.queryByText("Select a space")).not.toBeInTheDocument()
+  })
+})

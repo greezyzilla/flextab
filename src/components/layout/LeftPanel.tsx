@@ -455,9 +455,9 @@ export function LeftPanel() {
               </div>
             )}
           </>
-        ) : (
+        ) : savedSpaces.length > 0 ? (
           <div className="text-fg-subtle font-sans text-xs p-8 text-center">Select a space</div>
-        )}
+        ) : null /* No spaces (TASK-37): nothing to select; the workspace offers New space. */}
       </nav>
 
       {/* Footer */}

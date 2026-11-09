@@ -92,4 +92,20 @@ describe("SaveAllDialog", () => {
     useAuthStore.setState({ isAuthenticated: false })
     usePlanStore.setState({ status: null })
   })
+
+  it("saves with no spaces into a new Personal space (TASK-37)", async () => {
+    yjs.setSpaces([])
+    useSavedSpacesStore.setState({ savedSpaces: [], activeSpaceId: null, activeProjectId: null, activeCategoryId: null })
+    render(<SaveAllDialog />)
+    await screen.findByText("3 tabs open in 2 windows.")
+    expect(screen.getByText("No spaces yet. Saving creates a space named Personal.")).toBeInTheDocument()
+    // Nothing to find or pick: no search field, no destination list.
+    expect(screen.queryByRole("searchbox", { name: "Find a destination" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("radiogroup", { name: "Destination" })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "Save 1 tab" }))
+    await waitFor(() => expect(useUIStore.getState().saveAllOpen).toBe(false))
+    expect(yjs.getSpaces().map(s => s.name)).toEqual(["Personal"])
+    expect(groups()[0].tabs.map(t => t.url)).toEqual(["https://a.example"])
+    expect(undoToast).toHaveBeenCalledWith("Saved 1 tab to Personal › General › Uncategorized", expect.any(Function), 5000, undefined)
+  })
 })

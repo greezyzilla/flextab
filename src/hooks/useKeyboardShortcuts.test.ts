@@ -64,6 +64,17 @@ describe("keyboard shortcuts follow the destination policy", () => {
     expect(project.categories[0].groups).toHaveLength(0)
   })
 
+  it("N with no spaces creates the default space and opens the name row there (TASK-37)", () => {
+    yjs.setSpaces([])
+    useSavedSpacesStore.setState({ activeSpaceId: null, activeProjectId: null, activeCategoryId: null })
+    letter("n")
+    const [space] = spaces()
+    expect(space.name).toBe("Personal")
+    const state = useSavedSpacesStore.getState()
+    expect([state.activeSpaceId, state.activeCategoryId]).toEqual([space.id, space.projects[0].categories[0].id])
+    expect(useUIStore.getState().namingGroupIn).toBe(space.projects[0].categories[0].id)
+  })
+
   it("Cmd+Shift+S opens the Save all dialog", () => {
     useUIStore.setState({ saveAllOpen: false })
     press("S", true)

@@ -1,18 +1,21 @@
 import { useEffect } from "react";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import type { SaveTabsTarget } from "~src/services/saveTabsAsGroup";
-import { ensureCategoryPath } from "~src/lib/defaultPath";
+import { ensureCategoryPath, ensureSpace } from "~src/lib/defaultPath";
 import { useUIStore } from "~src/store/useUIStore";
 
 /**
  * Run `action` against the current category, following the same rule as
  * every other save path (TASK-20): if the active space has no project or
  * category yet, the default ones are created so the shortcut always works.
+ * With no space selected it uses the first one, or creates the default space
+ * when there are none (TASK-37).
  */
 export function withActiveCategory(action: (target: SaveTabsTarget) => void): void {
   const state = useSavedSpacesStore.getState();
-  if (!state.activeSpaceId) return;
-  const path = ensureCategoryPath(state.activeSpaceId, { projectId: state.activeProjectId, categoryId: state.activeCategoryId });
+  if (!state.activeSpaceId) state.setActiveSpace(ensureSpace());
+  const { activeSpaceId, activeProjectId, activeCategoryId } = useSavedSpacesStore.getState();
+  const path = ensureCategoryPath(activeSpaceId!, { projectId: activeProjectId, categoryId: activeCategoryId });
   if (path) action(path);
 }
 

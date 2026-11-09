@@ -23,6 +23,21 @@ const setup = () => {
 }
 
 describe("empty states create in place", () => {
+  it("with no spaces says so and names the first space in place (TASK-37)", async () => {
+    yjs.setSpaces([])
+    useSavedSpacesStore.setState({ savedSpaces: [], activeSpaceId: null })
+    const user = setup()
+    expect(screen.getByText("No spaces yet")).toBeInTheDocument()
+    expect(screen.queryByText(/Pick one on the left/)).not.toBeInTheDocument()
+    expect(screen.queryByRole("navigation", { name: "Location" })).not.toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "New space…" }))
+    await user.keyboard("Studio{Enter}")
+    expect(await screen.findByText("Studio has no projects yet")).toBeInTheDocument()
+    const [space] = yjs.getSpaces()
+    expect(space.name).toBe("Studio")
+    expect(useSavedSpacesStore.getState().activeSpaceId).toBe(space.id)
+  })
+
   it("names a project right where the button was, with no chained category prompt", async () => {
     const user = setup()
     expect(screen.getByText("Work has no projects yet")).toBeInTheDocument()

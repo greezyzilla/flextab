@@ -8,6 +8,7 @@ import { v7 as uuidv7 } from "uuid"
 import * as yjs from "~src/lib/yjsDoc"
 import type { SavedCategory, SavedGroup } from "~src/types"
 
+export const DEFAULT_SPACE_NAME = "Personal"
 export const DEFAULT_PROJECT_NAME = "General"
 export const DEFAULT_CATEGORY_NAME = "Uncategorized"
 export const UNSORTED_NAME = "Unsorted"
@@ -20,6 +21,21 @@ export function isUnsortedGroup(group: Pick<SavedGroup, "config"> | undefined): 
 
 export function findUnsorted(category: Pick<SavedCategory, "groups"> | undefined): SavedGroup | undefined {
   return category?.groups.find(isUnsortedGroup)
+}
+
+/**
+ * The space to save into when none was chosen (TASK-37): the first space, or
+ * a new "Personal" space when the workspace has none. Zero spaces is a valid
+ * state, so a save creates the space instead of failing. The id is always new,
+ * never the first-install seed id, so a space deleted and synced away is not
+ * brought back under its old id.
+ */
+export function ensureSpace(): string {
+  const first = yjs.getSpaces()[0]
+  if (first) return first.id
+  const id = uuidv7()
+  yjs.addSpace({ id, name: DEFAULT_SPACE_NAME, projects: [], order: 0 })
+  return id
 }
 
 /**
