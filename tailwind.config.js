@@ -14,6 +14,11 @@ module.exports = {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        // Group cards (TASK-32): follow Roundness and stay concentric with the
+        // rows inside them. 1.5x keeps today's 12px at the default 8, is square
+        // at 0, and the card-row gap (radius / 2, max 8px) never exceeds the
+        // card padding (8-12px).
+        card: "calc(var(--radius) * 1.5)",
       },
       colors: {
         // shadcn semantic tokens — all derive from the live --hue / --color-black-*

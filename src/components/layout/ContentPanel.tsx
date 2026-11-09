@@ -159,7 +159,7 @@ function NewGroupRow({ categoryName, onCommit, onCancel }: {
     // Same card shell as the group it will become (title row inside the card),
     // so the row doesn't change shape or position when Enter creates it.
     <div style={{ paddingTop: 'var(--density-p-section)', paddingInline: GROUP_INLINE }}>
-    <div className="flex flex-col gap-1 rounded-xl border border-ink/[0.08] bg-ink/[0.015]" style={{ padding: 'var(--density-p-group)' }}>
+    <div className="flex flex-col gap-1 rounded-card border border-ink/[0.08] bg-ink/[0.015]" style={{ padding: 'var(--density-p-group)' }}>
       <div className="flex items-center gap-2.5" style={{ paddingInline: 'var(--density-px-tab)' }}>
         <span className="w-5 flex justify-center shrink-0"><GroupIcon className="h-3.5 w-3.5 text-fg-subtle" /></span>
         <Input
