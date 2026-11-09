@@ -2,14 +2,8 @@ import { useEffect, useState } from "react";
 import { useAuthStore } from "~src/store/useAuthStore";
 import { useSyncStore } from "~src/store/useSyncStore";
 import { exportWorkspace } from "~src/services/exportWorkspace";
-import { Button } from "~src/components/ui/button";
-import { Label } from "~src/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "~src/components/ui/radio-group";
-import { cn } from "~src/lib/utils";
-import {
-  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
-  AlertDialogDescription, AlertDialogCancel,
-} from "~src/components/ui/alert-dialog";
+import { RadioGroup } from "~src/components/ui/radio-group";
+import { Modal, ModalBody, ModalFooter, ModalGroup, ModalHeader, ModalLink, ModalNote, ModalOptionCard } from "~src/components/ui/modal";
 
 type LocalData = "keep" | "remove";
 
@@ -67,58 +61,42 @@ export function SignOutDialog({ open, onOpenChange }: {
   };
 
   return (
-    <AlertDialog open={open} onOpenChange={value => { if (!busy) onOpenChange(value); }}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Sign out of FlexTab?</AlertDialogTitle>
-          <AlertDialogDescription>
-            Your account keeps everything that already synced. Choose what happens to the tabs on this device.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <RadioGroup value={localData} onValueChange={v => { setLocalData(v as LocalData); setConfirmed(false); }} className="flex flex-col gap-2" disabled={busy}>
+    <Modal kind="alert" size="m" open={open} onOpenChange={value => { if (!busy) onOpenChange(value); }}>
+      <ModalHeader title="Sign out of FlexTab?"
+        description="Your account keeps everything that already synced. Choose what happens to the tabs on this device." />
+      <ModalBody>
+        <RadioGroup value={localData} onValueChange={v => { setLocalData(v as LocalData); setConfirmed(false); }} disabled={busy}>
           {CHOICES.map(choice => (
-            <Label
-              key={choice.id}
-              htmlFor={`signout-${choice.id}`}
-              className={cn(
-                "flex cursor-pointer items-start gap-2.5 rounded-lg border px-4 py-2.5 font-normal transition-colors",
-                localData === choice.id
-                  ? "border-[var(--accent)] bg-[var(--accent-subtle)]"
-                  : "border-ink/10 bg-ink/[0.02] hover:bg-ink/[0.05]",
-              )}
-            >
-              <RadioGroupItem value={choice.id} id={`signout-${choice.id}`} className="mt-0.5" />
-              <span className="flex flex-col gap-0.5">
-                <span className="text-fg text-sm">{choice.label}</span>
-                <span className="text-fg-subtle text-xs">{choice.detail}</span>
-              </span>
-            </Label>
+            <ModalOptionCard key={choice.id} id={`signout-${choice.id}`} value={choice.id} selected={localData === choice.id}
+              title={choice.label} hint={choice.detail} danger={choice.id === "remove"} disabled={busy} />
           ))}
         </RadioGroup>
         {removing && (
-          <>
+          <ModalGroup>
             {unsynced && (
               <p className="text-sm text-warning">Your workspace may contain unsynced changes or an unresolved conflict. Download a backup first, or cancel to finish syncing.</p>
             )}
-            <Button variant="secondary" disabled={busy} onClick={download}>Download backup</Button>
             {notice && <p role="status" className="text-xs text-fg-muted">{notice}</p>}
             <label className="flex items-start gap-2 text-sm text-fg-muted">
               <input type="checkbox" checked={confirmed} disabled={busy} onChange={e => setConfirmed(e.target.checked)} />
               I understand that unsynced local changes will be deleted.
             </label>
-          </>
+          </ModalGroup>
         )}
         {!removing && unsynced && (
-          <p className="text-xs text-fg-muted">Changes that have not synced stay on this device and sync when you sign in again.</p>
+          <ModalNote>Changes that have not synced stay on this device and sync when you sign in again.</ModalNote>
         )}
         {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-        <div className="flex flex-col gap-2">
-          <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
-          <Button variant={removing ? "destructive" : "default"} disabled={(removing && !confirmed) || busy} onClick={confirm}>
-            {busy ? "Signing out…" : removing ? "Sign out and remove tabs" : "Sign out"}
-          </Button>
-        </div>
-      </AlertDialogContent>
-    </AlertDialog>
+      </ModalBody>
+      <ModalFooter
+        start={removing ? <ModalLink disabled={busy} onClick={download}>Download backup</ModalLink> : undefined}
+        cancelDisabled={busy}
+        primary={{
+          label: busy ? "Signing out…" : removing ? "Sign out and remove tabs" : "Sign out",
+          tone: removing ? "destructive" : "primary",
+          disabled: (removing && !confirmed) || busy,
+          onClick: () => void confirm(),
+        }} />
+    </Modal>
   );
 }
