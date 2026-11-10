@@ -140,7 +140,7 @@ async function saveOpenBrowserTab(
 ): Promise<string[]> {
   // Other places this URL is already saved, read before saving (TASK-4).
   const alsoIn = savedElsewhere(useSavedSpacesStore.getState().savedSpaces, [tab.url], groupId).map((l) => l.path)
-  const favicon = await faviconToDataUrl(tab.favIconUrl || "")
+  const favicon = await faviconToDataUrl(tab.favIconUrl || "", tab.url)
   const savedTab: SavedTab = {
     id: uuidv7(),
     url: tab.url || "",

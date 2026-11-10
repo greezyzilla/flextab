@@ -71,7 +71,7 @@ export async function toSavedTabs(
       id: uuidv7(),
       url: t.url || "",
       title: t.title || "Untitled",
-      favicon: await faviconToDataUrl(t.favIconUrl || ""),
+      favicon: await faviconToDataUrl(t.favIconUrl || "", t.url),
       order: order++,
     });
   }

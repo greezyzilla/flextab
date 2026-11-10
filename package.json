@@ -92,7 +92,8 @@
       "storage",
       "unlimitedStorage",
       "alarms",
-      "contextMenus"
+      "contextMenus",
+      "favicon"
     ],
     "optional_permissions": [
       "tabGroups"
