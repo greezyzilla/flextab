@@ -30,6 +30,7 @@ import { doc, setSpaces, getSpaces, addSpace, clearState } from '~src/lib/yjsDoc
 import { clearMergeBase, getMergeBase, setMergeBase } from './mergeBase';
 import { clearConflictPending } from './conflictState';
 import { setStoredRevision } from './revision';
+import { noteServerResponse } from './serverReachable';
 
 // --- Fake WebSocket ---
 class FakeWS {
@@ -499,6 +500,206 @@ describe('realtime + lifecycle', () => {
     (useAuthStore.getState as any).mockReturnValue({ isAuthenticated: false });
     FakeWS.instances[0].fireClose();
     expect(FakeWS.instances).toHaveLength(1); // no new socket scheduled
+  });
+
+  it('does not open a socket while the browser is offline, and opens one on the online event (TASK-63)', async () => {
+    const onLine = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    try {
+      (apiFetch as any).mockResolvedValue({ spaces: [], revision: 1 });
+      await startSyncEngine();
+      await flush();
+      expect(FakeWS.instances).toHaveLength(0);
+      expect(useSyncStore.getState().status).toBe('offline');
+      onLine.mockReturnValue(true);
+      window.dispatchEvent(new Event('online'));
+      await flush();
+      expect(FakeWS.instances).toHaveLength(1);
+    } finally { onLine.mockRestore(); }
+  });
+
+  it('drops the socket and the retry on the offline event, so nothing is attempted offline (TASK-63)', async () => {
+    await connect();
+    vi.useFakeTimers();
+    const onLine = vi.spyOn(navigator, 'onLine', 'get');
+    try {
+      const first = FakeWS.instances[0];
+      onLine.mockReturnValue(false);
+      window.dispatchEvent(new Event('offline'));
+      expect(first.readyState).toBe(3);
+      expect(useSyncStore.getState().status).toBe('offline');
+      await vi.advanceTimersByTimeAsync(10 * 60_000);
+      expect(FakeWS.instances).toHaveLength(1);
+      onLine.mockReturnValue(true);
+      window.dispatchEvent(new Event('online'));
+      await vi.advanceTimersByTimeAsync(0);
+      expect(FakeWS.instances).toHaveLength(2);
+    } finally { onLine.mockRestore(); vi.useRealTimers(); }
+  });
+
+  it('backs off with jitter up to 5 minutes while the server stays unreachable (TASK-63)', async () => {
+    await connect();
+    await flush(); // let the reconcile that runs on open finish first
+    vi.useFakeTimers();
+    const random = vi.spyOn(Math, 'random').mockReturnValue(0.5); // jitter factor 1.0
+    try {
+      const waits: number[] = [];
+      for (let attempt = 0; attempt < 9; attempt++) {
+        const before = FakeWS.instances.length;
+        FakeWS.instances[before - 1].fireClose();
+        let waited = 0;
+        while (FakeWS.instances.length === before && waited < 10 * 60_000) { await vi.advanceTimersByTimeAsync(1000); waited += 1000; }
+        waits.push(waited);
+      }
+      expect(waits).toEqual([3000, 6000, 12000, 24000, 48000, 96000, 192000, 300000, 300000]);
+      random.mockReturnValue(0); // lowest jitter: 80% of the delay
+      const before = FakeWS.instances.length;
+      FakeWS.instances[before - 1].fireClose();
+      await vi.advanceTimersByTimeAsync(240_000);
+      expect(FakeWS.instances.length).toBe(before + 1);
+    } finally { random.mockRestore(); vi.useRealTimers(); }
+  });
+
+  it('a socket that drops while the browser is offline waits for the online event, not a timer (TASK-63)', async () => {
+    await connect();
+    vi.useFakeTimers();
+    const onLine = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    try {
+      FakeWS.instances[0].fireClose(); // no offline event has fired yet
+      await vi.advanceTimersByTimeAsync(10 * 60_000);
+      expect(FakeWS.instances).toHaveLength(1);
+      onLine.mockReturnValue(true);
+      window.dispatchEvent(new Event('online'));
+      await vi.advanceTimersByTimeAsync(0);
+      expect(FakeWS.instances).toHaveLength(2);
+    } finally { onLine.mockRestore(); vi.useRealTimers(); }
+  });
+
+  it('does not open the socket if the browser went offline while the token loaded (TASK-63)', async () => {
+    (apiFetch as any).mockResolvedValue({ spaces: [], revision: 0 });
+    const onLine = vi.spyOn(navigator, 'onLine', 'get');
+    try {
+      let release!: (t: unknown) => void;
+      (loadTokens as any).mockImplementation(() => new Promise((r) => { release = r; }));
+      void startSyncEngine();
+      for (let i = 0; i < 50 && !release; i++) await flush();
+      onLine.mockReturnValue(false);
+      release({ access_token: 't', refresh_token: 'r', expires_at: 0 });
+      await flush();
+      expect(FakeWS.instances).toHaveLength(0);
+      expect(useSyncStore.getState().status).toBe('offline');
+    } finally { onLine.mockRestore(); }
+  });
+
+  it('the online event retries a waiting socket at once, from a fresh backoff (TASK-63)', async () => {
+    await connect();
+    await flush();
+    vi.useFakeTimers();
+    try {
+      FakeWS.instances[0].fireClose(); // retry waits ~3 s
+      window.dispatchEvent(new Event('online'));
+      await vi.advanceTimersByTimeAsync(0);
+      expect(FakeWS.instances).toHaveLength(2);
+      await vi.advanceTimersByTimeAsync(10_000); // the dropped timer does not fire a second attempt
+      expect(FakeWS.instances).toHaveLength(2);
+      FakeWS.instances[1].fireClose();
+      await vi.advanceTimersByTimeAsync(3600); // fresh backoff: ~3 s again
+      expect(FakeWS.instances).toHaveLength(3);
+    } finally { vi.useRealTimers(); }
+  });
+
+  it('retries a waiting socket as soon as the server answers over HTTP, once per outage (TASK-63)', async () => {
+    await connect();
+    await flush();
+    vi.useFakeTimers();
+    try {
+      FakeWS.instances[0].fireClose(); // retry now waits ~3 s
+      await vi.advanceTimersByTimeAsync(3600);
+      FakeWS.instances[1].fireClose(); // and now ~6 s
+      noteServerResponse(500); // a proxy in front of a down server proves nothing
+      await vi.advanceTimersByTimeAsync(0);
+      expect(FakeWS.instances).toHaveLength(2);
+      noteServerResponse(200);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(FakeWS.instances).toHaveLength(3); // straight away, not after 6 s
+      FakeWS.instances[2].fireClose(); // HTTP works but the socket still fails
+      noteServerResponse(200);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(FakeWS.instances).toHaveLength(3); // no extra attempt per request
+      await vi.advanceTimersByTimeAsync(14_400); // the backoff kept growing: ~12 s
+      expect(FakeWS.instances).toHaveLength(4);
+      FakeWS.instances[3].open(); // connected: the next outage gets its early retry again
+      FakeWS.instances[3].fireClose();
+      noteServerResponse(204);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(FakeWS.instances).toHaveLength(5);
+    } finally { vi.useRealTimers(); }
+  });
+
+  it('a server answer does nothing while the socket is open or no retry is waiting (TASK-63)', async () => {
+    await connect();
+    noteServerResponse(200);
+    await flush();
+    expect(FakeWS.instances).toHaveLength(1);
+    const onLine = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    try {
+      window.dispatchEvent(new Event('offline')); // no retry waits while offline
+      noteServerResponse(200);
+      await flush();
+      expect(FakeWS.instances).toHaveLength(1);
+    } finally { onLine.mockRestore(); }
+  });
+
+  it('retries a waiting socket when the page becomes visible, at most every 30 s (TASK-63)', async () => {
+    await connect();
+    await flush();
+    vi.useFakeTimers();
+    const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+    try {
+      for (let i = 0; i < 5; i++) { // back off to a 48 s wait
+        const n = FakeWS.instances.length;
+        FakeWS.instances[n - 1].fireClose();
+        while (FakeWS.instances.length === n) await vi.advanceTimersByTimeAsync(1000);
+      }
+      FakeWS.instances[FakeWS.instances.length - 1].fireClose();
+      const before = FakeWS.instances.length;
+      await vi.advanceTimersByTimeAsync(10_000);
+      document.dispatchEvent(new Event('visibilitychange')); // last attempt only 10 s ago
+      await vi.advanceTimersByTimeAsync(0);
+      expect(FakeWS.instances).toHaveLength(before);
+      await vi.advanceTimersByTimeAsync(20_000);
+      visibility.mockReturnValue('hidden');
+      document.dispatchEvent(new Event('visibilitychange')); // leaving the page never retries
+      await vi.advanceTimersByTimeAsync(0);
+      expect(FakeWS.instances).toHaveLength(before);
+      visibility.mockReturnValue('visible');
+      document.dispatchEvent(new Event('visibilitychange'));
+      await vi.advanceTimersByTimeAsync(0);
+      expect(FakeWS.instances).toHaveLength(before + 1);
+    } finally { visibility.mockRestore(); vi.useRealTimers(); }
+  });
+
+  it('network events open nothing while auto-sync is off (manual sync) (TASK-63)', async () => {
+    useSettingsStore.setState({ autoSync: false });
+    (apiFetch as any).mockResolvedValue({ spaces: [], revision: 1 });
+    await startSyncEngine();
+    await flush();
+    const status = useSyncStore.getState().status;
+    window.dispatchEvent(new Event('offline'));
+    window.dispatchEvent(new Event('online'));
+    await flush();
+    expect(FakeWS.instances).toHaveLength(0);
+    expect(useSyncStore.getState().status).toBe(status);
+  });
+
+  it('ignores network events once the engine is stopped', async () => {
+    await connect();
+    stopSyncEngine();
+    window.dispatchEvent(new Event('online'));
+    window.dispatchEvent(new Event('offline'));
+    document.dispatchEvent(new Event('visibilitychange'));
+    noteServerResponse(200);
+    expect(FakeWS.instances).toHaveLength(1);
+    expect(useSyncStore.getState().status).toBe('paused');
   });
 
   it('onerror closes the socket', async () => {

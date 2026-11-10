@@ -14,6 +14,7 @@ import { tabCap, usePlanStore } from "~src/store/usePlanStore";
 import { useMergeConflict } from "~src/store/useMergeConflict";
 import { useSettingsStore } from "~src/store/useSettingsStore";
 import { apiFetch, loadTokens, getDeviceId, API_BASE_URL } from "./api";
+import { onServerReachable } from "./serverReachable";
 import { applyPendingLandedSnapshot, LANDED_SNAPSHOT_KEY } from "./landedSnapshot";
 import { setStoredRevision } from "./revision";
 import { getMergeBase, setMergeBase } from "./mergeBase";
@@ -69,7 +70,14 @@ async function recomputeDirty() {
 }
 
 const WS_RECONNECT_BASE_MS = 3000;
-const WS_RECONNECT_MAX_MS = 60000;
+// Every failed handshake is logged by Chrome itself (it can't be caught), so a
+// server that stays down costs one console error per attempt (TASK-63). Backing
+// off to 5 minutes bounds that to about 17 attempts in the first hour per page;
+// jitter keeps several pages from retrying in step.
+const WS_RECONNECT_MAX_MS = 5 * 60_000;
+// Returning to the page retries a waiting socket at once, but not more often
+// than this, so flipping between tabs while the server is down stays quiet.
+const WS_VISIBLE_RETRY_GAP_MS = 30_000;
 const SYNC_HYDRATED_KEY = "flextab_sync_hydrated";
 const FRESH_LOGIN_KEY = "flextab_fresh_login";
 
@@ -444,26 +452,51 @@ export async function adoptStoredOccConflict(): Promise<boolean> {
 let ws: WebSocket | null = null;
 let wsReconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let wsReconnectDelay = WS_RECONNECT_BASE_MS;
+let wsLastAttemptAt = 0;
+// The server answered over HTTP while the socket was waiting to retry: that
+// retry runs at once, but only once until the socket opens again, so a server
+// that serves HTTP yet refuses the socket can't add an attempt per request.
+let wsServerRetryUsed = false;
+
+/** The browser says there is no network: any handshake now would fail and be logged. */
+function deviceOffline(): boolean {
+  return typeof navigator !== "undefined" && navigator.onLine === false;
+}
+
+function scheduleReconnect() {
+  // Offline: wait for the browser's `online` event instead of failing on a timer.
+  if (deviceOffline()) return;
+  const jittered = Math.round(wsReconnectDelay * (0.8 + Math.random() * 0.4));
+  wsReconnectTimer = setTimeout(connectWebSocket, jittered);
+  wsReconnectDelay = Math.min(wsReconnectDelay * 2, WS_RECONNECT_MAX_MS);
+}
 
 function connectWebSocket() {
   if (ws || !automaticSyncActive()) return;
+  if (deviceOffline()) { setStatus("offline"); return; }
+  // An attempt is starting now, from whichever path: a retry still waiting would
+  // be a second, early attempt that breaks the backoff, so drop it.
+  if (wsReconnectTimer) { clearTimeout(wsReconnectTimer); wsReconnectTimer = null; }
   const generation = engineGeneration;
 
   setStatus("connecting");
   Promise.all([loadTokens(), getDeviceId()]).then(([tokens, did]) => {
     if (ws || !automaticSyncActive() || generation !== engineGeneration) return;
     if (!tokens) { setStatus("offline"); return; }
+    if (deviceOffline()) { setStatus("offline"); return; }
 
     // The token rides in the Sec-WebSocket-Protocol header (not the query
     // string, which lands in proxy/access logs). The server echoes back
     // "flextab.v1" to satisfy the browser's subprotocol negotiation.
     const wsUrl = API_BASE_URL.replace(/^http/, "ws") +
       "/api/ws?device_id=" + encodeURIComponent(did);
+    wsLastAttemptAt = Date.now();
     ws = new WebSocket(wsUrl, ["flextab.v1", "flextab.bearer." + tokens.access_token]);
 
     ws.onopen = () => {
       if (!automaticSyncActive() || generation !== engineGeneration) return;
       wsReconnectDelay = WS_RECONNECT_BASE_MS;
+      wsServerRetryUsed = false;
       setStatus("online");
       // Reconcile on every (re)connect, not just the pre-hydration case: a device
       // that was offline while another device changed data would otherwise stay
@@ -494,8 +527,7 @@ function connectWebSocket() {
       ws = null;
       if (automaticSyncActive() && generation === engineGeneration) {
         setStatus("offline");
-        wsReconnectTimer = setTimeout(connectWebSocket, wsReconnectDelay);
-        wsReconnectDelay = Math.min(wsReconnectDelay * 2, WS_RECONNECT_MAX_MS);
+        scheduleReconnect();
       }
     };
 
@@ -503,9 +535,54 @@ function connectWebSocket() {
   }).catch(() => { if (automaticSyncActive()) setStatus("offline"); });
 }
 
+// Reconnect hints (TASK-63). Going offline drops the socket and the retry timer
+// at once, so no attempt runs while there is nothing to reach; coming back
+// online tries once, straight away, from a fresh backoff. While a retry is
+// waiting, two more signals bring it forward without resetting the backoff:
+// the server answering an HTTP request, and the user returning to the page.
+// The listeners are removed when the engine stops, so they only run while it runs.
+function onNetworkOffline() {
+  disconnectWebSocket();
+  if (automaticSyncActive()) setStatus("offline");
+}
+function onNetworkOnline() {
+  if (!automaticSyncActive()) return;
+  if (wsReconnectTimer) { clearTimeout(wsReconnectTimer); wsReconnectTimer = null; }
+  wsReconnectDelay = WS_RECONNECT_BASE_MS;
+  wsServerRetryUsed = false;
+  connectWebSocket();
+}
+function retryWaitingSocketNow(): boolean {
+  return engineRunning && automaticSyncActive() && !ws && wsReconnectTimer !== null && !deviceOffline();
+}
+function onServerAnswered() {
+  if (!retryWaitingSocketNow() || wsServerRetryUsed) return;
+  wsServerRetryUsed = true;
+  connectWebSocket();
+}
+function onVisibilityChange() {
+  if (typeof document === "undefined" || document.visibilityState !== "visible") return;
+  if (!retryWaitingSocketNow() || Date.now() - wsLastAttemptAt < WS_VISIBLE_RETRY_GAP_MS) return;
+  connectWebSocket();
+}
+let stopServerReachable: (() => void) | null = null;
+function listenForReconnectHints(on: boolean) {
+  const target = globalThis as { addEventListener?: typeof addEventListener; removeEventListener?: typeof removeEventListener };
+  const method = on ? target.addEventListener : target.removeEventListener;
+  method?.call(globalThis, "offline", onNetworkOffline);
+  method?.call(globalThis, "online", onNetworkOnline);
+  if (typeof document !== "undefined") {
+    if (on) document.addEventListener("visibilitychange", onVisibilityChange);
+    else document.removeEventListener("visibilitychange", onVisibilityChange);
+  }
+  stopServerReachable?.();
+  stopServerReachable = on ? onServerReachable(onServerAnswered) : null;
+}
+
 function disconnectWebSocket() {
   if (wsReconnectTimer) { clearTimeout(wsReconnectTimer); wsReconnectTimer = null; }
   wsReconnectDelay = WS_RECONNECT_BASE_MS;
+  wsServerRetryUsed = false;
   if (ws) { ws.onclose = null; ws.close(); ws = null; }
 }
 
@@ -565,6 +642,7 @@ export async function startSyncEngine() {
   const sameSession = captureSyncSession();
   const generation = ++engineGeneration;
   engineRunning = true;
+  listenForReconnectHints(true);
   clearHydrated();
   // Wait for persisted settings before using the default-on UI state.
   if (!useSettingsStore.persist.hasHydrated()) {
@@ -617,6 +695,7 @@ export function stopSyncEngine() {
   manualResolution = null;
   engineRunning = false;
   ++engineGeneration;
+  listenForReconnectHints(false);
   disconnectWebSocket();
   clearHydrated();
   // Torn down with a conflict still unresolved (e.g. auto-sync toggled off from

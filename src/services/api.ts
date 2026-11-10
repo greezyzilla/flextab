@@ -1,4 +1,5 @@
 import { v7 as uuidv7 } from "uuid";
+import { noteServerResponse } from "./serverReachable";
 
 const API_BASE_URL = process.env.PLASMO_PUBLIC_API_URL || "http://localhost:3000";
 
@@ -85,6 +86,7 @@ async function refreshTokens(): Promise<TokenData | null> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refresh_token: attemptedRefreshToken }),
     });
+    noteServerResponse(res.status);
 
     if (res.ok) {
       const newTokens: TokenData = await res.json();
@@ -177,6 +179,7 @@ export async function apiFetch<T = unknown>(
     ...options,
     headers,
   });
+  noteServerResponse(res.status);
 
   if (res.status === 401) {
     // Token invalid — clear and let the UI handle re-auth
@@ -268,6 +271,7 @@ export async function pushSync(spaces: unknown[], baseRevision: number | null, c
   } catch (_) {
     return { status: "error" };
   }
+  noteServerResponse(res.status);
 
   if (res.status === 409) {
     const body = (await res.json().catch(() => ({}))) ?? {};

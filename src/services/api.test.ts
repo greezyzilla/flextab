@@ -3,6 +3,7 @@ import {
   apiFetch, pushSync, fetchSyncRevision, apiLogin, apiChangePassword,
   getAuthUrl, getDeviceId, loadTokens, saveTokens, clearTokens, ApiError, RefreshUnavailableError,
 } from './api';
+import { onServerReachable, isServerAnswer, noteServerResponse } from './serverReachable';
 
 function res(body: unknown, status = 200) {
   return { ok: status >= 200 && status < 300, status, statusText: 'ERR', json: async () => body } as Response;
@@ -321,5 +322,44 @@ describe('misc', () => {
     expect(e.status).toBe(404);
     expect(e.name).toBe('ApiError');
     expect(e.message).toBe('nope');
+  });
+});
+
+describe('server reachable signal (TASK-63)', () => {
+  it('reports every API answer below 500 from apiFetch, refresh and pushSync', async () => {
+    const heard = vi.fn();
+    const stop = onServerReachable(heard);
+    try {
+      await saveTokens({ access_token: 'old', refresh_token: 'rt', expires_at: past() });
+      (global.fetch as any)
+        .mockResolvedValueOnce(res({ access_token: 'new', refresh_token: 'rt2', expires_at: future() }))
+        .mockResolvedValueOnce(res({ error: 'nope' }, 404));
+      await expect(apiFetch('/x')).rejects.toBeInstanceOf(ApiError);
+      expect(heard).toHaveBeenCalledTimes(2); // refresh 200 + the request's 404
+      (global.fetch as any).mockResolvedValueOnce(res({ revision: 3 }));
+      await pushSync([], 2);
+      expect(heard).toHaveBeenCalledTimes(3);
+      (global.fetch as any).mockResolvedValueOnce(res({}, 502)).mockRejectedValueOnce(new TypeError('Failed to fetch'));
+      await pushSync([], 2);
+      await pushSync([], 2);
+      expect(heard).toHaveBeenCalledTimes(3); // a gateway error or no answer proves nothing
+    } finally { stop(); }
+  });
+
+  it('stops after unsubscribe and survives a throwing listener', () => {
+    const bad = vi.fn(() => { throw new Error('x'); });
+    const good = vi.fn();
+    const stopBad = onServerReachable(bad);
+    const stopGood = onServerReachable(good);
+    expect(() => noteServerResponse(200)).not.toThrow();
+    expect(good).toHaveBeenCalledOnce();
+    stopBad(); stopGood();
+    noteServerResponse(200);
+    expect(bad).toHaveBeenCalledOnce();
+    expect(good).toHaveBeenCalledOnce();
+  });
+
+  it('counts only real API statuses', () => {
+    expect([0, 200, 401, 499, 500, 503].map(isServerAnswer)).toEqual([false, true, true, true, false, false]);
   });
 });
