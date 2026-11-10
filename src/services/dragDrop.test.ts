@@ -11,11 +11,14 @@ import {
   categoryDragId,
   containerDropTarget,
   containerMeets,
+  containerReorderTarget,
+  edgeAt,
   parseContainerDrag,
   projectDragId,
 } from "./dragDrop"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import * as yjs from "~src/lib/yjsDoc"
+import { orderedGroups } from "~src/lib/defaultPath"
 import type { SavedSpace } from "~src/types"
 
 const tree = (): SavedSpace[] => [
@@ -423,5 +426,96 @@ describe("dragging a project or a category (TASK-59)", () => {
     expect(applyContainerDrop(project, "space-drop:h")).toBeNull()
     expect(applyContainerDrop(category, "cat-drop:h:p1:c1")).toBeNull()
     expect(yjs.getSpaces()[0].projects[0].categories.map((c) => c.id)).toEqual(["c1", "c2"])
+  })
+})
+
+describe("reordering a project or a category by drag (TASK-64)", () => {
+  const cat = (id: string) => ({ id, name: id.toUpperCase(), order: 0, groups: [] })
+  beforeEach(() => {
+    yjs.setSpaces([
+      { id: "h", name: "Hobby", order: 0, projects: [
+        { id: "p1", name: "Test", order: 0, categories: [cat("c1"), cat("c2"), cat("c3")] },
+        { id: "p2", name: "Games", order: 1, categories: [cat("c4")] },
+      ] },
+      { id: "e", name: "Personal", order: 1, projects: [{ id: "p3", name: "Home", order: 0, categories: [] }] },
+    ])
+    useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces(), activeSpaceId: "h" })
+  })
+  const project = { kind: "project" as const, spaceId: "h", projectId: "p1" }
+  const category = { kind: "category" as const, spaceId: "h", projectId: "p1", categoryId: "c1" }
+
+  it("reorders only next to a row of the same parent", () => {
+    expect(containerReorderTarget(project, "proj-drop:h:p2")).toBe("p2")
+    expect(containerReorderTarget(project, "proj-drop:h:p1")).toBeNull() // itself
+    expect(containerReorderTarget(project, "proj-drop:e:p3")).toBeNull() // another space
+    expect(containerReorderTarget(project, "space-drop:e")).toBeNull()
+    expect(containerReorderTarget(category, "cat-drop:h:p1:c3")).toBe("c3")
+    expect(containerReorderTarget(category, "cat-drop:h:p1:c1")).toBeNull() // itself
+    expect(containerReorderTarget(category, "cat-drop:h:p2:c4")).toBeNull() // another project: a move
+    expect(containerReorderTarget(category, "section-drop:h:p1:c3")).toBeNull()
+    expect(containerReorderTarget(category, "proj-drop:h:p1")).toBeNull()
+    expect(containerMeets(project, "proj-drop:h:p2")).toBe(true)
+    expect(containerMeets(project, "proj-drop:e:p3")).toBe(false)
+  })
+
+  it("puts the line on the half of the row the pointer is over", () => {
+    expect(edgeAt({ top: 100, height: 20 }, 105)).toBe("before")
+    expect(edgeAt({ top: 100, height: 20 }, 115)).toBe("after")
+  })
+
+  it("reorders on drop, says where, and undoes", () => {
+    const moved = applyContainerDrop(category, "cat-drop:h:p1:c3", "after")!
+    expect(moved.message).toBe("Moved “C1” below “C3”")
+    expect(yjs.getSpaces()[0].projects[0].categories.map((c) => c.id)).toEqual(["c2", "c3", "c1"])
+    moved.undo()
+    expect(yjs.getSpaces()[0].projects[0].categories.map((c) => c.id)).toEqual(["c1", "c2", "c3"])
+    const up = applyContainerDrop({ ...project, projectId: "p2" }, "proj-drop:h:p1", "before")!
+    expect(up.message).toBe("Moved “Games” above “Test”")
+    expect(yjs.getSpaces()[0].projects.map((p) => p.id)).toEqual(["p2", "p1"])
+    expect(applyContainerDrop(project, "proj-drop:h:p2", "after")).toBeNull() // Test is already below Games
+  })
+
+  it("still moves a category dropped on a category of another project (TASK-59)", () => {
+    const moved = applyContainerDrop(category, "cat-drop:h:p2:c4")!
+    expect(moved.message).toBe("Moved “C1” to Hobby › Games")
+  })
+})
+
+describe("indexes are shown positions, even when stored order differs (TASK-64)", () => {
+  const shownGroups = () => orderedGroups(yjs.getSpaces()[0].projects[0].categories[0].groups).map((g) => g.id).join("")
+  const seed = (groups: any[]) => {
+    yjs.setSpaces([{ id: "s", name: "S", order: 0, projects: [{ id: "p", name: "P", order: 0, categories: [{ id: "c", name: "C", order: 0, groups }] }] }])
+    useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces() })
+  }
+
+  it("reorders the dragged group after a group was created at the top", async () => {
+    seed([{ id: "A", name: "A", order: 0, tabs: [] }, { id: "B", name: "B", order: 1, tabs: [] }])
+    useSavedSpacesStore.getState().addSavedGroup("s", "p", "c", { id: "N", name: "N", order: -1, tabs: [] }) // stored last, shown first
+    expect(shownGroups()).toBe("NAB")
+    await applyDragEnd({ activeId: "B", overId: "A", wasDraggingGroup: true })
+    expect(shownGroups()).toBe("NBA") // was "ANB": the new group moved instead
+  })
+
+  it("moves a tab next to the tab it was dropped on when stored order differs", async () => {
+    seed([
+      { id: "g1", name: "G1", order: 0, tabs: [{ id: "x", url: "https://x.test", title: "X", favicon: "", order: 0 }] },
+      { id: "g2", name: "G2", order: 1, tabs: [
+        { id: "b", url: "https://b.test", title: "B", favicon: "", order: 1 },
+        { id: "a", url: "https://a.test", title: "A", favicon: "", order: 0 }, // stored second, shown first
+      ] },
+    ])
+    await applyDragEnd({ activeId: "x", overId: "b", wasDraggingGroup: false })
+    const g2 = yjs.getSpaces()[0].projects[0].categories[0].groups.find((g) => g.id === "g2")!
+    expect([...g2.tabs].sort((p, q) => (p.order ?? 0) - (q.order ?? 0)).map((t) => t.id)).toEqual(["a", "x", "b"])
+  })
+
+  it("keeps the shown order of a category a group leaves", async () => {
+    yjs.setSpaces([{ id: "s", name: "S", order: 0, projects: [{ id: "p", name: "P", order: 0, categories: [
+      { id: "c", name: "C", order: 0, groups: [{ id: "A", name: "A", order: 0, tabs: [] }, { id: "B", name: "B", order: 1, tabs: [] }, { id: "N", name: "N", order: -1, tabs: [] }] },
+      { id: "d", name: "D", order: 1, groups: [] },
+    ] }] }])
+    useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces() })
+    useSavedSpacesStore.getState().moveGroupToCategory("s", "p", "c", "B", "s", "p", "d")
+    expect(shownGroups()).toBe("NA") // was "AN"
   })
 })

@@ -7,7 +7,7 @@ import { FaviconImg } from "./FaviconImg";
 import { CSS } from "@dnd-kit/utilities";
 import type { SavedGroup, SavedTab } from "~src/types";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
-import type { GroupLocation } from "~src/services/dragDrop";
+import { findGroupLocation, type GroupLocation } from "~src/services/dragDrop";
 import { showUndoToast } from "./ui/sonner";
 import { ConfirmDialog } from "./ui/confirm-dialog";
 import { Input } from "./ui/input";
@@ -22,6 +22,8 @@ import { IconButton } from "./ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { PickDestinationDialog } from "./PickDestinationDialog";
 import { moveGroupTo, moveTabTo } from "~src/services/moveTo";
+import { withPreview } from "~src/services/sortPreview";
+import { useSortPreview } from "~src/store/useSortPreview";
 import { useSettingsStore, type GroupLayout } from "~src/store/useSettingsStore";
 import { GroupColorMenuItems } from "./GroupColorMenu";
 import { GROUP_COLORS, groupColorFill, groupTintEdge, groupTintSurface } from "~src/lib/groupColors";
@@ -172,9 +174,12 @@ export interface TabGroupProps {
 }
 
 export function TabGroup({ group, location, layout = 'list', gridColumns = 2, preview = false }: TabGroupProps) {
-  const { setNodeRef: setDroppableRef, isOver } = useDroppable({
+  const { setNodeRef: setDroppableRef, isOver: overZone, active } = useDroppable({
     id: `droppable-${group.id}`,
   });
+  // The "drop into this group" look is for tabs. A dragged group never goes
+  // inside another one; where it lands shows as its placeholder (TASK-64).
+  const isOver = overZone && !(typeof active?.id === "string" && findGroupLocation(useSavedSpacesStore.getState().savedSpaces, active.id));
   const { removeSavedGroup, addSavedGroup, updateSavedGroup } = useSavedSpacesStore();
   const { spaceId, projectId, categoryId } = location;
   const [isRenaming, setIsRenaming] = useState(false);
@@ -204,6 +209,10 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
     const orderB = b.order ?? 0;
     return orderA - orderB;
   });
+
+  // A tab dragged in from another group shows here while dragging (TASK-64).
+  const sortPreview = useSortPreview((s) => s.preview);
+  const shownTabs = withPreview(sortedTabs, group.id, "tab", sortPreview);
 
   // Detect duplicate URLs within this group
   const urlCounts = new Map<string, number>();
@@ -366,8 +375,8 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
           )}
         </div>}
       </div>
-        {sortedTabs.length > 0 ? (
-          <SortableContext items={sortedTabs.map((tab) => tab.id)}>
+        {shownTabs.length > 0 ? (
+          <SortableContext items={shownTabs.map((tab) => tab.id)}>
             <div
               className={layout === 'grid' ? 'grid' : 'flex flex-col'}
               style={{
@@ -383,7 +392,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
                   : {}),
               }}
             >
-              {sortedTabs.map((tab) => (
+              {shownTabs.map((tab) => (
                 <SavedTabItem key={tab.id} tab={tab} groupId={group.id} location={location} unsorted={unsorted} isDuplicate={duplicateUrls.has(normalizeUrl(tab.url))} />
               ))}
             </div>

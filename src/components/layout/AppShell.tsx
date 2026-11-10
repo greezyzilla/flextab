@@ -43,6 +43,7 @@ export function AppShell() {
     handleDragStart,
     handleDragEnd,
     handleDragOver,
+    handleDragMove,
     handleDragCancel,
     collisionDetectionStrategy,
     activeId,
@@ -65,6 +66,7 @@ export function AppShell() {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       onDragOver={handleDragOver}
+      onDragMove={handleDragMove}
       onDragCancel={handleDragCancel}
       collisionDetection={collisionDetectionStrategy}
     >

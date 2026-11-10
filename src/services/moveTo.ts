@@ -122,3 +122,63 @@ export function describeContainerTarget(t: ContainerTarget): string {
   const project = t.projectId ? space?.projects.find((p) => p.id === t.projectId) : undefined
   return [space?.name, project?.name].filter(Boolean).join(" › ")
 }
+
+// --- Order within a parent (TASK-64) ---
+
+export type Edge = "before" | "after"
+
+/** Where the item at `from` ends up when put before/after the item at `target` (indexes in one list). */
+export function insertionIndex(from: number, target: number, edge: Edge): number {
+  const slot = edge === "before" ? target : target + 1
+  return from < slot ? slot - 1 : slot
+}
+
+function projectsOf(spaceId: string) {
+  return useSavedSpacesStore.getState().savedSpaces.find((s) => s.id === spaceId)?.projects
+}
+function categoriesOf(spaceId: string, projectId: string) {
+  return projectsOf(spaceId)?.find((p) => p.id === projectId)?.categories
+}
+
+/**
+ * Move a project or category from one index to another in its own list, or
+ * do nothing (returns null) when it stays put. Returns an undo.
+ */
+function reorderWithin(list: { id: string }[] | undefined, id: string, to: (from: number) => number, apply: (from: number, to: number) => void): (() => void) | null {
+  const from = list?.findIndex((x) => x.id === id) ?? -1
+  if (!list || from < 0) return null
+  const index = to(from)
+  if (index === from || index < 0 || index >= list.length) return null
+  apply(from, index)
+  return () => apply(index, from)
+}
+
+/** "Move up" / "Move down" for a project (TASK-64): one place, nothing at either end. */
+export function shiftProject(spaceId: string, projectId: string, by: -1 | 1): boolean {
+  return !!reorderWithin(projectsOf(spaceId), projectId, (i) => i + by,
+    (a, b) => useSavedSpacesStore.getState().reorderProjects(spaceId, a, b))
+}
+
+/** "Move up" / "Move down" for a category within its project (TASK-64). */
+export function shiftCategory(spaceId: string, projectId: string, categoryId: string, by: -1 | 1): boolean {
+  return !!reorderWithin(categoriesOf(spaceId, projectId), categoryId, (i) => i + by,
+    (a, b) => useSavedSpacesStore.getState().reorderCategories(spaceId, projectId, a, b))
+}
+
+/** Drop a project before/after another one in the same space (TASK-64). Returns an undo, or null when nothing changed. */
+export function placeProject(spaceId: string, projectId: string, targetId: string, edge: Edge): (() => void) | null {
+  const list = projectsOf(spaceId)
+  const target = list?.findIndex((p) => p.id === targetId) ?? -1
+  if (target < 0) return null
+  return reorderWithin(list, projectId, (from) => insertionIndex(from, target, edge),
+    (a, b) => useSavedSpacesStore.getState().reorderProjects(spaceId, a, b))
+}
+
+/** Drop a category before/after another one in the same project (TASK-64). Returns an undo, or null when nothing changed. */
+export function placeCategory(spaceId: string, projectId: string, categoryId: string, targetId: string, edge: Edge): (() => void) | null {
+  const list = categoriesOf(spaceId, projectId)
+  const target = list?.findIndex((c) => c.id === targetId) ?? -1
+  if (target < 0) return null
+  return reorderWithin(list, categoryId, (from) => insertionIndex(from, target, edge),
+    (a, b) => useSavedSpacesStore.getState().reorderCategories(spaceId, projectId, a, b))
+}

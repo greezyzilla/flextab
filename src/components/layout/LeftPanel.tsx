@@ -3,6 +3,7 @@ import { commitOnBlur } from "~src/lib/inlineEdit";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { DragHandleIcon } from "~src/components/icons/DragHandleIcon";
 import { categoryDragId, projectDragId } from "~src/services/dragDrop";
+import { useDropIndicator } from "~src/store/useDropIndicator";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { v7 as uuidv7 } from "uuid";
 import { showUndoToast } from "~src/components/ui/sonner";
@@ -20,7 +21,7 @@ import { Plus } from "lucide-react";
 import { Kbd, ShortcutTooltip } from "~src/components/ui/kbd";
 import { isUnsortedGroup } from "~src/lib/defaultPath";
 import { MoveContainerDialog } from "~src/components/MoveContainerDialog";
-import { describeContainerTarget, moveCategoryTo, moveProjectTo, type ContainerTarget } from "~src/services/moveTo";
+import { describeContainerTarget, moveCategoryTo, moveProjectTo, shiftCategory, shiftProject, type ContainerTarget } from "~src/services/moveTo";
 
 /**
  * Row geometry shared with the project and category rows, so "new" rows and
@@ -321,11 +322,13 @@ export function LeftPanel() {
       <nav aria-label="Projects and categories" className="flex-1 overflow-y-auto py-4" onKeyDown={handleTreeKeys}>
         {currentSpace ? (
           <>
-            {currentSpace.projects.map((project) => {
+            {currentSpace.projects.map((project, projectIndex) => {
               const isExpanded = expandedProjectIds.includes(project.id);
 
               return (
-                <div key={project.id} className="mb-1">
+                <div key={project.id} className="relative mb-1">
+                  {/* A project's insertion line spans its whole block, categories included (TASK-64). */}
+                  <InsertLine zone={`proj-drop:${currentSpace.id}:${project.id}`} />
                   {/* Project — tree node: chevron toggles, name selects the project page */}
                   <DroppableProjectItem
                     spaceId={currentSpace.id}
@@ -394,6 +397,9 @@ export function LeftPanel() {
                         items={[
                           { label: "Rename", onSelect: () => startRename(project.id, project.name), takesFocus: true },
                           { label: "Move to…", onSelect: () => setMoving({ kind: "project", project }) },
+                          // The keyboard path for order (TASK-64), as Settings › Spaces has up/down.
+                          { label: "Move up", onSelect: () => shiftProject(currentSpace.id, project.id, -1), disabled: projectIndex === 0 },
+                          { label: "Move down", onSelect: () => shiftProject(currentSpace.id, project.id, 1), disabled: projectIndex === currentSpace.projects.length - 1 },
                           { label: "Delete", onSelect: () => requestDeleteProject(project), danger: true, separatorBefore: true },
                         ]}
                       />
@@ -403,7 +409,7 @@ export function LeftPanel() {
                   {/* Categories */}
                   {isExpanded && (
                     <div className="mt-0.5">
-                      {project.categories.map((category) => {
+                      {project.categories.map((category, categoryIndex) => {
                         const isActive = activeProjectId === project.id && activeCategoryId === category.id;
                         return (
                           <DroppableCategoryItem
@@ -455,6 +461,8 @@ export function LeftPanel() {
                                 items={[
                                   { label: "Rename", onSelect: () => startRename(category.id, category.name), takesFocus: true },
                                   { label: "Move to…", onSelect: () => setMoving({ kind: "category", project, category }) },
+                                  { label: "Move up", onSelect: () => shiftCategory(currentSpace.id, project.id, category.id, -1), disabled: categoryIndex === 0 },
+                                  { label: "Move down", onSelect: () => shiftCategory(currentSpace.id, project.id, category.id, 1), disabled: categoryIndex === project.categories.length - 1 },
                                   { label: "Delete", onSelect: () => requestDeleteCategory(project, category), danger: true, separatorBefore: true },
                                 ]}
                               />
@@ -542,16 +550,39 @@ function IconDragHandle({ id, label, reveal, conceal, children }: {
   );
 }
 
+/**
+ * "Put it here, in this order" (TASK-64): a line on the side of the row a
+ * dragged project or category would be inserted, where a highlight would
+ * mean "put it inside". Drawn in the gap between rows, inset like the rows.
+ */
+function InsertLine({ zone }: { zone: string }) {
+  const edge = useDropIndicator((s) => (s.zone === zone ? s.edge : null));
+  if (!edge) return null;
+  return (
+    <span
+      aria-hidden
+      data-insert-line={edge}
+      className={`pointer-events-none absolute left-2 right-2 z-10 h-0.5 rounded-full ${edge === "before" ? "-top-[3px]" : "-bottom-[3px]"}`}
+      style={{ backgroundColor: 'var(--accent)' }}
+    />
+  );
+}
+
+/** A drop zone's highlight, unless the drop there reorders (then the line shows instead). */
+function useZoneHighlight(id: string) {
+  const { setNodeRef, isOver } = useDroppable({ id });
+  const reorders = useDropIndicator((s) => s.zone === id);
+  return { setNodeRef, highlight: isOver && !reorders };
+}
+
 function DroppableProjectItem({ spaceId, projectId, children }: {
   spaceId: string; projectId: string; children: React.ReactNode;
 }) {
-  const { setNodeRef, isOver } = useDroppable({
-    id: `proj-drop:${spaceId}:${projectId}`,
-  });
+  const { setNodeRef, highlight } = useZoneHighlight(`proj-drop:${spaceId}:${projectId}`);
 
   return (
-    <div ref={setNodeRef} className={`transition-colors rounded ${isOver ? 'ring-1' : ''}`}
-      style={isOver ? { backgroundColor: 'var(--accent-subtle)' } : undefined}
+    <div ref={setNodeRef} className={`transition-colors rounded ${highlight ? 'ring-1' : ''}`}
+      style={highlight ? { backgroundColor: 'var(--accent-subtle)' } : undefined}
     >
       {children}
     </div>
@@ -561,14 +592,14 @@ function DroppableProjectItem({ spaceId, projectId, children }: {
 function DroppableCategoryItem({ spaceId, projectId, categoryId, children }: {
   spaceId: string; projectId: string; categoryId: string; children: React.ReactNode;
 }) {
-  const { setNodeRef, isOver } = useDroppable({
-    id: `cat-drop:${spaceId}:${projectId}:${categoryId}`,
-  });
+  const zone = `cat-drop:${spaceId}:${projectId}:${categoryId}`;
+  const { setNodeRef, highlight } = useZoneHighlight(zone);
 
   return (
-    <div ref={setNodeRef} className={`transition-colors rounded-md ${isOver ? 'ring-1' : ''}`}
-      style={isOver ? { backgroundColor: 'var(--accent-subtle)' } : undefined}
+    <div ref={setNodeRef} className={`relative transition-colors rounded-md ${highlight ? 'ring-1' : ''}`}
+      style={highlight ? { backgroundColor: 'var(--accent-subtle)' } : undefined}
     >
+      <InsertLine zone={zone} />
       {children}
     </div>
   );

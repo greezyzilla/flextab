@@ -447,29 +447,53 @@ export function updateSpace(space: SavedSpace) {
   });
 }
 
+/** Reconstruct a Y.Map from plain JSON (nested arrays become Y.Arrays of Y.Maps). */
+function rebuildYMap(obj: Record<string, unknown>): Y.Map<unknown> {
+  const m = new Y.Map<unknown>();
+  for (const [key, val] of Object.entries(obj)) {
+    if (Array.isArray(val)) {
+      const yArr = new Y.Array<Y.Map<unknown>>();
+      yArr.push(val.map((v: unknown) => rebuildYMap(v as Record<string, unknown>)));
+      m.set(key, yArr);
+    } else {
+      m.set(key, val);
+    }
+  }
+  return m;
+}
+
+/**
+ * Put the items in the order they are shown (by `order`, then position), so
+ * the indexes callers pass (from the shown, order-sorted list) match the
+ * array (TASK-64). Groups and tabs can differ: a new group is stored last
+ * with order -1 to show first, and a reorder then moved the wrong group.
+ * Already in order (spaces, projects, categories, most lists): nothing moves.
+ */
+function inDisplayOrder(arr: Y.Array<Y.Map<unknown>>): void {
+  const want = arr.toArray()
+    // Every *ToYMap writer sets a numeric order (`?? 0`).
+    .map((m, i) => ({ id: m.get("id"), o: m.get("order") as number, i }))
+    .sort((a, b) => a.o - b.o || a.i - b.i)
+    .map((x) => x.id);
+  for (let i = 0; i < want.length; i++) {
+    if (arr.get(i).get("id") === want[i]) continue;
+    let j = i + 1;
+    while (arr.get(j).get("id") !== want[i]) j++;
+    const json = arr.get(j).toJSON() as Record<string, unknown>;
+    arr.delete(j, 1);
+    arr.insert(i, [rebuildYMap(json)]);
+  }
+}
+
+/** Move the item shown at `oldIndex` to `newIndex` (indexes in shown order), then renumber `order`. */
 export function reorderInArray(arr: Y.Array<Y.Map<unknown>>, oldIndex: number, newIndex: number) {
   doc.transact(() => {
+    inDisplayOrder(arr);
     const item = arr.get(oldIndex);
     // Serialize to plain JSON before deleting to avoid clone issues with nested Y types
     const json = item.toJSON();
     arr.delete(oldIndex, 1);
-
-    // Reconstruct the Y.Map from JSON (handles nested arrays/maps)
-    const rebuild = (obj: Record<string, unknown>): Y.Map<unknown> => {
-      const m = new Y.Map<unknown>();
-      for (const [key, val] of Object.entries(obj)) {
-        if (Array.isArray(val)) {
-          const yArr = new Y.Array<Y.Map<unknown>>();
-          yArr.push(val.map((v: unknown) => rebuild(v as Record<string, unknown>)));
-          m.set(key, yArr);
-        } else {
-          m.set(key, val);
-        }
-      }
-      return m;
-    };
-
-    arr.insert(newIndex, [rebuild(json as Record<string, unknown>)]);
+    arr.insert(newIndex, [rebuildYMap(json as Record<string, unknown>)]);
     // Reassign order values
     for (let i = 0; i < arr.length; i++) {
       arr.get(i).set("order", i);
@@ -643,10 +667,14 @@ export function moveTabBetweenGroups(
     const tgtTabs = tgtGroup.map.get("tabs") as Y.Array<Y.Map<unknown>>;
     const found = findInArray(srcTabs, tabId);
     if (!found) return;
+    // insertIndex is a shown position; renumbering below follows the array.
+    inDisplayOrder(srcTabs);
+    inDisplayOrder(tgtTabs);
+    const at = findInArray(srcTabs, tabId)!;
 
     // Serialize before deleting to avoid clone issues
-    const tabData = yMapToTab(found.map);
-    srcTabs.delete(found.index, 1);
+    const tabData = yMapToTab(at.map);
+    srcTabs.delete(at.index, 1);
 
     // Reorder source tabs
     for (let i = 0; i < srcTabs.length; i++) srcTabs.get(i).set("order", i);
@@ -686,8 +714,11 @@ export function moveGroupToCategory(
     if (!srcCat || !tgtCat) return;
     const srcGroups = srcCat.map.get("groups") as Y.Array<Y.Map<unknown>>;
     const tgtGroups = tgtCat.map.get("groups") as Y.Array<Y.Map<unknown>>;
-    const found = findInArray(srcGroups, groupId);
-    if (!found) return;
+    if (!findInArray(srcGroups, groupId)) return;
+    // Renumbering below follows the array: keep it in shown order.
+    inDisplayOrder(srcGroups);
+    inDisplayOrder(tgtGroups);
+    const found = findInArray(srcGroups, groupId)!;
     // Serialize before deleting to avoid clone issues with nested types
     const groupData = yMapToGroup(found.map);
     srcGroups.delete(found.index, 1);
@@ -710,8 +741,11 @@ export function moveTabCrossBoundary(
     if (!srcGroup || !tgtGroup) return;
     const srcTabs = srcGroup.map.get("tabs") as Y.Array<Y.Map<unknown>>;
     const tgtTabs = tgtGroup.map.get("tabs") as Y.Array<Y.Map<unknown>>;
-    const found = findInArray(srcTabs, tabId);
-    if (!found) return;
+    if (!findInArray(srcTabs, tabId)) return;
+    // insertIndex is a shown position; renumbering below follows the array.
+    inDisplayOrder(srcTabs);
+    inDisplayOrder(tgtTabs);
+    const found = findInArray(srcTabs, tabId)!;
     // Serialize before deleting to avoid clone issues with nested types
     const tabData = yMapToTab(found.map);
     srcTabs.delete(found.index, 1);

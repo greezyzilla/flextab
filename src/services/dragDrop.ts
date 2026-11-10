@@ -9,7 +9,7 @@ import { isSavableTabUrl } from "~src/services/saveTabsAsGroup"
 import { ensureSaveTargetPath } from "~src/services/resolveSaveTarget"
 import { ensureCategoryPath, isUnsortedGroup } from "~src/lib/defaultPath"
 import * as yjs from "~src/lib/yjsDoc"
-import { describeContainerTarget, moveCategoryTo, moveProjectTo, type ContainerTarget } from "~src/services/moveTo"
+import { describeContainerTarget, moveCategoryTo, moveProjectTo, placeCategory, placeProject, type ContainerTarget, type Edge } from "~src/services/moveTo"
 
 export type TabLocation = {
   spaceId: string
@@ -157,21 +157,55 @@ export function containerDropTarget(drag: ContainerDrag, overId: string): Contai
 }
 
 /**
- * The zones a dragged container meets: where it can land, plus, for a
- * category, the rail spaces, which it hovers to open (spring-loaded) but
- * cannot land on.
+ * A row of the same parent: dropping next to it reorders (TASK-64). A project
+ * next to another project of its space; a category next to another category
+ * of its project. Rows of other parents keep moving the item (TASK-59).
  */
-export function containerMeets(drag: ContainerDrag, overId: string): boolean {
-  return !!containerDropTarget(drag, overId) || (drag.kind === "category" && overId.startsWith("space-drop:"))
+export function containerReorderTarget(drag: ContainerDrag, overId: string): string | null {
+  const zone = parseBoundaryDrop(overId)
+  if (drag.kind === "project") {
+    return zone?.kind === "project" && zone.spaceId === drag.spaceId && zone.projectId !== drag.projectId ? zone.projectId : null
+  }
+  return zone?.kind === "category" && !overId.startsWith("section-drop:") && zone.spaceId === drag.spaceId &&
+    zone.projectId === drag.projectId && zone.categoryId !== drag.categoryId ? zone.categoryId : null
 }
 
-/** Move a dropped project or category. Returns the Undo toast's text and action, or null when nothing moved. */
-export function applyContainerDrop(drag: ContainerDrag, overId: string): { message: string; undo: () => void } | null {
-  const target = containerDropTarget(drag, overId)
-  if (!target) return null
+/** Before or after a row, by which half of it the pointer is over. */
+export function edgeAt(rect: { top: number; height: number }, pointerY: number): Edge {
+  return pointerY < rect.top + rect.height / 2 ? "before" : "after"
+}
+
+/**
+ * The zones a dragged container meets: where it can land, rows of its own
+ * parent to reorder next to, plus, for a category, the rail spaces, which it
+ * hovers to open (spring-loaded) but cannot land on.
+ */
+export function containerMeets(drag: ContainerDrag, overId: string): boolean {
+  return !!containerDropTarget(drag, overId) || !!containerReorderTarget(drag, overId) ||
+    (drag.kind === "category" && overId.startsWith("space-drop:"))
+}
+
+/**
+ * Move a dropped project or category: next to a row of its own parent it is
+ * reordered (`edge` says which side), elsewhere it moves (TASK-59). Returns
+ * the Undo toast's text and action, or null when nothing changed.
+ */
+export function applyContainerDrop(drag: ContainerDrag, overId: string, edge: Edge = "after"): { message: string; undo: () => void } | null {
   const space = useSavedSpacesStore.getState().savedSpaces.find((s) => s.id === drag.spaceId)
   const project = space?.projects.find((p) => p.id === drag.projectId)
   const name = drag.kind === "project" ? project?.name : project?.categories.find((c) => c.id === drag.categoryId)?.name
+  const next = containerReorderTarget(drag, overId)
+  if (next) {
+    const nextName = drag.kind === "project"
+      ? space?.projects.find((p) => p.id === next)?.name
+      : project?.categories.find((c) => c.id === next)?.name
+    const undo = drag.kind === "project"
+      ? placeProject(drag.spaceId, drag.projectId, next, edge)
+      : placeCategory(drag.spaceId, drag.projectId, drag.categoryId, next, edge)
+    return undo ? { message: `Moved “${name}” ${edge === "before" ? "above" : "below"} “${nextName}”`, undo } : null
+  }
+  const target = containerDropTarget(drag, overId)
+  if (!target) return null
   const undo = drag.kind === "project"
     ? moveProjectTo(drag.spaceId, drag.projectId, target.spaceId)
     : moveCategoryTo(drag, drag.categoryId, { spaceId: target.spaceId, projectId: target.projectId! })
@@ -208,11 +242,11 @@ async function saveOpenBrowserTab(
   return alsoIn
 }
 
-function sortedByOrder<T extends { order?: number }>(items: T[]): T[] {
+export function sortedByOrder<T extends { order?: number }>(items: T[]): T[] {
   return [...items].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
 }
 
-function findGroup(spaces: SavedSpace[], loc: GroupLocation, groupId: string): SavedGroup | undefined {
+export function findGroup(spaces: SavedSpace[], loc: GroupLocation, groupId: string): SavedGroup | undefined {
   return spaces
     .find((s) => s.id === loc.spaceId)
     ?.projects.find((p) => p.id === loc.projectId)
@@ -220,7 +254,7 @@ function findGroup(spaces: SavedSpace[], loc: GroupLocation, groupId: string): S
     ?.groups.find((g) => g.id === groupId)
 }
 
-function sameCategory(a: GroupLocation, b: GroupLocation): boolean {
+export function sameCategory(a: GroupLocation, b: GroupLocation): boolean {
   return a.spaceId === b.spaceId && a.projectId === b.projectId && a.categoryId === b.categoryId
 }
 

@@ -8,6 +8,8 @@ import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import { useUIStore } from "~src/store/useUIStore"
 import { showUndoToast } from "~src/components/ui/sonner"
 import * as yjs from "~src/lib/yjsDoc"
+import { useDropIndicator } from "~src/store/useDropIndicator"
+import { act } from "@testing-library/react"
 
 vi.mock("~src/components/ui/sonner", () => ({ showUndoToast: vi.fn() }))
 
@@ -90,6 +92,33 @@ describe("Move to… for projects and categories (TASK-59)", () => {
     expect(document.querySelector('[data-drag-handle="Music"]')).not.toBeNull()
     await user.click(handle)
     expect(useSavedSpacesStore.getState().expandedProjectIds).toEqual(["p1"]) // not toggled
+  })
+
+  it("moves a project or category up and down from its ⋯ menu, disabled at either end (TASK-64)", async () => {
+    const user = setup()
+    await user.click(screen.getByRole("button", { name: "Actions for Test" }))
+    expect(await screen.findByRole("menuitem", { name: "Move up" })).toHaveAttribute("data-disabled")
+    await user.click(screen.getByRole("menuitem", { name: "Move down" }))
+    expect(projectsIn("h")).toEqual(["Games", "Test"])
+    await user.click(screen.getByRole("button", { name: "Actions for Test" }))
+    expect(await screen.findByRole("menuitem", { name: "Move down" })).toHaveAttribute("data-disabled")
+    await user.keyboard("{Escape}")
+    await user.click(screen.getByRole("button", { name: "Actions for Music" }))
+    expect(await screen.findByRole("menuitem", { name: "Move up" })).toHaveAttribute("data-disabled")
+    expect(screen.getByRole("menuitem", { name: "Move down" })).toHaveAttribute("data-disabled") // the only category
+    expect(showUndoToast).not.toHaveBeenCalled()
+  })
+
+  it("draws the insertion line where a reorder would land, instead of the row highlight (TASK-64)", () => {
+    setup()
+    expect(document.querySelector("[data-insert-line]")).toBeNull()
+    act(() => useDropIndicator.getState().show("proj-drop:h:p2", "after"))
+    expect(document.querySelectorAll("[data-insert-line]")).toHaveLength(1)
+    expect(document.querySelector("[data-insert-line]")).toHaveAttribute("data-insert-line", "after")
+    act(() => useDropIndicator.getState().show("cat-drop:h:p1:c1", "before"))
+    expect(document.querySelector("[data-insert-line]")).toHaveAttribute("data-insert-line", "before")
+    act(() => useDropIndicator.getState().show(null, null))
+    expect(document.querySelector("[data-insert-line]")).toBeNull()
   })
 
   it("closes without moving anything", async () => {

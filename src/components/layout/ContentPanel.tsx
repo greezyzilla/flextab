@@ -19,6 +19,8 @@ import { useUIStore } from "~src/store/useUIStore";
 import type { GroupLocation } from "~src/services/dragDrop";
 import { CategoryIcon, GroupIcon, ProjectIcon, SpaceAvatar } from "~src/components/levelIcons";
 import { findUnsorted, firstGroupOrder, isUnsortedGroup, orderedGroups } from "~src/lib/defaultPath";
+import { withPreview } from "~src/services/sortPreview";
+import { useSortPreview } from "~src/store/useSortPreview";
 import { spacesHaveTabs } from "~src/services/spacesTree";
 import { ArrowRight } from "lucide-react";
 
@@ -262,7 +264,10 @@ function CategorySection({ space, project, category, layout, gridColumns, isCurr
   const location: GroupLocation = { spaceId: space.id, projectId: project.id, categoryId: category.id };
   // Unsorted (if any) is first and fixed; the user's groups follow, sortable.
   const unsorted = findUnsorted(category);
-  const groups = orderedGroups(category.groups).filter(g => !isUnsortedGroup(g));
+  const ownGroups = orderedGroups(category.groups).filter(g => !isUnsortedGroup(g));
+  // A group dragged in from another category shows here while dragging (TASK-64).
+  const preview = useSortPreview(s => s.preview);
+  const groups = withPreview(ownGroups, category.id, "group", preview);
 
   const newGroup = () => {
     setActiveCategory(category.id);
@@ -278,7 +283,7 @@ function CategorySection({ space, project, category, layout, gridColumns, isCurr
   const unsortedCount = unsorted?.tabs.length ?? 0;
   const counts = [
     // An empty category shows no "0 groups": its empty row already says so.
-    ...(groups.length > 0 ? [`${groups.length} group${groups.length !== 1 ? 's' : ''}`] : []),
+    ...(ownGroups.length > 0 ? [`${ownGroups.length} group${ownGroups.length !== 1 ? 's' : ''}`] : []),
     ...(unsorted ? [`${unsortedCount} unsorted`] : []),
   ].join(' · ');
 

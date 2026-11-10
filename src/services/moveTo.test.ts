@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import * as yjs from "~src/lib/yjsDoc"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
-import { moveCategoryTo, moveGroupTo, moveProjectTo, moveTabTo, resolvePickedGroup } from "./moveTo"
+import { insertionIndex, moveCategoryTo, moveGroupTo, moveProjectTo, moveTabTo, placeCategory, placeProject, resolvePickedGroup, shiftCategory, shiftProject } from "./moveTo"
 
 vi.mock("~src/utils/favicon", () => ({ faviconToDataUrl: vi.fn(async (u: string) => u) }))
 
@@ -139,5 +139,64 @@ describe("moving a project or a category (TASK-59)", () => {
     useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces() })
     undoCategory()
     expect(categoriesIn("P", "X")).toEqual(["Xc", "m1"])
+  })
+})
+
+describe("order within a parent (TASK-64)", () => {
+  const prj = (id: string) => ({ id, name: id, order: 0, categories: [] as any[] })
+  const cat = (id: string) => ({ id, name: id, order: 0, groups: [] })
+  beforeEach(() => {
+    yjs.setSpaces([{ id: "S", name: "S", order: 0, projects: [
+      { ...prj("a"), categories: [cat("x"), cat("y"), cat("z")] }, prj("b"), prj("c"), prj("d"),
+    ] }])
+    useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces() })
+  })
+  const projects = () => yjs.getSpaces()[0].projects.map((p) => p.id).join("")
+  const categories = () => yjs.getSpaces()[0].projects.find((p) => p.id === "a")!.categories.map((c) => c.id).join("")
+
+  it("computes where an item lands before or after another", () => {
+    expect(insertionIndex(0, 2, "before")).toBe(1)
+    expect(insertionIndex(0, 2, "after")).toBe(2)
+    expect(insertionIndex(3, 1, "before")).toBe(1)
+    expect(insertionIndex(3, 1, "after")).toBe(2)
+  })
+
+  it("moves a project or a category one place, and nothing past either end", () => {
+    expect(shiftProject("S", "b", -1)).toBe(true)
+    expect(projects()).toBe("bacd")
+    expect(shiftProject("S", "b", -1)).toBe(false)
+    expect(shiftProject("S", "d", 1)).toBe(false)
+    expect(shiftCategory("S", "a", "x", 1)).toBe(true)
+    expect(categories()).toBe("yxz")
+    expect(shiftCategory("S", "a", "z", 1)).toBe(false)
+    expect(shiftProject("S", "gone", 1)).toBe(false)
+    expect(shiftProject("gone", "a", 1)).toBe(false)
+  })
+
+  it("places a project before or after another, with an undo", () => {
+    const undo = placeProject("S", "a", "c", "after")!
+    expect(projects()).toBe("bcad")
+    undo()
+    expect(projects()).toBe("abcd")
+    placeProject("S", "d", "b", "before")
+    expect(projects()).toBe("adbc")
+  })
+
+  it("places a category before or after another, with an undo", () => {
+    const undo = placeCategory("S", "a", "z", "x", "before")!
+    expect(categories()).toBe("zxy")
+    undo()
+    expect(categories()).toBe("xyz")
+  })
+
+  it("does nothing when the item would stay put or a row is missing", () => {
+    expect(placeProject("S", "a", "b", "before")).toBeNull()
+    expect(placeProject("S", "b", "a", "after")).toBeNull()
+    expect(placeProject("S", "a", "gone", "after")).toBeNull()
+    expect(placeCategory("S", "a", "x", "gone", "after")).toBeNull()
+    expect(placeCategory("S", "a", "gone", "y", "after")).toBeNull()
+    expect(placeProject("gone", "a", "b", "after")).toBeNull()
+    expect(placeCategory("S", "gone", "x", "y", "after")).toBeNull()
+    expect(projects()).toBe("abcd")
   })
 })

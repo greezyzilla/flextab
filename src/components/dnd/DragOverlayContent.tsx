@@ -2,6 +2,7 @@ import { useDndContext } from "@dnd-kit/core";
 import { DraggedTabGroup } from "./DraggedTabGroup";
 import type { GroupColor, SavedGroup, SavedSpace, SavedTab } from "~src/types";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
+import { useSortPreview } from "~src/store/useSortPreview";
 import { resolveOverGroupId } from "~src/services/dragDrop";
 import { groupColorFill, groupTintSurface } from "~src/lib/groupColors";
 import { DragHandleIcon } from "../icons/DragHandleIcon";
@@ -30,7 +31,10 @@ export function DragOverlayContent({ activeId, draggedGroup, draggedTab, dragged
   // where it will land. Over an uncoloured group it stays neutral + accent.
   const { over } = useDndContext();
   const spaces = useSavedSpacesStore((s) => s.savedSpaces);
-  const overColor = draggedGroup || !over ? undefined : groupColorOf(spaces, resolveOverGroupId(spaces, String(over.id)));
+  // Shown in another group already (TASK-64): over its own slot there, the tint follows that group.
+  const preview = useSortPreview((s) => s.preview);
+  const overGroupId = preview?.kind === "tab" ? preview.to : over ? resolveOverGroupId(spaces, String(over.id)) : null;
+  const overColor = draggedGroup || !over ? undefined : groupColorOf(spaces, overGroupId);
 
   // A project or category travels as its sidebar row: icon and name, on the
   // same card a dragged tab uses, sized to the sidebar it is dragged from. It
