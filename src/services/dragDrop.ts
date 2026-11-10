@@ -9,6 +9,7 @@ import { isSavableTabUrl } from "~src/services/saveTabsAsGroup"
 import { ensureSaveTargetPath } from "~src/services/resolveSaveTarget"
 import { ensureCategoryPath, isUnsortedGroup } from "~src/lib/defaultPath"
 import * as yjs from "~src/lib/yjsDoc"
+import { describeContainerTarget, moveCategoryTo, moveProjectTo, type ContainerTarget } from "~src/services/moveTo"
 
 export type TabLocation = {
   spaceId: string
@@ -122,6 +123,59 @@ export function parseBoundaryDrop(overId: string): BoundaryDropTarget | null {
     return { kind: "space", spaceId: space[1] }
   }
   return null
+}
+
+// --- Dragging a project or a category (TASK-59) ---
+
+export type ContainerDrag =
+  | { kind: "project"; spaceId: string; projectId: string }
+  | { kind: "category"; spaceId: string; projectId: string; categoryId: string }
+
+export const projectDragId = (spaceId: string, projectId: string) => `proj-drag:${spaceId}:${projectId}`
+export const categoryDragId = (spaceId: string, projectId: string, categoryId: string) =>
+  `cat-drag:${spaceId}:${projectId}:${categoryId}`
+
+/** A dragged project or category, from its drag id; null for tabs and groups. */
+export function parseContainerDrag(id: string | number): ContainerDrag | null {
+  if (typeof id !== "string") return null
+  const cat = id.match(/^cat-drag:(.+):(.+):(.+)$/)
+  if (cat) return { kind: "category", spaceId: cat[1], projectId: cat[2], categoryId: cat[3] }
+  const proj = id.match(/^proj-drag:(.+):(.+)$/)
+  if (proj) return { kind: "project", spaceId: proj[1], projectId: proj[2] }
+  return null
+}
+
+/**
+ * Where a container can land: a project on a space (rail avatar), a category
+ * on a project row or on a category row (it joins that category's project).
+ */
+export function containerDropTarget(drag: ContainerDrag, overId: string): ContainerTarget | null {
+  const zone = overId.startsWith("section-drop:") ? null : parseBoundaryDrop(overId)
+  if (!zone) return null
+  if (drag.kind === "project") return zone.kind === "space" ? { spaceId: zone.spaceId } : null
+  return zone.kind === "space" ? null : { spaceId: zone.spaceId, projectId: zone.projectId }
+}
+
+/**
+ * The zones a dragged container meets: where it can land, plus, for a
+ * category, the rail spaces, which it hovers to open (spring-loaded) but
+ * cannot land on.
+ */
+export function containerMeets(drag: ContainerDrag, overId: string): boolean {
+  return !!containerDropTarget(drag, overId) || (drag.kind === "category" && overId.startsWith("space-drop:"))
+}
+
+/** Move a dropped project or category. Returns the Undo toast's text and action, or null when nothing moved. */
+export function applyContainerDrop(drag: ContainerDrag, overId: string): { message: string; undo: () => void } | null {
+  const target = containerDropTarget(drag, overId)
+  if (!target) return null
+  const space = useSavedSpacesStore.getState().savedSpaces.find((s) => s.id === drag.spaceId)
+  const project = space?.projects.find((p) => p.id === drag.projectId)
+  const name = drag.kind === "project" ? project?.name : project?.categories.find((c) => c.id === drag.categoryId)?.name
+  const undo = drag.kind === "project"
+    ? moveProjectTo(drag.spaceId, drag.projectId, target.spaceId)
+    : moveCategoryTo(drag, drag.categoryId, { spaceId: target.spaceId, projectId: target.projectId! })
+  return undo ? { message: `Moved “${name}” to ${describeContainerTarget(target)}`, undo } : null
 }
 
 /** Group zone id from TabGroup (`droppable-${groupId}`). */

@@ -284,7 +284,7 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
 }
 
 /** One selectable row (a radio, visually a list item). */
-function Choice({ name, indentClass, selected, icon, label, trailing, onSelect }: {
+export function Choice({ name, indentClass, selected, icon, label, trailing, onSelect }: {
   name: string; indentClass: string; selected: boolean; icon: React.ReactNode; label: string
   /** A mark after the label, e.g. the group's colour (TASK-18). */
   trailing?: React.ReactNode

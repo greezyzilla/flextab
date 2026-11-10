@@ -1,6 +1,6 @@
 import { SignOutDialog } from "~src/components/SignOutDialog";
 import { commitOnBlur } from "~src/lib/inlineEdit";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { useAuthStore } from "~src/store/useAuthStore";
@@ -13,6 +13,8 @@ import { Input } from "~src/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "~src/components/ui/avatar";
 import { spaceAvatarColors } from "~src/components/levelIcons";
 import { SIGN_IN_ROUTE } from "~src/lib/workspaceAccess";
+import { parseContainerDrag } from "~src/services/dragDrop";
+import { SPRING_LOAD_MS } from "~src/hooks/useDragAndDrop";
 
 export function ProfilePanel() {
   const { savedSpaces, activeSpaceId, setActiveSpace, addSavedSpace } = useSavedSpacesStore();
@@ -214,13 +216,44 @@ export function ProfilePanel() {
 }
 
 function DroppableSpace({ spaceId, children }: { spaceId: string; children: React.ReactNode }) {
-  const { setNodeRef, isOver } = useDroppable({
+  const { setNodeRef, isOver, active } = useDroppable({
     id: `space-drop:${spaceId}`,
   });
+  const activeSpaceId = useSavedSpacesStore((s) => s.activeSpaceId);
+  // A dragged category cannot land on a space: hovering one opens it after a
+  // moment (spring-loaded, TASK-59). That reads as a countdown ring, not as the
+  // drop highlight (ring + grow), so the avatar never promises a drop.
+  const opens = isOver && !!active && parseContainerDrag(active.id)?.kind === "category";
 
   return (
-    <div ref={setNodeRef} className={`rounded-full transition-all ${isOver ? 'ring-2 ring-ink/40 scale-110' : ''}`}>
+    <div ref={setNodeRef} className={`relative rounded-full transition-all ${isOver && !opens ? 'ring-2 ring-ink/40 scale-110' : ''}`}>
       {children}
+      {opens && spaceId !== activeSpaceId && <SpringLoadRing />}
     </div>
+  );
+}
+
+const RING_RADIUS = 22;
+const RING_LENGTH = 2 * Math.PI * RING_RADIUS;
+const reducedMotion = () => typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+/** Fills once around the avatar over the spring-load delay; with reduced motion it shows full at once. */
+function SpringLoadRing() {
+  const ring = useRef<SVGCircleElement>(null);
+  const [still] = useState(reducedMotion);
+  useEffect(() => {
+    if (still || !ring.current?.animate) return;
+    const fill = ring.current.animate(
+      [{ strokeDashoffset: RING_LENGTH }, { strokeDashoffset: 0 }],
+      { duration: SPRING_LOAD_MS, easing: "linear", fill: "forwards" },
+    );
+    return () => fill.cancel();
+  }, [still]);
+  return (
+    <svg aria-hidden data-spring-load className="pointer-events-none absolute -inset-1 h-12 w-12 -rotate-90" viewBox="0 0 48 48">
+      <circle cx="24" cy="24" r={RING_RADIUS} fill="none" stroke="var(--color-line)" strokeWidth="2" />
+      <circle ref={ring} cx="24" cy="24" r={RING_RADIUS} fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round"
+        strokeDasharray={RING_LENGTH} strokeDashoffset={still ? 0 : RING_LENGTH} />
+    </svg>
   );
 }

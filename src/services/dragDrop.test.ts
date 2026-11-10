@@ -7,6 +7,12 @@ import {
   parseBoundaryDrop,
   parseGroupDroppable,
   applyDragEnd,
+  applyContainerDrop,
+  categoryDragId,
+  containerDropTarget,
+  containerMeets,
+  parseContainerDrag,
+  projectDragId,
 } from "./dragDrop"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import * as yjs from "~src/lib/yjsDoc"
@@ -360,5 +366,62 @@ describe("applyDragEnd", () => {
       .getSpaces()[0]
       .projects[0].categories[0].groups.find((g) => g.id === "g1")!
     expect(g1.tabs.map((t) => t.id)).toEqual(["t1", "t2"])
+  })
+})
+
+describe("dragging a project or a category (TASK-59)", () => {
+  const cat = (id: string) => ({ id, name: id.toUpperCase(), order: 0, groups: [] })
+  beforeEach(() => {
+    yjs.setSpaces([
+      { id: "h", name: "Hobby", order: 0, projects: [{ id: "p1", name: "Test", order: 0, categories: [cat("c1"), cat("c2")] }] },
+      { id: "e", name: "Personal", order: 1, projects: [{ id: "p2", name: "Home", order: 0, categories: [cat("c3")] }] },
+    ])
+    useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces(), activeSpaceId: "h", activeProjectId: "p1", activeCategoryId: "c1" })
+  })
+  const project = { kind: "project" as const, spaceId: "h", projectId: "p1" }
+  const category = { kind: "category" as const, spaceId: "h", projectId: "p1", categoryId: "c2" }
+
+  it("reads drag ids back, and ignores tabs and groups", () => {
+    expect(parseContainerDrag(projectDragId("h", "p1"))).toEqual(project)
+    expect(parseContainerDrag(categoryDragId("h", "p1", "c2"))).toEqual(category)
+    expect(parseContainerDrag("t1")).toBeNull()
+    expect(parseContainerDrag(42)).toBeNull()
+  })
+
+  it("takes a project on a space, and a category on a project or category row", () => {
+    expect(containerDropTarget(project, "space-drop:e")).toEqual({ spaceId: "e" })
+    expect(containerDropTarget(project, "proj-drop:e:p2")).toBeNull()
+    expect(containerDropTarget(category, "proj-drop:e:p2")).toEqual({ spaceId: "e", projectId: "p2" })
+    expect(containerDropTarget(category, "cat-drop:e:p2:c3")).toEqual({ spaceId: "e", projectId: "p2" })
+    expect(containerDropTarget(category, "space-drop:e")).toBeNull()
+    expect(containerDropTarget(category, "section-drop:e:p2:c3")).toBeNull()
+    expect(containerDropTarget(category, "droppable-g1")).toBeNull()
+  })
+
+  it("lets a category meet rail spaces to open them, without landing there", () => {
+    expect(containerMeets(category, "space-drop:e")).toBe(true)
+    expect(containerMeets(category, "proj-drop:e:p2")).toBe(true)
+    expect(containerMeets(category, "droppable-g1")).toBe(false)
+    expect(containerMeets(project, "space-drop:e")).toBe(true)
+    expect(containerMeets(project, "proj-drop:e:p2")).toBe(false)
+    expect(applyContainerDrop(category, "space-drop:e")).toBeNull()
+  })
+
+  it("moves the dropped container and returns the Undo toast", () => {
+    const moved = applyContainerDrop(category, "cat-drop:e:p2:c3")!
+    expect(moved.message).toBe("Moved “C2” to Personal › Home")
+    expect(yjs.getSpaces()[1].projects[0].categories.map((c) => c.id)).toEqual(["c3", "c2"])
+    moved.undo()
+    expect(yjs.getSpaces()[0].projects[0].categories.map((c) => c.id)).toEqual(["c1", "c2"])
+    const movedProject = applyContainerDrop(project, "space-drop:e")!
+    expect(movedProject.message).toBe("Moved “Test” to Personal")
+    expect(yjs.getSpaces()[0].projects).toEqual([])
+  })
+
+  it("does nothing on a zone that does not take it, or on its own place", () => {
+    expect(applyContainerDrop(project, "proj-drop:e:p2")).toBeNull()
+    expect(applyContainerDrop(project, "space-drop:h")).toBeNull()
+    expect(applyContainerDrop(category, "cat-drop:h:p1:c1")).toBeNull()
+    expect(yjs.getSpaces()[0].projects[0].categories.map((c) => c.id)).toEqual(["c1", "c2"])
   })
 })

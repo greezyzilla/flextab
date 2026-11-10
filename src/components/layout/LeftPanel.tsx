@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { commitOnBlur } from "~src/lib/inlineEdit";
-import { useDroppable } from "@dnd-kit/core";
+import { useDraggable, useDroppable } from "@dnd-kit/core";
+import { DragHandleIcon } from "~src/components/icons/DragHandleIcon";
+import { categoryDragId, projectDragId } from "~src/services/dragDrop";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { v7 as uuidv7 } from "uuid";
 import { showUndoToast } from "~src/components/ui/sonner";
@@ -17,6 +19,8 @@ import { ProjectIcon, CategoryIcon } from "~src/components/levelIcons";
 import { Plus } from "lucide-react";
 import { Kbd, ShortcutTooltip } from "~src/components/ui/kbd";
 import { isUnsortedGroup } from "~src/lib/defaultPath";
+import { MoveContainerDialog } from "~src/components/MoveContainerDialog";
+import { describeContainerTarget, moveCategoryTo, moveProjectTo, type ContainerTarget } from "~src/services/moveTo";
 
 /**
  * Row geometry shared with the project and category rows, so "new" rows and
@@ -118,6 +122,21 @@ export function LeftPanel() {
   const renameRef = useRef<HTMLInputElement>(null);
 
   const currentSpace = savedSpaces.find(s => s.id === activeSpaceId);
+
+  // "Move to…" for a project or a category (TASK-59), with Undo like a delete.
+  const [moving, setMoving] = useState<
+    | { kind: "project"; project: SavedProject }
+    | { kind: "category"; project: SavedProject; category: SavedCategory }
+    | null
+  >(null);
+  const confirmMove = (target: ContainerTarget) => {
+    if (!moving || !currentSpace) return;
+    const undo = moving.kind === "project"
+      ? moveProjectTo(currentSpace.id, moving.project.id, target.spaceId)
+      : target.projectId ? moveCategoryTo({ spaceId: currentSpace.id, projectId: moving.project.id }, moving.category.id, { spaceId: target.spaceId, projectId: target.projectId }) : null;
+    const name = moving.kind === "project" ? moving.project.name : moving.category.name;
+    if (undo) showUndoToast(`Moved “${name}” to ${describeContainerTarget(target)}`, undo);
+  };
 
   useEffect(() => {
     if (renamingId && renameRef.current) {
@@ -262,6 +281,15 @@ export function LeftPanel() {
         confirmLabel={`Delete ${confirmDelete?.kind ?? ""}`.trim()}
         onConfirm={() => confirmDelete?.run()}
       />
+      {moving && currentSpace && (
+        <MoveContainerDialog
+          kind={moving.kind}
+          name={moving.kind === "project" ? moving.project.name : moving.category.name}
+          current={moving.kind === "project" ? { spaceId: currentSpace.id } : { spaceId: currentSpace.id, projectId: moving.project.id }}
+          onConfirm={confirmMove}
+          onClose={() => setMoving(null)}
+        />
+      )}
       {/* The space is this panel's title (TASK-15), where Settings shows
           "Settings": the logo already sits in the rail, the version lives in
           Settings. Its ⋯ is the same "actions for this thing" as every row's;
@@ -336,7 +364,10 @@ export function LeftPanel() {
                           aria-current={activeProjectId === project.id ? "page" : undefined}
                           className="flex-1 min-w-0 flex items-center gap-2 py-1.5 text-left rounded outline-none focus-visible:ring-1 focus-visible:ring-ring"
                         >
-                          <ProjectIcon className="h-3.5 w-3.5 shrink-0 text-fg-subtle" />
+                          <IconDragHandle id={projectDragId(currentSpace.id, project.id)} label={project.name}
+                            reveal="group-hover/proj:opacity-100" conceal="group-hover/proj:opacity-0">
+                            <ProjectIcon className="h-3.5 w-3.5 shrink-0 text-fg-subtle" />
+                          </IconDragHandle>
                           <span className="flex-1 font-sans text-[13px] font-medium truncate">{project.name}</span>
                         </button>
                       )}
@@ -362,6 +393,7 @@ export function LeftPanel() {
                         label={`Actions for ${project.name}`}
                         items={[
                           { label: "Rename", onSelect: () => startRename(project.id, project.name), takesFocus: true },
+                          { label: "Move to…", onSelect: () => setMoving({ kind: "project", project }) },
                           { label: "Delete", onSelect: () => requestDeleteProject(project), danger: true, separatorBefore: true },
                         ]}
                       />
@@ -405,7 +437,10 @@ export function LeftPanel() {
                                 className="flex-1 min-w-0 flex items-center gap-2 pl-7 pr-1 py-[6px] rounded-md text-left outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                 onClick={() => selectCategory(project.id, category.id)}
                               >
-                                <CategoryIcon className="h-3 w-3 shrink-0" />
+                                <IconDragHandle id={categoryDragId(currentSpace.id, project.id, category.id)} label={category.name}
+                                  reveal="group-hover/cat:opacity-100" conceal="group-hover/cat:opacity-0">
+                                  <CategoryIcon className="h-3 w-3 shrink-0" />
+                                </IconDragHandle>
                                 <span className="flex-1 font-sans text-[13px] truncate">{category.name}</span>
                               </button>
                               <RowActions
@@ -419,6 +454,7 @@ export function LeftPanel() {
                                 ) : undefined}
                                 items={[
                                   { label: "Rename", onSelect: () => startRename(category.id, category.name), takesFocus: true },
+                                  { label: "Move to…", onSelect: () => setMoving({ kind: "category", project, category }) },
                                   { label: "Delete", onSelect: () => requestDeleteCategory(project, category), danger: true, separatorBefore: true },
                                 ]}
                               />
@@ -474,6 +510,35 @@ export function LeftPanel() {
       </div>
 
     </aside>
+  );
+}
+
+/**
+ * A project's or category's level icon doubles as its drag handle on hover
+ * (TASK-59), as a saved tab's favicon does: no extra gutter, the row keeps its
+ * shape. Pointer only and hidden from assistive tech: the keyboard path is the
+ * row's ⋯ › Move to…. A plain click on it does nothing (the row's own click
+ * would otherwise toggle or open it).
+ */
+function IconDragHandle({ id, label, reveal, conceal, children }: {
+  id: string; label: string; reveal: string; conceal: string; children: React.ReactNode;
+}) {
+  const { listeners, setNodeRef } = useDraggable({ id });
+  return (
+    <span className="relative flex shrink-0">
+      <span className={`flex transition-opacity ${conceal}`}>{children}</span>
+      <span
+        ref={setNodeRef}
+        {...listeners}
+        aria-hidden
+        data-drag-handle={label}
+        title="Drag to move"
+        onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
+        className={`absolute -inset-1 flex items-center justify-center rounded opacity-0 cursor-grab active:cursor-grabbing transition-opacity ${reveal}`}
+      >
+        <DragHandleIcon className="h-3 w-3 text-fg-muted" />
+      </span>
+    </span>
   );
 }
 

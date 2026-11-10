@@ -42,11 +42,14 @@ export function AppShell() {
   const {
     handleDragStart,
     handleDragEnd,
+    handleDragOver,
+    handleDragCancel,
     collisionDetectionStrategy,
     activeId,
     draggedTab,
     draggedSavedTab,
-    draggedGroup
+    draggedGroup,
+    draggedContainer,
   } = useDragAndDrop()
 
   const { leftInline, rightInline } = useShellLayout()
@@ -61,6 +64,8 @@ export function AppShell() {
     <DndContext
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
+      onDragOver={handleDragOver}
+      onDragCancel={handleDragCancel}
       collisionDetection={collisionDetectionStrategy}
     >
       <div className="flex h-screen w-screen bg-black-900 overflow-hidden">
@@ -124,6 +129,7 @@ export function AppShell() {
           draggedGroup={draggedGroup}
           draggedTab={draggedTab}
           draggedSavedTab={draggedSavedTab}
+          draggedContainer={draggedContainer}
         />
       </DragOverlay>
 
