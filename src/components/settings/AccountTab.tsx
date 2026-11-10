@@ -9,8 +9,8 @@ import {
 import { ConfirmDialog } from "~src/components/ui/confirm-dialog";
 import { Button } from "~src/components/ui/button";
 import { Input } from "~src/components/ui/input";
-import { Label } from "~src/components/ui/label";
 import { Badge } from "~src/components/ui/badge";
+import { Modal, ModalBody, ModalField, ModalFooter, ModalHeader } from "~src/components/ui/modal";
 import { SettingRow, GroupHeading } from "./shared";
 
 // --- Account Tab ---
@@ -21,6 +21,8 @@ const LINKABLE_PROVIDERS: { id: string; label: string }[] = [
   { id: 'google', label: 'Google' },
   { id: 'github', label: 'GitHub' },
 ];
+
+const PROVIDER_ROW = "flex items-center justify-between gap-3 rounded-lg border border-ink/[0.08] bg-ink/[0.02] px-4 py-3";
 
 export function AccountTab() {
   const { user, fetchUser } = useAuthStore();
@@ -106,9 +108,19 @@ export function AccountTab() {
     }
   };
 
-  const linkedProviders = new Set((identities ?? []).map(i => i.provider));
-  // Only offer to link providers the server has configured and aren't linked yet.
-  const unlinkable = LINKABLE_PROVIDERS.filter(p => !linkedProviders.has(p.id) && availableProviders?.includes(p.id));
+  // One row per provider, linked or not, so linking changes what a row says and
+  // never the shape of the list. A provider the server has not configured is
+  // left out unless it is already linked.
+  const providerRows = identities && availableProviders
+    ? [
+        ...LINKABLE_PROVIDERS
+          .map(p => ({ ...p, identity: identities.find(i => i.provider === p.id) }))
+          .filter(p => p.identity || availableProviders.includes(p.id)),
+        ...identities
+          .filter(i => !LINKABLE_PROVIDERS.some(p => p.id === i.provider))
+          .map(i => ({ id: i.provider, label: i.provider, identity: i })),
+      ]
+    : null;
 
   // --- Password ---
   const [currentPw, setCurrentPw] = useState('');
@@ -117,13 +129,13 @@ export function AccountTab() {
   const [pwError, setPwError] = useState('');
   const [pwSuccess, setPwSuccess] = useState('');
   const [pwLoading, setPwLoading] = useState(false);
-  // The form opens on demand: setting a password is optional for an OAuth
-  // account, so it should not take a third of the page (progressive disclosure).
+  // The form opens in a modal, so opening it never pushes the rest of the page down.
   const [pwOpen, setPwOpen] = useState(false);
   const closePassword = () => { setPwOpen(false); setPwError(''); setCurrentPw(''); setNewPw(''); setConfirmPw(''); };
 
-  const handleChangePassword = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleChangePassword = async (e?: FormEvent) => {
+    e?.preventDefault();
+    if (pwLoading) return;
     setPwError('');
     setPwSuccess('');
     if (newPw.length < 8) { setPwError('Password must be at least 8 characters'); return; }
@@ -188,67 +200,86 @@ export function AccountTab() {
               Only a password protects this account, and FlexTab can't reset it. Link Google or GitHub so you can always get back in.
             </p>
           )}
-          {identities === null && <div className="text-fg-subtle text-xs font-sans">Loading…</div>}
-          {identities?.map(id => (
-            <div key={id.provider} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-ink/[0.08] bg-ink/[0.02] px-4 py-3">
-              <div className="flex flex-wrap items-center gap-2 min-w-0 max-w-full">
-                <span className="text-fg-muted text-sm font-sans capitalize">{id.provider}</span>
-                {id.email && <span className="text-fg-subtle text-xs font-sans truncate">{id.email}</span>}
-              </div>
-              <Button variant="ghost" size="sm" onClick={() => handleUnlink(id.provider)} disabled={unlinking === id.provider} className="!text-danger hover:!text-danger-strong">
-                {unlinking === id.provider ? 'Unlinking…' : 'Unlink'}
-              </Button>
+          {providerRows === null ? (
+            // Same rows, same height, until the list arrives.
+            <div role="status" aria-label="Loading sign-in methods" className="flex flex-col gap-2">
+              {LINKABLE_PROVIDERS.map(p => (
+                <div key={p.id} aria-hidden className={PROVIDER_ROW}>
+                  {/* Bars sit in boxes the height of the text lines they stand for. */}
+                  <div className="flex flex-col gap-0.5">
+                    <span className="flex h-5 items-center"><span className="h-3.5 w-16 rounded bg-ink/[0.07] motion-safe:animate-pulse" /></span>
+                    <span className="flex h-4 items-center"><span className="h-3 w-32 rounded bg-ink/[0.05] motion-safe:animate-pulse" /></span>
+                  </div>
+                  <span className="h-8 w-16 rounded-md bg-ink/[0.05] motion-safe:animate-pulse" />
+                </div>
+              ))}
             </div>
-          ))}
-          {identities && unlinkable.map(p => (
-            <Button key={p.id} variant="secondary" size="sm" onClick={() => handleLink(p.id)} disabled={linking === p.id} className="self-start">
-              {linking === p.id ? 'Opening…' : `Link ${p.label}`}
-            </Button>
+          ) : providerRows.map(p => (
+            <div key={p.id} className={PROVIDER_ROW}>
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <span className="text-fg text-sm font-sans capitalize">{p.label}</span>
+                <span className="text-fg-subtle text-xs font-sans truncate">
+                  {p.identity ? (p.identity.email || 'Linked') : 'Not linked'}
+                </span>
+              </div>
+              {p.identity ? (
+                <Button variant="ghost" size="sm" onClick={() => handleUnlink(p.id)} disabled={unlinking === p.id} className="!text-danger hover:!text-danger-strong">
+                  {unlinking === p.id ? 'Unlinking…' : 'Unlink'}
+                </Button>
+              ) : (
+                <Button variant="secondary" size="sm" onClick={() => handleLink(p.id)} disabled={linking === p.id} aria-label={`Link ${p.label}`}>
+                  {linking === p.id ? 'Opening…' : 'Link'}
+                </Button>
+              )}
+            </div>
           ))}
         </div>
       </SettingRow>
 
-      {/* Password: one line until asked for. */}
+      {/* Password: one line; the form opens in a modal. */}
       <SettingRow
         label="Password"
         description={hasPassword
           ? 'You can sign in with your email and password. Changing it signs out all devices.'
           : `Optional. Lets you sign in with ${user?.email ?? 'your email'} too; your linked providers keep working. Setting one signs out all devices.`}
       >
-        {!pwOpen ? (
-          <div className="flex flex-col gap-2">
-            <Button variant="secondary" size="sm" className="self-start" onClick={() => { setPwSuccess(''); setPwOpen(true); }}>
-              {hasPassword ? 'Change password…' : 'Add a password…'}
-            </Button>
-            {pwSuccess && <div role="status" className="text-success text-xs">{pwSuccess}</div>}
-          </div>
-        ) : (
-          <form onSubmit={handleChangePassword} className="flex flex-col gap-2.5">
-            {/* Labels stay visible while typing (WCAG 3.3.2), as on the sign-in screen. */}
-            {hasPassword && (
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="account-current-password">Current password</Label>
-                <Input id="account-current-password" type="password" placeholder="Enter your current password" autoComplete="current-password" autoFocus value={currentPw} onChange={e => setCurrentPw(e.target.value)} className="w-full" />
-              </div>
-            )}
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="account-new-password">New password</Label>
-              <Input id="account-new-password" type="password" placeholder="At least 8 characters" autoComplete="new-password" autoFocus={!hasPassword} value={newPw} onChange={e => setNewPw(e.target.value)} className="w-full" minLength={8} required />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="account-confirm-password">Confirm new password</Label>
-              <Input id="account-confirm-password" type="password" placeholder="Enter the new password again" autoComplete="new-password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} className="w-full" minLength={8} required />
-            </div>
-            {pwError && <div role="alert" className="text-danger text-xs">{pwError}</div>}
-            <div className="flex items-center gap-2">
-              <Button variant="secondary" size="sm" type="submit" disabled={pwLoading}>
-                {pwLoading ? 'Saving…' : hasPassword ? 'Update password' : 'Set password'}
-              </Button>
-              <Button variant="ghost" size="sm" type="button" onClick={closePassword} disabled={pwLoading}>Cancel</Button>
-            </div>
-          </form>
-        )}
+        <div className="flex flex-col gap-2">
+          <Button variant="secondary" size="sm" className="self-start" onClick={() => { setPwSuccess(''); setPwOpen(true); }}>
+            {hasPassword ? 'Change password…' : 'Add a password…'}
+          </Button>
+          {pwSuccess && <div role="status" className="text-success text-xs">{pwSuccess}</div>}
+        </div>
       </SettingRow>
+      <Modal kind="dialog" size="m" open={pwOpen} onOpenChange={o => { if (!o && !pwLoading) closePassword(); }}
+        dirty={!!(currentPw || newPw || confirmPw)}>
+        <ModalHeader title={hasPassword ? 'Change password' : 'Add a password'}
+          description={hasPassword
+            ? 'Changing it signs out all devices.'
+            : `Lets you sign in with ${user?.email ?? 'your email'} too. Setting one signs out all devices.`} />
+        <ModalBody>
+          {/* Enter in any field submits, as the footer button is outside the form. */}
+          <form onSubmit={handleChangePassword} onKeyDown={e => { if (e.key === 'Enter' && e.target instanceof HTMLInputElement) { e.preventDefault(); void handleChangePassword(); } }}
+            className="flex flex-col gap-4">
+            {hasPassword && (
+              <ModalField label="Current password" htmlFor="account-current-password">
+                <Input id="account-current-password" type="password" placeholder="Enter your current password" autoComplete="current-password" value={currentPw} onChange={e => setCurrentPw(e.target.value)} className="w-full" />
+              </ModalField>
+            )}
+            <ModalField label="New password" htmlFor="account-new-password">
+              <Input id="account-new-password" type="password" placeholder="At least 8 characters" autoComplete="new-password" value={newPw} onChange={e => setNewPw(e.target.value)} className="w-full" minLength={8} required />
+            </ModalField>
+            <ModalField label="Confirm new password" htmlFor="account-confirm-password">
+              <Input id="account-confirm-password" type="password" placeholder="Enter the new password again" autoComplete="new-password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} className="w-full" minLength={8} required />
+            </ModalField>
+            {pwError && <div role="alert" className="text-danger text-xs">{pwError}</div>}
+          </form>
+        </ModalBody>
+        <ModalFooter cancelDisabled={pwLoading} primary={{
+          label: pwLoading ? 'Saving…' : hasPassword ? 'Update password' : 'Set password',
+          disabled: pwLoading,
+          onClick: () => void handleChangePassword(),
+        }} />
+      </Modal>
 
       {/* Sign out is a row like the others, and neutral: it keeps this
           device's tabs by default. Red is left to the danger zone alone. */}
