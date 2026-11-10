@@ -16,22 +16,25 @@
 }
 
 @layer components {
-  /* Primary button fill — gradient derived from the live --accent (no layout,
-     so the Button component owns padding/size). */
+  /* Primary button fill (no layout, so the Button component owns padding/size).
+     It holds a label, so it uses the --accent-fill tokens, not --accent (TASK-48).
+     The glossy top sits above the label; from 30% (where the label starts)
+     down, the fill keeps the label at >= 4.5:1. Hover and press move the fill
+     away from the label's lightness, so they never lower the contrast. */
   .accent-fill {
-    color: #fff;
+    color: var(--on-accent-fill);
     background-image: linear-gradient(
       180deg,
-      color-mix(in srgb, var(--accent) 74%, #ffffff),
-      var(--accent) 52%,
-      var(--accent-hover)
+      var(--accent-fill-top),
+      var(--accent-fill) 30%,
+      var(--accent-fill-end)
     );
     box-shadow:
       0 1px 0 0 rgba(255, 255, 255, 0.22) inset,
       0 8px 24px -12px color-mix(in srgb, var(--accent) 55%, transparent);
   }
-  .accent-fill:hover { filter: brightness(1.07); }
-  .accent-fill:active { filter: brightness(0.98); }
+  .accent-fill:hover { filter: brightness(var(--accent-fill-hover)); }
+  .accent-fill:active { filter: brightness(var(--accent-fill-press)); }
 }
 
 @layer theme {
@@ -72,6 +75,19 @@
        ≥4.5:1 on every surface and on accent-subtle, at every hue/intensity
        (worst: hue 240 at intensity 100 on accent-subtle, 4.74:1). */
     --accent-text: hsl(var(--hue), var(--accent-sat), 76%);
+    /* Accent behind a LABEL: primary buttons, avatar initials (TASK-48).
+       White on --accent measured 1.2-3.8:1. OKLCH lightness is perceptual,
+       so a fixed L gives the same contrast at every hue and intensity. On
+       dark the fill is mid-light (L 0.70 where the label starts, 0.65 at the
+       bottom; the old blue accent sat at 0.61) with a dark label of the same
+       hue (L 0.18). The light blocks use a deep
+       fill with a white label. */
+    --accent-fill-top: oklch(from hsl(var(--hue), var(--accent-sat), 56%) 0.76 min(c, 0.2) h);
+    --accent-fill: oklch(from hsl(var(--hue), var(--accent-sat), 56%) 0.70 min(c, 0.2) h);
+    --accent-fill-end: oklch(from hsl(var(--hue), var(--accent-sat), 56%) 0.65 min(c, 0.2) h);
+    --on-accent-fill: oklch(from hsl(var(--hue), var(--accent-sat), 56%) 0.18 min(c, 0.08) h);
+    --accent-fill-hover: 1.05;
+    --accent-fill-press: 0.97;
 
     /* Text tiers (TASK-6). The surfaces are near-black at every hue and
        intensity (surface saturation tops out at 11%), so contrast only
@@ -171,6 +187,14 @@
       --accent-hover: oklch(from hsl(var(--hue), var(--accent-sat), 56%) 0.54 min(c, 0.2) h);
       --accent-subtle: oklch(from hsl(var(--hue), var(--accent-sat), 56%) 0.6 min(c, 0.2) h / 0.14);
       --accent-text: oklch(from hsl(var(--hue), var(--accent-sat), 56%) 0.45 min(c, 0.2) h);
+      /* Deep fill, white label: L 0.50 where the label starts keeps white
+         >= 4.5:1 at every hue with margin (TASK-48); the glossy top is lighter. */
+      --accent-fill-top: oklch(from hsl(var(--hue), var(--accent-sat), 56%) 0.58 min(c, 0.2) h);
+      --accent-fill: oklch(from hsl(var(--hue), var(--accent-sat), 56%) 0.50 min(c, 0.2) h);
+      --accent-fill-end: oklch(from hsl(var(--hue), var(--accent-sat), 56%) 0.44 min(c, 0.2) h);
+      --on-accent-fill: #fff;
+      --accent-fill-hover: 0.94;
+      --accent-fill-press: 0.88;
       --ink: var(--hue) calc(var(--intensity) * 0.165%) 12%;
       --text-primary: hsl(var(--ink) / 0.9);
       --text-secondary: hsl(var(--ink) / 0.76);
@@ -211,6 +235,14 @@
     --accent-hover: oklch(from hsl(var(--hue), var(--accent-sat), 56%) 0.54 min(c, 0.2) h);
     --accent-subtle: oklch(from hsl(var(--hue), var(--accent-sat), 56%) 0.6 min(c, 0.2) h / 0.14);
     --accent-text: oklch(from hsl(var(--hue), var(--accent-sat), 56%) 0.45 min(c, 0.2) h);
+    /* Deep fill, white label: L 0.50 where the label starts keeps white
+       >= 4.5:1 at every hue with margin (TASK-48); the glossy top is lighter. */
+    --accent-fill-top: oklch(from hsl(var(--hue), var(--accent-sat), 56%) 0.58 min(c, 0.2) h);
+    --accent-fill: oklch(from hsl(var(--hue), var(--accent-sat), 56%) 0.50 min(c, 0.2) h);
+    --accent-fill-end: oklch(from hsl(var(--hue), var(--accent-sat), 56%) 0.44 min(c, 0.2) h);
+    --on-accent-fill: #fff;
+    --accent-fill-hover: 0.94;
+    --accent-fill-press: 0.88;
     --ink: var(--hue) calc(var(--intensity) * 0.165%) 12%;
     --text-primary: hsl(var(--ink) / 0.9);
     --text-secondary: hsl(var(--ink) / 0.76);

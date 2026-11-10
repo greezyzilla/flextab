@@ -169,7 +169,7 @@ export function AccountTab() {
             {user.avatar ? (
               <img src={user.avatar} alt={user.name} className="w-9 h-9 rounded-full" referrerPolicy="no-referrer" />
             ) : (
-              <div className="w-9 h-9 rounded-full flex items-center justify-center text-fg text-sm font-medium" style={{ backgroundColor: 'var(--accent)' }}>
+              <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium" style={{ backgroundColor: 'var(--accent-fill)', color: 'var(--on-accent-fill)' }}>
                 {(user.name || user.email).slice(0, 1).toUpperCase()}
               </div>
             )}
