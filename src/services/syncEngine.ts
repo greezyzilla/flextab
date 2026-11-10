@@ -277,6 +277,15 @@ async function applyResolution(
   return changed;
 }
 
+/** Wait before the one retry of a plan load that failed (TASK-33). */
+export const PLAN_RETRY_MS = 1000;
+async function loadPlanWithRetry() {
+  await usePlanStore.getState().load();
+  if (usePlanStore.getState().status) return;
+  await new Promise((resolve) => setTimeout(resolve, PLAN_RETRY_MS));
+  await usePlanStore.getState().load();
+}
+
 function reconcile(freshLogin: boolean, manual = false, sameSession = captureSyncSession()) {
   const generation = engineGeneration;
   const allowed = () => sameSession() && (manual || (automaticSyncActive() && generation === engineGeneration));
@@ -304,9 +313,10 @@ async function reconcileState(freshLogin: boolean, manual: boolean, allowed: () 
   const askBeforeUpload = await loadKeptOnSignOut();
   // The plan's cap decides whether a first upload needs a notice (TASK-33), so
   // it is known before deciding, not after the push is rejected.
-  // load() never rejects: a plan that fails to load leaves the cap unknown, and
-  // the server still enforces it, so the old path (push → "Sync paused") remains.
-  if (freshLogin && !base) await usePlanStore.getState().load();
+  // load() never rejects. One retry covers a brief network blip; if the plan
+  // still fails, the cap stays unknown and sync goes on as before (push →
+  // "Sync paused"): the server enforces the cap, so this stays tolerant.
+  if (freshLogin && !base) await loadPlanWithRetry();
   if (!allowed()) return "paused";
   const local = getSpaces();
   const decision = decideReconciliation3(base, server, local, freshLogin, askBeforeUpload, tabCap(usePlanStore.getState().status));

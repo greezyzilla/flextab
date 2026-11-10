@@ -18,7 +18,7 @@ vi.mock('~src/store/useSavedSpacesStore', () => ({ ensureDefaultData: vi.fn(), s
 import {
   startSyncEngine, stopSyncEngine, syncNow, pullAndOverwrite, resolveConflict,
   dismissMergeConflicts, startLocalPersistence, stopLocalPersistence,
-  adoptStoredOccConflict, resolveMergeConflicts, acknowledgeOverCap,
+  adoptStoredOccConflict, resolveMergeConflicts, acknowledgeOverCap, PLAN_RETRY_MS,
 } from './syncEngine';
 import { apiFetch, apiGetPlan, loadTokens, pushSync } from './api';
 import { useOverCapNotice } from '~src/store/useOverCapNotice';
@@ -268,13 +268,38 @@ describe('over-cap first sign-in (TASK-33)', () => {
     expect(useOverCapNotice.getState().pending).toBe(false);
   });
 
-  it('falls back to the old path when the plan cannot be loaded', async () => {
-    (apiGetPlan as any).mockRejectedValue(new Error('offline'));
+  it('retries a failed plan load once and still shows the notice (TASK-33 AC #5)', async () => {
+    vi.useFakeTimers();
+    try {
+      (apiGetPlan as any).mockRejectedValueOnce(new Error('blip'));
+      const run = startSyncEngine();
+      await vi.advanceTimersByTimeAsync(PLAN_RETRY_MS);
+      await run;
+      await vi.advanceTimersByTimeAsync(0);
+      expect(apiGetPlan).toHaveBeenCalledTimes(2);
+      expect(useOverCapNotice.getState()).toMatchObject({ pending: true, tabs: 3, cap: 2 });
+    } finally { vi.useRealTimers(); }
+  });
+
+  it('falls back to the old path when the plan still cannot be loaded after the retry', async () => {
+    vi.useFakeTimers();
+    try {
+      (apiGetPlan as any).mockRejectedValue(new Error('offline'));
+      const run = startSyncEngine();
+      await vi.advanceTimersByTimeAsync(PLAN_RETRY_MS);
+      await run;
+      await vi.advanceTimersByTimeAsync(0);
+      expect(apiGetPlan).toHaveBeenCalledTimes(2);
+      expect(useOverCapNotice.getState().pending).toBe(false);
+      expect(getSpaces().map(s => s.id)).toEqual(['local']);
+      expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_fresh_login');
+    } finally { vi.useRealTimers(); }
+  });
+
+  it('does not retry when the plan loads the first time', async () => {
     await startSyncEngine();
     await flush();
-    expect(useOverCapNotice.getState().pending).toBe(false);
-    expect(getSpaces().map(s => s.id)).toEqual(['local']);
-    expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_fresh_login');
+    expect(apiGetPlan).toHaveBeenCalledTimes(1);
   });
 
   it('says nothing when the tabs fit the plan', async () => {
