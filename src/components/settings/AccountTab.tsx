@@ -37,8 +37,12 @@ export function AccountTab() {
   useEffect(() => { setName(user?.name ?? ''); }, [user?.name]);
 
   // Linked sign-in methods
-  const [identities, setIdentities] = useState<LinkedIdentity[] | null>(null);
-  const [hasPassword, setHasPassword] = useState<boolean>(!!user?.has_password);
+  // Until the list call returns, draw from what /api/me already said, so a
+  // password-only account shows its warning from the first frame (TASK-41).
+  const [listed, setListed] = useState<LinkedIdentity[] | null>(null);
+  const [listedHasPassword, setListedHasPassword] = useState<boolean | null>(null);
+  const identities = listed ?? user?.identities ?? null;
+  const hasPassword = listedHasPassword ?? !!user?.has_password;
   const [linking, setLinking] = useState<string | null>(null);
   const [unlinking, setUnlinking] = useState<string | null>(null);
   const [idError, setIdError] = useState('');
@@ -47,8 +51,8 @@ export function AccountTab() {
 
   const loadIdentities = () => {
     apiListIdentities()
-      .then(r => { setIdentities(r.identities); setHasPassword(r.has_password); })
-      .catch(() => setIdentities([]));
+      .then(r => { setListed(r.identities); setListedHasPassword(r.has_password); })
+      .catch(() => setListed(prev => prev ?? user?.identities ?? []));
   };
   useEffect(loadIdentities, []);
 

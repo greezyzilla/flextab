@@ -49,6 +49,29 @@ describe("AccountTab sign-in methods (TASK-8)", () => {
     expect(screen.queryByText("Loading…")).not.toBeInTheDocument()
   })
 
+  it("warns a password-only account from the first frame, using what /api/me sent (TASK-41)", async () => {
+    useAuthStore.setState({ user: { id: "u", name: "Me", email: "me@example.com", avatar: "", provider: "email", has_password: true, identities: [] } })
+    vi.mocked(apiListIdentities).mockReturnValue(new Promise(() => {}))
+    render(<AccountTab />)
+    expect(screen.getByRole("note")).toHaveTextContent("FlexTab can't reset it")
+  })
+
+  it("does not flash the warning for a linked account while the list loads, and shows its rows once providers are known", async () => {
+    useAuthStore.setState({ user: { id: "u", name: "Me", email: "me@example.com", avatar: "", provider: "email", has_password: true, identities: [{ provider: "google", email: "me@example.com", linked_at: "" }] } })
+    vi.mocked(apiListIdentities).mockReturnValue(new Promise(() => {}))
+    render(<AccountTab />)
+    expect(screen.queryByRole("note")).not.toBeInTheDocument()
+    expect(await screen.findByRole("button", { name: "Unlink" })).toBeInTheDocument()
+  })
+
+  it("keeps what /api/me sent when the list call fails", async () => {
+    useAuthStore.setState({ user: { id: "u", name: "Me", email: "me@example.com", avatar: "", provider: "email", has_password: true, identities: [{ provider: "google", email: "me@example.com", linked_at: "" }] } })
+    vi.mocked(apiListIdentities).mockRejectedValue(new Error("offline"))
+    render(<AccountTab />)
+    expect(await screen.findByRole("button", { name: "Unlink" })).toBeInTheDocument()
+    expect(screen.queryByRole("note")).not.toBeInTheDocument()
+  })
+
   it("lists a linked provider the app does not know, and drops one the server has not configured", async () => {
     const api = await import("~src/services/api")
     vi.mocked(api.apiGetAuthProviders).mockResolvedValueOnce(["google"])

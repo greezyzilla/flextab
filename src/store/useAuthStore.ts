@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { cancelPendingOAuth, OAUTH_START } from "~src/services/oauthLogin";
 import { withSyncWriteLock } from "~src/services/syncPolicy";
 import { create } from "zustand";
-import { loadTokens, saveTokens, clearTokens, apiFetch, apiLogin, apiLogout, apiDeleteAccount, ApiError } from "~src/services/api";
+import { loadTokens, saveTokens, clearTokens, apiFetch, apiLogin, apiLogout, apiDeleteAccount, ApiError, type LinkedIdentity } from "~src/services/api";
 import { clearState } from "~src/lib/yjsDoc";
 import { resetYjsHydration } from "~src/store/useSavedSpacesStore";
 import { clearStoredRevision } from "~src/services/revision";
@@ -23,6 +23,8 @@ export interface User {
   avatar: string;
   provider: string;
   has_password: boolean;
+  /** Linked providers, sent with /api/me so Account can draw them before its own list call. */
+  identities?: LinkedIdentity[];
 }
 
 // Guest mode lets users try the app fully (local-only) before signing in.
