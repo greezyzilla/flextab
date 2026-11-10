@@ -17,7 +17,9 @@
 //   - moved to different parents on both sides → conflict on "location"
 //     (default: keep this device's place)
 //   - moved on one side, deleted on the other → delete-edit (a move is an edit)
-// `order` is never a conflict — the list is reindexed after merging.
+// `order` is never a conflict. Each list keeps the order of the side that
+// changed it since the base (this device's when both did); items added on
+// one side stay next to the neighbour they were added after (TASK-64).
 //
 // See SYNC_CONFLICT.md for the design + test matrix.
 
@@ -204,7 +206,48 @@ function mergeList(
     // !s && !l → deleted on both → gone
   }
 
-  return out.map((x, i) => ({ ...x, order: i }));
+  return orderList(base ?? [], server, local, out).map((x, i) => ({ ...x, order: i }));
+}
+
+// --- Order (TASK-64) ---
+//
+// Lists used to come out in the server's order, so a reorder made on this
+// device was lost whenever a merge ran (reconnect, another device's change,
+// Sync now) and the merged tree was applied back here.
+
+/** Ids in display order: by `order`, then by position (groups and tabs are shown sorted by `order`). */
+function displayIds(list: Node[]): string[] {
+  return list.map((x, i) => ({ id: x.id, o: typeof x.order === "number" ? x.order : 0, i }))
+    .sort((a, b) => a.o - b.o || a.i - b.i)
+    .map((x) => x.id);
+}
+
+/** Whether `side` orders the items it shares with `base` differently. */
+function reordered(base: string[], side: string[]): boolean {
+  const inBase = new Set(base), inSide = new Set(side);
+  const a = side.filter((id) => inBase.has(id)), b = base.filter((id) => inSide.has(id));
+  return a.some((id, i) => id !== b[i]);
+}
+
+function orderList(base: Node[], server: Node[], local: Node[], merged: Node[]): Node[] {
+  const b = displayIds(base), s = displayIds(server), l = displayIds(local);
+  // The side that reordered leads; with both, this device (as for any other change).
+  const [lead, other] = reordered(b, l) ? [l, s] : [s, l];
+  const byId = new Map(merged.map((x) => [x.id, x]));
+  const ids = lead.filter((id) => byId.has(id));
+  const known = new Set([...b, ...other]);
+  // An item only the other side has goes right after its nearest neighbour
+  // there, past anything the leading side added at that spot (both added
+  // after the same item: the leading side's comes first, like a rebase).
+  other.forEach((id, i) => {
+    if (!byId.has(id) || ids.includes(id)) return;
+    let j = i - 1;
+    while (j >= 0 && !ids.includes(other[j])) j--;
+    let at = j < 0 ? 0 : ids.indexOf(other[j]) + 1;
+    while (at < ids.length && !known.has(ids[at])) at++;
+    ids.splice(at, 0, id);
+  });
+  return ids.map((id) => byId.get(id)!);
 }
 
 // --- Moves (TASK-59) ---

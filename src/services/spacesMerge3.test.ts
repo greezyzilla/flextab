@@ -397,3 +397,59 @@ describe("merge3 — moves across parents (TASK-59)", () => {
     expect(spaceOf(r.merged)).toEqual(["A", "B"]);
   });
 });
+
+// --- order (TASK-64) ---
+// Order is never a conflict, but a reorder must survive a merge: lists used to
+// come out in the account's order, dropping this device's reorder.
+describe("merge3 — order (TASK-64)", () => {
+  const g = (id: string, order = 0) => ({ ...grp(id, id.toUpperCase()), order });
+  const at = (...ids: string[]) => wrap(ids.map((id, i) => g(id, i)));
+  const order = (spaces: SavedSpace[]) => groupsOf(spaces).map((x) => x.id).join("");
+
+  it("keeps this device's reorder when the account did not reorder", () => {
+    expect(order(merge3(at("a", "b", "c"), at("a", "b", "c"), at("c", "a", "b")).merged)).toBe("cab");
+  });
+
+  it("takes the account's reorder when this device did not reorder", () => {
+    expect(order(merge3(at("a", "b", "c"), at("b", "c", "a"), at("a", "b", "c")).merged)).toBe("bca");
+  });
+
+  it("keeps this device's order when both reordered, with no conflict", () => {
+    const r = merge3(at("a", "b", "c"), at("b", "c", "a"), at("c", "a", "b"));
+    expect(order(r.merged)).toBe("cab");
+    expect(r.conflicts).toHaveLength(0);
+  });
+
+  it("keeps a reorder while the other side edits or adds elsewhere", () => {
+    const server = at("a", "b", "c"); groupsOf(server)[1].name = "Renamed";
+    const r = merge3(at("a", "b", "c"), server, at("c", "a", "b"));
+    expect(order(r.merged)).toBe("cab");
+    expect(groupsOf(r.merged).find((x) => x.id === "b")!.name).toBe("Renamed");
+  });
+
+  it("puts an item added on one side next to the neighbour it was added after", () => {
+    expect(order(merge3(at("a", "b", "c"), at("a", "x", "b", "c"), at("c", "a", "b")).merged)).toBe("caxb");
+    expect(order(merge3(at("a", "b", "c"), at("b", "c", "a"), at("y", "a", "b", "c")).merged)).toBe("ybca");
+  });
+
+  it("falls back to an earlier neighbour when the nearest one was deleted", () => {
+    // b deleted on the account; this device added x right after b.
+    expect(order(merge3(at("a", "b"), at("a"), at("a", "b", "x")).merged)).toBe("ax");
+  });
+
+  it("puts items both sides added after the same neighbour in the account's order first", () => {
+    expect(order(merge3(at("a"), at("a", "p"), at("a", "n")).merged)).toBe("apn");
+  });
+
+  it("reads order as shown (by the order field), so a group added at the top stays on top", () => {
+    const local = wrap([g("a", 0), g("b", 1), g("n", -1)]); // created at the top, stored last
+    const r = merge3(at("a", "b"), at("a", "b"), local);
+    expect(order(r.merged)).toBe("nab");
+    expect(groupsOf(r.merged).map((x) => x.order)).toEqual([0, 1, 2]);
+  });
+
+  it("keeps a reorder at the project and space levels too", () => {
+    const tree = (ids: string[]) => ids.map((id, i) => ({ ...spc(id, id), order: i }));
+    expect(merge3(tree(["s", "t", "u"]), tree(["s", "t", "u"]), tree(["u", "s", "t"])).merged.map((x) => x.id)).toEqual(["u", "s", "t"]);
+  });
+});
