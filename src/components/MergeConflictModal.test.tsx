@@ -57,6 +57,36 @@ describe("MergeConflictModal (TASK-29)", () => {
     expect(group).not.toHaveTextContent("“")
   })
 
+  it("asks where a project moved on both sides goes, and says a move survived a delete (TASK-59)", () => {
+    const at = (spaceId: string | null): SavedSpace[] => ["s", "h", "e"].map((id) => ({
+      id, name: { s: "Work", h: "Hobby", e: "Personal" }[id]!,
+      projects: id === spaceId ? [{ id: "p2", name: "Test", categories: [] }] : [],
+    }))
+    let r = merge3(at("s"), at("h"), at("e"))
+    useMergeConflict.getState().open(r.conflicts, at("s"), at("h"), at("e"))
+    const view = render(<MergeConflictModal />)
+    const moved = screen.getByRole("region", { name: "Project Test" })
+    expect(moved).toHaveTextContent("Place was “Work”. Both sides changed it.")
+    expect(within(moved).getByRole("radio", { name: /This device.*Personal/ })).toBeInTheDocument()
+    expect(within(moved).getByRole("radio", { name: /Your account.*Hobby/ })).toBeInTheDocument()
+    view.unmount()
+
+    r = merge3(at("s"), at(null), at("e"))
+    useMergeConflict.getState().open(r.conflicts, at("s"), at(null), at("e"))
+    render(<MergeConflictModal />)
+    expect(screen.getByRole("region", { name: "Project Test" })).toHaveTextContent("Your account deleted this project. This device moved it to Personal.")
+  })
+
+  it("says a container the other side deleted received a moved item (TASK-59)", () => {
+    const b: SavedSpace[] = [{ id: "s", name: "Work", projects: [{ id: "p2", name: "Test", categories: [] }] }, { id: "e", name: "Personal", projects: [] }]
+    const server: SavedSpace[] = [clone(b[0])] // the account deleted Personal
+    const local: SavedSpace[] = [{ ...clone(b[0]), projects: [] }, { id: "e", name: "Personal", projects: [clone(b[0].projects[0])] }]
+    const { conflicts } = merge3(b, server, local)
+    useMergeConflict.getState().open(conflicts, b, server, local)
+    render(<MergeConflictModal />)
+    expect(screen.getByRole("region", { name: "Space Personal" })).toHaveTextContent("Your account deleted this space. This device moved “Test” into it.")
+  })
+
   it("chooses nothing for the user: Apply waits for every conflict", () => {
     open()
     render(<MergeConflictModal />)

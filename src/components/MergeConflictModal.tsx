@@ -21,6 +21,7 @@ const SIDE_POSSESSIVE: Record<Side, string> = { local: "this device's", server: 
 
 const FIELD_LABEL: Record<string, string> = {
   name: "Name", title: "Title", url: "Address", favicon: "Icon", icon: "Icon", color: "Color", abbreviation: "Short name",
+  location: "Place",
 }
 const shown = (v: unknown) => (v === undefined || v === null || v === "" ? "(empty)" : `“${String(v)}”`)
 /** A group colour reads as its menu name (Red, None), not its stored id. */
@@ -54,7 +55,7 @@ function describe(c: Conflict, level: Level, base: ReturnType<typeof locate>): {
   const deleter: Side = c.deletedOn ?? "server"
   const keeper: Side = deleter === "server" ? "local" : "server"
   const edited = (keeper === "local" ? c.local : c.server) as Parameters<typeof editSummary>[1]
-  const did = editSummary(base?.node, edited, level)
+  const did = deleteEditSummary(c, base?.node, edited, level)
   return {
     lead: `${SIDE_NAME[deleter]} deleted this ${what}. ${SIDE_NAME[keeper]} ${did}.`,
     options: [
@@ -62,6 +63,19 @@ function describe(c: Conflict, level: Level, base: ReturnType<typeof locate>): {
       { side: deleter, label: "Delete it", detail: "Removed everywhere" },
     ],
   }
+}
+
+/** What the keeping side did, moves first (TASK-59): "moved it to Work", "moved “Test” into it". */
+function deleteEditSummary(c: Conflict, baseNode: Parameters<typeof editSummary>[0], edited: Parameters<typeof editSummary>[1], level: Level): string {
+  const edits = editSummary(baseNode, edited, level)
+  const moves = [
+    ...(c.movedTo ? [`moved it to ${c.movedTo}`] : []),
+    ...(c.movedIn ? [`moved “${c.movedIn}” into it`] : []),
+  ]
+  if (!moves.length) return edits
+  // An item moved in reads to editSummary as "added …": the move line already says it.
+  if (c.movedIn || edits === "changed it") return moves.join(", ")
+  return [...moves, edits].join(", ")
 }
 
 function MergedList({ title, changes }: { title: string; changes: Change[] }) {

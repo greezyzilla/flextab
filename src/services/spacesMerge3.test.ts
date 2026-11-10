@@ -235,3 +235,165 @@ describe("merge3 — resolutions (per-item overrides)", () => {
     expect(a).toBe(b);
   });
 });
+
+// --- moves (TASK-59) ---
+// A move is "gone from one parent, present under another". Merged per parent it
+// used to come out twice, and the server rejects a tree with a duplicate id.
+describe("merge3 — moves across parents (TASK-59)", () => {
+  const t1 = tab("t1", "One"), t2 = tab("t2", "Two");
+  const project = (tabs = [t1], name = "Test") => prj("P", name, [cat("Pc", "C", [grp("Pg", "G", tabs)])]);
+  const tree = (where: "A" | "B" | "C" | null, p = project()) => [
+    spc("A", "Hobby", where === "A" ? [p] : []),
+    spc("B", "Personal", where === "B" ? [p] : []),
+    spc("C", "Work", where === "C" ? [p] : []),
+  ];
+  const allIds = (spaces: SavedSpace[]) => {
+    const out: string[] = [];
+    const walk = (n: any) => { out.push(n.id); for (const k of ["projects", "categories", "groups", "tabs"]) (n[k] ?? []).forEach(walk); };
+    spaces.forEach(walk);
+    return out;
+  };
+  const spaceOf = (spaces: SavedSpace[], id = "P") => spaces.filter((s) => s.projects.some((p) => p.id === id)).map((s) => s.id);
+  const tabsOf = (spaces: SavedSpace[]) => spaces.flatMap((s) => s.projects.filter((p) => p.id === "P")).flatMap((p) => p.categories[0].groups[0].tabs.map((t) => t.id));
+  const unique = (spaces: SavedSpace[]) => expect(new Set(allIds(spaces)).size).toBe(allIds(spaces).length);
+
+  it("moved on this device, untouched on the account → moves, no conflict", () => {
+    const r = merge3(tree("A"), tree("A"), tree("B"));
+    expect(spaceOf(r.merged)).toEqual(["B"]);
+    expect(r.conflicts).toHaveLength(0);
+  });
+
+  it("moved on the account, untouched here → moves, no conflict", () => {
+    const r = merge3(tree("A"), tree("C"), tree("A"));
+    expect(spaceOf(r.merged)).toEqual(["C"]);
+    expect(r.conflicts).toHaveLength(0);
+  });
+
+  it("moved here while the account added a tab inside → one copy, at the new place, with both tabs", () => {
+    const r = merge3(tree("A"), tree("A", project([t1, t2])), tree("B"));
+    expect(spaceOf(r.merged)).toEqual(["B"]);
+    expect(tabsOf(r.merged)).toEqual(["t1", "t2"]);
+    expect(r.conflicts).toHaveLength(0);
+    unique(r.merged);
+  });
+
+  it("moved here while the account renamed it → one copy, moved and renamed", () => {
+    const r = merge3(tree("A"), tree("A", project([t1], "Renamed")), tree("B"));
+    expect(spaceOf(r.merged)).toEqual(["B"]);
+    expect(r.merged.find((s) => s.id === "B")!.projects[0].name).toBe("Renamed");
+    unique(r.merged);
+  });
+
+  it("moved to the same place on both sides → no conflict", () => {
+    const r = merge3(tree("A"), tree("B"), tree("B"));
+    expect(spaceOf(r.merged)).toEqual(["B"]);
+    expect(r.conflicts).toHaveLength(0);
+  });
+
+  it("moved to different places on both sides → a location conflict, this device's place by default", () => {
+    const r = merge3(tree("A"), tree("C"), tree("B"));
+    expect(spaceOf(r.merged)).toEqual(["B"]);
+    expect(r.conflicts).toEqual([expect.objectContaining({ kind: "field", field: "location", id: "P", base: "Hobby", server: "Work", local: "Personal" })]);
+    unique(r.merged);
+    const chosen = merge3(tree("A"), tree("C"), tree("B"), { [r.conflicts[0].key]: "server" });
+    expect(spaceOf(chosen.merged)).toEqual(["C"]);
+    unique(chosen.merged);
+  });
+
+  it("moved here, deleted on the account → delete-edit, kept at the new place by default", () => {
+    const r = merge3(tree("A"), tree(null), tree("B"));
+    expect(r.conflicts).toEqual([expect.objectContaining({ kind: "delete-edit", deletedOn: "server", id: "P", movedTo: "Personal" })]);
+    expect(spaceOf(r.merged)).toEqual(["B"]);
+    const honored = merge3(tree("A"), tree(null), tree("B"), { [r.conflicts[0].key]: "server" });
+    expect(spaceOf(honored.merged)).toEqual([]);
+  });
+
+  it("moved on the account, deleted here → delete-edit, kept at the account's place by default", () => {
+    const r = merge3(tree("A"), tree("C"), tree(null));
+    expect(r.conflicts).toEqual([expect.objectContaining({ kind: "delete-edit", deletedOn: "local", movedTo: "Work" })]);
+    expect(spaceOf(r.merged)).toEqual(["C"]);
+  });
+
+  it("moved into a space created here, edited on the account → lands in the new space with the edit", () => {
+    const local = [...tree(null), spc("D", "New", [project()])];
+    const r = merge3(tree("A"), tree("A", project([t1, t2])), local);
+    expect(spaceOf(r.merged)).toEqual(["D"]);
+    expect(tabsOf(r.merged)).toEqual(["t1", "t2"]);
+    expect(r.merged.find((s) => s.id === "D")!.name).toBe("New");
+    expect(r.conflicts).toHaveLength(0);
+    unique(r.merged);
+  });
+
+  it("moved into a space the account deleted → the space is a delete-edit conflict, no duplicate", () => {
+    const server = [spc("A", "Hobby", [project([t1, t2])]), spc("C", "Work")]; // B deleted, tab added in P
+    const r = merge3(tree("A"), server, tree("B"));
+    expect(r.conflicts).toEqual([expect.objectContaining({ kind: "delete-edit", deletedOn: "server", id: "B", movedIn: "Test" })]);
+    expect(spaceOf(r.merged)).toEqual(["B"]); // kept by default, with the moved project
+    unique(r.merged);
+    const honored = merge3(tree("A"), server, tree("B"), { [r.conflicts[0].key]: "server" });
+    expect(honored.merged.map((sp) => sp.id)).toEqual(["A", "C"]);
+    unique(honored.merged);
+  });
+
+  it("a category moved to a project in another space while its group was renamed → one copy", () => {
+    const base = [spc("A", "Hobby", [prj("p1", "Music", [cat("c1", "Songs", [grp("g1", "Old")])])]), spc("B", "Personal", [prj("p2", "Fun")])];
+    const server = [spc("A", "Hobby", [prj("p1", "Music", [cat("c1", "Songs", [grp("g1", "New")])])]), spc("B", "Personal", [prj("p2", "Fun")])];
+    const local = [spc("A", "Hobby", [prj("p1", "Music")]), spc("B", "Personal", [prj("p2", "Fun", [cat("c1", "Songs", [grp("g1", "Old")])])])];
+    const r = merge3(base, server, local);
+    expect(r.merged[1].projects[0].categories.map((c) => c.id)).toEqual(["c1"]);
+    expect(r.merged[1].projects[0].categories[0].groups[0].name).toBe("New");
+    expect(r.merged[0].projects[0].categories).toEqual([]);
+    unique(r.merged);
+  });
+
+  it("a tab moved to another group while retitled on the account → one tab, moved and retitled", () => {
+    const base = wrap([grp("a", "A", [tab("x", "Old")]), grp("b", "B")]);
+    const server = wrap([grp("a", "A", [tab("x", "New")]), grp("b", "B")]);
+    const local = wrap([grp("a", "A"), grp("b", "B", [tab("x", "Old")])]);
+    const r = merge3(base, server, local);
+    expect(groupsOf(r.merged).map((g) => g.tabs.map((t) => `${t.id}:${t.title}`))).toEqual([[], ["x:New"]]);
+    expect(r.conflicts).toHaveLength(0);
+  });
+
+  it("moved on the account into a space deleted here → the space is a delete-edit conflict, kept by default", () => {
+    const local = [spc("A", "Hobby", [project()]), spc("C", "Work")]; // B deleted here
+    const r = merge3(tree("A"), tree("B"), local);
+    expect(r.conflicts).toEqual([expect.objectContaining({ kind: "delete-edit", deletedOn: "local", id: "B", movedIn: "Test" })]);
+    expect(spaceOf(r.merged)).toEqual(["B"]);
+    unique(r.merged);
+  });
+
+  it("a category moved into a project created here, in an existing space, while the account edited it", () => {
+    const base = [spc("A", "Hobby", [prj("p1", "Music", [cat("c1", "Songs", [grp("g1", "G", [tab("x", "X")])])])])];
+    const server = [spc("A", "Hobby", [prj("p1", "Music", [cat("c1", "Songs", [grp("g1", "G", [tab("x", "X"), tab("y", "Y")])])])])];
+    const local = [spc("A", "Hobby", [prj("p1", "Music"), prj("p9", "New", [cat("c1", "Songs", [grp("g1", "G", [tab("x", "X")])])])])];
+    const r = merge3(base, server, local);
+    const [music, fresh] = r.merged[0].projects;
+    expect(music.categories).toEqual([]);
+    expect(fresh.name).toBe("New");
+    expect(fresh.categories[0].groups[0].tabs.map((t) => t.id)).toEqual(["x", "y"]);
+    expect(r.conflicts).toHaveLength(0);
+    unique(r.merged);
+  });
+
+  it("tolerates containers without a children list", () => {
+    // B first, so finding P walks a space with no project list.
+    const base = [{ id: "B", name: "Personal", order: 0 } as unknown as SavedSpace, spc("A", "Hobby", [project()])];
+    const local = [{ id: "B", name: "Personal", order: 0, projects: [project()] } as SavedSpace, spc("A", "Hobby", [])];
+    const r = merge3(base, base, local);
+    expect(spaceOf(r.merged)).toEqual(["B"]);
+    unique(r.merged);
+  });
+
+  it("does not change its inputs", () => {
+    const base = tree("A"), server = tree("A", project([t1, t2])), local = tree("B");
+    const before = JSON.stringify([base, server, local]);
+    merge3(base, server, local);
+    expect(JSON.stringify([base, server, local])).toBe(before);
+  });
+
+  it("without a base nothing counts as a move (first sync stays a union)", () => {
+    const r = merge3(null, tree("A"), tree("B"));
+    expect(spaceOf(r.merged)).toEqual(["A", "B"]);
+  });
+});

@@ -191,3 +191,22 @@ describe("syncChanges edge cases", () => {
       .toBe("renamed tab “d” to “d renamed”, moved 1 tab, added group “Fresh”, removed 1 tab")
   })
 })
+
+describe("container moves (TASK-59)", () => {
+  const spaces = (where: "Hobby" | "Personal"): SavedSpace[] => [
+    { id: "h", name: "Hobby", projects: where === "Hobby" ? [{ id: "p", name: "Test", categories: [] }] : [] },
+    { id: "e", name: "Personal", projects: where === "Personal" ? [{ id: "p", name: "Test", categories: [] }] : [] },
+  ]
+
+  it("reports a project moved to another space as one line", () => {
+    expect(texts(spaces("Hobby"), spaces("Personal"))).toEqual(["Moved project “Test” from Hobby to Personal"])
+  })
+
+  it("lists a move made on this device as going to the account", () => {
+    const base = spaces("Hobby")
+    const { conflicts } = merge3(base, base, spaces("Personal"))
+    const { fromAccount, fromDevice } = autoMerged(base, base, spaces("Personal"), conflicts)
+    expect(fromAccount.map(changeText)).toEqual([])
+    expect(fromDevice.map(changeText)).toEqual(["Moved project “Test” from Hobby to Personal"])
+  })
+})

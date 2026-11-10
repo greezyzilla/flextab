@@ -136,7 +136,11 @@ export function diffTrees(from: SavedSpace[] | null, to: SavedSpace[], names?: S
       else out.push({ kind: "added", level: loc.level, count: 1, name: nameOf(loc.node, loc.level), path: place(loc), tabs: tabsUnder(loc.node, loc.level) })
       continue
     }
-    if (prev.parentId !== loc.parentId && loc.level === "tab") bucket("moved", prev, place(loc).join(" › "))
+    if (prev.parentId !== loc.parentId) {
+      if (loc.level === "tab") bucket("moved", prev, place(loc).join(" › "))
+      // A container moved as a whole (TASK-59): one line, its contents go with it.
+      else out.push({ kind: "moved", level: loc.level, count: 1, name: nameOf(prev.node, prev.level), path: place(prev), to: place(loc).join(" › ") })
+    }
     const before = nameOf(prev.node, prev.level), after = nameOf(loc.node, loc.level)
     if (before !== after) out.push({ kind: "renamed", level: loc.level, count: 1, name: before, path: place(loc), to: after })
     else if (loc.level === "tab" && prev.node.url !== loc.node.url) {
@@ -197,6 +201,7 @@ export function changeText(c: Change): string {
     case "added": return `Added ${what}${suffix}${inside}`
     case "removed": return `Removed ${what}${suffix ? ` from ${at}` : ""}${inside}`
     case "renamed": return `Renamed ${what} to “${c.to}”${suffix}`
+    case "moved": return `Moved ${what} from ${at} to ${c.to}`
     default: return `Changed ${what}${suffix}`
   }
 }
