@@ -163,8 +163,13 @@ let pendingMergeConflicts: Conflict[] | null = null;
 // An explicit resolver choice is ready to PUT against the revision that was
 // shown. Re-pulling first would rediscover the same conflict and undo the choice.
 let manualResolution: Promise<void> | null = null;
+// The worker uploads when the local document changes. A choice that leaves the
+// document as it is (keeping this device's tabs, or continuing past the over-cap
+// notice) changes nothing, so the worker is asked to upload now instead of
+// waiting for the 5-minute retry alarm or the next local edit (TASK-39).
 function applyUserResolution(spaces: SavedSpace[], selectFirst = false) {
-  const work = applyResolution(spaces, { selectFirst, serverConfirmed: false });
+  const work = applyResolution(spaces, { selectFirst, serverConfirmed: false })
+    .then((changed) => { if (!changed) return requestPush(); });
   if (!automaticSyncActive()) manualResolution = work;
   return work.catch(() => { manualResolution = null; setStatus("error"); });
 }
@@ -243,6 +248,8 @@ export function resolveChoice(choice: "merge" | "server" | "local", server: Save
  *   (or a force-restore overwrite); safe as merge-base without a push.
  * - otherwise leave merge-base alone; background `onStructuredPushLanded` advances
  *   it after a confirmed PUT. `recomputeDirty` then correctly shows unsynced local.
+ *
+ * Resolves to whether the local document was rewritten.
  */
 async function applyResolution(
   spaces: SavedSpace[],
@@ -267,6 +274,7 @@ async function applyResolution(
   }
   await clearConflictPending(); // resolver finished (or pull overwrite); not the same as push-clean
   if (!opts.manual) connectWebSocket(); // realtime change-notifier
+  return changed;
 }
 
 function reconcile(freshLogin: boolean, manual = false, sameSession = captureSyncSession()) {
@@ -356,9 +364,7 @@ export function acknowledgeOverCap() {
   useOverCapNotice.getState().close();
   if (!l) return;
   void clearFreshLogin();
-  // The document is unchanged, so ask the worker to upload once hydration is
-  // set. The worker still checks that automatic pushes are allowed.
-  void applyUserResolution(l, true).then(requestPush);
+  void applyUserResolution(l, true);
 }
 
 /** Resolve a guest↔account conflict with the user's choice. */

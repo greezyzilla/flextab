@@ -336,6 +336,23 @@ describe('conflict flow', () => {
     expect(FakeWS.instances).toHaveLength(1);
   });
 
+  it('resolveConflict("local") asks the worker to upload, since the document is unchanged (TASK-39)', async () => {
+    await startSyncEngine();
+    await flush();
+    resolveConflict('local');
+    await flush();
+    expect(getSpaces().map(s => s.id)).toEqual(['local']);
+    expect(chrome.storage.local.set).toHaveBeenCalledWith({ flextab_push_request: expect.any(Number) });
+  });
+
+  it('resolveConflict("merge") leaves the upload to the document change', async () => {
+    await startSyncEngine();
+    await flush();
+    resolveConflict('merge');
+    await flush();
+    expect(chrome.storage.local.set).not.toHaveBeenCalledWith({ flextab_push_request: expect.any(Number) });
+  });
+
   it('resolveConflict("merge") does not advance merge-base before push (FE-B1)', async () => {
     await clearMergeBase();
     await startSyncEngine();
