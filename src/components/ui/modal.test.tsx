@@ -172,4 +172,13 @@ describe("Modal (TASK-43)", () => {
     expect(screen.getByText("Small print.")).toBeInTheDocument()
     expect(screen.getByText("5 tabs")).toBeInTheDocument()
   })
+  it("leads a destructive primary with a warning icon, so the tone change shows at any accent hue (TASK-49)", () => {
+    const d = render(<Harness tone="destructive" />)
+    const button = screen.getByRole("button", { name: "Do it" })
+    expect(button.querySelector("[data-modal-danger-icon]")).not.toBeNull()
+    expect(button).toHaveClass("bg-destructive")
+    d.unmount()
+    render(<Harness />)
+    expect(screen.getByRole("button", { name: "Do it" }).querySelector("[data-modal-danger-icon]")).toBeNull()
+  })
 })

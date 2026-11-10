@@ -303,7 +303,7 @@ export function AccountTab() {
               Deletes your account and its cloud data on every device. Tabs on this device can stay.
             </p>
           </div>
-          <Button variant="destructive" size="sm" onClick={() => setDeleteOpen(true)}>
+          <Button variant="danger" size="sm" onClick={() => setDeleteOpen(true)}>
             Delete account…
           </Button>
         </div>

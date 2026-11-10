@@ -11,8 +11,14 @@ const buttonVariants = cva(
       variant: {
         // brand primary — gradient derived from --accent (see .accent-fill)
         default: "accent-fill",
+        // The final confirm of a destructive action (in a modal footer): solid red, flat.
         destructive:
           "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
+        // A page control that opens a destructive flow ("Delete space…"). Its shape, not
+        // only its hue, sets it apart from the accent fill, so it still reads as danger
+        // when the accent itself is red (TASK-49).
+        danger:
+          "border border-danger/35 bg-danger/[0.08] text-danger hover:border-danger/55 hover:bg-danger/[0.14]",
         outline:
           // Own text colour: dialogs render in a portal, where inherited colour is the browser's black.
           "border border-input bg-background text-fg-muted shadow-sm hover:bg-accent hover:text-accent-foreground",

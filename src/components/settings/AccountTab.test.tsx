@@ -86,6 +86,9 @@ describe("AccountTab sign-in methods (TASK-8)", () => {
   it("ends with a danger zone that opens account deletion (TASK-17)", async () => {
     render(<AccountTab />)
     const zone = screen.getByRole("region", { name: "Danger zone" })
+    // A red-tinted outline, not a red fill: it stays apart from a red accent fill (TASK-49).
+    expect(within(zone).getByRole("button", { name: "Delete account…" })).toHaveClass("text-danger")
+    expect(within(zone).getByRole("button", { name: "Delete account…" })).not.toHaveClass("bg-destructive")
     fireEvent.click(within(zone).getByRole("button", { name: "Delete account…" }))
     expect(await screen.findByRole("alertdialog", { name: "Delete your account?" })).toBeInTheDocument()
   })

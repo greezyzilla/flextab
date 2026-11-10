@@ -4,7 +4,7 @@
 import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog"
-import { X } from "lucide-react"
+import { TriangleAlert, X } from "lucide-react"
 import { cn } from "~src/lib/utils"
 import { Button } from "~src/components/ui/button"
 import { Label } from "~src/components/ui/label"
@@ -209,6 +209,9 @@ export function ModalFooter({ start, cancel = "Cancel", cancelDisabled, primary 
       {primary && (
         <Button type="button" variant={primary.tone === "destructive" ? "destructive" : "default"}
           data-modal-primary data-modal-tone={primary.tone ?? "primary"} disabled={primary.disabled} onClick={primary.onClick}>
+          {/* A primary that turns destructive gains an icon, so the change shows even
+              when the accent is red like the destructive fill (TASK-49). */}
+          {primary.tone === "destructive" && <TriangleAlert className="h-4 w-4" aria-hidden data-modal-danger-icon="" />}
           {primary.label}
         </Button>
       )}

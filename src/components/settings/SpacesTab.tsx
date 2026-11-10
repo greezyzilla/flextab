@@ -178,7 +178,7 @@ function DangerZone({ space }: { space: SavedSpace }) {
             {`Removes ${plural(projects, "project")} and ${plural(tabs, "tab")} on every synced device.`}
           </p>
         </div>
-        <Button variant="destructive" size="sm" onClick={() => { setTyped(""); setOpen(true); }}>
+        <Button variant="danger" size="sm" onClick={() => { setTyped(""); setOpen(true); }}>
           Delete space…
         </Button>
       </div>

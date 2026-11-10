@@ -107,7 +107,11 @@ There is one title size for both kinds (R1). `<Label>` is never used as option t
 - Right-aligned, in the order **[Cancel] [Primary]**. At most one primary (S3).
 - All footer buttons are size `default` (h36, 14px), in both kinds (R3).
 - **Cancel** is the `secondary` variant everywhere (R4).
-- **Primary** is `default` (accent), or `destructive` when it deletes, removes or replaces.
+- **Primary** is `default` (accent), or `destructive` when it deletes, removes or replaces. A
+  destructive primary also leads with a warning icon (`TriangleAlert`), so a primary that changes
+  tone with the choice still shows the change when the accent hue is red (TASK-49). The page
+  control that opens a destructive flow ("Delete space…") is the `danger` variant (red text on a
+  red tint), not a red fill.
 - The footer-start action is `link` styled, with its underline visible at rest. It must not read as
   a heading.
 - The footer never stacks vertically (R4, Sign out). If it overflows, buttons wrap with the primary
