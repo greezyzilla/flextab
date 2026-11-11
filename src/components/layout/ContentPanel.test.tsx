@@ -118,6 +118,30 @@ describe("empty states create in place", () => {
     expect(frame.className).not.toMatch(/accent/)
   })
 
+  it("Unsorted's header ends at its own edge: no blank slot after open-all, none at all when empty (TASK-56)", () => {
+    const at = (tabs: { id: string; url: string; title: string; favicon: string; order: number }[]) => {
+      yjs.setSpaces([{ id: "s", name: "Work", order: 0, projects: [{ id: "p", name: "Site", order: 0, categories: [
+        { id: "c", name: "Research", order: 0, groups: [
+          { id: "g", name: "Reading", order: 0, tabs: [{ id: "t1", url: "https://a.com", title: "A", favicon: "", order: 0 }] },
+          { id: "u", name: "Unsorted", order: -1, config: { kind: "unsorted" }, tabs },
+        ] },
+      ] }] }])
+      useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces(), activeSpaceId: "s", activeProjectId: "p", activeCategoryId: "c", expandedProjectIds: ["p"] })
+    }
+    at([{ id: "t2", url: "https://b.com", title: "B", favicon: "", order: 0 }])
+    const { unmount } = render(<TooltipProvider><DndContext><ContentPanel /></DndContext></TooltipProvider>)
+    // The actions row holds only open-all's slot; a user group's row holds open-all and ⋯.
+    const unsortedActions = screen.getByRole("button", { name: "Open all tabs in Unsorted" }).parentElement!.parentElement!
+    expect(unsortedActions.children).toHaveLength(1)
+    const groupActions = screen.getByRole("button", { name: "Open all tabs in Reading" }).parentElement!.parentElement!
+    expect(groupActions.children).toHaveLength(2)
+    unmount()
+    at([])
+    render(<TooltipProvider><DndContext><ContentPanel /></DndContext></TooltipProvider>)
+    const header = screen.getByText("Unsorted").closest(".group\\/header")!
+    expect(header.lastElementChild!.children).toHaveLength(0)
+  })
+
   it("Escape or an empty group name creates nothing", async () => {
     withGroups()
     const user = setup()

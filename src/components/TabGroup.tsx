@@ -342,9 +342,13 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
         {/* A group header is a header row (TASK-5): its primary action (open
             all) and its ⋯ (rename, move, delete) are always visible, ⋯
             outermost in the slot column. Unsorted is the system's tray: no ⋯,
-            but its slot stays so its open-all lines up with the others. */}
+            and no blank slot in its place (TASK-56). Its open-all ends at the
+            tray's own edge; the tray is its own surface, so it doesn't share
+            the cards' column (a blank slot read as a missing button). */}
         {!preview && <div className="flex items-center gap-0.5 shrink-0">
-          <ActionSlot>
+          {/* An empty card keeps its open-all slot so its ⋯ stays in the column;
+              an empty Unsorted has nothing to hold there, so no slot either. */}
+          {(!unsorted || sortedTabs.length > 0) && <ActionSlot>
             {sortedTabs.length > 0 && (
               // One "open all" control, two destinations (TASK-4).
               <DropdownMenu open={openAllMenu} onOpenChange={setOpenAllMenu}>
@@ -361,8 +365,8 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
-          </ActionSlot>
-          {unsorted ? <ActionSlot /> : (
+          </ActionSlot>}
+          {!unsorted && (
             <RowActions
               label={`Actions for ${group.name}`}
               items={[
