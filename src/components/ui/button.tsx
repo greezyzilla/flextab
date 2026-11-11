@@ -113,22 +113,33 @@ function isFocusVisible(el: Element): boolean {
  * closes hands focus back to its trigger; after a mouse close that focus is not
  * :focus-visible and must not pop the tooltip up under the pointer's old spot.
  */
-function IconTooltip({ content, side, children }: { content: React.ReactNode; side?: IconButtonProps["tooltipSide"]; children: React.ReactNode }) {
+export const IconTooltip = React.forwardRef<
+  HTMLButtonElement,
+  Omit<React.ComponentPropsWithoutRef<typeof TooltipTrigger>, "content" | "asChild"> & {
+    content: React.ReactNode
+    side?: IconButtonProps["tooltipSide"]
+  }
+>(({ content, side, children, onFocus, onPointerMove, onBlur, ...triggerProps }, ref) => {
   const [open, setOpen] = React.useState(false)
   const quiet = React.useRef(false)
+  // Props from a control that wraps this one with asChild (e.g. a toggle's data-state="on")
+  // land after the trigger's own data-state, so the control's state wins.
   return (
     <Tooltip open={open} onOpenChange={(next) => setOpen(next && !quiet.current)}>
       <TooltipTrigger
         asChild
-        onFocus={(e) => { quiet.current = !isFocusVisible(e.currentTarget) }}
-        onPointerMove={() => { quiet.current = false }}
-        onBlur={() => { quiet.current = false }}
+        ref={ref}
+        {...triggerProps}
+        onFocus={(e) => { quiet.current = !isFocusVisible(e.currentTarget); onFocus?.(e) }}
+        onPointerMove={(e) => { quiet.current = false; onPointerMove?.(e) }}
+        onBlur={(e) => { quiet.current = false; onBlur?.(e) }}
       >
         {children}
       </TooltipTrigger>
       <TooltipContent side={side}>{content}</TooltipContent>
     </Tooltip>
   )
-}
+})
+IconTooltip.displayName = "IconTooltip"
 
 export { Button, IconButton, buttonVariants }

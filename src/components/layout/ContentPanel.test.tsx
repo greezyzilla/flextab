@@ -6,6 +6,7 @@ import { ContentPanel } from "./ContentPanel"
 import { TooltipProvider } from "~src/components/ui/tooltip"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import { useUIStore } from "~src/store/useUIStore"
+import { useSettingsStore } from "~src/store/useSettingsStore"
 import * as yjs from "~src/lib/yjsDoc"
 
 vi.mock("~src/components/ui/sonner", () => ({ showUndoToast: vi.fn() }))
@@ -167,5 +168,35 @@ describe("empty states create in place", () => {
     await user.tab()
     hasFocus.mockRestore()
     expect(groupNames().map(g => [g.name, g.order])).toEqual([["Ideas", 0]])
+  })
+})
+
+describe("content header tools (TASK-61)", () => {
+  it("the List/Grid toggle is one radio group in the segmented tray, and switches the layout", async () => {
+    yjs.setSpaces([{ id: "s", name: "Work", order: 0, projects: [{ id: "p", name: "Site", order: 0, categories: [
+      { id: "c", name: "Research", order: 0, groups: [
+        { id: "g", name: "Reading", order: 0, tabs: [{ id: "t1", url: "https://a.com", title: "A", favicon: "", order: 0 }] },
+      ] },
+    ] }] }])
+    useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces(), activeSpaceId: "s", activeProjectId: "p", activeCategoryId: "c", expandedProjectIds: ["p"] })
+    useSettingsStore.setState({ groupLayout: "list" })
+    const user = setup()
+    const group = screen.getByRole("radiogroup", { name: "Group layout" })
+    expect(group).toHaveClass("h-8", "border")
+    const list = screen.getByRole("radio", { name: "List view" }), grid = screen.getByRole("radio", { name: "Grid view" })
+    expect(list).toHaveAttribute("aria-checked", "true")
+    // The item, not its tooltip, owns data-state: the pressed style keys off "on".
+    expect(list).toHaveAttribute("data-state", "on")
+    expect(grid).toHaveAttribute("data-state", "off")
+    await user.hover(grid)
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("Grid view")
+    await user.click(grid)
+    expect(useSettingsStore.getState().groupLayout).toBe("grid")
+    expect(grid).toHaveAttribute("aria-checked", "true")
+    expect(grid).toHaveAttribute("data-state", "on")
+    // Clicking the chosen one again keeps it chosen (a single choice is never empty).
+    await user.click(grid)
+    expect(useSettingsStore.getState().groupLayout).toBe("grid")
+    expect(screen.getByRole("button", { name: "Save all tabs" })).toHaveClass("h-8")
   })
 })

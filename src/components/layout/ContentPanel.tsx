@@ -5,8 +5,8 @@ import { useCommandShortcuts } from "~src/hooks/useCommandShortcuts";
 import { commitOnBlur } from "~src/lib/inlineEdit";
 import type { SavedCategory, SavedGroup, SavedProject, SavedSpace } from "~src/types";
 import { EmptyDropRow, GROUP_INLINE, TabGroup } from "../TabGroup";
-import { Tooltip, TooltipTrigger, TooltipContent } from "~src/components/ui/tooltip";
 import { Button } from "~src/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "~src/components/ui/toggle-group";
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
@@ -534,40 +534,26 @@ export function ContentPanel() {
         />}
         <div className="flex items-center gap-2 shrink-0">
           {projectHasGroups && (
-            <div className="flex items-center bg-ink/[0.05] rounded-md p-0.5">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    aria-label="List view"
-                    aria-pressed={groupLayout === 'list'}
-                    onClick={() => setGroupLayout('list')}
-                    className={`p-1 rounded transition-colors ${groupLayout === 'list' ? 'bg-ink/10 text-fg' : 'text-fg-subtle hover:text-fg-muted'}`}
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-                    </svg>
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>List view</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    aria-label="Grid view"
-                    aria-pressed={groupLayout === 'grid'}
-                    onClick={() => setGroupLayout('grid')}
-                    className={`p-1 rounded transition-colors ${groupLayout === 'grid' ? 'bg-ink/10 text-fg' : 'text-fg-subtle hover:text-fg-muted'}`}
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25a2.25 2.25 0 0 1-2.25-2.25v-2.25Z" />
-                    </svg>
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>Grid view</TooltipContent>
-              </Tooltip>
-            </div>
+            // One choice of two: a radio group (arrow keys move it), like Settings › Group layout.
+            <ToggleGroup
+              type="single"
+              variant="segmented"
+              size="icon"
+              aria-label="Group layout"
+              value={groupLayout}
+              onValueChange={(v) => { if (v) setGroupLayout(v as GroupLayout) }}
+            >
+              <ToggleGroupItem value="list" aria-label="List view" tooltip="List view">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                </svg>
+              </ToggleGroupItem>
+              <ToggleGroupItem value="grid" aria-label="Grid view" tooltip="Grid view">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25a2.25 2.25 0 0 1-2.25-2.25v-2.25Z" />
+                </svg>
+              </ToggleGroupItem>
+            </ToggleGroup>
           )}
           {activeCategory && (
             <ShortcutTooltip label="Save all tabs" shortcut="Mod+Shift+S" side="left">
