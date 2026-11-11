@@ -12,7 +12,7 @@ import { ActionSlot, RowActions } from "~src/components/ui/row-actions";
 import { navigate } from "~src/lib/route";
 import { SPACES_ROUTE } from "~src/components/settings/SpacesTab";
 import { IconButton } from "~src/components/ui/button";
-import { Input } from "~src/components/ui/input"
+import { Input, INLINE_CREATE_HINT, inlineEditFrame } from "~src/components/ui/input"
 import type { SavedProject, SavedCategory } from "~src/types";
 import { useUIStore, type CreateRequest, type ScrollMode } from "~src/store/useUIStore";
 import { ProjectIcon, CategoryIcon } from "~src/components/levelIcons";
@@ -23,37 +23,26 @@ import { MoveContainerDialog } from "~src/components/MoveContainerDialog";
 import { describeContainerTarget, moveCategoryTo, moveProjectTo, shiftCategory, shiftProject, type ContainerTarget } from "~src/services/moveTo";
 
 /**
- * Row geometry shared with the project and category rows, so "new" rows and
- * name inputs line up with the items of their level: a project row is
- * mx-2 pl-1 + chevron (w-5) + gap-1 before its icon; a category row is
- * mx-2 pl-7 before its icon. Both icons land in the same column.
- */
-const ROW_LEAD = {
-  project: "mx-2 pl-1 pr-2",
-  category: "mx-2 pl-7 pr-2",
-} as const;
-
-/** Spacer standing in for the project chevron, so project-level icons align. */
-function ChevronSlot() {
-  return <span aria-hidden className="w-5 shrink-0 mr-1" />;
-}
-
-/**
  * "New project…" slot at the end of the project list. It creates rather than
  * selects, so it differs from rows by shape — the dashed "add here" outline
  * the rail's add-space button already uses — with muted text and an ellipsis,
  * not by colour. It starts where project rows start (the chevron column) and
- * its + sits in the project icon column (1px border + 23px = 24px). New
+ * its + sits in the project icon column (1px border + 23px = 24px). It is
+ * as tall as a project row (1px border + 5px = the rows' 6px padding), so
+ * the name row that replaces it doesn't move anything (TASK-62). New
  * categories have one affordance of their own: the + on each project row.
  */
 function NewProjectSlot({ onClick }: { onClick: () => void }) {
   return (
-    <div className="mx-2 pl-1 pr-2 mt-3">
+    // No top margin of its own: the last project block's mb-1 spaces it like a
+    // row, so the slot, the name row that replaces it and the project it
+    // creates all sit at the same y (TASK-62; mt-3 made the field jump 8px).
+    <div className="mx-2 pl-1 pr-2">
       <ShortcutTooltip label="New project" shortcut="Shift+N">
       <button
         type="button"
         onClick={onClick}
-        className="w-full flex items-center gap-2 rounded-md border border-dashed border-ink/15 pl-[23px] pr-[7px] py-1 text-left text-[13px] font-sans text-fg-subtle hover:border-ink/35 hover:bg-ink/[0.03] hover:text-fg transition-colors outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        className="w-full flex items-center gap-2 rounded-md border border-dashed border-ink/15 pl-[23px] pr-[7px] py-[5px] text-left text-[13px] font-sans text-fg-subtle hover:border-ink/35 hover:bg-ink/[0.03] hover:text-fg transition-colors outline-none focus-visible:ring-1 focus-visible:ring-ring"
       >
         <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden />
         <span className="truncate">New project…</span>
@@ -81,18 +70,25 @@ function CreateRow({ kind, onCommit, onCancel }: {
     const name = value.trim();
     if (commit && name) onCommit(name); else onCancel();
   };
+  const project = kind === "project";
+  // TASK-62: the name sits in the label column and the row is as tall as the
+  // rows around it. A new project replaces the "New project…" slot, so its
+  // frame IS the slot's box (mx-2 pl-1 pr-2; icon 24px in, py-1.5 = the slot's
+  // 1px border + 5px): the dashed edge turns solid in place. A new category
+  // is inserted by the project's +, so its frame is the category row's box
+  // (mx-2, pl-7 py-[6px] label), the same shape as a selected category.
   return (
-    <div className={`flex flex-col gap-1 ${ROW_LEAD[kind]} py-1`}>
-      <div className="flex items-center text-fg-muted">
-        {kind === "project" && <ChevronSlot />}
-        {kind === "project"
-          ? <ProjectIcon className="h-3.5 w-3.5 shrink-0 mr-2" />
-          : <CategoryIcon className="h-3 w-3 shrink-0 mr-2" />}
+    <div className={project ? "mx-2 pl-1 pr-2" : `flex items-center gap-1 mx-2 pr-1 text-fg-muted ${inlineEditFrame}`}>
+      <div className={`flex-1 min-w-0 flex items-center gap-2 ${project ? `pl-6 pr-2 py-1.5 text-fg-muted ${inlineEditFrame}` : "pl-7 pr-1 py-[6px]"}`}>
+        {project
+          ? <ProjectIcon className="h-3.5 w-3.5 shrink-0 text-fg-subtle" />
+          : <CategoryIcon className="h-3 w-3 shrink-0" />}
         <Input
           variant="inline"
           autoFocus
-          aria-label={kind === "project" ? "New project name" : "New category name"}
-          placeholder={kind === "project" ? "Project name" : "Category name"}
+          aria-label={project ? "New project name" : "New category name"}
+          aria-description={INLINE_CREATE_HINT}
+          placeholder={project ? "Project name" : "Category name"}
           value={value}
           onChange={e => setValue(e.target.value)}
           onKeyDown={e => {
@@ -100,10 +96,9 @@ function CreateRow({ kind, onCommit, onCancel }: {
             if (e.key === "Escape") { e.preventDefault(); finish(false); }
           }}
           onBlur={commitOnBlur(() => finish(true))}
-          className="flex-1 text-[13px] min-w-0"
+          className={`flex-1 font-sans text-[13px] ${project ? "font-medium" : ""}`}
         />
       </div>
-      <span className={`${kind === "project" ? "pl-[46px]" : "pl-5"} text-[11px] text-fg-subtle font-sans`}>Enter to create · Esc to cancel</span>
     </div>
   );
 }
@@ -297,12 +292,16 @@ export function LeftPanel() {
           the ⋯ in the tree rows' trailing slot column. */}
       <div className="h-16 flex items-end justify-between gap-2 pl-4 pr-3 pb-4 border-b border-line">
         {currentSpace && renamingId === currentSpace.id ? (
-          <Input variant="inline" ref={renameRef} type="text" value={renameValue}
-            aria-label="Space name"
-            placeholder="Space name"
-            onChange={e => setRenameValue(e.target.value)} onBlur={submitRename}
-            onKeyDown={e => { if (e.key === "Enter") submitRename(); if (e.key === "Escape") setRenamingId(null); }}
-            className="flex-1 min-w-0 text-2xl" />
+          // The frame's padding is cancelled by an equal negative margin, so the
+          // title neither moves nor changes the header's height (TASK-62).
+          <div className={`flex flex-1 min-w-0 -ml-2 pl-2 -my-1 py-1 ${inlineEditFrame}`}>
+            <Input variant="inline" ref={renameRef} type="text" value={renameValue}
+              aria-label="Space name"
+              placeholder="Space name"
+              onChange={e => setRenameValue(e.target.value)} onBlur={submitRename}
+              onKeyDown={e => { if (e.key === "Enter") submitRename(); if (e.key === "Escape") setRenamingId(null); }}
+              className="flex-1 font-sans text-2xl" />
+          </div>
         ) : (
           <h1 className="min-w-0 truncate text-fg font-sans text-2xl">{currentSpace?.name || 'No space'}</h1>
         )}
@@ -335,6 +334,7 @@ export function LeftPanel() {
                     projectId={project.id}
                   >
                     <div className={`group/proj flex items-center gap-1 mx-2 pl-1 pr-1 rounded-md transition-colors ${
+                      renamingId === project.id ? `text-fg ${inlineEditFrame}` :
                       activeProjectId === project.id ? 'text-fg' : 'text-fg-muted hover:bg-ink/[0.04]'
                     }`}>
                       <button
@@ -351,12 +351,16 @@ export function LeftPanel() {
                       </button>
 
                       {renamingId === project.id ? (
-                        <Input variant="inline" ref={renameRef} type="text" value={renameValue}
-                          aria-label="Project name"
-                          placeholder="Project name"
-                          onChange={e => setRenameValue(e.target.value)} onBlur={submitRename}
-                          onKeyDown={e => { if (e.key === "Enter") submitRename(); if (e.key === "Escape") setRenamingId(null); }}
-                          className="flex-1 text-[13px] min-w-0" />
+                        // Same label box as the name button below, icon kept, so the text doesn't move (TASK-62).
+                        <div className="flex-1 min-w-0 flex items-center gap-2 py-1.5">
+                          <ProjectIcon className="h-3.5 w-3.5 shrink-0 text-fg-subtle" />
+                          <Input variant="inline" ref={renameRef} type="text" value={renameValue}
+                            aria-label="Project name"
+                            placeholder="Project name"
+                            onChange={e => setRenameValue(e.target.value)} onBlur={submitRename}
+                            onKeyDown={e => { if (e.key === "Enter") submitRename(); if (e.key === "Escape") setRenamingId(null); }}
+                            className="flex-1 font-sans text-[13px] font-medium" />
+                        </div>
                       ) : (
                         <button
                           type="button"
@@ -416,14 +420,17 @@ export function LeftPanel() {
                             categoryId={category.id}
                           >
                             {renamingId === category.id ? (
-                              <div className="flex items-center gap-2 mx-2 pl-7 pr-2 py-[5px]">
-                                <CategoryIcon className="h-3 w-3 shrink-0 text-fg-subtle" />
-                                <Input variant="inline" ref={renameRef} type="text" value={renameValue}
-                                  aria-label="Category name"
-                                  placeholder="Category name"
-                                  onChange={e => setRenameValue(e.target.value)} onBlur={submitRename}
-                                  onKeyDown={e => { if (e.key === "Enter") submitRename(); if (e.key === "Escape") setRenamingId(null); }}
-                                  className="flex-1 text-xs min-w-0" />
+                              // The category row's own box (mx-2 + pl-7 py-[6px] label), so the name stays put (TASK-62).
+                              <div className={`flex items-center gap-1 mx-2 pr-1 text-fg ${inlineEditFrame}`}>
+                                <div className="flex-1 min-w-0 flex items-center gap-2 pl-7 pr-1 py-[6px]">
+                                  <CategoryIcon className="h-3 w-3 shrink-0" />
+                                  <Input variant="inline" ref={renameRef} type="text" value={renameValue}
+                                    aria-label="Category name"
+                                    placeholder="Category name"
+                                    onChange={e => setRenameValue(e.target.value)} onBlur={submitRename}
+                                    onKeyDown={e => { if (e.key === "Enter") submitRename(); if (e.key === "Escape") setRenamingId(null); }}
+                                    className="flex-1 font-sans text-[13px]" />
+                                </div>
                               </div>
                             ) : (
                               <div

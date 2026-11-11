@@ -10,7 +10,7 @@ import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { findGroupLocation, type GroupLocation } from "~src/services/dragDrop";
 import { showUndoToast } from "./ui/sonner";
 import { ConfirmDialog } from "./ui/confirm-dialog";
-import { Input } from "./ui/input";
+import { Input, inlineEditFrame } from "./ui/input";
 import { Badge } from "./ui/badge";
 import { GroupIcon, UnsortedIcon } from "./levelIcons";
 import { ensureUnsortedGroup, isUnsortedGroup } from "~src/lib/defaultPath";
@@ -301,20 +301,26 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
             </span>
           </div>
         ) : isRenaming ? (
-          <Input
-            variant="inline"
-            ref={renameRef}
-            aria-label="Group name"
-            placeholder="Group name"
-            type="text"
-            value={renameValue}
-            onChange={e => setRenameValue(e.target.value)}
-            onBlur={handleRenameSubmit}
-            onKeyDown={e => {
-              if (e.key === "Enter") { e.preventDefault(); returnRenameFocus.current = true; handleRenameSubmit(); }
-              if (e.key === "Escape") { e.preventDefault(); returnRenameFocus.current = true; setRenameValue(group.name); setIsRenaming(false); }
-            }}
-          />
+          // Icon kept and the frame's padding cancelled by negative margins, so
+          // the name stays where it was and the header keeps its height (TASK-62).
+          <div className={`flex flex-1 min-w-0 items-center gap-2.5 -ml-1.5 pl-1.5 pr-1.5 -my-1 py-1 ${inlineEditFrame}`}>
+            <span className="w-5 flex justify-center shrink-0"><GroupIcon className="h-3.5 w-3.5 text-fg-subtle" /></span>
+            <Input
+              variant="inline"
+              ref={renameRef}
+              aria-label="Group name"
+              placeholder="Group name"
+              type="text"
+              value={renameValue}
+              onChange={e => setRenameValue(e.target.value)}
+              onBlur={handleRenameSubmit}
+              onKeyDown={e => {
+                if (e.key === "Enter") { e.preventDefault(); returnRenameFocus.current = true; handleRenameSubmit(); }
+                if (e.key === "Escape") { e.preventDefault(); returnRenameFocus.current = true; setRenameValue(group.name); setIsRenaming(false); }
+              }}
+              className="flex-1 font-sans text-[13px] font-medium"
+            />
+          </div>
         ) : (
           <div className="flex items-center gap-2.5 min-w-0">
             <span className="w-5 flex justify-center shrink-0"><GroupIcon className="h-3.5 w-3.5 text-fg-subtle" /></span>

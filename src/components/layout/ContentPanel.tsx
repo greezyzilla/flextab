@@ -12,7 +12,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { DragHandleIcon } from "../icons/DragHandleIcon";
 import { useRef, useCallback, useEffect, useState } from "react";
-import { Input } from "~src/components/ui/input";
+import { Input, INLINE_CREATE_HINT, inlineEditFrame } from "~src/components/ui/input";
 import { v7 as uuidv7 } from "uuid";
 import { useSettingsStore, type GroupLayout } from "~src/store/useSettingsStore";
 import { useUIStore } from "~src/store/useUIStore";
@@ -161,24 +161,30 @@ function NewGroupRow({ categoryName, onCommit, onCancel }: {
     // Same card shell as the group it will become (title row inside the card),
     // so the row doesn't change shape or position when Enter creates it.
     <div style={{ paddingTop: 'var(--density-p-section)', paddingInline: GROUP_INLINE }}>
-    <div className="flex flex-col gap-1 rounded-card border border-ink/[0.08] bg-ink/[0.015]" style={{ padding: 'var(--density-p-group)' }}>
-      <div className="flex items-center gap-2.5" style={{ paddingInline: 'var(--density-px-tab)' }}>
-        <span className="w-5 flex justify-center shrink-0"><GroupIcon className="h-3.5 w-3.5 text-fg-subtle" /></span>
-        <Input
-          variant="inline"
-          autoFocus
-          aria-label={`New group name in ${categoryName}`}
-          placeholder="Group name"
-          value={value}
-          onChange={e => setValue(e.target.value)}
-          onKeyDown={e => {
-            if (e.key === "Enter") { e.preventDefault(); finish(true); }
-            if (e.key === "Escape") { e.preventDefault(); finish(false); }
-          }}
-          onBlur={commitOnBlur(() => finish(true))}
-        />
+    <div className="flex flex-col rounded-card border border-ink/[0.08] bg-ink/[0.015]" style={{ padding: 'var(--density-p-group)' }}>
+      {/* The group header's own row (min-h 26px, px-tab), with the inline frame's
+          padding cancelled by negative margins: the name sits where the new
+          group's name will be (TASK-62). */}
+      <div className="flex items-center min-h-[26px]" style={{ paddingInline: 'var(--density-px-tab)' }}>
+        <div className={`flex flex-1 min-w-0 items-center gap-2.5 -ml-1.5 pl-1.5 pr-1.5 -my-1 py-1 ${inlineEditFrame}`}>
+          <span className="w-5 flex justify-center shrink-0"><GroupIcon className="h-3.5 w-3.5 text-fg-subtle" /></span>
+          <Input
+            variant="inline"
+            autoFocus
+            aria-label={`New group name in ${categoryName}`}
+            aria-description={INLINE_CREATE_HINT}
+            placeholder="Group name"
+            value={value}
+            onChange={e => setValue(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === "Enter") { e.preventDefault(); finish(true); }
+              if (e.key === "Escape") { e.preventDefault(); finish(false); }
+            }}
+            onBlur={commitOnBlur(() => finish(true))}
+            className="flex-1 font-sans text-[13px] font-medium"
+          />
+        </div>
       </div>
-      <span className="text-[11px] text-fg-subtle font-sans" style={{ paddingLeft: 'calc(var(--density-px-tab) + 1.25rem + 0.625rem)' }}>Enter to create · Esc to cancel</span>
     </div>
     </div>
   );

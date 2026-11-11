@@ -5,7 +5,7 @@ import { Check, Plus } from "lucide-react"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import type { SavedSpace } from "~src/types"
 import type { SaveTabsTarget } from "~src/services/saveTabsAsGroup"
-import { Input } from "~src/components/ui/input"
+import { Input, INLINE_CREATE_HINT, inlineEditFrame } from "~src/components/ui/input"
 import { CategoryIcon, GroupIcon, ProjectIcon, SpaceAvatar, UnsortedIcon } from "~src/components/levelIcons"
 import { loadRecentDestinations, type RecentDestination } from "~src/lib/recentDestinations"
 import { GroupColorSwatch } from "~src/components/GroupColorMenu"
@@ -317,6 +317,8 @@ export function Choice({ name, indentClass, selected, icon, label, trailing, onS
  * section drop row), muted text and an ellipsis (more input follows). The
  * slot's own padding is subtracted from the indent so its + still sits in the
  * icon column of the items it would create (7px + the 1px border = 8px).
+ * With its py-0.5 wrapper it is as tall as a Choice row (2 + 1 + 3 = 6px a
+ * side), so the name row that replaces it keeps the list still (TASK-62).
  */
 function CreateChoice({ indentClass, iconClass, label, ariaLabel, onClick }: {
   indentClass: string; iconClass: string; label: string; ariaLabel: string; onClick: () => void
@@ -327,7 +329,7 @@ function CreateChoice({ indentClass, iconClass, label, ariaLabel, onClick }: {
         type="button"
         aria-label={ariaLabel}
         onClick={onClick}
-        className="flex w-full items-center gap-2 rounded-md border border-dashed border-ink/15 px-[7px] py-1 text-left text-xs text-fg-subtle transition-colors hover:border-ink/35 hover:bg-ink/[0.03] hover:text-fg outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        className="flex w-full items-center gap-2 rounded-md border border-dashed border-ink/15 px-[7px] py-[3px] text-left text-xs text-fg-subtle transition-colors hover:border-ink/35 hover:bg-ink/[0.03] hover:text-fg outline-none focus-visible:ring-1 focus-visible:ring-ring"
       >
         <Plus className={`${iconClass} shrink-0`} aria-hidden />
         <span className="truncate">{label}…</span>
@@ -349,12 +351,15 @@ function NameRow({ indentClass, icon, label, placeholder, onCommit, onCancel }: 
     if (commit && name) onCommit(name); else onCancel()
   }
   return (
-    <div className={`flex items-center gap-2 ${indentClass} pr-3 py-1`}>
+    // The Choice row's own box (indent, pr-3, py-1.5, text-xs) drawn as the
+    // inline field, so the name sits in the label column (TASK-62).
+    <div className={`flex items-center gap-2 ${indentClass} pr-3 py-1.5 text-xs text-fg ${inlineEditFrame}`}>
       {icon}
       <Input
         variant="inline"
         autoFocus
         aria-label={label}
+        aria-description={INLINE_CREATE_HINT}
         placeholder={placeholder}
         value={value}
         onChange={(e) => setValue(e.target.value)}
@@ -364,7 +369,7 @@ function NameRow({ indentClass, icon, label, placeholder, onCommit, onCancel }: 
           if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); finish(false) }
         }}
         onBlur={commitOnBlur(() => finish(true))}
-        className="min-w-0 flex-1 text-xs"
+        className="min-w-0 flex-1 font-sans text-xs"
       />
     </div>
   )

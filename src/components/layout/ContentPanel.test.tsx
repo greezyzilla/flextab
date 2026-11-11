@@ -106,6 +106,18 @@ describe("empty states create in place", () => {
     expect(screen.getByText("2 groups · 1 unsorted")).toBeInTheDocument()
   })
 
+  it("the new group name row draws the neutral inline frame, with the hint read out instead of an extra line (TASK-62)", async () => {
+    withGroups()
+    const user = setup()
+    await user.click(screen.getByRole("button", { name: "New group in Research" }))
+    const input = screen.getByRole("textbox", { name: "New group name in Research" })
+    expect(input).toHaveAttribute("aria-description", "Enter to create, Escape to cancel")
+    expect(screen.queryByText(/Enter to create/)).not.toBeInTheDocument()
+    const frame = input.parentElement!
+    expect(frame).toHaveClass("outline-ink/10", "focus-within:outline-ink/30")
+    expect(frame.className).not.toMatch(/accent/)
+  })
+
   it("Escape or an empty group name creates nothing", async () => {
     withGroups()
     const user = setup()

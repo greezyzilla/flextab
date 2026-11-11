@@ -119,8 +119,9 @@ export function ProfilePanel() {
               {(newSpaceName.trim().slice(0, 2) || "··").toUpperCase()}
             </div>
             <div className="absolute left-14 top-0 z-50 bg-black-800 border border-black-700 rounded-lg shadow-xl p-2 w-48 flex flex-col gap-1">
+              {/* A small floating form, not a row: the form field with its neutral
+                  focus (TASK-62). The hint stays; here it costs no layout. */}
               <Input
-                variant="inline"
                 autoFocus
                 aria-label="New space name"
                 placeholder="Space name"
