@@ -17,7 +17,10 @@ import { ensureUnsortedGroup, isUnsortedGroup } from "~src/lib/defaultPath";
 import { normalizeUrl } from "~src/lib/savedUrlIndex";
 import { openGroupTabs, openOrFocus } from "~src/services/openTab";
 import { ActionSlot, RowActions } from "./ui/row-actions";
-import { IconButton } from "./ui/button";
+import { IconButton, IconTooltip } from "./ui/button";
+import { hasClippedText } from "~src/lib/displayUrl";
+import { TabUrl } from "./TabUrl";
+import { MiddleText } from "./MiddleText";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { PickDestinationDialog } from "./PickDestinationDialog";
 import { moveGroupTo, moveTabTo } from "~src/services/moveTo";
@@ -48,8 +51,9 @@ function SavedTabItem({ tab, groupId, location, isDuplicate, unsorted }: { tab: 
   const { spaceId, projectId, categoryId } = location;
   const [moving, setMoving] = useState(false);
   const flash = useFlash<HTMLDivElement>("tab", tab.id);
+  const linkRef = useRef<HTMLAnchorElement>(null);
 
-  const onClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+  const onClick =(event: React.MouseEvent<HTMLAnchorElement>) => {
     // Modified/middle clicks keep the native "always open a new tab" link
     // behaviour. A plain click goes to the tab if it is already open (TASK-4).
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -89,22 +93,36 @@ function SavedTabItem({ tab, groupId, location, isDuplicate, unsorted }: { tab: 
           </button>
         </span>
 
-        <a
-          href={tab.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={`Open ${tab.title}`}
-          className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer overflow-hidden rounded outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          onClick={onClick}
+        {/* The full title and address, by hover or keyboard focus, only when
+            the card has cut one of them (TASK-54): a tooltip on every card
+            would follow the pointer across the grid. */}
+        <IconTooltip
+          when={() => hasClippedText(linkRef.current)}
+          content={
+            <span className="flex max-w-80 flex-col gap-0.5 break-words">
+              <span className="text-fg">{tab.title}</span>
+              <span className="break-all text-fg-subtle">{tab.url}</span>
+            </span>
+          }
         >
-          <div className="flex flex-col min-w-0">
-            <span className="text-fg text-xs font-sans truncate">{tab.title}</span>
-            <span className="text-fg-subtle text-[10px] font-sans truncate">{tab.url?.replace(/^https?:\/\//, '')}</span>
-          </div>
-          {isDuplicate && (
-            <Badge variant="warning" size="sm" className="shrink-0 font-normal" title="Duplicate URL in this group">dup</Badge>
-          )}
-        </a>
+          <a
+            ref={linkRef}
+            href={tab.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Open ${tab.title}`}
+            className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer overflow-hidden rounded outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            onClick={onClick}
+          >
+            <div className="flex flex-col min-w-0">
+              <MiddleText text={tab.title} className="text-fg text-xs font-sans" />
+              <TabUrl url={tab.url} />
+            </div>
+            {isDuplicate && (
+              <Badge variant="warning" size="sm" className="shrink-0 font-normal" title="Duplicate URL in this group">dup</Badge>
+            )}
+          </a>
+        </IconTooltip>
 
         {/* Same actions as dragging and the old hover ✕, reachable by keyboard (TASK-5). */}
         <RowActions

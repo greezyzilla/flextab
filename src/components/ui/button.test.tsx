@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { IconButton } from "./button";
+import { IconButton, IconTooltip } from "./button";
 import { TooltipProvider } from "./tooltip";
 
 // jsdom has no focus heuristics, so each test says whether the focus is a keyboard one.
@@ -45,6 +45,23 @@ describe("IconButton tooltip (TASK-53)", () => {
     expect(tooltipShown()).toBe(false);
     await act(async () => { fireEvent.pointerMove(button(), { pointerType: "mouse" }); });
     expect(tooltipShown()).toBe(true);
+  });
+
+  it("IconTooltip opens only while `when` says so (a card shows its full title only when cut, TASK-54)", async () => {
+    focusVisible(true);
+    let clipped = false;
+    render(
+      <TooltipProvider delayDuration={0}>
+        <IconTooltip content="Full title" when={() => clipped}><a href="#x">Short</a></IconTooltip>
+      </TooltipProvider>,
+    );
+    const link = screen.getByRole("link", { name: "Short" });
+    await act(async () => { link.focus(); });
+    expect(tooltipShown()).toBe(false);
+    await act(async () => { link.blur(); });
+    clipped = true;
+    await act(async () => { link.focus(); });
+    expect(screen.getByRole("tooltip")).toHaveTextContent("Full title");
   });
 
   it("treats a browser without :focus-visible support as keyboard focus", async () => {

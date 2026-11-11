@@ -118,14 +118,16 @@ export const IconTooltip = React.forwardRef<
   Omit<React.ComponentPropsWithoutRef<typeof TooltipTrigger>, "content" | "asChild"> & {
     content: React.ReactNode
     side?: IconButtonProps["tooltipSide"]
+    /** Asked each time the tooltip would open; false keeps it shut (e.g. only when text is cut, TASK-54). */
+    when?: () => boolean
   }
->(({ content, side, children, onFocus, onPointerMove, onBlur, ...triggerProps }, ref) => {
+>(({ content, side, when, children, onFocus, onPointerMove, onBlur, ...triggerProps }, ref) => {
   const [open, setOpen] = React.useState(false)
   const quiet = React.useRef(false)
   // Props from a control that wraps this one with asChild (e.g. a toggle's data-state="on")
   // land after the trigger's own data-state, so the control's state wins.
   return (
-    <Tooltip open={open} onOpenChange={(next) => setOpen(next && !quiet.current)}>
+    <Tooltip open={open} onOpenChange={(next) => setOpen(next && !quiet.current && (when?.() ?? true))}>
       <TooltipTrigger
         asChild
         ref={ref}
