@@ -1,7 +1,7 @@
 import { clearKeptOnSignOut, markKeptOnSignOut } from "~src/services/keptWorkspace";
 import { toast } from "sonner";
 import { cancelPendingOAuth, OAUTH_START } from "~src/services/oauthLogin";
-import { withSyncWriteLock } from "~src/services/syncPolicy";
+import { RESOLUTION_PUSH_KEY, withSyncWriteLock } from "~src/services/syncPolicy";
 import { create } from "zustand";
 import { loadTokens, saveTokens, clearTokens, apiFetch, apiLogin, apiLogout, apiDeleteAccount, ApiError, type LinkedIdentity } from "~src/services/api";
 import { clearState } from "~src/lib/yjsDoc";
@@ -89,7 +89,7 @@ async function forgetAccountHere(localData: "keep" | "remove"): Promise<void> {
   // local work and reconciles it explicitly, whichever account it is.
   await clearMergeBase();
   await clearConflictPending(); // per-account, like the merge base
-  const keys = [SYNC_HYDRATED_KEY, FRESH_LOGIN_KEY, LANDED_SNAPSHOT_KEY, LIMIT_NOTICE_KEY]; // the limit is per-account too
+  const keys = [SYNC_HYDRATED_KEY, FRESH_LOGIN_KEY, LANDED_SNAPSHOT_KEY, LIMIT_NOTICE_KEY, RESOLUTION_PUSH_KEY]; // the limit is per-account too, and so is an unsent resolution
   if (localData === "remove") keys.push("spaces");
   try { await chrome.storage.local.remove(keys); } catch (_) { /* ok */ }
 }

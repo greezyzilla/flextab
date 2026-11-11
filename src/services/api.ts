@@ -1,5 +1,6 @@
 import { v7 as uuidv7 } from "uuid";
 import { noteServerResponse } from "./serverReachable";
+import { clearResolutionPush, pendingResolutionPush } from "./syncPolicy";
 
 const API_BASE_URL = process.env.PLASMO_PUBLIC_API_URL || "http://localhost:3000";
 
@@ -245,10 +246,14 @@ export type SyncPushResult =
  */
 export async function pushSync(spaces: unknown[], baseRevision: number | null, canPush?: () => Promise<boolean>): Promise<SyncPushResult> {
   let res: Response;
+  let resolutionMark: number | null = null;
   try {
     const token = await getValidToken();
     if (!token) return { status: "error" };
-    const body = JSON.stringify({ spaces, base_revision: baseRevision });
+    resolutionMark = await pendingResolutionPush();
+    const body = JSON.stringify(resolutionMark === null
+      ? { spaces, base_revision: baseRevision }
+      : { spaces, base_revision: baseRevision, resolution: true });
     // Match the API's transport ceiling (internal/plan.MaxSyncBodyBytes).
     // An early server rejection can reset an in-flight upload before fetch
     // receives the 413. Count UTF-8 bytes, including the JSON envelope.
@@ -309,6 +314,7 @@ export async function pushSync(spaces: unknown[], baseRevision: number | null, c
   }
   if (!res.ok) return { status: "error" };
 
+  if (resolutionMark !== null) await clearResolutionPush(resolutionMark);
   const body = (await res.json().catch(() => ({}))) ?? {};
   return { status: "ok", revision: typeof body.revision === "number" ? body.revision : (baseRevision ?? 0) + 1 };
 }

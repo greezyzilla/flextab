@@ -363,3 +363,55 @@ describe('server reachable signal (TASK-63)', () => {
     expect([0, 200, 401, 499, 500, 503].map(isServerAnswer)).toEqual([false, true, true, true, false, false]);
   });
 });
+
+// TASK-67: the upload that carries a conflict resolution says so, and the mark
+// only clears once that upload has landed.
+describe('pushSync resolution mark', () => {
+  const stored = (mark: unknown) => (chrome.storage.local.get as any).mockImplementation(async (key: string) =>
+    key === 'flextab_resolution_push' && mark !== undefined ? { flextab_resolution_push: mark } : {});
+  const sentBody = () => JSON.parse((global.fetch as any).mock.calls[0][1].body);
+
+  it('sends resolution: true while a mark is pending, and clears that mark after a 200', async () => {
+    await validToken();
+    vi.clearAllMocks();
+    stored(42);
+    (global.fetch as any).mockResolvedValue(res({ revision: 8 }));
+    expect(await pushSync([{ id: 's' }], 7)).toEqual({ status: 'ok', revision: 8 });
+    expect(sentBody()).toEqual({ spaces: [{ id: 's' }], base_revision: 7, resolution: true });
+    expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_resolution_push');
+  });
+
+  it('keeps the body as before when no mark is pending', async () => {
+    await validToken();
+    vi.clearAllMocks();
+    stored(undefined);
+    (global.fetch as any).mockResolvedValue(res({ revision: 8 }));
+    await pushSync([{ id: 's' }], 7);
+    expect(sentBody()).toEqual({ spaces: [{ id: 's' }], base_revision: 7 });
+    expect(chrome.storage.local.remove).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['a 409', 409, { revision: 9, spaces: [] }],
+    ['a server error', 500, {}],
+  ])('keeps the mark after %s, so the retry still carries it', async (_label, status, body) => {
+    await validToken();
+    vi.clearAllMocks();
+    stored(42);
+    (global.fetch as any).mockResolvedValue(res(body, status));
+    await pushSync([{ id: 's' }], 7);
+    expect(sentBody().resolution).toBe(true);
+    expect(chrome.storage.local.remove).not.toHaveBeenCalled();
+  });
+
+  it('leaves a newer mark set while the push was in flight', async () => {
+    await validToken();
+    vi.clearAllMocks();
+    let mark = 42;
+    (chrome.storage.local.get as any).mockImplementation(async (key: string) =>
+      key === 'flextab_resolution_push' ? { flextab_resolution_push: mark } : {});
+    (global.fetch as any).mockImplementation(async () => { mark = 43; return res({ revision: 8 }); });
+    await pushSync([{ id: 's' }], 7);
+    expect(chrome.storage.local.remove).not.toHaveBeenCalled();
+  });
+});

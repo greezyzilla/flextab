@@ -1,4 +1,4 @@
-import { requestPush, withSyncWriteLock } from "./syncPolicy";
+import { markResolutionPush, requestPush, withSyncWriteLock } from "./syncPolicy";
 import { syncStructuredSnapshot } from "./structuredSync";
 import { clearLimitNotice, saveLimitNotice } from "./syncLimit";
 import { recordLandedSnapshot } from "./landedSnapshot";
@@ -393,6 +393,8 @@ export function resolveConflict(choice: "merge" | "server" | "local") {
   if (!s || !l) return;
   void clearKeptOnSignOut(); // the kept tabs have their answer
   void clearFreshLogin();
+  // Before the doc write that triggers the upload: the account's tree it replaces stays in history (TASK-67).
+  void markResolutionPush();
   // Jump to first space/group after resolving; always needs push (not server-only GET).
   applyUserResolution(resolveChoice(choice, s, l), true);
 }
@@ -409,6 +411,8 @@ export function resolveMergeConflicts(resolutions: Resolutions, keepBoth: string
   if (!s || !l) return;
   const both = new Set(keepBoth);
   const { merged } = merge3(b, s, l, { ...resolutions, ...Object.fromEntries(keepBoth.map((k) => [k, "local" as const])) });
+  // Before the doc write that triggers the upload: the account's tree it replaces stays in history (TASK-67).
+  void markResolutionPush();
   applyUserResolution(addAccountCopies(merged, s, c.filter((x) => both.has(x.key))));
 }
 

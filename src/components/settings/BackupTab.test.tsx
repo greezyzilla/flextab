@@ -38,6 +38,19 @@ describe("version history recovery", () => {
     vi.mocked(pullAndOverwrite).mockResolvedValue(true);
   });
 
+  it("says which version was kept when a sync conflict was resolved (TASK-67)", async () => {
+    vi.mocked(apiListSnapshots).mockResolvedValue([
+      { ...snapshot, revision: 44, kind: "" },
+      { ...snapshot, revision: 43, kind: "before_resolution" },
+      snapshot, // an older server sends no kind
+    ]);
+    render(<BackupTab />);
+    expect(await screen.findByText("v44")).toBeInTheDocument();
+    const labels = screen.getAllByText("Before resolving a conflict");
+    expect(labels).toHaveLength(1);
+    expect(labels[0].parentElement).toHaveTextContent("v43"); // on the version's title line
+  });
+
   it("renders populated history and previews the selected version without changing the workspace", async () => {
     const before = yjs.encodeState();
     render(<BackupTab />);

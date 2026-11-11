@@ -13,6 +13,7 @@ import { exportWorkspace } from "~src/services/exportWorkspace";
 import { ImportDialog } from "./ImportDialog";
 import { SourceColumn } from "~src/components/WorkspaceTree";
 import { Button } from "~src/components/ui/button";
+import { Badge } from "~src/components/ui/badge";
 import { SettingRow, GroupHeading, formatDate, formatBytes } from "./shared";
 import { HistoryIcon, DataIcon } from "./icons";
 
@@ -274,6 +275,10 @@ function SnapshotRow({ snapshot, onPreview, onRestore, restoreDisabled }: {
           <span className="text-fg-muted text-sm font-sans truncate">
             {formatRelativeTime(new Date(snapshot.created_at).getTime())}
           </span>
+          {/* Neutral, not accent: in Settings an accent badge means "the current one" (Current, This device). */}
+          {snapshot.kind === "before_resolution" && (
+            <Badge variant="outline" size="sm" className="shrink-0 font-normal">Before resolving a conflict</Badge>
+          )}
         </div>
         <span className="text-fg-subtle text-xs font-sans">
           {snapshot.space_count} space{snapshot.space_count !== 1 ? 's' : ''} · {snapshot.tab_count} tab{snapshot.tab_count !== 1 ? 's' : ''}
