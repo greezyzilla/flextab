@@ -17,7 +17,6 @@ import { ensureUnsortedGroup, isUnsortedGroup } from "~src/lib/defaultPath";
 import { normalizeUrl } from "~src/lib/savedUrlIndex";
 import { openGroupTabs, openOrFocus } from "~src/services/openTab";
 import { ActionSlot, RowActions } from "./ui/row-actions";
-import { Tooltip, TooltipTrigger, TooltipContent } from "./ui/tooltip";
 import { IconButton } from "./ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { PickDestinationDialog } from "./PickDestinationDialog";
@@ -343,18 +342,13 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
             {sortedTabs.length > 0 && (
               // One "open all" control, two destinations (TASK-4).
               <DropdownMenu open={openAllMenu} onOpenChange={setOpenAllMenu}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <DropdownMenuTrigger asChild>
-                      <IconButton aria-label={`Open all tabs in ${group.name}`} className={openAllMenu ? 'bg-ink/10 text-fg' : ''}>
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 5h6v6M19 5l-8 8M11 5H6a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1v-5" />
-                        </svg>
-                      </IconButton>
-                    </DropdownMenuTrigger>
-                  </TooltipTrigger>
-                  <TooltipContent>Open all</TooltipContent>
-                </Tooltip>
+                <DropdownMenuTrigger asChild>
+                  <IconButton aria-label={`Open all tabs in ${group.name}`} tooltip="Open all" className={openAllMenu ? 'bg-ink/10 text-fg' : ''}>
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 5h6v6M19 5l-8 8M11 5H6a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1v-5" />
+                    </svg>
+                  </IconButton>
+                </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onSelect={openAllHere}>Open in this window</DropdownMenuItem>
                   <DropdownMenuItem onSelect={openAllInNewWindow}>Open in new window</DropdownMenuItem>

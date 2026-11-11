@@ -40,7 +40,7 @@ export function ActionSlot({ children }: { children?: ReactNode }) {
  * `note` heads the menu with what the resting status means (e.g. where an
  * open tab is already saved), since the status hides once "⋯" shows.
  */
-export function RowActions({ label, items, reveal = "", conceal = "", rest, note, onOpenChange }: {
+export function RowActions({ label, items, reveal = "", conceal = "", rest, note, onOpenChange, tooltipSide }: {
   label: string
   items: RowAction[]
   reveal?: string
@@ -48,6 +48,8 @@ export function RowActions({ label, items, reveal = "", conceal = "", rest, note
   rest?: ReactNode
   note?: string
   onOpenChange?: (open: boolean) => void
+  /** Same side as the row's other icon buttons' tooltips (the left panel opens them to the right). */
+  tooltipSide?: "top" | "right" | "bottom" | "left"
 }) {
   const [open, setOpen] = useState(false)
   // An action that moves focus itself (an inline rename input) runs only once
@@ -69,7 +71,8 @@ export function RowActions({ label, items, reveal = "", conceal = "", rest, note
           <DropdownMenuTrigger asChild>
             <IconButton
               aria-label={label}
-              title={label}
+              tooltip="More actions"
+              tooltipSide={tooltipSide}
               onClick={(e) => e.stopPropagation()}
               className={`absolute inset-0 ${open ? "opacity-100 bg-ink/10 text-fg" : reveal}`}
             >

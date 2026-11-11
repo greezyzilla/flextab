@@ -8,7 +8,6 @@ import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { v7 as uuidv7 } from "uuid";
 import { showUndoToast } from "~src/components/ui/sonner";
 import { ConfirmDialog } from "~src/components/ui/confirm-dialog";
-import { Tooltip, TooltipTrigger, TooltipContent } from "~src/components/ui/tooltip";
 import { ActionSlot, RowActions } from "~src/components/ui/row-actions";
 import { navigate } from "~src/lib/route";
 import { SPACES_ROUTE } from "~src/components/settings/SpacesTab";
@@ -310,6 +309,7 @@ export function LeftPanel() {
         {currentSpace && (
           <RowActions
             label={`Actions for ${currentSpace.name}`}
+            tooltipSide="right"
             items={[
               { label: "Rename", onSelect: () => startRename(currentSpace.id, currentSpace.name), takesFocus: true },
               { label: "Space settings…", onSelect: () => navigate(`${SPACES_ROUTE}/${encodeURIComponent(currentSpace.id)}`) },
@@ -379,21 +379,18 @@ export function LeftPanel() {
                           ("+" new category) and its ⋯ are always visible, ⋯
                           outermost in the slot column. */}
                       <ActionSlot>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <IconButton
-                              variant="subtle"
-                              aria-label={`New category in ${project.name}`}
-                              onClick={e => { e.stopPropagation(); handleAddCategory(project.id); }}
-                            >
-                              <Plus className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
-                            </IconButton>
-                          </TooltipTrigger>
-                          <TooltipContent side="right">New category</TooltipContent>
-                        </Tooltip>
+                        <IconButton
+                          aria-label={`New category in ${project.name}`}
+                          tooltip="New category"
+                          tooltipSide="right"
+                          onClick={e => { e.stopPropagation(); handleAddCategory(project.id); }}
+                        >
+                          <Plus className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+                        </IconButton>
                       </ActionSlot>
                       <RowActions
                         label={`Actions for ${project.name}`}
+                        tooltipSide="right"
                         items={[
                           { label: "Rename", onSelect: () => startRename(project.id, project.name), takesFocus: true },
                           { label: "Move to…", onSelect: () => setMoving({ kind: "project", project }) },
@@ -451,6 +448,7 @@ export function LeftPanel() {
                               </button>
                               <RowActions
                                 label={`Actions for ${category.name}`}
+                                tooltipSide="right"
                                 reveal="opacity-0 group-hover/cat:opacity-100 group-focus-within/cat:opacity-100"
                                 conceal="group-hover/cat:opacity-0 group-focus-within/cat:opacity-0"
                                 rest={category.groups.some(g => !isUnsortedGroup(g)) ? (

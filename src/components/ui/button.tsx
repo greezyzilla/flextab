@@ -3,6 +3,7 @@ import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "~src/lib/utils"
+import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip"
 
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0",
@@ -84,16 +85,50 @@ export interface IconButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof iconButtonVariants> {
   asChild?: boolean
+  /**
+   * What the button does, shown in the app Tooltip (TASK-53: icon buttons never
+   * use a native `title`). Short, without the object ("More actions"); the
+   * `aria-label` stays the full name ("Actions for Launch").
+   */
+  tooltip?: React.ReactNode
+  tooltipSide?: React.ComponentPropsWithoutRef<typeof TooltipContent>["side"]
 }
 
 const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
-  ({ className, variant, danger, asChild = false, ...props }, ref) => {
+  ({ className, variant, danger, asChild = false, tooltip, tooltipSide, ...props }, ref) => {
     const Comp = asChild ? Slot : "button"
-    return (
-      <Comp className={cn(iconButtonVariants({ variant, danger }), className)} ref={ref} {...props} />
-    )
+    const button = <Comp className={cn(iconButtonVariants({ variant, danger }), className)} ref={ref} {...props} />
+    if (tooltip == null) return button
+    return <IconTooltip content={tooltip} side={tooltipSide}>{button}</IconTooltip>
   },
 )
 IconButton.displayName = "IconButton"
+
+function isFocusVisible(el: Element): boolean {
+  try { return el.matches(":focus-visible") } catch { return true }
+}
+
+/**
+ * The app Tooltip, opened by hover or by keyboard focus only. A menu that
+ * closes hands focus back to its trigger; after a mouse close that focus is not
+ * :focus-visible and must not pop the tooltip up under the pointer's old spot.
+ */
+function IconTooltip({ content, side, children }: { content: React.ReactNode; side?: IconButtonProps["tooltipSide"]; children: React.ReactNode }) {
+  const [open, setOpen] = React.useState(false)
+  const quiet = React.useRef(false)
+  return (
+    <Tooltip open={open} onOpenChange={(next) => setOpen(next && !quiet.current)}>
+      <TooltipTrigger
+        asChild
+        onFocus={(e) => { quiet.current = !isFocusVisible(e.currentTarget) }}
+        onPointerMove={() => { quiet.current = false }}
+        onBlur={() => { quiet.current = false }}
+      >
+        {children}
+      </TooltipTrigger>
+      <TooltipContent side={side}>{content}</TooltipContent>
+    </Tooltip>
+  )
+}
 
 export { Button, IconButton, buttonVariants }
