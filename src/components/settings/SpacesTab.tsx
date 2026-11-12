@@ -3,13 +3,13 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { useRoute, navigate } from "~src/lib/route";
 import { showUndoToast } from "~src/components/ui/sonner";
-import { Button, IconButton } from "~src/components/ui/button";
+import { Button } from "~src/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~src/components/ui/tabs";
 import { Input } from "~src/components/ui/input";
-import { Label } from "~src/components/ui/label";
 import { SpaceAvatar } from "~src/components/levelIcons";
 import { Modal, ModalBody, ModalField, ModalFooter, ModalHeader } from "~src/components/ui/modal";
 import type { SavedSpace } from "~src/types";
-import { GroupHeading } from "./shared";
+import { SettingRow } from "./shared";
 import { SETTINGS_ROUTE } from "./types";
 
 export const SPACE_COLORS = [
@@ -37,128 +37,143 @@ function countOf(space: SavedSpace) {
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
+/** Replace the current route (a stale space link), so Back doesn't return to it. */
+function replaceRoute(path: string) {
+  window.location.replace(`#${path}`);
+}
+
 /**
  * Settings › Spaces: the one home for managing spaces (order, name, look,
  * deletion). A space is the top level of everything the user saved, so these
  * are deliberate settings, not quick actions on the rail or the sidebar.
+ *
+ * TASK-58: tabs over a form. One tab per space (rail order) sits right above
+ * the settings it opens, so picking a space edits it in place; the form below
+ * is the same rows as every Settings page (label, description, control).
+ * Changes apply as they are made, so switching tabs never drops typed changes.
+ * The route still names the space.
  */
 export function SpacesTab() {
-  const { savedSpaces, activeSpaceId, reorderSpaces } = useSavedSpacesStore();
+  const { savedSpaces, activeSpaceId } = useSavedSpacesStore();
   // Array order: the order the rail shows, and the index reorderSpaces moves.
   const sorted = savedSpaces;
   const routeId = spaceIdFromRoute(useRoute());
-  const selected = sorted.find(s => s.id === routeId) ?? sorted.find(s => s.id === activeSpaceId) ?? sorted[0];
+  const routed = routeId ? sorted.find((s) => s.id === routeId) : undefined;
+  const selected = routed ?? sorted.find((s) => s.id === activeSpaceId) ?? sorted[0];
+  // A link to a space that is gone (deleted here or on another device) opens the current one.
+  useEffect(() => { if (routeId && !routed) replaceRoute(SPACES_ROUTE); }, [routeId, routed]);
+
+  if (sorted.length === 0 || !selected) {
+    return <p className="text-sm font-sans text-fg-subtle">No spaces yet. Saving a tab creates one.</p>;
+  }
 
   return (
-    <div className="flex flex-col gap-8">
-      <section className="flex flex-col gap-3">
-        <GroupHeading>Your spaces</GroupHeading>
-        {sorted.length === 0 && (
-          <p className="px-3 py-2.5 text-sm font-sans text-fg-subtle">No spaces yet. Saving a tab creates one.</p>
-        )}
-        <ul className="flex flex-col gap-1" aria-label="Spaces">
-          {sorted.map((space, i) => {
-            const { projects, tabs } = countOf(space);
-            const isSelected = space.id === selected?.id;
-            return (
-              <li key={space.id}
-                className={`flex items-center gap-1 rounded-lg pr-1 transition-colors ${isSelected ? "bg-ink/[0.06]" : "hover:bg-ink/[0.03]"}`}>
-                <button
-                  type="button"
-                  aria-current={isSelected ? "true" : undefined}
-                  onClick={() => navigate(`${SPACES_ROUTE}/${encodeURIComponent(space.id)}`)}
-                  className="flex flex-1 min-w-0 items-center gap-3 rounded-lg px-3 py-2.5 text-left outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                >
-                  <SpaceAvatar space={space} size={28} active={isSelected} />
-                  <span className="flex min-w-0 flex-col">
-                    <span className="truncate text-sm font-sans text-fg">{space.name}</span>
-                    <span className="text-xs font-sans text-fg-subtle">{plural(projects, "project")} · {plural(tabs, "tab")}</span>
-                  </span>
-                </button>
-                <IconButton aria-label={`Move ${space.name} up`} disabled={i === 0}
-                  onClick={() => reorderSpaces(i, i - 1)} className="disabled:opacity-25 disabled:pointer-events-none">
-                  <ChevronUp className="h-3.5 w-3.5" aria-hidden />
-                </IconButton>
-                <IconButton aria-label={`Move ${space.name} down`} disabled={i === sorted.length - 1}
-                  onClick={() => reorderSpaces(i, i + 1)} className="disabled:opacity-25 disabled:pointer-events-none">
-                  <ChevronDown className="h-3.5 w-3.5" aria-hidden />
-                </IconButton>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
-
-      {selected && <SpaceDetail key={selected.id} space={selected} />}
-    </div>
+    // Switching tabs replaces the route: Back and Escape leave Settings, not step through tabs.
+    <Tabs value={selected.id} onValueChange={(id) => replaceRoute(`${SPACES_ROUTE}/${encodeURIComponent(id)}`)} className="flex flex-col gap-7">
+      <TabsList aria-label="Spaces" className="flex-wrap justify-start rounded-none border-b border-ink/10 pb-3">
+        {sorted.map((space) => (
+          <TabsTrigger key={space.id} value={space.id} className="max-w-[12rem]">
+            <SpaceAvatar space={space} size={20} active={space.id === selected.id || space.id === activeSpaceId} />
+            <span className="truncate">{space.name}</span>
+          </TabsTrigger>
+        ))}
+      </TabsList>
+      {sorted.map((space, i) => (
+        <TabsContent key={space.id} value={space.id} className="focus-visible:ring-0">
+          <SpaceForm space={space} index={i} count={sorted.length} />
+        </TabsContent>
+      ))}
+    </Tabs>
   );
 }
 
-function SpaceDetail({ space }: { space: SavedSpace }) {
-  const { updateSavedSpace } = useSavedSpacesStore();
+/**
+ * The chosen space's settings, as Settings rows. Changes apply as they are
+ * made (a name or abbreviation on Enter or leaving the field, a colour or the
+ * order on click): spaces live on this device first, so there is nothing to
+ * submit. The tab above follows at once.
+ */
+function SpaceForm({ space, index, count }: { space: SavedSpace; index: number; count: number }) {
+  const { updateSavedSpace, reorderSpaces } = useSavedSpacesStore();
   const [name, setName] = useState(space.name);
   const [abbreviation, setAbbreviation] = useState(space.abbreviation ?? "");
-  const [color, setColor] = useState(space.color ?? "");
-  // Follow edits made elsewhere (another device, the rail) while unchanged here.
-  useEffect(() => { setName(space.name); setAbbreviation(space.abbreviation ?? ""); setColor(space.color ?? ""); },
-    [space.name, space.abbreviation, space.color]);
+  // Follow edits made elsewhere (another device, the rail).
+  useEffect(() => { setName(space.name); setAbbreviation(space.abbreviation ?? ""); }, [space.name, space.abbreviation]);
 
-  const dirty = name.trim() !== space.name || abbreviation.trim() !== (space.abbreviation ?? "") || color !== (space.color ?? "");
-  const save = () => {
-    if (!dirty) return;
-    updateSavedSpace({ ...space, name: name.trim() || space.name, abbreviation: abbreviation.trim() || undefined, color: color || undefined });
+  const commitName = () => {
+    const next = name.trim();
+    if (!next) { setName(space.name); return; }
+    if (next !== space.name) updateSavedSpace({ ...space, name: next });
   };
+  const commitAbbreviation = () => {
+    const next = abbreviation.trim();
+    if (next !== (space.abbreviation ?? "")) updateSavedSpace({ ...space, abbreviation: next || undefined });
+  };
+  const onEnter = (commit: () => void) => (e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key === "Enter") { e.preventDefault(); commit(); } };
+  const color = space.color ?? "";
 
   return (
-    <>
-      <section className="flex flex-col gap-5" aria-label={`${space.name} settings`}>
-        <GroupHeading>{space.name}</GroupHeading>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="space-name">Name</Label>
-          <Input id="space-name" placeholder="e.g. Work" value={name} onChange={e => setName(e.target.value)}
-            onKeyDown={e => { if (e.key === "Enter") save(); }} className="w-full" />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="space-abbreviation">Abbreviation (max 2)</Label>
-          <Input id="space-abbreviation" value={abbreviation} onChange={e => setAbbreviation(e.target.value.slice(0, 2))}
+    <div className="flex flex-col gap-7" aria-label={`${space.name} settings`} role="group">
+      <SettingRow label="Name" description="Shown on the rail and across your workspace.">
+        {(controlProps) => (
+          <Input {...controlProps} id="space-name" placeholder="e.g. Work" value={name} onChange={e => setName(e.target.value)}
+            onBlur={commitName} onKeyDown={onEnter(commitName)} className="w-full" />
+        )}
+      </SettingRow>
+      <SettingRow label="Abbreviation" description="Up to 2 letters on the rail. Empty uses the name's first letters.">
+        {(controlProps) => (
+          <Input {...controlProps} id="space-abbreviation" value={abbreviation} onChange={e => setAbbreviation(e.target.value.slice(0, 2))}
             placeholder={space.name.slice(0, 2).toUpperCase()}
-            onKeyDown={e => { if (e.key === "Enter") save(); }} className="w-20" />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label id="space-color-label">Color</Label>
-          <div className="flex flex-wrap gap-2" role="group" aria-labelledby="space-color-label">
+            onBlur={commitAbbreviation} onKeyDown={onEnter(commitAbbreviation)} className="w-20" />
+        )}
+      </SettingRow>
+      <SettingRow label="Color" description="The space's colour on the rail.">
+        {(controlProps) => (
+          <div className="flex flex-wrap gap-2" role="group" {...controlProps}>
             {SPACE_COLORS.map(c => (
-              <button key={c || "default"} type="button" onClick={() => setColor(c)}
+              <button key={c || "default"} type="button" onClick={() => { if (c !== color) updateSavedSpace({ ...space, color: c || undefined }); }}
                 aria-label={`${SPACE_COLOR_NAMES[c] ?? c} color`} aria-pressed={color === c}
                 className={`h-6 w-6 rounded-full border-2 outline-none transition-all focus-visible:ring-1 focus-visible:ring-ring ${color === c ? "border-ink/70 scale-110" : "border-transparent hover:border-ink/30"}`}
                 style={{ backgroundColor: c || "hsl(var(--ink) / 0.15)" }} />
             ))}
           </div>
-        </div>
-        <div>
-          <Button size="sm" onClick={save} disabled={!dirty}>Save changes</Button>
-        </div>
-      </section>
-
+        )}
+      </SettingRow>
+      {count > 1 && (
+        <SettingRow label="Order" description={`Position ${index + 1} of ${count} on the rail.`}>
+          {(controlProps) => (
+            <div className="flex items-center gap-2" role="group" {...controlProps}>
+              <Button variant="secondary" size="sm" disabled={index === 0} onClick={() => reorderSpaces(index, index - 1)}>
+                <ChevronUp className="h-3.5 w-3.5" aria-hidden /> Move up
+              </Button>
+              <Button variant="secondary" size="sm" disabled={index === count - 1} onClick={() => reorderSpaces(index, index + 1)}>
+                <ChevronDown className="h-3.5 w-3.5" aria-hidden /> Move down
+              </Button>
+            </div>
+          )}
+        </SettingRow>
+      )}
       <DangerZone space={space} />
-    </>
+    </div>
   );
 }
 
 /**
  * Deleting a space removes everything saved in it, on every synced device, so
- * it lives only here and asks for the space's name before it goes. Undo stays.
- * The last space can go too (TASK-37): zero spaces is a valid workspace, and
- * the next save creates the default space again.
+ * it asks for the space's name before it goes. Undo stays. The last space can
+ * go too (TASK-37):
+ * zero spaces is a valid workspace, and the next save creates the default
+ * space again.
  */
-function DangerZone({ space }: { space: SavedSpace }) {
+function DeleteSpaceDialog({ space, open, onOpenChange }: { space: SavedSpace; open: boolean; onOpenChange: (open: boolean) => void }) {
   const { removeSavedSpace, addSavedSpace, setActiveSpace } = useSavedSpacesStore();
-  const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState("");
+  useEffect(() => { if (open) setTyped(""); }, [open]);
   const { projects, tabs } = countOf(space);
   const matches = typed.trim() === space.name.trim();
 
   const remove = () => {
+    onOpenChange(false);
     removeSavedSpace(space);
     showUndoToast(`Deleted space "${space.name}"`, () => {
       addSavedSpace(space);
@@ -169,6 +184,25 @@ function DangerZone({ space }: { space: SavedSpace }) {
   };
 
   return (
+    <Modal kind="alert" size="s" open={open} onOpenChange={onOpenChange}>
+      <ModalHeader title={`Delete “${space.name}”?`}
+        description={`This removes ${plural(projects, "project")} and ${plural(tabs, "tab")} in this space, on every synced device.`} />
+      <ModalBody>
+        <ModalField htmlFor="confirm-space-name" label={<>Type <span className="text-fg">{space.name}</span> to confirm</>}>
+          {/* Enter may confirm here: the typed name is the safeguard (modal standard §8). */}
+          <Input id="confirm-space-name" placeholder="Type it exactly as shown" value={typed} onChange={e => setTyped(e.target.value)} autoComplete="off" className="w-full"
+            onKeyDown={e => { if (e.key === "Enter" && matches) remove(); }} />
+        </ModalField>
+      </ModalBody>
+      <ModalFooter primary={{ label: "Delete space", tone: "destructive", disabled: !matches, onClick: remove }} />
+    </Modal>
+  );
+}
+
+function DangerZone({ space }: { space: SavedSpace }) {
+  const [open, setOpen] = useState(false);
+  const { projects, tabs } = countOf(space);
+  return (
     <section className="flex flex-col gap-3 border-t border-ink/10 pt-6" aria-labelledby="danger-zone-heading">
       <h3 id="danger-zone-heading" className="text-fg-subtle text-[11px] font-medium font-sans uppercase tracking-wider">Danger zone</h3>
       <div className="flex items-start justify-between gap-4 rounded-lg border border-red-400/25 p-4">
@@ -178,23 +212,11 @@ function DangerZone({ space }: { space: SavedSpace }) {
             {`Removes ${plural(projects, "project")} and ${plural(tabs, "tab")} on every synced device.`}
           </p>
         </div>
-        <Button variant="danger" size="sm" onClick={() => { setTyped(""); setOpen(true); }}>
+        <Button variant="danger" size="sm" onClick={() => setOpen(true)}>
           Delete space…
         </Button>
       </div>
-
-      <Modal kind="alert" size="s" open={open} onOpenChange={setOpen}>
-        <ModalHeader title={`Delete “${space.name}”?`}
-          description={`This removes ${plural(projects, "project")} and ${plural(tabs, "tab")} in this space, on every synced device.`} />
-        <ModalBody>
-          <ModalField htmlFor="confirm-space-name" label={<>Type <span className="text-fg">{space.name}</span> to confirm</>}>
-            {/* Enter may confirm here: the typed name is the safeguard (modal standard §8). */}
-            <Input id="confirm-space-name" placeholder="Type it exactly as shown" value={typed} onChange={e => setTyped(e.target.value)} autoComplete="off" className="w-full"
-              onKeyDown={e => { if (e.key === "Enter" && matches) { setOpen(false); remove(); } }} />
-          </ModalField>
-        </ModalBody>
-        <ModalFooter primary={{ label: "Delete space", tone: "destructive", disabled: !matches, onClick: () => { setOpen(false); remove(); } }} />
-      </Modal>
+      <DeleteSpaceDialog space={space} open={open} onOpenChange={setOpen} />
     </section>
   );
 }

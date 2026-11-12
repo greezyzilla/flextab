@@ -25,7 +25,7 @@ beforeEach(async () => {
   window.history.replaceState(null, "", "#/settings/spaces")
 })
 
-const names = () => within(screen.getByRole("list", { name: "Spaces" })).getAllByRole("listitem").map(li => within(li).getByText(/^(Home|Work)$/).textContent)
+const names = () => screen.getAllByRole("tab").map(tab => tab.querySelector(".truncate")?.textContent)
 
 describe("Settings › Spaces", () => {
   it("reads the space id from the route", () => {
@@ -33,33 +33,66 @@ describe("Settings › Spaces", () => {
     expect(spaceIdFromRoute("/settings/spaces")).toBeNull()
   })
 
-  it("lists spaces in rail order with what each holds, and reorders them", async () => {
+  it("tabs list the spaces in rail order; the open one's form sits under them and moves it", async () => {
     const user = userEvent.setup()
     render(<SpacesTab />)
     expect(names()).toEqual(["Home", "Work"])
-    expect(screen.getByText("1 project · 2 tabs")).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Move Home up" })).toBeDisabled()
-    await user.click(screen.getByRole("button", { name: "Move Home down" }))
+    // The current space opens first, its settings right under the tabs.
+    expect(screen.getByRole("tab", { name: "Home" })).toHaveAttribute("aria-selected", "true")
+    const panel = screen.getByRole("tabpanel", { name: "Home" })
+    expect(within(panel).getByLabelText("Name")).toHaveValue("Home")
+    expect(within(panel).getByText("Position 1 of 2 on the rail.")).toBeInTheDocument()
+    expect(within(panel).getByRole("button", { name: "Move up" })).toBeDisabled()
+    await user.click(within(panel).getByRole("button", { name: "Move down" }))
     expect(yjs.getSpaces().map(s => s.name)).toEqual(["Work", "Home"])
   })
 
-  it("edits the selected space's name, abbreviation and color", async () => {
+  it("picking a tab edits that space in place; arrow keys move between tabs", async () => {
+    const user = userEvent.setup()
+    render(<SpacesTab />)
+    await user.click(screen.getByRole("tab", { name: "Work" }))
+    expect(window.location.hash).toBe("#/settings/spaces/work")
+    expect(await screen.findByRole("tabpanel", { name: "Work" })).toBeInTheDocument()
+    expect(screen.getByLabelText("Name")).toHaveValue("Work")
+    await user.keyboard("{ArrowLeft}")
+    await waitFor(() => expect(screen.getByRole("tab", { name: "Home" })).toHaveAttribute("aria-selected", "true"))
+    expect(window.location.hash).toBe("#/settings/spaces/home")
+    expect(screen.getByLabelText("Name")).toHaveValue("Home")
+  })
+
+  it("changes apply as they are made: name and abbreviation on Enter or leaving the field, colour on click", async () => {
     window.history.replaceState(null, "", "#/settings/spaces/work")
     const user = userEvent.setup()
     render(<SpacesTab />)
     const name = screen.getByLabelText("Name")
     expect(name).toHaveValue("Work")
     expect(name).toHaveAttribute("placeholder", "e.g. Work") // TASK-36
-    expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled()
+    expect(screen.queryByRole("button", { name: "Save changes" })).not.toBeInTheDocument()
     await user.clear(name)
-    await user.type(name, "Office")
-    await user.type(screen.getByLabelText("Abbreviation (max 2)"), "OFX")
-    await user.click(screen.getByRole("button", { name: "Green color" }))
-    await user.click(screen.getByRole("button", { name: "Save changes" }))
+    await user.type(name, "Office{Enter}")
+    expect(yjs.getSpaces()[1].name).toBe("Office")
+    expect(screen.getByRole("tab", { name: "Office" })).toBeInTheDocument() // the tab follows at once
+    await user.type(screen.getByLabelText("Abbreviation"), "OFX")
+    await user.click(screen.getByRole("button", { name: "Green color" })) // leaving the field commits it
     expect(yjs.getSpaces()[1]).toMatchObject({ name: "Office", abbreviation: "OF", color: "#22c55e" })
+    await user.click(screen.getByRole("button", { name: "Default color" }))
+    expect(yjs.getSpaces()[1].color).toBeUndefined()
+    // An emptied name goes back to the saved one.
+    await user.clear(name)
+    await user.tab()
+    expect(name).toHaveValue("Office")
+    expect(yjs.getSpaces()[1].name).toBe("Office")
+  })
+
+  it("a link to a space that no longer exists opens the current one", async () => {
+    window.history.replaceState(null, "", "#/settings/spaces/gone")
+    render(<SpacesTab />)
+    await waitFor(() => expect(window.location.hash).toBe("#/settings/spaces"))
+    expect(screen.getByRole("tab", { name: "Home" })).toHaveAttribute("aria-selected", "true")
   })
 
   it("deletes a space only after its name is typed, with undo", async () => {
+    window.history.replaceState(null, "", "#/settings/spaces/home")
     const user = userEvent.setup()
     render(<SpacesTab />)
     expect(screen.getByText("Removes 1 project and 2 tabs on every synced device.")).toBeInTheDocument()
@@ -80,6 +113,7 @@ describe("Settings › Spaces", () => {
   it("deletes the only space too, and undo selects it again (TASK-37)", async () => {
     yjs.setSpaces([yjs.getSpaces()[1]])
     useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces(), activeSpaceId: "work" })
+    window.history.replaceState(null, "", "#/settings/spaces/work")
     const user = userEvent.setup()
     render(<SpacesTab />)
     await user.click(screen.getByRole("button", { name: "Delete space…" }))
@@ -87,7 +121,7 @@ describe("Settings › Spaces", () => {
     await user.click(screen.getByRole("button", { name: "Delete space" }))
     expect(yjs.getSpaces()).toEqual([])
     expect(useSavedSpacesStore.getState().activeSpaceId).toBeNull()
-    expect(screen.getByText("No spaces yet. Saving a tab creates one.")).toBeInTheDocument()
+    expect(await screen.findByText("No spaces yet. Saving a tab creates one.")).toBeInTheDocument()
 
     const undo = vi.mocked(showUndoToast).mock.calls[0][1] as () => void
     act(() => undo())
@@ -96,6 +130,7 @@ describe("Settings › Spaces", () => {
   })
 
   it("undo after deleting one of several spaces keeps the current selection", async () => {
+    window.history.replaceState(null, "", "#/settings/spaces/home")
     const user = userEvent.setup()
     render(<SpacesTab />)
     await user.click(screen.getByRole("button", { name: "Delete space…" }))
