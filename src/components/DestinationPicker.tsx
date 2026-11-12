@@ -6,7 +6,7 @@ import { Check, Plus } from "lucide-react"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import type { SavedSpace } from "~src/types"
 import type { SaveTabsTarget } from "~src/services/saveTabsAsGroup"
-import { Input, INLINE_CREATE_HINT, inlineEditFrame } from "~src/components/ui/input"
+import { Input, INLINE_CREATE_HINT, inlineEditFrame, SearchField } from "~src/components/ui/input"
 import { CategoryIcon, GroupIcon, ProjectIcon, SpaceAvatar, UnsortedIcon } from "~src/components/levelIcons"
 import { loadRecentDestinations, type RecentDestination } from "~src/lib/recentDestinations"
 import { GroupColorSwatch } from "~src/components/GroupColorMenu"
@@ -134,13 +134,13 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
 
   return (
     <div className={`flex flex-col ${P ? "gap-3.5" : "gap-2"} min-w-0`}>
-      <Input
+      <SearchField
         type="search"
+        size={P ? "panel" : "default"}
         aria-label="Find a destination"
         placeholder="Find a space, project or category…"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        className={P ? P.search : "w-full"}
       />
       {!q && recent.length > 0 && (
         <div className={`flex flex-col ${P ? "gap-2" : "gap-1"}`}>
@@ -356,7 +356,6 @@ const panelIndent = (level: number) => 12 + 16 * level
 const GUIDE_WEIGHT = [0.38, 0.24, 0.14] as const
 const PANEL = {
   icon: "h-[18px] w-[18px] shrink-0",
-  search: "h-11 w-full rounded-[14px] border border-ink/[0.09] bg-transparent px-3 text-[15px] shadow-none",
   caption: "text-[13px] leading-[18px] text-fg-subtle",
   chip: "flex h-9 max-w-full items-center gap-2 rounded-[10px] px-2.5 text-[15px] text-fg outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
   chipIcon: "h-[18px] w-[18px] shrink-0 text-fg-subtle",

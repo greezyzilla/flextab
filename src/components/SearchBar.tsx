@@ -7,13 +7,16 @@ import { searchActions, type ActionHit } from "~src/services/paletteActions";
 import { useSettingsStore } from "~src/store/useSettingsStore";
 import { Monitor, Moon, Sun } from "lucide-react";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
-import { Input } from "~src/components/ui/input";
+import { SearchField } from "~src/components/ui/input";
 import { Button } from "~src/components/ui/button";
 import { Kbd } from "~src/components/ui/kbd";
 import { CategoryIcon, GroupIcon, ProjectIcon, SpaceAvatar } from "~src/components/levelIcons";
 import { cn } from "~src/lib/utils";
 import { isInsideModal } from "~src/components/ui/modal";
 import { FaviconImg } from "./FaviconImg";
+
+/** The header search field's placeholder; the Appearance preview shows the same field. */
+export const searchPlaceholder = () => `Search tabs, groups and spaces… (${shortcutLabel("Mod+K")})`;
 
 type Section = "open" | "saved" | "places" | "actions";
 type Hit = OpenTabHit | SavedTabHit | PlaceHit | ActionHit;
@@ -218,29 +221,23 @@ export function SearchBar() {
 
   return (
     <div className="relative flex-1 max-w-lg">
-      <div className="flex items-center gap-2 rounded-md border border-ink/10 bg-ink/5 px-3 py-1.5 transition-colors focus-within:border-ink/30">
-        <svg className="w-4 h-4 text-fg-subtle shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-        <Input
-          ref={inputRef}
-          type="text"
-          role="combobox"
-          aria-label="Search tabs, groups and spaces"
-          aria-expanded={showDropdown}
-          aria-controls="search-listbox"
-          aria-autocomplete="list"
-          aria-activedescendant={showDropdown && activeKey ? optionId(activeKey) : undefined}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onFocus={() => { setIsFocused(true); loadOpenTabs(); }}
-          onBlur={() => setTimeout(() => setIsFocused(false), 150)}
-          data-search-input
-          placeholder={`Search tabs, groups and spaces… (${shortcutLabel("Mod+K")})`}
-          className="h-auto flex-1 border-0 bg-transparent px-0 py-0 shadow-none focus-visible:border-0"
-        />
-        {query && (
+      <SearchField
+        ref={inputRef}
+        type="text"
+        role="combobox"
+        aria-label="Search tabs, groups and spaces"
+        aria-expanded={showDropdown}
+        aria-controls="search-listbox"
+        aria-autocomplete="list"
+        aria-activedescendant={showDropdown && activeKey ? optionId(activeKey) : undefined}
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        onKeyDown={handleKeyDown}
+        onFocus={() => { setIsFocused(true); loadOpenTabs(); }}
+        onBlur={() => setTimeout(() => setIsFocused(false), 150)}
+        data-search-input
+        placeholder={searchPlaceholder()}
+        trailing={query && (
           <Button
             type="button"
             variant="ghost"
@@ -252,7 +249,7 @@ export function SearchBar() {
             ✕
           </Button>
         )}
-      </div>
+      />
 
       {showDropdown && (
         // Clicks keep focus in the input, so the list never closes under them.

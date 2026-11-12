@@ -1,6 +1,6 @@
 import { useId, useState } from "react"
 import { Modal, ModalBody, ModalFooter, ModalHeader } from "~src/components/ui/modal"
-import { Input } from "~src/components/ui/input"
+import { SearchField } from "~src/components/ui/input"
 import { Choice } from "~src/components/DestinationPicker"
 import { ProjectIcon, SpaceAvatar } from "~src/components/levelIcons"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
@@ -45,13 +45,12 @@ export function MoveContainerDialog({ kind, name, current, onConfirm, onClose }:
       <ModalHeader title={`Move ${kind}`} description={`Move “${name}” and everything in it to another ${where}.`} />
       <ModalBody>
         <div className="flex flex-col gap-2 min-w-0">
-          <Input
+          <SearchField
             type="search"
             aria-label={`Find a ${where}`}
             placeholder={kind === "project" ? "Find a space…" : "Find a space or project…"}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full"
           />
           <div role="radiogroup" aria-label={`Destination ${where}`} className="max-h-60 overflow-y-auto rounded-md border border-ink/10 bg-ink/[0.02] py-1">
             {visible.length === 0 && <div className="px-3 py-3 text-xs text-fg-subtle">No match.</div>}

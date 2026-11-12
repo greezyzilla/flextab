@@ -3,7 +3,8 @@ import { DndContext } from "@dnd-kit/core"
 import { TabGroup } from "~src/components/TabGroup"
 import { CategoryHeader } from "~src/components/layout/ContentPanel"
 import { Button } from "~src/components/ui/button"
-import { Input } from "~src/components/ui/input"
+import { SearchField } from "~src/components/ui/input"
+import { searchPlaceholder } from "~src/components/SearchBar"
 import { TooltipProvider } from "~src/components/ui/tooltip"
 import { useSettingsStore } from "~src/store/useSettingsStore"
 import type { SavedGroup, SavedTab } from "~src/types"
@@ -69,7 +70,8 @@ export function AppearancePreview() {
         {/* Its own providers: self-contained wherever Appearance renders. */}
         <TooltipProvider>
           <div className="flex items-center gap-2 px-6 py-3 border-b border-line">
-            <Input type="text" placeholder="Search tabs, groups and spaces" aria-label="Search (preview)" className="min-w-0 flex-1" readOnly />
+            {/* The header's own field, read-only (TASK-57): a preview reuses the real component. */}
+            <SearchField type="text" placeholder={searchPlaceholder()} aria-label="Search (preview)" boxClassName="min-w-0 flex-1" readOnly />
             <Button variant="secondary" size="sm">Save all tabs</Button>
           </div>
           <CategoryHeader id="appearance-preview" name="Reading" counts="2 groups" />

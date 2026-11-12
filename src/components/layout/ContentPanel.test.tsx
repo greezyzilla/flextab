@@ -114,7 +114,7 @@ describe("empty states create in place", () => {
     expect(input).toHaveAttribute("aria-description", "Enter to create, Escape to cancel")
     expect(screen.queryByText(/Enter to create/)).not.toBeInTheDocument()
     const frame = input.parentElement!
-    expect(frame).toHaveClass("outline-ink/10", "focus-within:outline-ink/30")
+    expect(frame).toHaveClass("outline-ink/10", "focus-within:outline-ink/50")
     expect(frame.className).not.toMatch(/accent/)
   })
 

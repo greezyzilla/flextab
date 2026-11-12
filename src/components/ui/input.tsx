@@ -3,12 +3,22 @@ import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "~src/lib/utils"
 
+/**
+ * The one field box (TASK-57), taken from the approved header search field:
+ * a faint fill and a 1px ink/10 edge, 6px radius, no shadow. Its resting edge
+ * stays below 3:1 on purpose: every field is identified by something else, a
+ * visible label, a leading search icon (SearchField), or it only exists while
+ * focused (inline create/rename), which WCAG 1.4.11 accepts. Focus firms the
+ * edge to ink/50 (3.4:1 light, 5.8:1 dark): one neutral focus for every field,
+ * never the accent. An invalid field (aria-invalid) takes the danger edge.
+ */
+const fieldFrame = "rounded-md border border-ink/10 bg-ink/5 transition-colors"
+
 const inputVariants = cva("flex w-full font-sans outline-none disabled:cursor-not-allowed disabled:opacity-50", {
   variants: {
     variant: {
-      // form field
-      default:
-        "h-9 rounded-lg border border-input bg-ink/[0.06] px-3 py-1 text-sm text-fg shadow-sm transition-colors placeholder:text-fg-subtle focus-visible:border-ink/70",
+      // Form field (TASK-57): the approved header search look for every field.
+      default: `h-9 px-3 py-1 text-sm text-fg placeholder:text-fg-subtle ${fieldFrame} focus-visible:border-ink/50 aria-[invalid=true]:border-danger`,
       // Inline create / rename (TASK-62): bare text that sits exactly where the
       // row's label sits. The row around it draws the field (`inlineEditFrame`),
       // so the field adds no padding, height or accent of its own. Font size and
@@ -28,7 +38,7 @@ const inputVariants = cva("flex w-full font-sans outline-none disabled:cursor-no
  * stays in the label column; outlines also survive forced-colors mode.
  */
 export const inlineEditFrame =
-  "rounded-md bg-ink/5 outline outline-1 -outline-offset-1 outline-ink/10 focus-within:outline-ink/30"
+  "rounded-md bg-ink/5 outline outline-1 -outline-offset-1 outline-ink/10 focus-within:outline-ink/50"
 
 /** Read to screen readers in place of the old visible "Enter to create · Esc to cancel" line. */
 export const INLINE_CREATE_HINT = "Enter to create, Escape to cancel"
@@ -44,4 +54,43 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 )
 Input.displayName = "Input"
 
-export { Input }
+/**
+ * A search/find field (TASK-57): the field box with a leading search icon
+ * (what identifies a field that has no visible label) and an optional
+ * trailing slot (a clear button). The input inside is bare; the box draws
+ * the edge, the focus and the invalid state for it. "panel" is the popup's
+ * size (TASK-72): 44px, 14px radius, 15px text.
+ */
+export interface SearchFieldProps extends Omit<InputProps, "size" | "variant"> {
+  size?: "default" | "panel"
+  trailing?: React.ReactNode
+  /** Classes for the box (width, flex), not the input. */
+  boxClassName?: string
+}
+
+const SearchField = React.forwardRef<HTMLInputElement, SearchFieldProps>(
+  ({ size = "default", trailing, boxClassName, className, ...props }, ref) => {
+    const panel = size === "panel"
+    return (
+      <div
+        data-search-field
+        className={cn(
+          "flex items-center focus-within:border-ink/50 has-[[aria-invalid=true]]:border-danger",
+          fieldFrame,
+          panel ? "h-11 gap-3 rounded-[14px] px-3" : "h-9 gap-2 px-3",
+          boxClassName,
+        )}
+      >
+        <svg className={cn("shrink-0 text-fg-subtle", panel ? "h-[18px] w-[18px]" : "h-4 w-4")} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        {/* A long placeholder ends in "…" when the box is narrow, not mid-word. */}
+        <Input ref={ref} variant="inline" className={cn("flex-1 text-ellipsis font-sans", panel ? "text-[15px]" : "text-sm", className)} {...props} />
+        {trailing}
+      </div>
+    )
+  },
+)
+SearchField.displayName = "SearchField"
+
+export { Input, SearchField }

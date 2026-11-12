@@ -22,7 +22,10 @@ const grid = () => preview().querySelector<HTMLElement>(".grid")
 describe("AppearancePreview (TASK-30)", () => {
   it("shows the fixed sample to an empty account: the workspace in miniature", () => {
     render(<AppearancePreview />)
-    expect(preview().querySelector("input[placeholder='Search tabs, groups and spaces']")).not.toBeNull()
+    // The header's own search field (TASK-57), not a look-alike.
+    const search = preview().querySelector<HTMLInputElement>("[data-search-field] input[aria-label='Search (preview)']")
+    expect(search?.placeholder).toMatch(/^Search tabs, groups and spaces… \(/)
+    expect(search?.readOnly).toBe(true)
     expect(preview()).toHaveTextContent("Save all tabs")
     expect(preview()).toHaveTextContent("Reading")
     expect(preview()).toHaveTextContent("Inbox")
