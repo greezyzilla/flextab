@@ -1,21 +1,26 @@
 import { normalizeUrl } from "~src/lib/savedUrlIndex"
 import type { GroupColor } from "~src/types"
+import { recordOpenLinks, type OpenLink } from "~src/services/openLinks"
 
 /**
  * Go to a saved URL (TASK-4): if a tab with the same URL is already open in
  * any window, focus that tab and its window instead of opening a copy;
  * otherwise open it in a new tab. Callers keep "always new" for
- * modifier/middle clicks by not calling this.
+ * modifier/middle clicks by not calling this. With `link`, the browser tab is
+ * remembered as opened from that saved tab (TASK-72), so it can be updated
+ * once the page has moved on.
  */
-export async function openOrFocus(url: string): Promise<"focused" | "opened"> {
+export async function openOrFocus(url: string, link?: OpenLink): Promise<"focused" | "opened"> {
   const key = normalizeUrl(url)
   const open = (await chrome.tabs.query({})).find((t) => t.id !== undefined && normalizeUrl(t.url) === key)
   if (open?.id !== undefined) {
     await chrome.tabs.update(open.id, { active: true })
     if (open.windowId !== undefined) await chrome.windows.update(open.windowId, { focused: true })
+    if (link) await recordOpenLinks([[open.id, link]])
     return "focused"
   }
-  await chrome.tabs.create({ url })
+  const created = await chrome.tabs.create({ url })
+  if (link && created?.id !== undefined) await recordOpenLinks([[created.id, link]])
   return "opened"
 }
 
@@ -119,11 +124,15 @@ export interface OpenGroupResult { permission: TabGroupsPermission | "off"; grou
  * gesture. The tabs open at once, without waiting for the answer, so an
  * unanswered prompt never holds them back; they are grouped once it is granted.
  */
-export function openGroupTabs(urls: string[], where: "here" | "new-window", look: GroupLook, asTabGroup: boolean): Promise<OpenGroupResult> {
+export function openGroupTabs(urls: string[], where: "here" | "new-window", look: GroupLook, asTabGroup: boolean, links?: OpenLink[]): Promise<OpenGroupResult> {
   const permission: Promise<TabGroupsPermission | "off"> = asTabGroup ? requestTabGroups() : Promise.resolve("off")
   const opening = where === "here" ? openInCurrentWindow(urls) : openInNewWindow(urls)
   return (async () => {
     const [answer, opened] = await Promise.all([permission, opening])
+    // Tabs come back in the order of `urls` (TASK-72: each remembers its saved tab).
+    if (links && opened.tabIds.length === urls.length) {
+      await recordOpenLinks(opened.tabIds.map((id, i) => [id, links[i]] as [number, OpenLink]))
+    }
     const grouped = answer === "granted" ? await groupOpenedTabs(opened, look) : false
     return { permission: answer, grouped }
   })()

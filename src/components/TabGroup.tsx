@@ -20,6 +20,10 @@ import { ActionSlot, RowActions } from "./ui/row-actions";
 import { IconButton, IconTooltip } from "./ui/button";
 import { hasClippedText } from "~src/lib/displayUrl";
 import { TabUrl } from "./TabUrl";
+import { restoreLinkedTab, updateLinkedTab } from "~src/services/openLinks";
+import { useMovedTabs } from "~src/hooks/useMovedTabs";
+import { describeChange } from "~src/lib/describeChange";
+import { useUIStore } from "~src/store/useUIStore";
 import { MiddleText } from "./MiddleText";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { PickDestinationDialog } from "./PickDestinationDialog";
@@ -58,8 +62,23 @@ function SavedTabItem({ tab, groupId, location, isDuplicate, unsorted }: { tab: 
     // behaviour. A plain click goes to the tab if it is already open (TASK-4).
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
-    void openOrFocus(tab.url);
+    void openOrFocus(tab.url, { ...location, groupId, tabId: tab.id });
   }
+
+  // TASK-72: the page the browser tab opened from this card has moved on to
+  // (next episode), kept current for every card by useWatchMovedTabs.
+  const moved = useMovedTabs((s) => s.moved[tab.id]);
+  const change = moved ? describeChange(tab, moved) : null;
+  const updateToOpenPage = async () => {
+    if (!moved || !change) return;
+    const link = { ...location, groupId, tabId: tab.id };
+    const before = await updateLinkedTab(link, moved);
+    if (!before) return;
+    useUIStore.getState().flash("tab", tab.id);
+    // Short: the card is outlined right there, so the toast only needs the gist.
+    const name = change.name && change.name.length > 32 ? `${change.name.slice(0, 31).trimEnd()}…` : change.name;
+    showUndoToast(`Updated ${name ? `"${name}"` : "saved tab"} to ${change.to}`, () => restoreLinkedTab(link, before));
+  };
 
   const handleDelete = () => {
     removeSavedTab(spaceId, projectId, categoryId, groupId, tab);
@@ -121,6 +140,13 @@ function SavedTabItem({ tab, groupId, location, isDuplicate, unsorted }: { tab: 
             {isDuplicate && (
               <Badge variant="warning" size="sm" className="shrink-0 font-normal" title="Duplicate URL in this group">dup</Badge>
             )}
+            {/* TASK-72: the browser tab opened from this card moved on (next
+                episode). A passive signal like "dup"; the action lives in ⋯. */}
+            {change && (
+              <Badge variant="accent" size="sm" className="shrink-0 max-w-[40%] truncate font-normal" title={`Open tab is on ${change.to}`}>
+                <span aria-hidden>→{"\u00a0"}</span>{change.to}
+              </Badge>
+            )}
           </a>
         </IconTooltip>
 
@@ -129,6 +155,7 @@ function SavedTabItem({ tab, groupId, location, isDuplicate, unsorted }: { tab: 
           label={`Actions for ${tab.title}`}
           reveal="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
           items={[
+            ...(change ? [{ label: `Update to ${change.to}`, onSelect: () => void updateToOpenPage() }] : []),
             { label: "Move to…", onSelect: () => setMoving(true) },
             { label: "Remove", onSelect: handleDelete, danger: true, separatorBefore: true },
           ]}
@@ -239,13 +266,15 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
   }
   const duplicateUrls = new Set([...urlCounts.entries()].filter(([, c]) => c > 1).map(([u]) => u));
 
-  const urls = sortedTabs.map(t => t.url).filter(Boolean);
+  const openable = sortedTabs.filter(t => t.url);
+  const urls = openable.map(t => t.url);
   // As a browser tab group when allowed (TASK-31). openGroupTabs asks for the
   // permission inside this click; declining turns the setting off, so it asks once.
   const openAll = (where: "here" | "new-window") => {
     if (!urls.length) return;
     const { openAsTabGroups, setOpenAsTabGroups } = useSettingsStore.getState();
-    void openGroupTabs(urls, where, { title: group.name, color: group.color }, openAsTabGroups)
+    const links = openable.map(t => ({ ...location, groupId: group.id, tabId: t.id }));
+    void openGroupTabs(urls, where, { title: group.name, color: group.color }, openAsTabGroups, links)
       .then(({ permission }) => { if (permission === "declined") setOpenAsTabGroups(false); });
   };
   const openAllInNewWindow = () => openAll("new-window");

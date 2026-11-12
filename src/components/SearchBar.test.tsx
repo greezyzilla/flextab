@@ -54,7 +54,8 @@ describe("SearchBar command palette (TASK-14)", () => {
   it("Enter goes to the page; arrows move; Shift+Enter shows a saved tab in FlexTab", async () => {
     const input = await type("docs a 3")
     fireEvent.keyDown(input, { key: "Enter" })
-    expect(openOrFocus).toHaveBeenCalledWith("https://a.example/3")
+    // The opened tab remembers which saved tab it came from (TASK-72).
+    expect(openOrFocus).toHaveBeenCalledWith("https://a.example/3", expect.objectContaining({ tabId: expect.any(String), groupId: expect.any(String) }))
     const again = await type("docs a 3")
     expect(screen.getAllByText(/show in FlexTab/).length).toBeGreaterThan(0) // the hint names both keys
     fireEvent.keyDown(again, { key: "Enter", shiftKey: true })

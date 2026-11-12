@@ -23,6 +23,7 @@ import { withPreview } from "~src/services/sortPreview";
 import { useSortPreview } from "~src/store/useSortPreview";
 import { spacesHaveTabs } from "~src/services/spacesTree";
 import { ArrowRight } from "lucide-react";
+import { useWatchMovedTabs } from "~src/hooks/useMovedTabs";
 
 /**
  * The project page. A project is one page; its categories are sections on it
@@ -371,6 +372,7 @@ function Breadcrumb({ space, project, category, onProject, onCategory }: {
 }
 
 export function ContentPanel() {
+  useWatchMovedTabs(); // TASK-72: which saved tabs' open tabs moved on
   const activeSpace = useActiveSpace();
   const activeProject = useActiveProject();
   const activeCategory = useActiveCategory();

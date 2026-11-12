@@ -236,3 +236,34 @@ describe("content header tools (TASK-61)", () => {
     expect(screen.getByRole("button", { name: "Save all tabs" })).toHaveClass("h-8")
   })
 })
+
+describe("saved tab card: update to the open page (TASK-72)", () => {
+  it("marks the card whose open tab moved on and updates it in place from ⋯", async () => {
+    yjs.setSpaces([{ id: "s", name: "Work", order: 0, projects: [{ id: "p", name: "Site", order: 0, categories: [
+      { id: "c", name: "Research", order: 0, groups: [
+        { id: "g", name: "Summer", order: 0, tabs: [
+          { id: "t1", url: "https://anime.test/show/episode/1", title: "Show (Episode 01)", favicon: "", order: 0 },
+          { id: "t2", url: "https://anime.test/other/episode/4", title: "Other (Episode 04)", favicon: "", order: 1 },
+        ] },
+      ] },
+    ] }] }])
+    useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces(), activeSpaceId: "s", activeProjectId: "p", activeCategoryId: "c", expandedProjectIds: ["p"] })
+    vi.mocked(chrome.storage.session.get).mockResolvedValue({ flextab_open_links: { "5": { spaceId: "s", projectId: "p", categoryId: "c", groupId: "g", tabId: "t1" } } } as never)
+    vi.mocked(chrome.tabs.get).mockResolvedValue({ id: 5, url: "https://anime.test/show/episode/2", title: "Show (Episode 02)" } as never)
+    const user = setup()
+    // A passive signal on the card whose tab moved, like "dup"; no extra button.
+    expect(await screen.findByTitle("Open tab is on Episode 02")).toHaveTextContent("Episode 02")
+    expect(screen.queryByTitle(/Open tab is on Episode 04/)).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /^Update / })).not.toBeInTheDocument()
+    // The action lives in ⋯ only.
+    await user.click(screen.getByRole("button", { name: "Actions for Show (Episode 01)" }))
+    await user.click(await screen.findByRole("menuitem", { name: "Update to Episode 02" }))
+    await waitFor(() => expect(yjs.getSpaces()[0].projects[0].categories[0].groups[0].tabs[0]).toMatchObject({
+      id: "t1", url: "https://anime.test/show/episode/2", title: "Show (Episode 02)",
+    }))
+    expect(yjs.getSpaces()[0].projects[0].categories[0].groups[0].tabs.map(t => t.id)).toEqual(["t1", "t2"])
+    const { showUndoToast } = await import("~src/components/ui/sonner")
+    expect(showUndoToast).toHaveBeenCalledWith('Updated "Show" to Episode 02', expect.any(Function))
+    expect(useUIStore.getState().flashTarget).toMatchObject({ kind: "tab", id: "t1" })
+  })
+})

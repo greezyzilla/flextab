@@ -136,7 +136,8 @@ export function SearchBar() {
       setTheme(hit.theme);
     } else if (hit.kind === "saved") {
       if (reveal) revealInWorkspace({ spaceId: hit.spaceId, projectId: hit.projectId, categoryId: hit.categoryId, flash: { kind: "tab", id: hit.tab.id } });
-      else void openOrFocus(hit.tab.url); // go to it if already open (TASK-4)
+      // Go to it if already open (TASK-4); remember where it came from (TASK-72).
+      else void openOrFocus(hit.tab.url, { spaceId: hit.spaceId, projectId: hit.projectId, categoryId: hit.categoryId, groupId: hit.groupId, tabId: hit.tab.id });
     } else {
       revealInWorkspace({
         spaceId: hit.spaceId, projectId: hit.projectId, categoryId: hit.categoryId,
