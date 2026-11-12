@@ -6,6 +6,7 @@ import type { SavedTab, SavedGroup, SavedSpace } from "~src/types"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import { faviconToDataUrl } from "~src/utils/favicon"
 import { isSavableTabUrl } from "~src/services/saveTabsAsGroup"
+import { closeSavedTabs, loadCloseAfter, reopenTabs, type ClosedTab } from "~src/services/capture"
 import { ensureSaveTargetPath } from "~src/services/resolveSaveTarget"
 import { ensureCategoryPath, isUnsortedGroup } from "~src/lib/defaultPath"
 import * as yjs from "~src/lib/yjsDoc"
@@ -225,7 +226,7 @@ async function saveOpenBrowserTab(
   categoryId: string,
   groupId: string,
   order: number,
-): Promise<string[]> {
+): Promise<OpenTabSaved> {
   // Other places this URL is already saved, read before saving (TASK-4).
   const alsoIn = savedElsewhere(useSavedSpacesStore.getState().savedSpaces, [tab.url], groupId).map((l) => l.path)
   const favicon = await faviconToDataUrl(tab.favIconUrl || "", tab.url)
@@ -239,8 +240,17 @@ async function saveOpenBrowserTab(
   useSavedSpacesStore
     .getState()
     .addSavedTab(spaceId, projectId, categoryId, groupId, savedTab)
-  return alsoIn
+  // Settings › Saving: "Close after dragging a tab in". Undo takes the save back and reopens the tab.
+  const closed = await loadCloseAfter("drag") ? await closeSavedTabs([tab]) : []
+  const undo = () => {
+    useSavedSpacesStore.getState().removeSavedTab(spaceId, projectId, categoryId, groupId, savedTab)
+    void reopenTabs(closed)
+  }
+  return { alsoIn, closed, title: savedTab.title, undo }
 }
+
+/** What saving an open tab into the workspace did, for the toast. */
+export type OpenTabSaved = { alsoIn: string[]; closed: ClosedTab[]; title: string; undo: () => void }
 
 export function sortedByOrder<T extends { order?: number }>(items: T[]): T[] {
   return [...items].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
@@ -279,7 +289,7 @@ export function resolveOverGroupId(spaces: SavedSpace[], overId: string): string
  * Returns `{ unsavable }` when an open tab isn't a savable web page (checked
  * before anything is created, so a rejected drop leaves nothing behind).
  */
-export type DropOutcome = { unsavable: string } | { alsoIn: string[] } | void
+export type DropOutcome = { unsavable: string } | { saved: OpenTabSaved } | void
 
 export async function applyDragEnd(args: {
   activeId: string | number
@@ -346,11 +356,11 @@ export async function applyDragEnd(args: {
     }
 
     const tgtGroup = findGroup(freshSpaces, target, target.groupId)
-    const alsoIn = await saveOpenBrowserTab(
+    const saved = await saveOpenBrowserTab(
       openTab!, tgtSpaceId, target.projectId, target.categoryId, target.groupId,
       tgtGroup?.tabs.length ?? 0,
     )
-    return alsoIn.length ? { alsoIn } : undefined
+    return { saved }
   }
 
   // --- Group dropped on a group (or a tab inside it): reorder or re-file ---
@@ -391,11 +401,11 @@ export async function applyDragEnd(args: {
     if (!groupId) return
     const loc = findGroupLocation(spaces, groupId)
     if (!loc) return
-    const alsoIn = await saveOpenBrowserTab(
+    const saved = await saveOpenBrowserTab(
       openTab, loc.spaceId, loc.projectId, loc.categoryId, groupId,
       findGroup(spaces, loc, groupId)?.tabs.length ?? 0,
     )
-    return alsoIn.length ? { alsoIn } : undefined
+    return { saved }
   }
 
   // --- Saved tab operations ---

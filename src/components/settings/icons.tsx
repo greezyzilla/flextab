@@ -30,6 +30,16 @@ export function SpacesIcon() {
   );
 }
 
+/** A bookmark with a plus: saving tabs. */
+export function SavingIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
+      <path d="M12 7v6M9 10h6" />
+    </svg>
+  );
+}
+
 export function PaletteIcon() {
   return (
     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>

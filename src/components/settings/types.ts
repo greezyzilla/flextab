@@ -1,7 +1,7 @@
-export type SettingsTab = "spaces" | "appearance" | "sync" | "backup" | "plan" | "transactions" | "account";
+export type SettingsTab = "spaces" | "saving" | "appearance" | "sync" | "backup" | "plan" | "transactions" | "account";
 
 export const SETTINGS_TABS: SettingsTab[] = [
-  "spaces", "appearance", "sync", "backup", "plan", "transactions", "account",
+  "spaces", "saving", "appearance", "sync", "backup", "plan", "transactions", "account",
 ];
 
 export const SETTINGS_ROUTE = "/settings";
@@ -17,6 +17,7 @@ export function tabFromRoute(route: string): SettingsTab {
 
 export const SECTION_LABEL: Record<SettingsTab, string> = {
   spaces: "Spaces",
+  saving: "Saving",
   appearance: "Appearance",
   sync: "Sync",
   backup: "Backup",

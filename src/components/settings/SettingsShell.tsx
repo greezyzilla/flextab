@@ -4,6 +4,7 @@ import { useEffect, useId } from "react"
 import { useRoute, navigate, goBack } from "~src/lib/route"
 import { SETTINGS_ROUTE, SECTION_LABEL, tabFromRoute, type SettingsTab } from "./types"
 import { SpacesTab } from "./SpacesTab"
+import { SavingTab } from "./SavingTab"
 import { AppearanceTab } from "./AppearanceTab"
 import { AppearancePreview } from "./AppearancePreview"
 import { SyncTab } from "./SyncTab"
@@ -11,11 +12,12 @@ import { BackupTab } from "./BackupTab"
 import { PlanTab } from "./PlanTab"
 import { TransactionsTab } from "./TransactionsTab"
 import { AccountTab } from "./AccountTab"
-import { SpacesIcon, PaletteIcon, SyncIcon, HistoryIcon, PlanIcon, ReceiptIcon, UserIcon } from "./icons"
+import { SpacesIcon, SavingIcon, PaletteIcon, SyncIcon, HistoryIcon, PlanIcon, ReceiptIcon, UserIcon } from "./icons"
 import { cn } from "~src/lib/utils"
 
 const NAV: { id: SettingsTab; icon: ReactNode; label: string }[] = [
   { id: "spaces", icon: <SpacesIcon />, label: "Spaces" },
+  { id: "saving", icon: <SavingIcon />, label: "Saving" },
   { id: "appearance", icon: <PaletteIcon />, label: "Appearance" },
   { id: "sync", icon: <SyncIcon />, label: "Sync" },
   { id: "backup", icon: <HistoryIcon />, label: "Backup" },
@@ -64,6 +66,7 @@ export function SettingsNav() {
 function SectionContent({ tab }: { tab: SettingsTab }) {
   switch (tab) {
     case "spaces": return <SpacesTab />
+    case "saving": return <SavingTab />
     case "appearance": return <AppearanceTab />
     case "sync": return <SyncTab />
     case "backup": return <BackupTab />

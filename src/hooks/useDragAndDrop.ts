@@ -240,9 +240,12 @@ export function useDragAndDrop() {
       toast(`Can't save “${outcome.unsavable}”`, {
         description: "Only web pages (http/https) can be saved. Browser, extension and local file pages are skipped.",
       })
-    } else if (outcome && "alsoIn" in outcome) {
-      const notice = describeAlsoSaved(outcome.alsoIn)
-      if (notice) toast(notice)
+    } else if (outcome && "saved" in outcome) {
+      const { alsoIn, closed, title, undo } = outcome.saved
+      const notice = describeAlsoSaved(alsoIn)
+      // Closed after saving (Settings › Saving): say so, with Undo.
+      if (closed.length) showUndoToast(`Saved and closed “${title}”`, undo, 5000, notice ?? undefined)
+      else if (notice) toast(notice)
     }
   }
 

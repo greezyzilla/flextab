@@ -274,7 +274,7 @@ describe("applyDragEnd", () => {
   it("tells where a dropped open tab's URL is already saved, and still saves it", async () => {
     vi.mocked(chrome.tabs.get).mockResolvedValueOnce({ id: 9, url: "https://d.com/", title: "D", favIconUrl: "" } as chrome.tabs.Tab)
     const outcome = await applyDragEnd({ activeId: 9, overId: "droppable-g1", wasDraggingGroup: false })
-    expect(outcome).toEqual({ alsoIn: ["S1 › P1 › C2 › G3"] })
+    expect(outcome).toMatchObject({ saved: { alsoIn: ["S1 › P1 › C2 › G3"], closed: [] } })
     const g1 = yjs.getSpaces()[0].projects[0].categories[0].groups.find((g) => g.id === "g1")!
     expect(g1.tabs.map((t) => t.url)).toContain("https://d.com/")
   })
@@ -282,7 +282,24 @@ describe("applyDragEnd", () => {
   it("tells where an open tab dropped on a space is already saved", async () => {
     vi.mocked(chrome.tabs.get).mockResolvedValueOnce({ id: 10, url: "https://d.com", title: "D", favIconUrl: "" } as chrome.tabs.Tab)
     const outcome = await applyDragEnd({ activeId: 10, overId: "space-drop:s2", wasDraggingGroup: false })
-    expect(outcome).toEqual({ alsoIn: ["S1 › P1 › C2 › G3"] })
+    expect(outcome).toMatchObject({ saved: { alsoIn: ["S1 › P1 › C2 › G3"], closed: [] } })
+  })
+
+  it("closes a dragged-in open tab when 'Close after dragging a tab in' is on; Undo takes the save back and reopens it (TASK-60)", async () => {
+    vi.mocked(chrome.storage.local.get).mockImplementation((async (key: string) => (key === "flextab_close_after_drag" ? { [key]: true } : {})) as never)
+    const tab = { id: 11, windowId: 4, index: 2, url: "https://z.com", title: "Z", favIconUrl: "" } as chrome.tabs.Tab
+    vi.mocked(chrome.tabs.get).mockResolvedValueOnce(tab)
+    vi.mocked(chrome.tabs.query).mockResolvedValue([tab, { id: 12 } as chrome.tabs.Tab])
+    const outcome = await applyDragEnd({ activeId: 11, overId: "droppable-g1", wasDraggingGroup: false })
+    if (!outcome || !("saved" in outcome)) throw new Error("expected a save")
+    expect(outcome.saved).toMatchObject({ title: "Z", closed: [{ windowId: 4, index: 2, url: "https://z.com" }] })
+    expect(chrome.tabs.remove).toHaveBeenCalledWith([11])
+    const g1 = () => yjs.getSpaces()[0].projects[0].categories[0].groups.find((g) => g.id === "g1")!
+    expect(g1().tabs.map((t) => t.url)).toContain("https://z.com")
+    outcome.saved.undo()
+    expect(g1().tabs.map((t) => t.url)).not.toContain("https://z.com")
+    await vi.waitFor(() => expect(chrome.tabs.create).toHaveBeenCalledWith({ windowId: 4, index: 2, url: "https://z.com", active: false }))
+    vi.mocked(chrome.storage.local.get).mockImplementation((async () => ({})) as never)
   })
 
   it("saves an opened tab into an empty section's Unsorted", async () => {

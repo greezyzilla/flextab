@@ -148,7 +148,8 @@ describe("popup instant save", () => {
     view.unmount();
   });
 
-  it("saves the window's other tabs to the page's group in one tap, closes them, and Undo reopens them", async () => {
+  it("with Close after saving from the popup on, saves and closes the window's other tabs (Undo reopens them) and closes this page with the popup", async () => {
+    disk["flextab_close_after_popup"] = true;
     windowTabs([
       { id: 1, windowId: 9, index: 0, active: true, url: "https://example.com", title: "Example" },
       { id: 2, windowId: 9, index: 1, url: "https://b.example", title: "B" },
@@ -156,8 +157,14 @@ describe("popup instant save", () => {
     ]);
     render(<Popup />);
     await screen.findByText(/^Saved to/);
+    // This page closes when the popup does: the background is told which tab.
+    expect(await screen.findByText("Closes when you close this panel.")).toBeInTheDocument();
+    const port = vi.mocked(chrome.runtime.connect).mock.results.at(-1)!.value;
+    expect(port.postMessage).toHaveBeenLastCalledWith({ close: 1 });
     const win = screen.getByRole("region", { name: "This window" });
     expect(win).toHaveTextContent("This window · 1 other tab");
+    // One way, as the setting says: no "keep open" offer next to it.
+    expect(within(win).getAllByRole("button").map(b => b.textContent)).toEqual(["Save and close them"]);
     fireEvent.click(within(win).getByRole("button", { name: "Save and close them" }));
     await within(win).findByText(/^Saved 1 tab to/);
     expect(storedGroups()[0].tabs.map(t => t.url)).toEqual(["https://example.com", "https://b.example"]);
@@ -167,23 +174,27 @@ describe("popup instant save", () => {
     await waitFor(() => expect(storedGroups()[0].tabs.map(t => t.url)).toEqual(["https://example.com"]));
     expect(chrome.tabs.create).toHaveBeenCalledWith({ windowId: 9, index: 1, url: "https://b.example", active: false });
     expect(win).toHaveTextContent("This window · 1 other tab");
+    // Undoing this page's save keeps it open.
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+    await screen.findByText("Not saved");
+    expect(port.postMessage).toHaveBeenLastCalledWith({ close: null });
   });
 
-  it("can save the window without closing, then close them from the result", async () => {
+  it("with it off, saves the window's other tabs and leaves them open, with no close offer", async () => {
     windowTabs([
       { id: 1, windowId: 9, index: 0, active: true, url: "https://example.com", title: "Example" },
       { id: 2, windowId: 9, index: 1, url: "https://b.example", title: "B" },
     ]);
     render(<Popup />);
     await screen.findByText(/^Saved to/);
+    expect(screen.queryByText("Closes when you close this panel.")).not.toBeInTheDocument();
     const win = screen.getByRole("region", { name: "This window" });
+    expect(within(win).getAllByRole("button").map(b => b.textContent)).toEqual(["Save them to the same group"]);
     fireEvent.click(within(win).getByRole("button", { name: "Save them to the same group" }));
     await within(win).findByText(/^Saved 1 tab to/);
     expect(win).not.toHaveTextContent("closed");
     expect(chrome.tabs.remove).not.toHaveBeenCalled();
-    expect(within(win).getByRole("button", { name: "Undo saving them" })).toBeInTheDocument();
-    fireEvent.click(within(win).getByRole("button", { name: "Close them" }));
-    await waitFor(() => expect(chrome.tabs.remove).toHaveBeenCalledWith([2]));
+    expect(within(win).getAllByRole("button").map(b => b.textContent)).toEqual(["Undo saving them"]);
   });
 
   it("explains an unsavable page and writes nothing", async () => {

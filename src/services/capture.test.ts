@@ -3,7 +3,7 @@ import * as yjs from "~src/lib/yjsDoc"
 import type { SavedSpace } from "~src/types"
 import {
   captureTabs, undoCapture, moveCapture, closeSavedTabs, reopenTabs, defaultDestination,
-  loadDefaultDestination, isCaptureFailure, loadCloseAfterSave, saveCloseAfterSave,
+  loadDefaultDestination, isCaptureFailure, loadCloseAfterSave, saveCloseAfterSave, loadCloseAfter, saveCloseAfter,
   storeLastCapture, loadLastCapture, syncDocFromStorage, resetWorkerHydration, windowGroupName,
   type CaptureReceipt,
 } from "./capture"
@@ -199,11 +199,25 @@ describe("defaults and settings", () => {
     expect(windowGroupName()).toMatch(/^Window /)
   })
 
+  it("keeps one 'close after saving' switch per way of saving, off until set (TASK-60)", async () => {
+    for (const kind of ["drag", "window", "saveAll", "popup"] as const) expect(await loadCloseAfter(kind)).toBe(false)
+    // The window shortcut used to follow Save all's switch: kept until set on its own.
+    await saveCloseAfterSave(true)
+    expect(await loadCloseAfter("saveAll")).toBe(true)
+    expect(await loadCloseAfter("window")).toBe(true)
+    await saveCloseAfter("window", false)
+    expect(await loadCloseAfter("window")).toBe(false)
+    await saveCloseAfter("drag", true)
+    await saveCloseAfter("popup", true)
+    expect([await loadCloseAfter("drag"), await loadCloseAfter("popup"), await loadCloseAfter("saveAll")]).toEqual([true, true, true])
+  })
+
   it("survives storage failures", async () => {
     vi.mocked(chrome.storage.local.get).mockRejectedValue(new Error("x"))
     vi.mocked(chrome.storage.local.set).mockRejectedValue(new Error("x"))
     vi.mocked(chrome.storage.local.remove).mockRejectedValue(new Error("x"))
     expect(await loadCloseAfterSave()).toBe(false)
+    expect(await loadCloseAfter("drag")).toBe(false)
     await saveCloseAfterSave(true)
     await storeLastCapture(null)
     await storeLastCapture({ at: 1 } as CaptureReceipt)

@@ -8,7 +8,9 @@ import { isSavableTabUrl, saveTabsAsGroup } from "~src/services/saveTabsAsGroup"
 import { resolveSaveTargetIds } from "~src/services/resolveSaveTarget"
 import type { SaveTabsTarget } from "~src/services/saveTabsAsGroup"
 import { DestinationPicker, describeTarget } from "~src/components/DestinationPicker"
-import { windowGroupName } from "~src/services/capture"
+import { closeSavedTabs, loadCloseAfter, reopenTabs, windowGroupName } from "~src/services/capture"
+import { showUndoToast } from "~src/components/ui/sonner"
+import type { SavedGroup } from "~src/types"
 import { ensureCategoryPath, ensureSpace } from "~src/lib/defaultPath"
 
 
@@ -72,7 +74,14 @@ export function SaveSessionModal({
         return
       }
       const notice = describeAlsoSaved(alsoIn)
-      if (notice) toast(notice)
+      // Settings › Saving: "Close after saving a window". Undo takes the group back and reopens the tabs.
+      const closed = await loadCloseAfter("window") ? await closeSavedTabs(savableTabs) : []
+      if (closed.length) {
+        showUndoToast(`Saved and closed ${closed.length} tab${closed.length === 1 ? "" : "s"}`, () => {
+          useSavedSpacesStore.getState().removeSavedGroup(into.spaceId, into.projectId, into.categoryId, { id: result.groupId } as SavedGroup)
+          void reopenTabs(closed)
+        }, 5000, notice ?? undefined)
+      } else if (notice) toast(notice)
       onClose()
     } catch (err) {
       console.error("Save session failed", err)

@@ -101,5 +101,7 @@ global.chrome = {
     id: 'test-extension-id',
     sendMessage: vi.fn(async () => ({ ok: true })),
     onMessage: { addListener: vi.fn(), removeListener: vi.fn() },
+    onConnect: { addListener: vi.fn(), removeListener: vi.fn() },
+    connect: vi.fn(() => ({ postMessage: vi.fn(), disconnect: vi.fn(), onMessage: { addListener: vi.fn() }, onDisconnect: { addListener: vi.fn() } })),
   },
 } as any;

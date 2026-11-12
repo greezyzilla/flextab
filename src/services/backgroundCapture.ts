@@ -4,7 +4,7 @@
 // popup) and confirm with the toolbar badge; the popup then offers Undo for
 // the last such save.
 import {
-  captureTabs, closeSavedTabs, isCaptureFailure, loadCloseAfterSave, loadDefaultDestination,
+  captureTabs, closeSavedTabs, isCaptureFailure, loadCloseAfter, loadDefaultDestination, POPUP_CLOSE_PORT,
   storeLastCapture, syncDocFromStorage, windowGroupName, type ChromeTabLike,
 } from "~src/services/capture"
 
@@ -114,8 +114,31 @@ export async function captureFromBackground(
     return "already"
   }
 
-  const closed = kind === "window" && await loadCloseAfterSave() ? await closeSavedTabs(tabs) : []
+  // Settings › Saving & closing: a window follows "after saving a window", the page
+  // follows "after saving from the popup" (the same act from the keyboard). A link has no tab.
+  const closeKind = kind === "window" ? "window" : kind === "link" ? null : "popup"
+  const closed = closeKind && await loadCloseAfter(closeKind) ? await closeSavedTabs(tabs) : []
   await storeLastCapture({ ...result, closed })
   await flashBadge(String(result.tabIds.length), "#16a34a", `FlexTab: saved ${result.tabIds.length} tab${result.tabIds.length === 1 ? "" : "s"}`)
   return "saved"
+}
+
+/**
+ * "Close after saving from the popup" for the page the popup saved: closing it
+ * at once would close the popup and its Undo, so the popup names the tab over
+ * a port and the tab closes when the popup does (the port disconnects). Undo
+ * in the popup clears it first.
+ */
+export function registerPopupClose(): void {
+  chrome.runtime.onConnect.addListener((port) => {
+    if (port.name !== POPUP_CLOSE_PORT) return
+    let tabId: number | null = null
+    port.onMessage.addListener((message: { close?: number | null }) => {
+      tabId = typeof message?.close === "number" ? message.close : null
+    })
+    port.onDisconnect.addListener(() => {
+      if (tabId === null) return
+      void chrome.tabs.get(tabId).then((tab) => closeSavedTabs([tab])).catch(() => { /* already closed */ })
+    })
+  })
 }

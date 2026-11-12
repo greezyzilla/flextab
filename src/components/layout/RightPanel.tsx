@@ -1,105 +1,173 @@
-import { useState, useRef, useCallback } from "react"
+import { useState, useRef, useCallback, useEffect } from "react"
 import { toast } from "sonner"
-import { ActionSlot, RowActions } from "~src/components/ui/row-actions"
-import { PickDestinationDialog } from "~src/components/PickDestinationDialog"
+import { ActionSlot } from "~src/components/ui/row-actions"
 import { showUndoToast } from "~src/components/ui/sonner"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
-import { captureTabs, isCaptureFailure, undoCapture } from "~src/services/capture"
+import { captureTabs, closeSavedTabs, isCaptureFailure, loadCloseAfter, loadDefaultDestination, reopenTabs, undoCapture } from "~src/services/capture"
 import { isSavableTabUrl } from "~src/services/saveTabsAsGroup"
 import { describeAlsoSaved } from "~src/lib/savedUrlIndex"
+import { revealInWorkspace } from "~src/services/reveal"
 import { useDraggable } from "@dnd-kit/core"
 import { DragHandleIcon } from "../icons/DragHandleIcon"
 import { FaviconImg } from "../FaviconImg"
+import { TabUrl } from "../TabUrl"
 import { SaveSessionModal } from "../SaveSessionModal"
 import { useWindows } from "~src/hooks/useWindows"
 import { IconButton } from "~src/components/ui/button"
-import { BookmarkCheck } from "lucide-react"
+import { BookmarkPlus, Check, Loader2, LocateFixed, X } from "lucide-react"
 import { useSavedUrlIndex } from "~src/hooks/useSavedUrlIndex"
 import { describeSaved, normalizeUrl, type SavedLocation } from "~src/lib/savedUrlIndex"
 
-const OpenedTab = ({ tab, windowId, saved }: { tab: chrome.tabs.Tab, windowId: number, saved?: SavedLocation[] }) => {
-  const savedLabel = describeSaved(saved)
-  const [saving, setSaving] = useState(false)
-  const { activeSpaceId, activeProjectId, activeCategoryId } = useSavedSpacesStore()
+/** A FlexTab page (the new tab, Settings, …): it is named FlexTab, never by its extension address. */
+function isFlexTabPage(url?: string): boolean {
+  if (!url) return false
+  if (/^chrome:\/\/newtab\/?$/.test(url)) return true
+  const own = chrome.runtime?.getURL?.("") ?? ""
+  return !!own && url.startsWith(own)
+}
+function flexTabIcon(): string | undefined {
+  const icon = chrome.runtime?.getManifest?.().icons?.["128"]
+  return icon ? chrome.runtime.getURL(icon) : undefined
+}
+/** The one save mark: a row's Save and a window's Save draw the same icon at the same size. */
+const SaveIcon = () => <BookmarkPlus className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
 
-  // "Save to…": the non-drag way to save one open tab (TASK-5).
-  const saveTo = async (target: Parameters<typeof captureTabs>[1]) => {
-    const result = await captureTabs([tab], target, { dedupe: true })
-    if (isCaptureFailure(result)) { toast(`Can't save “${tab.title}”`); return }
+const bareUrl = (u?: string) => (u ?? "").replace(/^https?:\/\//, "").replace(/\/$/, "")
+
+/**
+ * One open tab (TASK-60). What people do with an open tab here is one click
+ * each: go to it (the row), save it (or, once saved, go to where it is), close
+ * it, or drag it to a place. Saving closes it too when Settings › Saving says
+ * so ("Close after dragging a tab in"); every save and close can be undone.
+ * Pages that can't be saved (browser, extension, local) can only be closed.
+ */
+const OpenedTab = ({ tab, windowId, saved, closeAfterSave }: { tab: chrome.tabs.Tab, windowId: number, saved?: SavedLocation[], closeAfterSave: boolean }) => {
+  const savedLabel = describeSaved(saved)
+  const savable = isSavableTabUrl(tab.url)
+  const flexTab = isFlexTabPage(tab.url)
+  const name = flexTab ? "FlexTab" : tab.title || tab.url || "tab"
+  // The address line only when it says something the title doesn't (a blank or
+  // still-loading page is titled by its own address), and never for FlexTab.
+  const showAddress = !flexTab && !!tab.title && bareUrl(tab.title) !== bareUrl(tab.url)
+  const loading = tab.status === "loading"
+  // A pinned tab is never closed by saving, so its button never says it will be.
+  const closes = closeAfterSave && !tab.pinned
+
+  const save = async () => {
+    const { activeSpaceId, activeProjectId, activeCategoryId } = useSavedSpacesStore.getState()
+    const destination = await loadDefaultDestination({ spaceId: activeSpaceId, projectId: activeProjectId, categoryId: activeCategoryId })
+    const result = await captureTabs([tab], destination, { dedupe: true })
+    if (isCaptureFailure(result)) { toast(`Can't save “${name}”`); return }
     if (!result.tabIds.length) { toast("Already saved there"); return }
-    showUndoToast(`Saved “${tab.title}”`, () => void undoCapture(result), 5000, describeAlsoSaved(result.alsoIn ?? []) ?? undefined)
+    const closed = await loadCloseAfter("drag") ? await closeSavedTabs([tab]) : []
+    const receipt = { ...result, closed }
+    showUndoToast(closed.length ? `Saved and closed “${name}”` : `Saved “${name}”`, () => void undoCapture(receipt), 5000,
+      describeAlsoSaved(result.alsoIn ?? []) ?? undefined)
   }
-  const onTabClick = (tab: chrome.tabs.Tab, windowId: number) => {
+  const close = async () => {
+    const closed = { windowId, index: tab.index ?? 0, url: tab.url ?? "" }
+    await chrome.tabs.remove(tab.id!)
+    showUndoToast(`Closed “${name}”`, () => void reopenTabs([closed]))
+  }
+  const showSaved = () => {
+    const at = saved?.[0]
+    if (at) revealInWorkspace({ spaceId: at.spaceId, projectId: at.projectId, categoryId: at.categoryId, flash: { kind: "group", id: at.groupId } })
+  }
+  const onTabClick = () => {
     chrome.tabs.update(tab.id!, { active: true })
     chrome.windows.update(windowId, { focused: true })
   }
 
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: tab.id!,
-  })
+  // Only a page that can be saved can be dragged into the workspace.
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: tab.id!, disabled: !savable })
+  // Save and Close appear on hover/focus only, so at rest a row is just the
+  // page. They take their room then (the title ellipsizes), never cover text.
+  const onHover = "hidden group-hover/tab:flex group-focus-within/tab:flex"
 
   return (
+    // A plain list row, as in the sidebar tree: no box, a light fill on hover.
+    // The whole row goes to the tab; the few controls sit above that.
     <div
-      className="flex gap-2.5 items-center w-full rounded-lg bg-black-800 hover:bg-black-700 px-3 py-2 text-left group/tab transition-colors"
+      className="relative flex gap-2.5 items-center w-full rounded-md px-3 py-1.5 text-left group/tab transition-colors hover:bg-ink/[0.04] focus-within:bg-ink/[0.04]"
       ref={setNodeRef}
       style={{
         transform: transform ? `translate(${transform.x}px, ${transform.y}px)` : undefined,
         opacity: isDragging ? 0.5 : 1,
       }}
     >
-      {/* Favicon slot doubles as the drag handle on hover/focus, as on saved
-          tabs, so no empty gutter sits in front of the favicon (TASK-5). */}
-      <span className="relative w-5 h-5 shrink-0">
-        <FaviconImg src={tab.favIconUrl} alt="" />
-        <button
-          type="button"
-          {...attributes}
-          {...listeners}
-          aria-label={`Drag ${tab.title || "tab"} to save it`}
-          title="Drag to save"
-          className="absolute -inset-0.5 flex items-center justify-center rounded bg-black-700 opacity-0 group-hover/tab:opacity-100 focus-visible:opacity-100 focus-visible:ring-1 focus-visible:ring-ring outline-none cursor-grab active:cursor-grabbing transition-opacity"
-        >
-          <DragHandleIcon className="w-3.5 h-3.5 text-fg-muted" />
-        </button>
-      </span>
-
       <button
         type="button"
-        aria-label={`Go to ${tab.title || tab.url}`}
-        className="flex flex-col flex-1 min-w-0 cursor-pointer overflow-hidden text-left rounded outline-none focus-visible:ring-1 focus-visible:ring-ring"
-        onClick={() => onTabClick(tab, windowId)}
-      >
-        <span className="text-fg text-xs font-sans truncate">{tab.title}</span>
-        <span className="text-fg-subtle text-[10px] font-sans truncate">{tab.url?.replace(/^https?:\/\//, '')}</span>
-      </button>
-
-      {/* The row's one trailing slot: the saved mark (TASK-4) rests there,
-          "⋯" takes its place on hover/focus and its menu says where. */}
-      <RowActions
-        label={`Actions for ${tab.title || "tab"}`}
-        reveal="opacity-0 group-hover/tab:opacity-100 group-focus-within/tab:opacity-100"
-        conceal="group-hover/tab:opacity-0 group-focus-within/tab:opacity-0"
-        rest={savedLabel ? (
-          <span role="img" aria-label={savedLabel} title={savedLabel} className="text-fg-subtle">
-            <BookmarkCheck className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
-          </span>
-        ) : undefined}
-        note={savedLabel ?? undefined}
-        items={isSavableTabUrl(tab.url) ? [{ label: "Save to…", onSelect: () => setSaving(true) }] : []}
+        aria-label={`Go to ${name}`}
+        className="absolute inset-0 rounded-md cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        onClick={onTabClick}
       />
-      {saving && (
-        <PickDestinationDialog
-          title="Save tab"
-          description={`Save “${tab.title || tab.url}” to a group.`}
-          groupLevel
-          initial={{ spaceId: activeSpaceId ?? "", projectId: activeProjectId ?? "", categoryId: activeCategoryId ?? "" }}
-          confirmLabel="Save tab"
-          onConfirm={(target) => void saveTo(target)}
-          onClose={() => setSaving(false)}
-        />
-      )}
+
+      {/* Favicon slot doubles as the drag handle on hover/focus, as on saved
+          tabs, so no empty gutter sits in front of the favicon (TASK-5). */}
+      <span className="relative w-5 h-5 shrink-0 pointer-events-none">
+        {savable && (
+          <button
+            type="button"
+            {...attributes}
+            {...listeners}
+            aria-label={`Drag ${name} to save it`}
+            className="peer pointer-events-auto absolute -inset-0.5 z-10 flex items-center justify-center rounded opacity-0 group-hover/tab:opacity-100 focus-visible:opacity-100 focus-visible:ring-1 focus-visible:ring-ring outline-none cursor-grab active:cursor-grabbing transition-opacity"
+          >
+            <DragHandleIcon className="w-3.5 h-3.5 text-fg-muted" />
+          </button>
+        )}
+        <span className={`relative block transition-opacity ${savable ? "group-hover/tab:opacity-0 peer-focus-visible:opacity-0" : ""}`}>
+          {loading ? <Loader2 className="w-4 h-4 m-0.5 animate-spin motion-reduce:animate-none text-fg-subtle" strokeWidth={1.75} aria-label="Loading" />
+            : flexTab ? <img src={flexTabIcon()} alt="" className="w-5 h-5" />
+            : <FaviconImg src={tab.favIconUrl} alt="" />}
+          {/* Saved: the popup's flag, a green check on the page's icon. */}
+          {savedLabel && (
+            <span role="img" aria-label={savedLabel} className="absolute -bottom-1 -right-1 grid h-3 w-3 place-items-center rounded-full bg-success ring-2 ring-black-900">
+              <Check className="h-2 w-2 text-black-900" strokeWidth={4} aria-hidden />
+            </span>
+          )}
+        </span>
+      </span>
+
+      <span className="flex flex-col flex-1 min-w-0 pointer-events-none">
+        <span className="flex items-center gap-1 min-w-0">
+          {/* A page that can't be saved reads quieter, so it's clear before you try. */}
+          <span className={`${savable ? "text-fg" : "text-fg-subtle"} text-xs font-sans truncate`}>{name}</span>
+        </span>
+        {showAddress && <TabUrl url={tab.url} />}
+      </span>
+
+      <span className={`${onHover} relative z-10 shrink-0 items-center gap-0.5 -my-1`}>
+        {/* Actions, on hover/focus: a saved tab can be shown where it is saved; an unsaved one saved. */}
+        {savedLabel ? (
+          <IconButton aria-label={`${savedLabel}. Show in workspace`} tooltip="Show in workspace" onClick={showSaved}>
+            <LocateFixed className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+          </IconButton>
+        ) : savable && (
+          <IconButton aria-label={`${closes ? "Save and close" : "Save"} ${name}`} tooltip={closes ? "Save and close" : "Save"} onClick={() => void save()}>
+            <SaveIcon />
+          </IconButton>
+        )}
+        <IconButton aria-label={`Close ${name}`} tooltip="Close tab" onClick={() => void close()}>
+          <X className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+        </IconButton>
+      </span>
     </div>
   )
+}
+
+/** Settings › Saving's "Close after dragging a tab in", kept current while the panel is open. */
+function useCloseAfterDrag(): boolean {
+  const [on, setOn] = useState(false)
+  useEffect(() => {
+    let alive = true
+    const read = () => void loadCloseAfter("drag").then((v) => { if (alive) setOn(v) })
+    read()
+    const onChanged = (changes: Record<string, unknown>, area: string) => { if (area === "local" && "flextab_close_after_drag" in changes) read() }
+    chrome.storage.onChanged.addListener(onChanged)
+    return () => { alive = false; chrome.storage.onChanged.removeListener(onChanged) }
+  }, [])
+  return on
 }
 
 export function RightPanel() {
@@ -108,6 +176,10 @@ export function RightPanel() {
   const [collapsed, setCollapsed] = useState<Set<number>>(new Set())
   const [saveModal, setSaveModal] = useState<{ tabs: chrome.tabs.Tab[] } | null>(null)
   const savedIndex = useSavedUrlIndex()
+  const closeAfterSave = useCloseAfterDrag()
+  // The tab this page runs in: you are looking at it, so it isn't listed.
+  const [selfId, setSelfId] = useState<number | undefined>()
+  useEffect(() => { void chrome.tabs.getCurrent?.().then((t) => setSelfId(t?.id)).catch(() => {}) }, [])
 
   const toggleWindow = useCallback((windowId: number) => {
     setCollapsed(prev => {
@@ -134,10 +206,12 @@ export function RightPanel() {
         {windows.map((window, index) => {
           const windowId = window.id!
           const isCollapsed = collapsed.has(windowId)
-          const tabs = window.tabs ?? []
+          const tabs = (window.tabs ?? []).filter((t) => t.id !== selfId)
 
           return (
-            <div key={windowId}>
+            // A line between windows, on the section (not the sticky header), so a
+            // header stuck under "Opened Tabs" never doubles that line.
+            <div key={windowId} className={index > 0 ? "border-t border-line" : undefined}>
               {/* Window header. pr-6 + ActionSlot put its save button in the
                   same column as the rows' trailing slot (p-3 list + px-3 row). */}
               <div className="sticky top-0 z-10 bg-black-900 border-b border-line h-14 pl-4 pr-6 flex items-center gap-2">
@@ -152,22 +226,21 @@ export function RightPanel() {
                 </IconButton>
                 <span className="text-xs text-fg-subtle font-sans flex-1">
                   Window {index + 1}
-                  <span className="text-fg-subtle ml-1.5">{tabs.length} tabs</span>
+                  <span className="text-fg-subtle ml-1.5">{tabs.length} {tabs.length === 1 ? "tab" : "tabs"}</span>
                 </span>
                 <ActionSlot>
                 <IconButton onClick={() => handleSaveSession(tabs)} aria-label={`Save Window ${index + 1} as a group`} tooltip="Save this window as a group">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                  </svg>
+                  {/* The same mark as a row's Save: saving, not downloading. */}
+                  <SaveIcon />
                 </IconButton>
                 </ActionSlot>
               </div>
 
               {/* Tabs */}
               {!isCollapsed && (
-                <div className="flex flex-col gap-1.5 p-3">
+                <div className="flex flex-col gap-0.5 p-3">
                   {tabs.map(tab => (
-                    <OpenedTab key={tab.id} tab={tab} windowId={windowId} saved={savedIndex.get(normalizeUrl(tab.url))} />
+                    <OpenedTab key={tab.id} tab={tab} windowId={windowId} saved={savedIndex.get(normalizeUrl(tab.url))} closeAfterSave={closeAfterSave} />
                   ))}
                 </div>
               )}

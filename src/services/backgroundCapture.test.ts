@@ -3,7 +3,7 @@ import * as yjs from "~src/lib/yjsDoc"
 import type { SavedSpace } from "~src/types"
 import { resetWorkerHydration } from "./capture"
 import {
-  captureFromBackground, registerCaptureMenus, menuKind, commandKind,
+  captureFromBackground, registerCaptureMenus, menuKind, commandKind, registerPopupClose,
   MENU_SAVE_PAGE, MENU_SAVE_LINK, MENU_SAVE_WINDOW,
 } from "./backgroundCapture"
 
@@ -90,6 +90,26 @@ describe("captureFromBackground", () => {
     expect((disk.flextab_last_capture as { closed: unknown[] }).closed).toHaveLength(1)
   })
 
+  it("closes the saved page when 'close after saving from the popup' is on; a link never closes anything", async () => {
+    disk.flextab_close_after_popup = true
+    const page = { id: 7, windowId: 3, index: 1, url: "https://p.example" } as chrome.tabs.Tab
+    vi.mocked(chrome.tabs.query).mockResolvedValue([page, { id: 8, windowId: 3, index: 0, url: "https://q.example" } as chrome.tabs.Tab])
+    expect(await captureFromBackground("page", { tab: page })).toBe("saved")
+    expect(chrome.tabs.remove).toHaveBeenCalledWith([7])
+    vi.mocked(chrome.tabs.remove).mockClear()
+    expect(await captureFromBackground("link", { linkUrl: "https://l.example", tab: page })).toBe("saved")
+    expect(chrome.tabs.remove).not.toHaveBeenCalled()
+  })
+
+  it("a window follows its own switch once set, not Save all's", async () => {
+    disk.flextab_close_after_save = true
+    disk.flextab_close_after_window = false
+    const tabs = [{ id: 1, windowId: 3, index: 0, url: "https://a.example" }] as chrome.tabs.Tab[]
+    vi.mocked(chrome.tabs.query).mockResolvedValue(tabs)
+    expect(await captureFromBackground("window", { tab: tabs[0] })).toBe("saved")
+    expect(chrome.tabs.remove).not.toHaveBeenCalled()
+  })
+
   it("uses the active tab / current window when the event has no tab", async () => {
     vi.mocked(chrome.tabs.query).mockResolvedValue([{ id: 1, url: "https://c.example" }] as chrome.tabs.Tab[])
     expect(await captureFromBackground("page", {})).toBe("saved")
@@ -140,5 +160,43 @@ describe("captureFromBackground", () => {
     }) as never)
     expect(await captureFromBackground("page", { tab: { id: 1, url: "https://a.example" } as chrome.tabs.Tab })).toBe("failed")
     expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ text: "!" })
+  })
+})
+
+describe("closing the page the popup saved when the popup closes (TASK-60)", () => {
+  const connect = () => {
+    registerPopupClose()
+    const onConnect = vi.mocked(chrome.runtime.onConnect.addListener).mock.calls.at(-1)![0] as (port: chrome.runtime.Port) => void
+    let onMessage!: (m: unknown) => void, onDisconnect!: () => void
+    const port = { name: "flextab-close-on-popup-close", onMessage: { addListener: (f: typeof onMessage) => { onMessage = f } }, onDisconnect: { addListener: (f: typeof onDisconnect) => { onDisconnect = f } } }
+    onConnect(port as unknown as chrome.runtime.Port)
+    return { send: (m: unknown) => onMessage(m), close: () => onDisconnect() }
+  }
+
+  it("closes the named tab when the popup goes, not after Undo cleared it, and ignores other ports", async () => {
+    vi.mocked(chrome.tabs.get).mockResolvedValue({ id: 5, windowId: 2, index: 0, url: "https://x.example" } as chrome.tabs.Tab)
+    vi.mocked(chrome.tabs.query).mockResolvedValue([{ id: 5 }, { id: 6 }] as chrome.tabs.Tab[])
+    const a = connect()
+    a.send({ close: 5 })
+    a.close()
+    await vi.waitFor(() => expect(chrome.tabs.remove).toHaveBeenCalledWith([5]))
+    vi.mocked(chrome.tabs.remove).mockClear()
+    const b = connect()
+    b.send({ close: 5 })
+    b.send({ close: null })
+    b.close()
+    await new Promise((r) => setTimeout(r, 0))
+    expect(chrome.tabs.remove).not.toHaveBeenCalled()
+    // Another port's name is not ours.
+    registerPopupClose()
+    const onConnect = vi.mocked(chrome.runtime.onConnect.addListener).mock.calls.at(-1)![0] as (port: chrome.runtime.Port) => void
+    expect(() => onConnect({ name: "other" } as chrome.runtime.Port)).not.toThrow()
+    // A tab already gone is fine.
+    vi.mocked(chrome.tabs.get).mockRejectedValue(new Error("gone"))
+    const c = connect()
+    c.send({ close: 9 })
+    c.close()
+    await new Promise((r) => setTimeout(r, 0))
+    expect(chrome.tabs.remove).not.toHaveBeenCalled()
   })
 })

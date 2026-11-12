@@ -21,7 +21,7 @@ import { describeChange, type Change } from "~src/lib/describeChange"
 import type { SavedGroup, SavedSpace, SavedTab } from "~src/types"
 import {
   captureTabs, moveCapture, undoCapture, persistCapture, isCaptureFailure, closeSavedTabs,
-  loadDefaultDestination,
+  loadDefaultDestination, loadCloseAfter, POPUP_CLOSE_PORT,
   type CaptureReceipt, type CaptureFailure, type CaptureDestination,
 } from "~src/services/capture"
 
@@ -74,6 +74,11 @@ function IndexPopup() {
   const [windowReceipt, setWindowReceipt] = useState<CaptureReceipt | null>(null)
   const [busy, setBusy] = useState(false)
   const started = useRef(false)
+  // Settings › Saving: "Close after saving from the popup".
+  // Read before the first frame, so "closes when you close this panel" doesn't pop in later.
+  const [closeAfter, setCloseAfter] = useState<boolean | null>(null)
+  useEffect(() => { void loadCloseAfter("popup").then(setCloseAfter) }, [])
+  const closePort = useRef<chrome.runtime.Port | null>(null)
   // The window's tabs, read once before anything is drawn: the first frame
   // already has every card it will have.
   const [tabsRead, setTabsRead] = useState<{ current: chrome.tabs.Tab | null; failed?: boolean } | null>(null)
@@ -149,6 +154,17 @@ function IndexPopup() {
     })()
   }, [usable, tabsRead])
 
+  // The page this popup saved closes when the popup does (closing it now would
+  // close the popup and its Undo). Undo, or anything that leaves it unsaved, clears it.
+  useEffect(() => {
+    const close = closeAfter && (status.kind === "saved" || status.kind === "updated") ? currentTab?.id ?? null : null
+    if (close === null && !closePort.current) return
+    try {
+      closePort.current ??= chrome.runtime.connect({ name: POPUP_CLOSE_PORT })
+      closePort.current.postMessage({ close })
+    } catch (_) { /* no background to tell: the page stays open */ }
+  }, [closeAfter, status.kind, currentTab])
+
   const run = async (work: () => Promise<void>) => {
     if (busy) return
     setBusy(true)
@@ -221,11 +237,6 @@ function IndexPopup() {
     setWindowReceipt({ ...result, closed })
   })
 
-  const closeWindowTabs = () => run(async () => {
-    if (!windowReceipt || windowReceipt.closed.length) return
-    setWindowReceipt({ ...windowReceipt, closed: await closeSavedTabs(others) })
-  })
-
   const undoWindow = () => run(async () => {
     if (!windowReceipt) return
     await undoCapture(windowReceipt) // reopens the tabs it closed
@@ -233,7 +244,7 @@ function IndexPopup() {
   })
 
   if (hydrationError) return <div className="w-72"><WorkspaceLoadError /></div>
-  if (!tabsRead) return null
+  if (!tabsRead || closeAfter === null) return null
   const loading = authLoading || !hydrated
 
   const place = placeOf(savedSpaces, destination)
@@ -265,7 +276,8 @@ function IndexPopup() {
   })()
   const sub: ReactNode =
     loading ? null
-    : status.kind === "updated" && status.change.name ? <>was <bdi>{status.change.from}</bdi></>
+    : status.kind === "updated" && status.change.name ? <>was <bdi>{status.change.from}</bdi>{closeAfter ? " · closes when you close this panel" : ""}</>
+    : status.kind === "saved" && closeAfter ? "Closes when you close this panel."
     : status.kind === "reverted" ? <>Undone. The saved tab is back on <bdi>{status.change.name ? status.change.from : "its old page"}</bdi>.</>
     : status.kind === "removed" ? "Undone. This tab is not in FlexTab."
     : status.kind === "choose" ? "Pick a group for this tab"
@@ -369,11 +381,12 @@ function IndexPopup() {
               : saved ? <>Saved {saved} tab{saved === 1 ? "" : "s"} to <bdi>{windowGroup}</bdi>{closed ? ` · ${closed} closed` : ""}</>
               : <>Already in <bdi>{windowGroup}</bdi>{closed ? ` · ${closed} closed` : ""}</>}
           </p>
+          {/* One way, as Settings › Saving says: saved, or saved and closed. */}
           <Steps disabled={busy} steps={!windowReceipt ? [
-            { icon: BookmarkPlus, label: windowTarget ? `Save them to ${windowTarget}` : "Save them", onClick: () => saveWindow(false) },
-            { icon: ListX, label: "Save and close them", onClick: () => saveWindow(true) },
+            closeAfter
+              ? { icon: ListX, label: "Save and close them", onClick: () => saveWindow(true) }
+              : { icon: BookmarkPlus, label: windowTarget ? `Save them to ${windowTarget}` : "Save them", onClick: () => saveWindow(false) },
           ] : [
-            ...(!closed ? [{ icon: ListX, label: "Close them", onClick: closeWindowTabs }] : []),
             // Not a second bare "Undo" next to the page's own.
             ...(saved ? [{ icon: Undo2, label: closed ? `Undo, reopen ${closed} tab${closed === 1 ? "" : "s"}` : "Undo saving them", onClick: undoWindow }] : []),
           ]} />

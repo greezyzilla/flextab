@@ -252,17 +252,47 @@ export function windowGroupName(): string {
 
 export const CLOSE_AFTER_SAVE_KEY = "flextab_close_after_save"
 
-export async function loadCloseAfterSave(): Promise<boolean> {
+/**
+ * Settings › Saving & closing (TASK-60): one switch per way of saving, each
+ * off until the person turns it on.
+ * - drag: an open tab dragged into the workspace, and the Save button on an open tab;
+ * - window: "Save this window as a group", and the window shortcut / right-click;
+ * - saveAll: Save all tabs (the key the Save all dialog has always used);
+ * - popup: anything saved from the toolbar popup, and the page shortcut / right-click.
+ * The page you save from the popup closes when the popup closes, so its Undo still works.
+ */
+export type CloseAfter = "drag" | "window" | "saveAll" | "popup"
+
+const CLOSE_AFTER_KEYS: Record<CloseAfter, string> = {
+  drag: "flextab_close_after_drag",
+  window: "flextab_close_after_window",
+  saveAll: CLOSE_AFTER_SAVE_KEY,
+  popup: "flextab_close_after_popup",
+}
+
+export async function loadCloseAfter(kind: CloseAfter): Promise<boolean> {
   try {
-    return (await chrome.storage.local.get(CLOSE_AFTER_SAVE_KEY))[CLOSE_AFTER_SAVE_KEY] === true
+    const key = CLOSE_AFTER_KEYS[kind]
+    const stored = await chrome.storage.local.get(key)
+    if (typeof stored[key] === "boolean") return stored[key]
+    // The window shortcut used to follow the Save all switch: keep that choice until set here.
+    if (kind === "window") return (await chrome.storage.local.get(CLOSE_AFTER_SAVE_KEY))[CLOSE_AFTER_SAVE_KEY] === true
+    return false
   } catch (_) {
     return false
   }
 }
 
-export async function saveCloseAfterSave(value: boolean): Promise<void> {
-  try { await chrome.storage.local.set({ [CLOSE_AFTER_SAVE_KEY]: value }) } catch (_) { /* per-device convenience */ }
+export async function saveCloseAfter(kind: CloseAfter, value: boolean): Promise<void> {
+  try { await chrome.storage.local.set({ [CLOSE_AFTER_KEYS[kind]]: value }) } catch (_) { /* per-device convenience */ }
 }
+
+/** The port the popup uses to close the page it saved when the popup closes (backgroundCapture). */
+export const POPUP_CLOSE_PORT = "flextab-close-on-popup-close"
+
+/** Save all tabs' switch (the dialog and Settings show the same one). */
+export const loadCloseAfterSave = (): Promise<boolean> => loadCloseAfter("saveAll")
+export const saveCloseAfterSave = (value: boolean): Promise<void> => saveCloseAfter("saveAll", value)
 
 /** Last background capture (shortcut / right-click), so the popup can offer Undo. */
 export const LAST_CAPTURE_KEY = "flextab_last_capture"
