@@ -34,7 +34,8 @@ type PointerDragEvent = Pick<DragMoveEvent, "active" | "over" | "activatorEvent"
 function reorderSpot(event: PointerDragEvent): { zone: string; edge: Edge } | null {
   const container = parseContainerDrag(event.active.id)
   const over = event.over
-  if (!container || !over || !containerReorderTarget(container, over.id.toString())) return null
+  // Spaces show their new order by moving aside (sortable), not by a line (TASK-66).
+  if (!container || container.kind === "space" || !over || !containerReorderTarget(container, over.id.toString())) return null
   return { zone: over.id.toString(), edge: edgeAt(over.rect, pointerY(event)) }
 }
 
@@ -109,9 +110,11 @@ export function useDragAndDrop() {
 
     const container = parseContainerDrag(active.id)
     if (container) {
-      const project = useSavedSpacesStore.getState().savedSpaces
-        .find((s) => s.id === container.spaceId)?.projects.find((p) => p.id === container.projectId)
-      const name = container.kind === "project" ? project?.name : project?.categories.find((c) => c.id === container.categoryId)?.name
+      const space = useSavedSpacesStore.getState().savedSpaces.find((s) => s.id === container.spaceId)
+      const project = container.kind === "space" ? undefined : space?.projects.find((p) => p.id === container.projectId)
+      const name = container.kind === "space" ? space?.name
+        : container.kind === "project" ? project?.name
+        : project?.categories.find((c) => c.id === container.categoryId)?.name
       setDraggedContainer({ ...container, name: name ?? "" })
       return
     }

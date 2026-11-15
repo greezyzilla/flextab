@@ -14,6 +14,7 @@ import {
   containerReorderTarget,
   edgeAt,
   parseContainerDrag,
+  spaceDragId,
   projectDragId,
 } from "./dragDrop"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
@@ -534,5 +535,41 @@ describe("indexes are shown positions, even when stored order differs (TASK-64)"
     useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces() })
     useSavedSpacesStore.getState().moveGroupToCategory("s", "p", "c", "B", "s", "p", "d")
     expect(shownGroups()).toBe("NA") // was "AN"
+  })
+})
+
+describe("reordering spaces by drag in the rail (TASK-66)", () => {
+  beforeEach(() => {
+    yjs.setSpaces([
+      { id: "a", name: "Alpha", order: 0, projects: [] },
+      { id: "b", name: "Beta", order: 1, projects: [] },
+      { id: "c", name: "Gamma", order: 2, projects: [] },
+    ])
+    useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces(), activeSpaceId: "a" })
+  })
+  const space = { kind: "space" as const, spaceId: "a" }
+
+  it("knows a dragged space by its id; it reorders over another avatar and never goes into a space", () => {
+    expect(parseContainerDrag(spaceDragId("a"))).toEqual(space)
+    expect(containerReorderTarget(space, spaceDragId("c"))).toBe("c")
+    expect(containerReorderTarget(space, spaceDragId("a"))).toBeNull() // itself
+    expect(containerReorderTarget(space, "space-drop:c")).toBeNull() // the "into this space" zone
+    expect(containerReorderTarget(space, "proj-drop:b:p1")).toBeNull()
+    expect(containerDropTarget(space, "space-drop:c")).toBeNull()
+    expect(containerMeets(space, spaceDragId("b"))).toBe(true)
+    expect(containerMeets(space, "space-drop:b")).toBe(false)
+  })
+
+  it("takes the slot of the avatar it is over, says where, and undoes", () => {
+    const down = applyContainerDrop(space, spaceDragId("c"))!
+    expect(down.message).toBe("Moved “Alpha” below “Gamma”")
+    expect(yjs.getSpaces().map((s) => s.id)).toEqual(["b", "c", "a"])
+    down.undo()
+    expect(yjs.getSpaces().map((s) => s.id)).toEqual(["a", "b", "c"])
+    const up = applyContainerDrop({ kind: "space", spaceId: "c" }, spaceDragId("a"))!
+    expect(up.message).toBe("Moved “Gamma” above “Alpha”")
+    expect(yjs.getSpaces().map((s) => s.id)).toEqual(["c", "a", "b"])
+    expect(applyContainerDrop(space, spaceDragId("gone"))).toBeNull()
+    expect(applyContainerDrop(space, "proj-drop:b:p1")).toBeNull()
   })
 })

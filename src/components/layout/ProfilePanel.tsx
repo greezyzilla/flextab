@@ -2,6 +2,8 @@ import { SignOutDialog } from "~src/components/SignOutDialog";
 import { commitOnBlur } from "~src/lib/inlineEdit";
 import { useState, useRef, useEffect } from "react";
 import { useDroppable } from "@dnd-kit/core";
+import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { useAuthStore } from "~src/store/useAuthStore";
 import { v7 as uuidv7 } from "uuid";
@@ -13,7 +15,7 @@ import { Input } from "~src/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "~src/components/ui/avatar";
 import { spaceAvatarColors } from "~src/components/levelIcons";
 import { SIGN_IN_ROUTE } from "~src/lib/workspaceAccess";
-import { parseContainerDrag } from "~src/services/dragDrop";
+import { parseContainerDrag, spaceDragId } from "~src/services/dragDrop";
 import { SPRING_LOAD_MS } from "~src/hooks/useDragAndDrop";
 
 export function ProfilePanel() {
@@ -89,16 +91,23 @@ export function ProfilePanel() {
             "Personal" row in LeftPanel / category row in ContentPanel / window
             row in RightPanel, so the space rail lines up with them too. */}
         <div className="flex flex-col gap-3 items-center pt-2 pb-4 flex-1">
+        {/* The other avatars move aside while one is dragged, as tabs and groups
+            do (TASK-66), so the rail shows its new order before the drop. */}
+        <SortableContext items={savedSpaces.map((s) => spaceDragId(s.id))} strategy={verticalListSortingStrategy}>
         {savedSpaces.map((space) => (
           <DroppableSpace key={space.id} spaceId={space.id}>
-            <div className="relative">
-              {/* Switching only. Managing spaces (order, rename, delete)
-                  lives in Settings › Spaces. */}
+            <DraggableSpace spaceId={space.id}>
+              {/* A click switches; dragging it puts it elsewhere in the rail
+                  (TASK-66). Rename and delete live in Settings › Spaces,
+                  which also keeps Move up/down for the keyboard. */}
+              {(drag) => (
               <button
+                ref={drag.ref}
+                onPointerDown={drag.onPointerDown}
                 type="button"
                 aria-label={`Switch to ${space.name}`}
                 aria-pressed={!inSettings && activeSpaceId === space.id}
-                onClick={() => { setActiveSpace(space.id); navigate("/"); }}
+                onClick={() => { if (drag.dragged()) return; setActiveSpace(space.id); navigate("/"); }}
                 className={`w-10 h-10 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-black-900 cursor-pointer transition-all flex items-center justify-center text-xs font-normal font-sans ${
                   !inSettings && activeSpaceId === space.id ? "ring-2 ring-ink/50" : "hover:brightness-125"
                 }`}
@@ -110,9 +119,11 @@ export function ProfilePanel() {
               >
                 {(space.abbreviation || space.name.slice(0, 2)).toUpperCase()}
               </button>
-            </div>
+              )}
+            </DraggableSpace>
           </DroppableSpace>
         ))}
+        </SortableContext>
         {creatingSpace && (
           <div className="relative">
             <div aria-hidden className="w-10 h-10 rounded-full border border-dashed border-ink/50 flex items-center justify-center text-xs font-medium text-fg-muted">
@@ -217,19 +228,64 @@ export function ProfilePanel() {
 }
 
 function DroppableSpace({ spaceId, children }: { spaceId: string; children: React.ReactNode }) {
-  const { setNodeRef, isOver, active } = useDroppable({
-    id: `space-drop:${spaceId}`,
-  });
+  const zone = `space-drop:${spaceId}`;
+  const { setNodeRef, isOver, active } = useDroppable({ id: zone });
   const activeSpaceId = useSavedSpacesStore((s) => s.activeSpaceId);
   // A dragged category cannot land on a space: hovering one opens it after a
   // moment (spring-loaded, TASK-59). That reads as a countdown ring, not as the
   // drop highlight (ring + grow), so the avatar never promises a drop.
   const opens = isOver && !!active && parseContainerDrag(active.id)?.kind === "category";
+  // A dragged space goes between spaces, never into one (TASK-66): no
+  // "inside" highlight; the other avatars move aside instead.
+  const movingSpace = !!active && parseContainerDrag(active.id)?.kind === "space";
 
   return (
-    <div ref={setNodeRef} className={`relative rounded-full transition-all ${isOver && !opens ? 'ring-2 ring-ink/40 scale-110' : ''}`}>
+    <div ref={setNodeRef} className={`relative rounded-full transition-all ${isOver && !opens && !movingSpace ? 'ring-2 ring-ink/40 scale-110' : ''}`}>
       {children}
       {opens && spaceId !== activeSpaceId && <SpringLoadRing />}
+    </div>
+  );
+}
+
+/** How far the pointer must move on an avatar before it becomes a drag; less is a click. */
+const SPACE_DRAG_PX = 4;
+
+/**
+ * A rail avatar that can be dragged to a new place (TASK-66). The drag only
+ * starts once the pointer has moved a little, so a click still switches space
+ * without the avatar lifting. While one is dragged the others move aside, and
+ * the dragged one's own slot shows dimmed where it will land. The keyboard
+ * keeps the button's own Enter/Space (switch); Settings › Spaces has Move up/down.
+ */
+function DraggableSpace({ spaceId, children }: {
+  spaceId: string;
+  children: (drag: { ref: (el: HTMLElement | null) => void; onPointerDown: (e: React.PointerEvent) => void; dragged: () => boolean }) => React.ReactNode;
+}) {
+  const { setNodeRef, listeners, isDragging, transform, transition } = useSortable({ id: spaceDragId(spaceId) });
+  const didDrag = useRef(false);
+  const onPointerDown = (down: React.PointerEvent) => {
+    if (down.button !== 0) return;
+    didDrag.current = false;
+    const start = { x: down.clientX, y: down.clientY };
+    const native = down.nativeEvent;
+    const target = down.currentTarget;
+    const move = (e: PointerEvent) => {
+      if (Math.hypot(e.clientX - start.x, e.clientY - start.y) < SPACE_DRAG_PX) return;
+      stop();
+      didDrag.current = true;
+      // Hand the press to dnd-kit as it began, so the drag starts where the pointer went down.
+      listeners?.onPointerDown?.({ nativeEvent: native, currentTarget: target, target } as unknown as React.PointerEvent);
+    };
+    const stop = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", stop);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", stop);
+  };
+  return (
+    <div className="relative" style={{ transform: CSS.Translate.toString(transform), transition, opacity: isDragging ? 0.5 : undefined }}>
+      {children({ ref: setNodeRef, onPointerDown, dragged: () => { const d = didDrag.current; didDrag.current = false; return d; } })}
     </div>
   );
 }

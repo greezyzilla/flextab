@@ -174,6 +174,15 @@ export function placeProject(spaceId: string, projectId: string, targetId: strin
     (a, b) => useSavedSpacesStore.getState().reorderProjects(spaceId, a, b))
 }
 
+/** Drop a rail space before/after another one (TASK-66). Returns an undo, or null when nothing changed. */
+export function placeSpace(spaceId: string, targetId: string, edge: Edge): (() => void) | null {
+  const list = useSavedSpacesStore.getState().savedSpaces
+  const target = list.findIndex((s) => s.id === targetId)
+  if (target < 0) return null
+  return reorderWithin(list, spaceId, (from) => insertionIndex(from, target, edge),
+    (a, b) => useSavedSpacesStore.getState().reorderSpaces(a, b))
+}
+
 /** Drop a category before/after another one in the same project (TASK-64). Returns an undo, or null when nothing changed. */
 export function placeCategory(spaceId: string, projectId: string, categoryId: string, targetId: string, edge: Edge): (() => void) | null {
   const list = categoriesOf(spaceId, projectId)

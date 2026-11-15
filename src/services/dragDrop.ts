@@ -10,7 +10,7 @@ import { closeSavedTabs, loadCloseAfter, reopenTabs, type ClosedTab } from "~src
 import { ensureSaveTargetPath } from "~src/services/resolveSaveTarget"
 import { ensureCategoryPath, isUnsortedGroup } from "~src/lib/defaultPath"
 import * as yjs from "~src/lib/yjsDoc"
-import { describeContainerTarget, moveCategoryTo, moveProjectTo, placeCategory, placeProject, type ContainerTarget, type Edge } from "~src/services/moveTo"
+import { describeContainerTarget, moveCategoryTo, moveProjectTo, placeCategory, placeProject, placeSpace, type ContainerTarget, type Edge } from "~src/services/moveTo"
 
 export type TabLocation = {
   spaceId: string
@@ -129,8 +129,12 @@ export function parseBoundaryDrop(overId: string): BoundaryDropTarget | null {
 // --- Dragging a project or a category (TASK-59) ---
 
 export type ContainerDrag =
+  | { kind: "space"; spaceId: string }
   | { kind: "project"; spaceId: string; projectId: string }
   | { kind: "category"; spaceId: string; projectId: string; categoryId: string }
+
+/** A rail space dragged to a new place in the rail (TASK-66). */
+export const spaceDragId = (spaceId: string) => `space-drag:${spaceId}`
 
 export const projectDragId = (spaceId: string, projectId: string) => `proj-drag:${spaceId}:${projectId}`
 export const categoryDragId = (spaceId: string, projectId: string, categoryId: string) =>
@@ -139,6 +143,8 @@ export const categoryDragId = (spaceId: string, projectId: string, categoryId: s
 /** A dragged project or category, from its drag id; null for tabs and groups. */
 export function parseContainerDrag(id: string | number): ContainerDrag | null {
   if (typeof id !== "string") return null
+  const space = id.match(/^space-drag:(.+)$/)
+  if (space) return { kind: "space", spaceId: space[1] }
   const cat = id.match(/^cat-drag:(.+):(.+):(.+)$/)
   if (cat) return { kind: "category", spaceId: cat[1], projectId: cat[2], categoryId: cat[3] }
   const proj = id.match(/^proj-drag:(.+):(.+)$/)
@@ -152,7 +158,7 @@ export function parseContainerDrag(id: string | number): ContainerDrag | null {
  */
 export function containerDropTarget(drag: ContainerDrag, overId: string): ContainerTarget | null {
   const zone = overId.startsWith("section-drop:") ? null : parseBoundaryDrop(overId)
-  if (!zone) return null
+  if (!zone || drag.kind === "space") return null // a space only reorders
   if (drag.kind === "project") return zone.kind === "space" ? { spaceId: zone.spaceId } : null
   return zone.kind === "space" ? null : { spaceId: zone.spaceId, projectId: zone.projectId }
 }
@@ -164,6 +170,11 @@ export function containerDropTarget(drag: ContainerDrag, overId: string): Contai
  */
 export function containerReorderTarget(drag: ContainerDrag, overId: string): string | null {
   const zone = parseBoundaryDrop(overId)
+  if (drag.kind === "space") {
+    // The rail's avatars are a sortable list: a space reorders over another space's avatar.
+    const other = parseContainerDrag(overId)
+    return other?.kind === "space" && other.spaceId !== drag.spaceId ? other.spaceId : null
+  }
   if (drag.kind === "project") {
     return zone?.kind === "project" && zone.spaceId === drag.spaceId && zone.projectId !== drag.projectId ? zone.projectId : null
   }
@@ -192,6 +203,16 @@ export function containerMeets(drag: ContainerDrag, overId: string): boolean {
  * the Undo toast's text and action, or null when nothing changed.
  */
 export function applyContainerDrop(drag: ContainerDrag, overId: string, edge: Edge = "after"): { message: string; undo: () => void } | null {
+  if (drag.kind === "space") {
+    // The other avatars already moved aside: it takes the slot of the one it is
+    // over, below it when moving down, above it when moving up.
+    const next = containerReorderTarget(drag, overId)
+    const spaces = useSavedSpacesStore.getState().savedSpaces
+    const nameOf = (id: string | null) => spaces.find((s) => s.id === id)?.name
+    const side: Edge = spaces.findIndex((s) => s.id === drag.spaceId) < spaces.findIndex((s) => s.id === next) ? "after" : "before"
+    const undo = next ? placeSpace(drag.spaceId, next, side) : null
+    return undo ? { message: `Moved “${nameOf(drag.spaceId)}” ${side === "before" ? "above" : "below"} “${nameOf(next)}”`, undo } : null
+  }
   const space = useSavedSpacesStore.getState().savedSpaces.find((s) => s.id === drag.spaceId)
   const project = space?.projects.find((p) => p.id === drag.projectId)
   const name = drag.kind === "project" ? project?.name : project?.categories.find((c) => c.id === drag.categoryId)?.name

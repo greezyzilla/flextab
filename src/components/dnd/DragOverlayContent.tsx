@@ -7,15 +7,15 @@ import { resolveOverGroupId } from "~src/services/dragDrop";
 import { groupColorFill, groupTintSurface } from "~src/lib/groupColors";
 import { DragHandleIcon } from "../icons/DragHandleIcon";
 import { FaviconImg } from "../FaviconImg";
-import { CategoryIcon, ProjectIcon } from "../levelIcons";
+import { CategoryIcon, ProjectIcon, spaceAvatarColors } from "../levelIcons";
 
 interface DragOverlayContentProps {
   activeId: string | number | null;
   draggedGroup: SavedGroup | null;
   draggedTab: chrome.tabs.Tab | null;
   draggedSavedTab: SavedTab | null;
-  /** A dragged project or category (TASK-59): its kind and name. */
-  draggedContainer?: { kind: "project" | "category"; name: string } | null;
+  /** A dragged space, project or category (TASK-59, TASK-66): its kind and name. */
+  draggedContainer?: { kind: "space" | "project" | "category"; spaceId?: string; name: string } | null;
 }
 
 function groupColorOf(spaces: SavedSpace[], groupId: string | null): GroupColor | undefined {
@@ -41,6 +41,24 @@ export function DragOverlayContent({ activeId, draggedGroup, draggedTab, dragged
   // rides below-right of the pointer (the overlay starts at the small icon
   // handle), so the rail space or row under the pointer stays visible with
   // its drop highlight.
+  // A rail space (TASK-66) travels as a copy of its own avatar, at its size,
+  // lifted with a shadow, as dragged items look in the UI references. The
+  // avatar's fill is translucent, so the copy sits on the page colour.
+  if (activeId && draggedContainer?.kind === "space") {
+    const space = spaces.find((s) => s.id === draggedContainer.spaceId);
+    const active = useSavedSpacesStore.getState().activeSpaceId === draggedContainer.spaceId;
+    return (
+      <div data-dragged-space={draggedContainer.spaceId} className="h-10 w-10 rounded-full bg-black-900 shadow-lg cursor-grabbing">
+        <div
+          className={`flex h-10 w-10 items-center justify-center rounded-full font-sans text-xs font-normal ${active ? "ring-2 ring-ink/50" : ""}`}
+          style={spaceAvatarColors(space, active)}
+        >
+          {(space?.abbreviation || (space?.name ?? draggedContainer.name).slice(0, 2)).toUpperCase()}
+        </div>
+      </div>
+    );
+  }
+
   if (activeId && draggedContainer) {
     const Icon = draggedContainer.kind === "project" ? ProjectIcon : CategoryIcon;
     return (
