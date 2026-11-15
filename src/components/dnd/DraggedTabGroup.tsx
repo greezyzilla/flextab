@@ -1,72 +1,41 @@
+import { useLayoutEffect, useRef } from "react"
 import type { SavedGroup } from "~src/types"
-import { groupTintEdge, groupTintSurface } from "~src/lib/groupColors"
-import { DragHandleIcon } from "../icons/DragHandleIcon"
-import { FaviconImg } from "../FaviconImg"
 
 interface DraggedTabGroupProps {
   group: SavedGroup
 }
 
+/**
+ * A dragged group (TASK-65) travels as a copy of its own card, the size it is
+ * on the page, lifted with a shadow: the UI benchmark showed dragged items and
+ * containers as themselves at their own size, never re-laid out. The copy is
+ * the card's DOM as rendered when the drag starts (header, tabs, colour), so
+ * it can never drift from the card. It is inert: nothing in it can be clicked.
+ * The card's surface is translucent, so the copy sits on the page colour.
+ */
 export function DraggedTabGroup({ group }: DraggedTabGroupProps) {
-  const sortedTabs = [...(group.tabs || [])].sort((a, b) => {
-    const orderA = a.order ?? 0;
-    const orderB = b.order ?? 0;
-    return orderA - orderB;
-  });
+  const holder = useRef<HTMLDivElement>(null)
 
-  const MAX_DISPLAY_TABS = 3;
-  const GRID_COLS = 4;
-
-  const hasMoreThanFour = sortedTabs.length > GRID_COLS;
-  const displayTabs = hasMoreThanFour ? sortedTabs.slice(0, MAX_DISPLAY_TABS) : sortedTabs;
-  const extraCount = hasMoreThanFour ? sortedTabs.length - MAX_DISPLAY_TABS : 0;
+  useLayoutEffect(() => {
+    const card = document.querySelector<HTMLElement>(`[data-group-card="${CSS.escape(group.id)}"]`)
+    const box = holder.current
+    if (!card || !box) return
+    const copy = card.cloneNode(true) as HTMLElement
+    copy.removeAttribute("data-group-card")
+    copy.classList.remove("ring-2", "ring-[var(--accent)]") // a search flash is not part of the card
+    for (const el of [copy, ...copy.querySelectorAll("[id]")]) el.removeAttribute("id") // ids stay unique
+    box.replaceChildren(copy)
+    // Same place inside the overlay as the card inside its sortable row.
+    const row = card.parentElement
+    if (row && box.parentElement) {
+      box.parentElement.style.paddingTop = row.style.paddingTop
+      box.parentElement.style.paddingInline = row.style.paddingInline
+    }
+  }, [group.id])
 
   return (
-    <div className="flex flex-col gap-2 p-4">
-      <h3 className="pl-6 text-fg-muted font-sans text-sm">{group.name}</h3>
-      {sortedTabs.length > 0 ? (
-        <div
-          className="grid grid-cols-4 gap-2 border border-line rounded-md p-2 transition-colors"
-          // A lifted coloured group keeps its tint (TASK-18).
-          style={group.color ? { borderColor: groupTintEdge(group.color), backgroundColor: groupTintSurface(group.color) } : undefined}
-        >
-          {displayTabs.map((tab) => (
-            <div
-              key={tab.id}
-              className="flex items-center gap-2 py-2 px-3 bg-ink/5 rounded-md hover:bg-ink/10 transition-colors group"
-            >
-              <div
-                className="opacity-40 group-hover:opacity-50 hover:!opacity-100 cursor-grab active:cursor-grabbing p-1 rounded transition-opacity"
-                title="Drag to reorder"
-              >
-                <DragHandleIcon />
-              </div>
-
-              <div className="flex items-center gap-3 flex-1 cursor-pointer overflow-hidden">
-                <FaviconImg src={tab.favicon} alt={tab.title} />
-                <div className="flex flex-col gap-0.5 text-fg overflow-hidden">
-                  <div className="text-xs truncate">{tab.title}</div>
-                  <div className="text-fg-subtle text-xs truncate flex-1">{tab.url}</div>
-                </div>
-              </div>
-            </div>
-          ))}
-
-          {hasMoreThanFour && (
-            <div className="flex items-center justify-center bg-ink/5 rounded-md py-2 px-3 relative">
-              <div className="absolute inset-0 bg-ink/5 rounded-md translate-x-0.5 translate-y-0.5 opacity-60"></div>
-              <div className="absolute inset-0 bg-ink/5 rounded-md translate-x-1 translate-y-1 opacity-40"></div>
-              <div className="relative z-10 text-fg-muted text-xs font-medium">
-                +{extraCount}
-              </div>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="text-fg-subtle font-sans text-sm p-12 text-center border border-line rounded-md border-dashed">
-          No saved tabs yet
-        </div>
-      )}
+    <div aria-hidden inert className="cursor-grabbing">
+      <div ref={holder} data-dragged-group={group.id} className="rounded-card bg-black-900 shadow-lg" />
     </div>
   )
 }

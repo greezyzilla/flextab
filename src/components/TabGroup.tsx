@@ -319,6 +319,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
         (bordered card for user groups, borderless tinted tray for Unsorted). */}
     <div
       ref={(el) => { setDroppableRef(el); flash.ref.current = el; }}
+      data-group-card={preview ? undefined : group.id}
       className={`flex flex-col rounded-card border transition-[background-color,box-shadow,border-color] ${isOver || shownColor ? '' : unsorted ? 'border-transparent bg-ink/[0.04]' : 'border-ink/[0.08] bg-ink/[0.015]'} ${flash.on ? 'ring-2 ring-[var(--accent)]' : ''}`}
       style={{
         padding: 'var(--density-p-group)',
