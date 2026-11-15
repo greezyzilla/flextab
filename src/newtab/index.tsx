@@ -18,6 +18,7 @@ import { startSyncEngine, stopSyncEngine, startLocalPersistence, stopLocalPersis
 import { pullSettings, startSettingsSync, stopSettingsSync } from "~src/services/settingsSync"
 import { useSettingsStore } from "~src/store/useSettingsStore"
 import { applyThemeMode, readStoredThemeMode } from "~src/lib/theme"
+import { useRevealRequests } from "~src/hooks/useRevealRequests"
 
 // Before the first render: a forced Light/Dark must not flash (lib/theme.ts).
 applyThemeMode(readStoredThemeMode())
@@ -35,6 +36,8 @@ function NewTabPage() {
   const { initialize, isAuthenticated, isLoading: authLoading, user } = useAuthStore()
   const autoSync = useSettingsStore((s) => s.autoSync)
   const onSignInRoute = useRoute() === SIGN_IN_ROUTE
+  // The popup's "Open in FlexTab" (TASK-75).
+  useRevealRequests(hydrated && !authLoading)
 
   // Signing in from the sign-in screen lands back in the workspace.
   useEffect(() => {

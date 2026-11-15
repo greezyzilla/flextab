@@ -27,4 +27,19 @@ describe("Settings › Saving (TASK-60)", () => {
     await user.click(sw("Close after saving a window"))
     expect(disk.flextab_close_after_window).toBe(false)
   })
+
+  it("turns Remember where I last saved off, which forgets the list (TASK-75)", async () => {
+    const user = userEvent.setup()
+    disk.flextab_recent_destinations = [{ spaceId: "s", projectId: "p", categoryId: "c" }]
+    vi.mocked(chrome.storage.local.remove).mockImplementation((async (key: string) => { delete disk[key] }) as never)
+    render(<SavingTab />)
+    expect(screen.getByText("Where saves go")).toBeInTheDocument()
+    const sw = screen.getByRole("switch", { name: "Remember where I last saved" })
+    await waitFor(() => expect(sw).toBeEnabled())
+    expect(sw).toBeChecked()
+    await user.click(sw)
+    expect(sw).not.toBeChecked()
+    await waitFor(() => expect(disk.flextab_remember_destinations).toBe(false))
+    expect(disk.flextab_recent_destinations).toBeUndefined()
+  })
 })

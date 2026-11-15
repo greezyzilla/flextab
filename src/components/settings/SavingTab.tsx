@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Switch } from "~src/components/ui/switch";
 import { loadCloseAfter, saveCloseAfter, type CloseAfter } from "~src/services/capture";
+import { loadRememberDestinations, saveRememberDestinations } from "~src/lib/recentDestinations";
 import { GroupHeading, SettingRow } from "./shared";
 
 /**
@@ -17,12 +18,19 @@ const ROWS: { kind: CloseAfter; label: string; description: string }[] = [
 
 export function SavingTab() {
   const [values, setValues] = useState<Partial<Record<CloseAfter, boolean>>>({});
+  const [remember, setRemember] = useState<boolean | null>(null);
   useEffect(() => {
     let alive = true;
     void Promise.all(ROWS.map(async (r) => [r.kind, await loadCloseAfter(r.kind)] as const))
       .then((pairs) => { if (alive) setValues(Object.fromEntries(pairs)); });
+    void loadRememberDestinations().then((v) => { if (alive) setRemember(v); });
     return () => { alive = false; };
   }, []);
+
+  const changeRemember = (value: boolean) => {
+    setRemember(value);
+    void saveRememberDestinations(value);
+  };
 
   const change = (kind: CloseAfter, value: boolean) => {
     setValues((v) => ({ ...v, [kind]: value }));
@@ -42,6 +50,19 @@ export function SavingTab() {
           )}
         </SettingRow>
       ))}
+      {/* TASK-75: where a save goes when you don't pick. */}
+      <GroupHeading>Where saves go</GroupHeading>
+      <SettingRow
+        label="Remember where I last saved"
+        description="The popup suggests the group you last saved to. When off, nothing is suggested: you pick a group each time, and the shortcuts and right-click menu open the popup to ask."
+      >
+        {(controlProps) => (
+          <div className="flex items-center gap-2">
+            <Switch {...controlProps} checked={remember ?? true} disabled={remember === null} onCheckedChange={changeRemember} />
+            <span className="text-fg-muted text-sm font-sans">{remember ?? true ? "On" : "Off"}</span>
+          </div>
+        )}
+      </SettingRow>
     </section>
   );
 }

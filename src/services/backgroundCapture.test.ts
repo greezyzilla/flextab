@@ -128,12 +128,21 @@ describe("captureFromBackground", () => {
     expect(chrome.tabs.create).toHaveBeenCalledWith({ url: "chrome-extension://test/newtab.html" })
   })
 
-  it("saves into the default path when the space has no category yet", async () => {
+  // TASK-75: no place you saved to before means nothing is guessed.
+  it("with no remembered place, opens the popup to ask and writes nothing", async () => {
     disk[yjs.PERSIST_KEY] = { version: 1, origin: "snapshot", data: yjs.encodeSpacesAsStorage([{ id: "s", name: "W", order: 0, projects: [] }]) }
-    expect(await captureFromBackground("page", { tab: { id: 1, url: "https://a.example" } as chrome.tabs.Tab })).toBe("saved")
-    const [project] = yjs.getSpaces()[0].projects
-    expect([project.name, project.categories[0].name, project.categories[0].groups[0].name]).toEqual(["General", "Uncategorized", "Unsorted"])
-    expect(project.categories[0].groups[0].tabs.map((t) => t.url)).toEqual(["https://a.example"])
+    expect(await captureFromBackground("page", { tab: { id: 1, url: "https://a.example" } as chrome.tabs.Tab })).toBe("no-destination")
+    expect(chrome.action.openPopup).toHaveBeenCalled()
+    expect(yjs.getSpaces()[0].projects).toEqual([])
+  })
+
+  it("with Remember where I last saved off, asks even with a remembered place, and hands a link to the popup", async () => {
+    disk.flextab_remember_destinations = false
+    expect(await captureFromBackground("link", { linkUrl: "https://l.example", linkText: "L" })).toBe("no-destination")
+    expect(chrome.storage.session.set).toHaveBeenCalledWith({ flextab_popup_subject: expect.objectContaining({ url: "https://l.example", title: "L" }) })
+    await captureFromBackground("link", { linkUrl: "https://m.example" })
+    expect(chrome.storage.session.set).toHaveBeenLastCalledWith({ flextab_popup_subject: expect.objectContaining({ url: "https://m.example", title: "https://m.example" }) })
+    expect(chrome.action.openPopup).toHaveBeenCalled()
   })
 
   it("saves into a new Personal space when the workspace has no spaces (TASK-37)", async () => {

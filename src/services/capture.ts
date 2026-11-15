@@ -220,29 +220,67 @@ export async function reopenTabs(closed: ClosedTab[]): Promise<void> {
 // ---------------------------------------------------------------------------
 
 /**
- * Where a quick capture goes: the last group saved into (if it still exists),
- * else that category's Unsorted, else the preferred/first space's category
- * (created by default if missing) and its Unsorted. With no space at all the
- * ids are empty and the save itself creates the default space (TASK-37).
+ * Why a destination was suggested, so the popup can say it the way a person
+ * would ("Last saved to"), not present a guess as a decision (TASK-75):
+ * - recentGroup: the group you last saved into (wherever it lives now);
+ * - recentCategory: that group is gone; the category you last saved into;
+ * - current: nothing remembered; where FlexTab was last open;
+ * - first: nothing remembered or open; the first category (or a new space).
  */
+export type DestinationSource = "recentGroup" | "recentCategory" | "current" | "first"
+
+/**
+ * Where a quick capture goes, and why: the last group saved into (if it
+ * still exists, wherever it moved), else the last category saved into and its
+ * Unsorted, else the preferred/first space's category (created by default if
+ * missing) and its Unsorted. With no space at all the ids are empty and the
+ * save itself creates the default space (TASK-37).
+ */
+export function suggestDestination(
+  spaces: SavedSpace[],
+  recent: RecentDestination[],
+  preferred: { spaceId?: string | null; projectId?: string | null; categoryId?: string | null } = {},
+): { destination: CaptureDestination; from: DestinationSource } {
+  // The newest remembered group that still exists, wherever it lives now (a
+  // moved group keeps its id). Only when none does: the newest remembered
+  // category that exists, which then means its Unsorted (TASK-75).
+  for (const r of recent) {
+    const found = r.groupId ? findGroup(spaces, r.groupId) : null
+    if (found) return { destination: found, from: "recentGroup" }
+  }
+  for (const r of recent) {
+    if (findCategory(spaces, r)) return { destination: { spaceId: r.spaceId, projectId: r.projectId, categoryId: r.categoryId, groupId: undefined }, from: "recentCategory" }
+  }
+  const target = resolveSaveTargetIds(spaces, preferred)
+  const current = !!preferred.categoryId && target.categoryId === preferred.categoryId
+  return { destination: { ...target, groupId: undefined }, from: current ? "current" : "first" }
+}
+
 export function defaultDestination(
   spaces: SavedSpace[],
   recent: RecentDestination[],
   preferred: { spaceId?: string | null; projectId?: string | null; categoryId?: string | null } = {},
 ): CaptureDestination {
-  for (const r of recent) {
-    const category = findCategory(spaces, r)
-    if (!category) continue
-    const group = r.groupId ? category.groups.find((g) => g.id === r.groupId) : undefined
-    return { spaceId: r.spaceId, projectId: r.projectId, categoryId: r.categoryId, groupId: group?.id }
+  return suggestDestination(spaces, recent, preferred).destination
+}
+
+function findGroup(spaces: SavedSpace[], groupId: string): CaptureDestination | null {
+  for (const s of spaces) for (const p of s.projects) for (const c of p.categories) {
+    if (c.groups.some((g) => g.id === groupId)) return { spaceId: s.id, projectId: p.id, categoryId: c.id, groupId }
   }
-  return { ...resolveSaveTargetIds(spaces, preferred), groupId: undefined }
+  return null
 }
 
 export async function loadDefaultDestination(
   preferred?: Parameters<typeof defaultDestination>[2],
 ): Promise<CaptureDestination> {
   return defaultDestination(yjs.getSpaces(), await loadRecentDestinations(), preferred)
+}
+
+export async function loadSuggestedDestination(
+  preferred?: Parameters<typeof defaultDestination>[2],
+): Promise<ReturnType<typeof suggestDestination>> {
+  return suggestDestination(yjs.getSpaces(), await loadRecentDestinations(), preferred)
 }
 
 /** Name for a window's worth of tabs, without seconds. */
@@ -286,6 +324,13 @@ export async function loadCloseAfter(kind: CloseAfter): Promise<boolean> {
 export async function saveCloseAfter(kind: CloseAfter, value: boolean): Promise<void> {
   try { await chrome.storage.local.set({ [CLOSE_AFTER_KEYS[kind]]: value }) } catch (_) { /* per-device convenience */ }
 }
+
+/**
+ * A link the right-click menu couldn't place without asking (TASK-75): the
+ * popup opens on it instead of the current page. Session-only, short-lived.
+ */
+export const POPUP_SUBJECT_KEY = "flextab_popup_subject"
+export const POPUP_SUBJECT_TTL_MS = 30_000
 
 /** The port the popup uses to close the page it saved when the popup closes (backgroundCapture). */
 export const POPUP_CLOSE_PORT = "flextab-close-on-popup-close"

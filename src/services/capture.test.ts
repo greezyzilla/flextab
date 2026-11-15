@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import * as yjs from "~src/lib/yjsDoc"
 import type { SavedSpace } from "~src/types"
 import {
-  captureTabs, undoCapture, moveCapture, closeSavedTabs, reopenTabs, defaultDestination,
+  captureTabs, undoCapture, moveCapture, closeSavedTabs, reopenTabs, defaultDestination, suggestDestination,
   loadDefaultDestination, isCaptureFailure, loadCloseAfterSave, saveCloseAfterSave, loadCloseAfter, saveCloseAfter,
   storeLastCapture, loadLastCapture, syncDocFromStorage, resetWorkerHydration, windowGroupName,
   type CaptureReceipt,
@@ -179,6 +179,30 @@ describe("defaults and settings", () => {
     expect(defaultDestination(spaces, [{ spaceId: "x", projectId: "p", categoryId: "c" }])).toEqual({ spaceId: "s", projectId: "p", categoryId: "c", groupId: undefined })
     // No space at all: empty ids, and the save itself creates the space (TASK-37).
     expect(defaultDestination([], [])).toEqual({ spaceId: "", projectId: "", categoryId: "", groupId: undefined })
+  })
+
+  // TASK-75: the "suddenly saved to Unsorted" report. Before, the newest
+  // recent whose category still existed won, even when its group was gone or
+  // had moved, so the save went to that category's Unsorted.
+  it("follows a moved group, and skips a deleted one for an older recent whose group still exists", () => {
+    const spaces = yjs.getSpaces()
+    // g lives in c; the recent still says c2 (it was moved after the save).
+    expect(defaultDestination(spaces, [{ spaceId: "s", projectId: "p", categoryId: "c2", groupId: "g" }])).toEqual({ spaceId: "s", projectId: "p", categoryId: "c", groupId: "g" })
+    // Newest recent's group was deleted: the older one with a live group wins over c2's Unsorted.
+    expect(defaultDestination(spaces, [
+      { spaceId: "s", projectId: "p", categoryId: "c2", groupId: "gone" },
+      { spaceId: "s", projectId: "p", categoryId: "c", groupId: "g" },
+    ])).toEqual({ spaceId: "s", projectId: "p", categoryId: "c", groupId: "g" })
+  })
+
+  it("says why a destination was suggested, so the popup can name it", () => {
+    const spaces = yjs.getSpaces()
+    const from = (recent: Parameters<typeof suggestDestination>[1], preferred = {}) => suggestDestination(spaces, recent, preferred).from
+    expect(from([{ spaceId: "s", projectId: "p", categoryId: "c", groupId: "g" }])).toBe("recentGroup")
+    expect(from([{ spaceId: "s", projectId: "p", categoryId: "c2", groupId: "gone" }])).toBe("recentCategory")
+    expect(from([], { spaceId: "s", projectId: "p", categoryId: "c2" })).toBe("current")
+    expect(from([], { spaceId: "s", projectId: "p", categoryId: "gone" })).toBe("first")
+    expect(from([])).toBe("first")
   })
 
   it("loads the default from stored recents", async () => {

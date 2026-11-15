@@ -4,9 +4,11 @@
 // popup) and confirm with the toolbar badge; the popup then offers Undo for
 // the last such save.
 import {
-  captureTabs, closeSavedTabs, isCaptureFailure, loadCloseAfter, loadDefaultDestination, POPUP_CLOSE_PORT,
+  captureTabs, closeSavedTabs, isCaptureFailure, loadCloseAfter, loadSuggestedDestination, POPUP_CLOSE_PORT, POPUP_SUBJECT_KEY,
   storeLastCapture, syncDocFromStorage, windowGroupName, type ChromeTabLike,
 } from "~src/services/capture"
+import { isSavableTabUrl } from "~src/services/saveTabsAsGroup"
+import * as yjs from "~src/lib/yjsDoc"
 
 export const MENU_SAVE_PAGE = "flextab-save-page"
 export const MENU_SAVE_LINK = "flextab-save-link"
@@ -81,8 +83,6 @@ export async function captureFromBackground(
     return "no-workspace"
   }
 
-  const destination = await loadDefaultDestination()
-
   let tabs: ChromeTabLike[]
   if (kind === "link") {
     tabs = context.linkUrl ? [{ url: context.linkUrl, title: context.linkText || context.linkUrl }] : []
@@ -94,14 +94,30 @@ export async function captureFromBackground(
     tabs = context.tab ? [context.tab] : await chrome.tabs.query({ active: true, currentWindow: true })
   }
 
+  // Only a place you saved to before is used without asking (TASK-75). With
+  // none (or "Remember where I last saved" off), nothing is guessed: the popup
+  // opens to ask, holding the link when it was a link. An empty workspace has
+  // nothing to pick from, so it still gets its default space (TASK-37).
+  if (!tabs.some((t) => isSavableTabUrl(t.url))) {
+    await flashBadge("×", "#6b7280", "FlexTab: this page can't be saved")
+    return "unsavable"
+  }
+  const suggestion = await loadSuggestedDestination()
+  const remembered = suggestion.from === "recentGroup" || suggestion.from === "recentCategory"
+  if (!remembered && yjs.getSpaces().length > 0) {
+    if (kind === "link" && context.linkUrl) {
+      await chrome.storage.session.set({ [POPUP_SUBJECT_KEY]: { url: context.linkUrl, title: context.linkText || context.linkUrl, at: Date.now() } })
+    }
+    await openForChoice()
+    return "no-destination"
+  }
+  const destination = suggestion.destination
+
   // A window becomes its own group; a page or link joins the last group.
   const target = kind === "window" ? { ...destination, groupId: undefined, newGroupName: windowGroupName() } : destination
   const result = await captureTabs(tabs, target, { dedupe: kind !== "window" })
+  // "nothing-savable" was answered above, so a failure here means no place.
   if (isCaptureFailure(result)) {
-    if (result.error === "nothing-savable") {
-      await flashBadge("×", "#6b7280", "FlexTab: this page can't be saved")
-      return "unsavable"
-    }
     await openForChoice()
     return "no-destination"
   }

@@ -5,6 +5,8 @@ import {
   loadRecentDestinations,
   pushRecent,
   rememberDestination,
+  loadRememberDestinations,
+  saveRememberDestinations,
 } from "./recentDestinations"
 
 const t = (c: string) => ({ spaceId: "s", projectId: "p", categoryId: c })
@@ -17,6 +19,31 @@ beforeEach(() => {
   vi.mocked(chrome.storage.local.set).mockImplementation((async (items: Record<string, unknown>) => {
     Object.assign(stored, items)
   }) as never)
+  vi.mocked(chrome.storage.local.remove).mockImplementation((async (key: string) => { delete stored[key] }) as never)
+})
+
+describe("Remember where I last saved (TASK-75)", () => {
+  it("is on until turned off; off drops the list, remembers nothing and returns nothing", async () => {
+    expect(await loadRememberDestinations()).toBe(true)
+    await rememberDestination(t("a"))
+    expect(await loadRecentDestinations()).toEqual([t("a")])
+    await saveRememberDestinations(false)
+    expect(await loadRememberDestinations()).toBe(false)
+    expect(stored[RECENT_DESTINATIONS_KEY]).toBeUndefined()
+    await rememberDestination(t("b"))
+    expect(stored[RECENT_DESTINATIONS_KEY]).toBeUndefined()
+    stored[RECENT_DESTINATIONS_KEY] = [t("c")]
+    expect(await loadRecentDestinations()).toEqual([])
+    await saveRememberDestinations(true)
+    expect(await loadRecentDestinations()).toEqual([t("c")])
+  })
+
+  it("stays on when storage is unavailable", async () => {
+    vi.mocked(chrome.storage.local.get).mockRejectedValueOnce(new Error("gone"))
+    expect(await loadRememberDestinations()).toBe(true)
+    vi.mocked(chrome.storage.local.set).mockRejectedValueOnce(new Error("gone"))
+    await expect(saveRememberDestinations(false)).resolves.toBeUndefined()
+  })
 })
 
 describe("pushRecent", () => {
