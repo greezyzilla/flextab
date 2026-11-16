@@ -49,6 +49,32 @@ describe("AppearancePreview (TASK-30)", () => {
     expect(reachable.every((el) => el.closest("[inert]") === sample)).toBe(true) // …all inside the inert sample
   })
 
+  it("shows the Duplicate tabs setting on the sample's duplicate pair, live (TASK-68)", async () => {
+    render(<AppearancePreview />)
+    const marks = () => [...preview().querySelectorAll<HTMLElement>('[title="This address is in this group more than once"]')]
+    // Ribbon by default: one on each copy of the same address.
+    expect(marks().map((m) => m.textContent)).toEqual(["DUPE", "DUPE"])
+    await act(async () => { useSettingsStore.getState().setDuplicateMark("icon") })
+    expect(marks()).toHaveLength(2)
+    expect(marks().every((m) => m.textContent === "" && m.querySelector("svg"))).toBe(true)
+    await act(async () => { useSettingsStore.getState().setDuplicateMark("off") })
+    expect(marks()).toHaveLength(0)
+    await act(async () => { useSettingsStore.getState().resetAppearance() })
+    expect(marks().map((m) => m.textContent)).toEqual(["DUPE", "DUPE"])
+  })
+
+  it("shows the duplicate mark's colour, corner and text choices on the sample (TASK-68)", async () => {
+    render(<AppearancePreview />)
+    const marks = () => [...preview().querySelectorAll<HTMLElement>('[title="This address is in this group more than once"]')]
+    expect(marks().every((m) => m.className.includes("text-caution") && m.className.includes("-right-["))).toBe(true)
+    await act(async () => { useSettingsStore.setState({ duplicateTone: "accent", duplicateCorner: "left", duplicateLabel: "count" }) })
+    // The sample holds the same address twice, so each ribbon counts 2 copies.
+    expect(marks().map((m) => m.textContent)).toEqual(["2×", "2×"])
+    expect(marks().every((m) => m.className.includes("text-fg-accent") && m.className.includes("-left-["))).toBe(true)
+    await act(async () => { useSettingsStore.setState({ duplicateMark: "icon", duplicateTone: "neutral" }) })
+    expect(marks().every((m) => m.className.includes("text-fg-subtle"))).toBe(true)
+  })
+
   it("follows the layout settings live and returns to the defaults on reset", async () => {
     render(<AppearancePreview />)
     expect(grid()).toBeNull() // list by default

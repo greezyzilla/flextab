@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
@@ -6,9 +6,36 @@ export default defineConfig({
   plugins: [react()],
   test: {
     globals: true,
-    environment: 'jsdom',
-    setupFiles: ['./src/test/setup.ts'],
     css: true,
+    // Two projects in one gate: the jsdom unit/component tests, and the few
+    // checks that need a real rendering engine (`*.browser.test.tsx`, e.g. the
+    // colour-contrast guard: oklch relative colours, color-mix and composited
+    // fills only resolve in a browser). TASK-68.
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'unit',
+          environment: 'jsdom',
+          setupFiles: ['./src/test/setup.ts'],
+          exclude: [...configDefaults.exclude, '**/*.browser.test.*'],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'browser',
+          include: ['src/**/*.browser.test.{ts,tsx}'],
+          browser: {
+            enabled: true,
+            provider: 'playwright',
+            headless: true,
+            screenshotFailures: false,
+            instances: [{ browser: 'chromium' }],
+          },
+        },
+      },
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'json-summary', 'html'],

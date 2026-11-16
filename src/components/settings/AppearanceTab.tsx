@@ -1,7 +1,7 @@
 import * as SliderPrimitive from "@radix-ui/react-slider";
 import { Monitor, Moon, Sun } from "lucide-react";
 import type { ThemeMode } from "~src/lib/theme";
-import { useSettingsStore, HUE_PRESETS, FONT_OPTIONS, type GroupLayout, type Density, type FontKey } from "~src/store/useSettingsStore";
+import { useSettingsStore, HUE_PRESETS, FONT_OPTIONS, type GroupLayout, type Density, type FontKey, type DuplicateMark, type DuplicateTone, type DuplicateCorner, type DuplicateLabel } from "~src/store/useSettingsStore";
 import { Switch } from "~src/components/ui/switch";
 import { Slider } from "~src/components/ui/slider";
 import { Button } from "~src/components/ui/button";
@@ -43,6 +43,8 @@ export function AppearanceTab() {
     theme, setTheme, hue, setHue, intensity, setIntensity, groupTint, setGroupTint, radius, setRadius,
     fontFamily, setFontFamily, uiScale, setUiScale,
     groupLayout, setGroupLayout, gridColumns, setGridColumns, density, setDensity,
+    duplicateMark, setDuplicateMark, duplicateTone, setDuplicateTone,
+    duplicateCorner, setDuplicateCorner, duplicateLabel, setDuplicateLabel,
     reduceMotion, setReduceMotion, resetAppearance, openAsTabGroups, setOpenAsTabGroups,
   } = useSettingsStore();
 
@@ -205,6 +207,70 @@ export function AppearanceTab() {
             />
           )}
         </SettingRow>
+
+        <SettingRow label="Duplicate tabs" description="How a tab saved twice in the same group is marked.">
+          {(controlProps) => (
+            <ToggleGroup<DuplicateMark>
+              {...controlProps}
+              value={duplicateMark}
+              onChange={setDuplicateMark}
+              options={[
+                { value: 'ribbon', label: 'Ribbon' },
+                { value: 'icon', label: 'Icon' },
+                { value: 'off', label: 'Off' },
+              ]}
+            />
+          )}
+        </SettingRow>
+
+        {duplicateMark !== 'off' && (
+          <SettingRow label="Duplicate colour" description="The colour of the duplicate mark.">
+            {(controlProps) => (
+              <ToggleGroup<DuplicateTone>
+                {...controlProps}
+                value={duplicateTone}
+                onChange={setDuplicateTone}
+                options={[
+                  { value: 'caution', label: 'Warning' },
+                  { value: 'accent', label: 'Accent' },
+                  { value: 'neutral', label: 'Grey' },
+                ]}
+              />
+            )}
+          </SettingRow>
+        )}
+
+        {duplicateMark === 'ribbon' && (
+          <SettingRow label="Ribbon corner" description="Which top corner of the tab the ribbon sits on.">
+            {(controlProps) => (
+              <ToggleGroup<DuplicateCorner>
+                {...controlProps}
+                value={duplicateCorner}
+                onChange={setDuplicateCorner}
+                options={[
+                  { value: 'right', label: 'Right' },
+                  { value: 'left', label: 'Left' },
+                ]}
+              />
+            )}
+          </SettingRow>
+        )}
+
+        {duplicateMark === 'ribbon' && (
+          <SettingRow label="Ribbon text" description="A word, or how many copies of the tab are in the group.">
+            {(controlProps) => (
+              <ToggleGroup<DuplicateLabel>
+                {...controlProps}
+                value={duplicateLabel}
+                onChange={setDuplicateLabel}
+                options={[
+                  { value: 'dupe', label: 'DUPE' },
+                  { value: 'count', label: 'Count' },
+                ]}
+              />
+            )}
+          </SettingRow>
+        )}
       </section>
 
       <section className="flex flex-col gap-7">

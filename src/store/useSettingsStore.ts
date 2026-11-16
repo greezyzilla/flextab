@@ -6,6 +6,11 @@ import { readStoredThemeMode, type ThemeMode } from '~src/lib/theme';
 export type GroupLayout = 'list' | 'grid';
 export type Density = 'compact' | 'cozy' | 'comfortable';
 export type FontKey = 'inter' | 'system' | 'rounded' | 'serif' | 'mono';
+/** How a tab saved twice in the same group is marked (TASK-68). */
+export type DuplicateMark = 'ribbon' | 'icon' | 'off';
+export type DuplicateTone = 'caution' | 'accent' | 'neutral';
+export type DuplicateCorner = 'right' | 'left';
+export type DuplicateLabel = 'dupe' | 'count';
 
 /** UI font options (system stacks — nothing bundled). Maps to --font-sans in useTheme. */
 export const FONT_OPTIONS: { key: FontKey; label: string }[] = [
@@ -61,6 +66,10 @@ export const APPEARANCE_DEFAULTS = {
   reduceMotion: false,
   fontFamily: 'inter' as FontKey,
   uiScale: 1,          // 0.8-1.2, whole-UI zoom
+  duplicateMark: 'ribbon' as DuplicateMark,
+  duplicateTone: 'caution' as DuplicateTone,
+  duplicateCorner: 'right' as DuplicateCorner,  // ribbon only
+  duplicateLabel: 'dupe' as DuplicateLabel,     // ribbon only
 };
 
 interface SettingsState {
@@ -75,6 +84,10 @@ interface SettingsState {
   reduceMotion: boolean;
   fontFamily: FontKey;
   uiScale: number;     // 0.8-1.2 whole-UI zoom
+  duplicateMark: DuplicateMark;
+  duplicateTone: DuplicateTone;
+  duplicateCorner: DuplicateCorner;
+  duplicateLabel: DuplicateLabel;
   autoSync: boolean;
   /** Open all gives a group back as a browser tab group (TASK-31). Device-only:
    *  the `tabGroups` permission it needs is per browser, so it is not synced to
@@ -92,6 +105,10 @@ interface SettingsState {
   setReduceMotion: (reduceMotion: boolean) => void;
   setFontFamily: (fontFamily: FontKey) => void;
   setUiScale: (uiScale: number) => void;
+  setDuplicateMark: (duplicateMark: DuplicateMark) => void;
+  setDuplicateTone: (duplicateTone: DuplicateTone) => void;
+  setDuplicateCorner: (duplicateCorner: DuplicateCorner) => void;
+  setDuplicateLabel: (duplicateLabel: DuplicateLabel) => void;
   setAutoSync: (autoSync: boolean) => void;
   setOpenAsTabGroups: (openAsTabGroups: boolean) => void;
   /** Restore appearance & layout to defaults (leaves autoSync untouched). */
@@ -120,6 +137,10 @@ export const useSettingsStore = create<SettingsState>()(
       setReduceMotion: (reduceMotion) => set({ reduceMotion }),
       setFontFamily: (fontFamily) => set({ fontFamily }),
       setUiScale: (uiScale) => set({ uiScale }),
+      setDuplicateMark: (duplicateMark) => set({ duplicateMark }),
+      setDuplicateTone: (duplicateTone) => set({ duplicateTone }),
+      setDuplicateCorner: (duplicateCorner) => set({ duplicateCorner }),
+      setDuplicateLabel: (duplicateLabel) => set({ duplicateLabel }),
       setAutoSync: (autoSync) => set({ autoSync }),
       setOpenAsTabGroups: (openAsTabGroups) => set({ openAsTabGroups }),
       resetAppearance: () => set({ ...APPEARANCE_DEFAULTS }),

@@ -88,6 +88,41 @@ describe("appearance control accessibility", () => {
     expect(useSettingsStore.getState().gridColumns).toBe(3);
   });
 
+  it("picks how duplicate tabs are marked, Ribbon by default, and resets to it (TASK-68)", async () => {
+    const user = userEvent.setup();
+    render(<AppearanceTab />);
+    const mark = screen.getByRole("radiogroup", { name: "Duplicate tabs" });
+    expect(mark).toHaveAccessibleDescription("How a tab saved twice in the same group is marked.");
+    expect(within(mark).getByRole("radio", { name: "Ribbon" })).toBeChecked();
+    await user.click(within(mark).getByRole("radio", { name: "Icon" }));
+    expect(useSettingsStore.getState().duplicateMark).toBe("icon");
+    await user.click(within(mark).getByRole("radio", { name: "Off" }));
+    expect(useSettingsStore.getState().duplicateMark).toBe("off");
+    await user.click(screen.getByRole("button", { name: "Reset to defaults" }));
+    expect(useSettingsStore.getState().duplicateMark).toBe("ribbon");
+  });
+
+  it("offers colour for any mark, and corner and text only for the ribbon (TASK-68)", async () => {
+    const user = userEvent.setup();
+    render(<AppearanceTab />);
+    const pick = (group: string, name: string) => user.click(within(screen.getByRole("radiogroup", { name: group })).getByRole("radio", { name }));
+    for (const name of ["Duplicate colour", "Ribbon corner", "Ribbon text"]) {
+      expect(screen.getByRole("radiogroup", { name })).toHaveAccessibleDescription();
+    }
+    await pick("Duplicate colour", "Accent");
+    await pick("Ribbon corner", "Left");
+    await pick("Ribbon text", "Count");
+    expect(useSettingsStore.getState()).toMatchObject({ duplicateTone: "accent", duplicateCorner: "left", duplicateLabel: "count" });
+    await pick("Duplicate tabs", "Icon");
+    expect(screen.getByRole("radiogroup", { name: "Duplicate colour" })).toBeInTheDocument();
+    expect(screen.queryByRole("radiogroup", { name: "Ribbon corner" })).toBeNull();
+    expect(screen.queryByRole("radiogroup", { name: "Ribbon text" })).toBeNull();
+    await pick("Duplicate tabs", "Off");
+    expect(screen.queryByRole("radiogroup", { name: "Duplicate colour" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Reset to defaults" }));
+    expect(useSettingsStore.getState()).toMatchObject({ duplicateMark: "ribbon", duplicateTone: "caution", duplicateCorner: "right", duplicateLabel: "dupe" });
+  });
+
   it("keeps label references unique when multiple instances mount", () => {
     const { container } = render(<><AppearanceTab /><AppearanceTab /></>);
     const ids = Array.from(container.querySelectorAll("[id]")).map(el => el.id);

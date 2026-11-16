@@ -8,16 +8,20 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
+        // Every variant: text ≥ 4.5:1 on its own fill, in both themes, at every
+        // accent hue, on every surface a badge sits on (TASK-68; guarded by
+        // src/components/contrast.browser.test.tsx). A label on the accent uses
+        // the accent-fill tokens (TASK-48), never --accent itself.
         default:
-          "border-transparent bg-primary text-primary-foreground shadow hover:bg-primary/80",
+          "border-transparent bg-[var(--accent-fill)] text-[var(--on-accent-fill)] shadow hover:brightness-[var(--accent-fill-hover)]",
         secondary:
           "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
         destructive:
-          "border-transparent bg-destructive text-destructive-foreground shadow hover:bg-destructive/80",
+          "border-transparent bg-destructive text-destructive-foreground shadow hover:brightness-90",
         outline: "border-ink/10 text-fg-subtle",
-        accent: "border-transparent bg-[var(--accent-subtle)] text-fg-accent",
+        accent: "border-transparent bg-[color-mix(in_srgb,var(--accent-subtle)_50%,transparent)] text-fg-accent",
         success: "border-transparent bg-green-500/20 text-success",
-        warning: "border-transparent bg-yellow-500/15 text-caution/80",
+        warning: "border-transparent bg-yellow-500/15 text-caution",
       },
       size: {
         default: "px-2.5 py-0.5 text-xs",
@@ -35,9 +39,16 @@ export interface BadgeProps
   extends React.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof badgeVariants> {}
 
-function Badge({ className, variant, size, ...props }: BadgeProps) {
+/**
+ * The label sits in its own span so a constrained badge ends in "…" (an
+ * ellipsis does not apply to text directly inside a flex box). Unconstrained,
+ * it looks exactly as before (TASK-68).
+ */
+function Badge({ className, variant, size, children, ...props }: BadgeProps) {
   return (
-    <div className={cn(badgeVariants({ variant, size }), className)} {...props} />
+    <div className={cn(badgeVariants({ variant, size }), "max-w-full", className)} {...props}>
+      <span className="min-w-0 truncate">{children}</span>
+    </div>
   )
 }
 

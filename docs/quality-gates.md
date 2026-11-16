@@ -4,6 +4,7 @@ QA-01 contract, reviewed 2026-10-19. Run with pinned Node 24.14.0/npm 11.9.0:
 
 ```sh
 npm ci
+npx playwright install chromium   # once per machine: browser-mode tests
 npm run typecheck
 npm run test:coverage -- --run
 # Supply the public API configuration described in RELEASING.md.
@@ -15,6 +16,20 @@ ZIP. PR/main CI and manual submission share it. A type error, failed test or
 coverage regression blocks the build/publish dependency. Coverage reports are
 uploaded even when the coverage step fails, if a report was produced. This
 does not establish GitHub branch protection; repository settings are separate.
+
+## Test projects
+
+`vitest.config.ts` runs two projects in the same gate. `unit` is the jsdom
+suite (everything except `*.browser.test.*`). `browser` runs
+`src/**/*.browser.test.{ts,tsx}` in headless Chromium through Vitest browser
+mode (`@vitest/browser` + Playwright), for checks jsdom cannot make. The first
+is the colour-contrast guard (`src/components/contrast.browser.test.tsx`,
+TASK-68): every Badge variant and every duplicate-mark tone stays at or above
+4.5:1 against what it sits on, in light and dark, at every accent hue (step 10)
+x colour intensity (step 25) x group tint, on the page, a panel, and tab rows at
+rest and hovered on plain, Unsorted and every group colour's card. It needs a
+real engine because the tokens use oklch relative colours, color-mix and
+translucent fills. CI installs Chromium before the tests (verify.yml).
 
 ## Typecheck scope
 

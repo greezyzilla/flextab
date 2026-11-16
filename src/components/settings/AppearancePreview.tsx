@@ -21,7 +21,8 @@ const RESEARCH_TABS = [
   tab("f", "Pull request #91", "github.com"), tab("g", "Invoice #2291", "stripe.com"),
 ]
 // Uncoloured, as most groups are: the reference the coloured one is judged against.
-const INBOX: SavedGroup = { id: "appearance-preview-inbox", name: "Inbox", order: 0, tabs: [tab("a", "Kickoff deck", "docs.google.com")] }
+// The same address twice, so the Duplicate tabs setting shows on the sample (TASK-68).
+const INBOX: SavedGroup = { id: "appearance-preview-inbox", name: "Inbox", order: 0, tabs: [tab("a", "Kickoff deck", "docs.google.com"), tab("a2", "Kickoff deck", "docs.google.com")] }
 const research = (count: number): SavedGroup => ({ id: "appearance-preview-research", name: "Research", color: "blue", order: 1, tabs: RESEARCH_TABS.slice(0, count) })
 const LOCATION = { spaceId: "appearance-preview", projectId: "appearance-preview", categoryId: "appearance-preview" }
 

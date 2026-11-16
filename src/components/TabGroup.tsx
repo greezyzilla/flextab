@@ -2,6 +2,7 @@ import { useFlash } from "~src/hooks/useFlash";
 import { useState, useRef, useEffect } from "react";
 import { SortableContext, useSortable } from "@dnd-kit/sortable";
 import { useDroppable } from "@dnd-kit/core";
+import { DuplicateIcon, DuplicateRibbon } from "./DuplicateMark";
 import { DragHandleIcon } from "./icons/DragHandleIcon";
 import { FaviconImg } from "./FaviconImg";
 import { CSS } from "@dnd-kit/utilities";
@@ -35,7 +36,9 @@ import { GroupColorMenuItems } from "./GroupColorMenu";
 import { GROUP_COLORS, groupColorFill, groupTintEdge, groupTintSurface } from "~src/lib/groupColors";
 import type { GroupColor } from "~src/types";
 
-function SavedTabItem({ tab, groupId, location, isDuplicate, unsorted }: { tab: SavedTab; groupId: string; location: GroupLocation; isDuplicate?: boolean; unsorted?: boolean }) {
+/** `copies`: how many tabs in this group share this address (2+ marks a duplicate). */
+function SavedTabItem({ tab, groupId, location, copies = 1, unsorted }: { tab: SavedTab; groupId: string; location: GroupLocation; copies?: number; unsorted?: boolean }) {
+  const isDuplicate = copies > 1;
   const {
     attributes,
     listeners,
@@ -55,6 +58,10 @@ function SavedTabItem({ tab, groupId, location, isDuplicate, unsorted }: { tab: 
   const { spaceId, projectId, categoryId } = location;
   const [moving, setMoving] = useState(false);
   const flash = useFlash<HTMLDivElement>("tab", tab.id);
+  const duplicateMark = useSettingsStore((s) => s.duplicateMark);
+  const duplicateTone = useSettingsStore((s) => s.duplicateTone);
+  const duplicateCorner = useSettingsStore((s) => s.duplicateCorner);
+  const duplicateLabel = useSettingsStore((s) => s.duplicateLabel);
   const linkRef = useRef<HTMLAnchorElement>(null);
 
   const onClick =(event: React.MouseEvent<HTMLAnchorElement>) => {
@@ -93,8 +100,15 @@ function SavedTabItem({ tab, groupId, location, isDuplicate, unsorted }: { tab: 
     <div
       ref={(el) => { setNodeRef(el); flash.ref.current = el; }}
       style={{ ...style, padding: `var(--density-py-tab) var(--density-px-tab)` }}
-      className={`flex flex-col gap-1 rounded-lg transition-[background-color,box-shadow] group ${isDuplicate ? 'bg-yellow-500/[0.06] ring-1 ring-yellow-500/20' : 'bg-row hover:bg-row-hover'} ${flash.on ? '!ring-2 !ring-[var(--accent)]' : ''}`}
+      className={`relative flex flex-col gap-1 rounded-lg transition-[background-color,box-shadow] group bg-row hover:bg-row-hover ${flash.on ? '!ring-2 !ring-[var(--accent)]' : ''}`}
     >
+      {/* A duplicate is flagged by one mark the user picks in Appearance
+          (TASK-68): a ribbon across the row's top-right corner, an icon on
+          the favicon, or nothing. No row tint, no box beside the title. The
+          clip box keeps the row itself unclipped, so menus and rings show. */}
+      {isDuplicate && duplicateMark === "ribbon" && (
+        <DuplicateRibbon copies={copies} tone={duplicateTone} corner={duplicateCorner} label={duplicateLabel} />
+      )}
       <div className="flex items-center gap-2.5">
         {/* Favicon slot doubles as the drag handle on hover/focus, so no empty
             gutter pushes the favicon in: favicons line up with the group icon. */}
@@ -110,6 +124,7 @@ function SavedTabItem({ tab, groupId, location, isDuplicate, unsorted }: { tab: 
           >
             <DragHandleIcon className="w-3.5 h-3.5 text-fg-muted" />
           </button>
+          {isDuplicate && duplicateMark === "icon" && <DuplicateIcon tone={duplicateTone} />}
         </span>
 
         {/* The full title and address, by hover or keyboard focus, only when
@@ -137,9 +152,6 @@ function SavedTabItem({ tab, groupId, location, isDuplicate, unsorted }: { tab: 
               <MiddleText text={tab.title} className="text-fg text-xs font-sans" />
               <TabUrl url={tab.url} />
             </div>
-            {isDuplicate && (
-              <Badge variant="warning" size="sm" className="shrink-0 font-normal" title="Duplicate URL in this group">dup</Badge>
-            )}
             {/* TASK-72: the browser tab opened from this card moved on (next
                 episode). A passive signal like "dup"; the action lives in ⋯. */}
             {change && (
@@ -264,7 +276,6 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
     const norm = normalizeUrl(t.url);
     urlCounts.set(norm, (urlCounts.get(norm) || 0) + 1);
   }
-  const duplicateUrls = new Set([...urlCounts.entries()].filter(([, c]) => c > 1).map(([u]) => u));
 
   const openable = sortedTabs.filter(t => t.url);
   const urls = openable.map(t => t.url);
@@ -445,7 +456,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
               }}
             >
               {shownTabs.map((tab) => (
-                <SavedTabItem key={tab.id} tab={tab} groupId={group.id} location={location} unsorted={unsorted} isDuplicate={duplicateUrls.has(normalizeUrl(tab.url))} />
+                <SavedTabItem key={tab.id} tab={tab} groupId={group.id} location={location} unsorted={unsorted} copies={urlCounts.get(normalizeUrl(tab.url)) ?? 1} />
               ))}
             </div>
           </SortableContext>

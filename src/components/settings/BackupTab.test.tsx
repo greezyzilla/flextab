@@ -48,7 +48,7 @@ describe("version history recovery", () => {
     expect(await screen.findByText("v44")).toBeInTheDocument();
     const labels = screen.getAllByText("Before resolving a conflict");
     expect(labels).toHaveLength(1);
-    expect(labels[0].parentElement).toHaveTextContent("v43"); // on the version's title line
+    expect(labels[0].parentElement!.parentElement).toHaveTextContent("v43"); // the badge sits on the version's title line
   });
 
   it("renders populated history and previews the selected version without changing the workspace", async () => {

@@ -33,6 +33,8 @@ jobs:
           PLASMO_PUBLIC_API_HOST: ${{ inputs.api-host }}
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund
+      - name: Install the browser for browser-mode tests
+        run: npx playwright install --with-deps chromium
       - name: Typecheck source, tests, and configuration
         run: npm run typecheck
       - name: Run regression tests and coverage gates
