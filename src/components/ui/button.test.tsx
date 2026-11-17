@@ -1,7 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { IconButton, IconTooltip } from "./button";
+import { ClippedTooltip, IconButton, IconTooltip } from "./button";
 import { TooltipProvider } from "./tooltip";
+import { stubResizeObserver } from "~src/test/stubResizeObserver";
+
+// Tooltips open in these tests; their arrow needs a ResizeObserver (TASK-69).
+stubResizeObserver();
 
 // jsdom has no focus heuristics, so each test says whether the focus is a keyboard one.
 const focusVisible = (visible: boolean | "throws") => {
@@ -70,5 +74,60 @@ describe("IconButton tooltip (TASK-53)", () => {
     await act(async () => { button().focus(); });
     expect(tooltipShown()).toBe(true);
     await act(async () => { button().blur(); });
+  });
+});
+
+describe("ClippedTooltip (TASK-69)", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  // jsdom lays nothing out, so each test sets how wide the text is against its box.
+  const widths = (el: HTMLElement, scroll: number, client: number) => {
+    Object.defineProperty(el, "scrollWidth", { configurable: true, value: scroll });
+    Object.defineProperty(el, "clientWidth", { configurable: true, value: client });
+  };
+
+  it("opens only while the trigger's own text is cut", async () => {
+    focusVisible(true);
+    render(
+      <TooltipProvider delayDuration={0}>
+        <ClippedTooltip content="A very long space name"><button data-clip>A very long…</button></ClippedTooltip>
+      </TooltipProvider>,
+    );
+    const trigger = screen.getByRole("button");
+    widths(trigger, 100, 100);
+    await act(async () => { trigger.focus(); });
+    expect(tooltipShown()).toBe(false);
+    await act(async () => { trigger.blur(); });
+    widths(trigger, 180, 100);
+    await act(async () => { trigger.focus(); });
+    expect(screen.getByRole("tooltip")).toHaveTextContent("A very long space name");
+    expect(trigger).not.toHaveAttribute("title");
+  });
+
+  it("also opens when a [data-clip] inside the trigger is cut", async () => {
+    focusVisible(true);
+    render(
+      <TooltipProvider delayDuration={0}>
+        <ClippedTooltip content="Inbox"><button><span data-clip>Inb…</span></button></ClippedTooltip>
+      </TooltipProvider>,
+    );
+    const trigger = screen.getByRole("button");
+    widths(trigger, 50, 50);
+    widths(trigger.querySelector("span")!, 60, 30);
+    await act(async () => { trigger.focus(); });
+    expect(screen.getByRole("tooltip")).toHaveTextContent("Inbox");
+  });
+
+  it("stays shut on a trigger that is not marked as clippable", async () => {
+    focusVisible(true);
+    render(
+      <TooltipProvider delayDuration={0}>
+        <ClippedTooltip content="Name"><button>Name</button></ClippedTooltip>
+      </TooltipProvider>,
+    );
+    const trigger = screen.getByRole("button");
+    widths(trigger, 200, 50);
+    await act(async () => { trigger.focus(); });
+    expect(tooltipShown()).toBe(false);
   });
 });

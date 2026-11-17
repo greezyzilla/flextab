@@ -9,6 +9,8 @@ import { applyThemeMode, readStoredThemeMode } from "~src/lib/theme"
 import { installExternalPersistBridge } from "~src/lib/yjsDoc"
 import { FaviconImg } from "~src/components/FaviconImg"
 import { cn } from "~src/lib/utils"
+import { ClippedTooltip, IconTooltip } from "~src/components/ui/button"
+import { TooltipProvider } from "~src/components/ui/tooltip"
 import { Ban, BookmarkPlus, Check, CopyPlus, FolderInput, ListX, Replace, RotateCw, SquareArrowOutUpRight, Undo2 } from "lucide-react"
 import { CategoryIcon, GroupIcon, ProjectIcon, SpaceAvatar, UnsortedIcon } from "~src/components/levelIcons"
 import { DEFAULT_CATEGORY_NAME, DEFAULT_PROJECT_NAME, DEFAULT_SPACE_NAME, UNSORTED_NAME, findUnsorted, isUnsortedGroup } from "~src/lib/defaultPath"
@@ -326,7 +328,7 @@ function IndexPopup() {
     : currentTab && <FaviconImg src={currentTab.favIconUrl} alt="" className="h-[22px] w-[22px]" />
 
   const lead = (t: string) => <span className="font-medium text-fg-muted">{t}</span>
-  const groupName = <bdi title={place.path ?? undefined}>{place.group?.name}</bdi>
+  const groupName = <bdi>{place.group?.name}</bdi>
   const pageTitle = currentTab ? <bdi>{currentTab.title || currentTab.url}</bdi> : null
   const heading: ReactNode = loading ? lead("Loading…") : (() => {
     switch (status.kind) {
@@ -417,7 +419,14 @@ function IndexPopup() {
             {ok && <span className="absolute -bottom-1 -right-1 grid h-[18px] w-[18px] place-items-center rounded-full bg-success ring-2 ring-black-900"><Check className="h-[11px] w-[11px] text-black-900" strokeWidth={3.5} aria-hidden /></span>}
           </span>
           <div className="min-w-0">
-            <p ref={headingRef} data-slot="page-sentence" className="line-clamp-2 text-[19px] font-semibold leading-6 text-fg [overflow-wrap:anywhere] data-[lines=2]:text-[15px] data-[lines=2]:leading-5">{heading}</p>
+            {(() => {
+              const sentence = <p ref={headingRef} data-slot="page-sentence" className="line-clamp-2 text-[19px] font-semibold leading-6 text-fg [overflow-wrap:anywhere] data-[lines=2]:text-[15px] data-[lines=2]:leading-5">{heading}</p>
+              // A sentence naming the group shows its full path. The tooltip hangs off the
+              // sentence's visible two lines: the group name alone would count a line the
+              // clamp hides, and the arrow would point at nothing (TASK-69).
+              const namesGroup = !loading && (status.kind === "known" || status.kind === "saved" || status.kind === "already")
+              return namesGroup && place.path ? <IconTooltip content={place.path}>{sentence}</IconTooltip> : sentence
+            })()}
             {sub && <p data-slot="page-detail" className="mt-0.5 line-clamp-2 text-[13px] leading-[18px] text-fg-subtle [overflow-wrap:anywhere]">{sub}</p>}
           </div>
         </div>
@@ -429,11 +438,13 @@ function IndexPopup() {
             <ul aria-label={`Which saved ${offer!.word} to update`} className="grid grid-cols-[repeat(auto-fill,minmax(4rem,1fr))] gap-1.5">
               {status.offers.map((o, i) => (
                 <li key={o.tab.id} className="min-w-0">
-                  <button type="button" disabled={busy} onClick={() => selectOffer(i)}
-                    aria-pressed={i === status.selected} aria-label={o.label} title={o.tab.title}
-                    className="h-9 w-full truncate rounded-[10px] bg-ink/[0.06] px-2 text-[15px] text-fg outline-none transition-colors hover:bg-ink/[0.1] focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 aria-pressed:bg-ink/[0.14] aria-pressed:font-medium aria-pressed:ring-1 aria-pressed:ring-inset aria-pressed:ring-ink/[0.24]">
-                    {o.chip}
-                  </button>
+                  <IconTooltip content={o.tab.title}>
+                    <button type="button" disabled={busy} onClick={() => selectOffer(i)}
+                      aria-pressed={i === status.selected} aria-label={o.label}
+                      className="h-9 w-full truncate rounded-[10px] bg-ink/[0.06] px-2 text-[15px] text-fg outline-none transition-colors hover:bg-ink/[0.1] focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 aria-pressed:bg-ink/[0.14] aria-pressed:font-medium aria-pressed:ring-1 aria-pressed:ring-inset aria-pressed:ring-ink/[0.24]">
+                      {o.chip}
+                    </button>
+                  </IconTooltip>
                 </li>
               ))}
             </ul>
@@ -572,7 +583,7 @@ function Location({ place, withGroup }: { place: Place; withGroup: boolean }) {
       {rows.filter(([, name]) => name).map(([glyph, name]) => (
         <div key={name + String((glyph as { key?: string }).key)} className="grid min-h-[30px] grid-cols-[20px_minmax(0,1fr)] items-center gap-x-3 text-[15px] leading-[22px] text-fg-muted">
           <span className="flex justify-center">{glyph}</span>
-          <bdi className="truncate" title={name}>{name}</bdi>
+          <ClippedTooltip content={name}><bdi data-clip className="truncate">{name}</bdi></ClippedTooltip>
         </div>
       ))}
     </div>
@@ -602,4 +613,13 @@ function rankContinuations(hits: Array<{ link: OpenLink; tab: SavedTab }>, page:
   return [first, ...byNumber.filter((i) => i !== first)]
 }
 
-export default IndexPopup
+/** The popup's root: its tooltips need a provider, with the new tab page's delay (TASK-69). */
+function PopupRoot() {
+  return (
+    <TooltipProvider delayDuration={300}>
+      <IndexPopup />
+    </TooltipProvider>
+  )
+}
+
+export default PopupRoot

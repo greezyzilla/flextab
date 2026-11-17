@@ -11,7 +11,7 @@ import { ConfirmDialog } from "~src/components/ui/confirm-dialog";
 import { ActionSlot, RowActions } from "~src/components/ui/row-actions";
 import { navigate } from "~src/lib/route";
 import { SPACES_ROUTE } from "~src/components/settings/SpacesTab";
-import { IconButton } from "~src/components/ui/button";
+import { IconButton, IconTooltip } from "~src/components/ui/button";
 import { Input, INLINE_CREATE_HINT, inlineEditFrame } from "~src/components/ui/input"
 import type { SavedProject, SavedCategory } from "~src/types";
 import { useUIStore, type CreateRequest, type ScrollMode } from "~src/store/useUIStore";
@@ -540,17 +540,18 @@ function IconDragHandle({ id, label, reveal, conceal, children }: {
   return (
     <span className="relative flex shrink-0">
       <span className={`flex transition-opacity ${conceal}`}>{children}</span>
-      <span
-        ref={setNodeRef}
-        {...listeners}
-        aria-hidden
-        data-drag-handle={label}
-        title="Drag to move"
-        onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
-        className={`absolute -inset-1 flex items-center justify-center rounded opacity-0 cursor-grab active:cursor-grabbing transition-opacity ${reveal}`}
-      >
-        <DragHandleIcon className="h-3 w-3 text-fg-muted" />
-      </span>
+      <IconTooltip content="Drag to move">
+        <span
+          ref={setNodeRef}
+          {...listeners}
+          aria-hidden
+          data-drag-handle={label}
+          onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
+          className={`absolute -inset-1 flex items-center justify-center rounded opacity-0 cursor-grab active:cursor-grabbing transition-opacity ${reveal}`}
+        >
+          <DragHandleIcon className="h-3 w-3 text-fg-muted" />
+        </span>
+      </IconTooltip>
     </span>
   );
 }

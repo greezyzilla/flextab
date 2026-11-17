@@ -90,7 +90,7 @@ describe("popup widget (TASK-75)", () => {
     expect(await screen.findByText(/^Saved to/)).toBeInTheDocument();
     // One main landmark with a level-one heading (TASK-28).
     expect(screen.getByRole("main")).toContainElement(screen.getByRole("heading", { level: 1, name: "FlexTab" }));
-    expect(screen.getByTitle("Space › Project › Category › Unsorted")).toBeInTheDocument();
+    expect(screen.getByLabelText("Space › Project › Category › Unsorted")).toBeInTheDocument();
     const savedId = storedGroups()[0].id;
     view.unmount();
     // A reopened popup has a fresh Y.Doc, not the old document with tombstones.
@@ -190,7 +190,7 @@ describe("popup widget (TASK-75)", () => {
     await pickAction("Move to another group");
     fireEvent.click(screen.getByRole("button", { name: "Other" }));
     fireEvent.click(screen.getByRole("radio", { name: "Inbox" }));
-    await waitFor(() => expect(screen.getByTitle("Space › Project › Other › Inbox")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByLabelText("Space › Project › Other › Inbox")).toBeInTheDocument());
     expect(storedGroups(0)).toHaveLength(0);
     expect(storedGroups(1)[0].tabs.map(t => t.url)).toEqual(["https://example.com"]);
   });

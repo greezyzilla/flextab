@@ -1,4 +1,6 @@
 import { TriangleAlert } from "lucide-react";
+import { IconTooltip } from "~src/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "~src/components/ui/tooltip";
 import type { DuplicateCorner, DuplicateLabel, DuplicateTone } from "~src/store/useSettingsStore";
 
 /** What both marks say on hover. */
@@ -24,12 +26,23 @@ export function DuplicateRibbon({ copies, tone, corner, label }: { copies: numbe
           so it lets the pointer through there. On the right it shares the
           corner with "⋯": it steps aside while "⋯" is hovered, focused or
           open, so the button and its focus ring sit on the plain row. */}
+      {/* The tooltip anchors to this upright corner box, the part of the ribbon
+          you can see; the rotated band's own box sticks out past the row
+          (TASK-69). Pointer events still come from the band inside. It lines
+          up with the row's own edge, so it grows into the card, never past it. */}
+      <Tooltip>
+      <TooltipTrigger asChild>
+      <span className={`absolute top-0 h-11 w-11 ${corner === "left" ? "left-0" : "right-0"}`}>
       <span
-        title={DUPLICATE_TIP}
-        className={`absolute top-[4px] w-16 border-y border-transparent text-center font-sans text-[8px] font-semibold leading-3 tracking-[0.02em] ${corner === "left" ? "-left-[21px] -rotate-45" : "pointer-events-auto -right-[21px] rotate-45 transition-opacity [.group:has([aria-haspopup=menu]:is(:hover,:focus-visible,[data-state=open]))>span>&]:opacity-0"} ${DUPLICATE_TONE[tone].ribbon}`}
+        data-duplicate-mark="ribbon"
+        className={`absolute top-[4px] w-16 border-y border-transparent text-center font-sans text-[8px] font-semibold leading-3 tracking-[0.02em] ${corner === "left" ? "-left-[21px] -rotate-45" : "pointer-events-auto -right-[21px] rotate-45 transition-opacity [.group:has([aria-haspopup=menu]:is(:hover,:focus-visible,[data-state=open]))>span>span>&]:opacity-0"} ${DUPLICATE_TONE[tone].ribbon}`}
       >
         {label === "count" ? `${copies}×` : "DUPE"}
       </span>
+      </span>
+      </TooltipTrigger>
+      <TooltipContent align={corner === "left" ? "start" : "end"}>{DUPLICATE_TIP}</TooltipContent>
+      </Tooltip>
     </span>
   );
 }
@@ -37,11 +50,15 @@ export function DuplicateRibbon({ copies, tone, corner, label }: { copies: numbe
 /** A warning triangle on the favicon's bottom-right corner (TASK-68). Goes inside the `relative` favicon slot of a `group` row. */
 export function DuplicateIcon({ tone }: { tone: DuplicateTone }) {
   return (
+    // Below, so the arrow reaches the triangle straight from under it; above,
+    // it would land on the drag handle that the favicon turns into on hover.
+    <IconTooltip content={DUPLICATE_TIP} side="bottom">
     <span
-      title={DUPLICATE_TIP}
+      data-duplicate-mark="icon"
       className={`absolute -bottom-[6px] -right-[6px] grid h-[13px] w-[13px] place-items-center ${DUPLICATE_TONE[tone].icon} [filter:drop-shadow(0_0_1px_var(--row))_drop-shadow(0_0_1px_var(--row))] group-hover:[filter:drop-shadow(0_0_1px_var(--row-hover))_drop-shadow(0_0_1px_var(--row-hover))]`}
     >
       <TriangleAlert className="h-[13px] w-[13px]" strokeWidth={2.5} aria-hidden />
     </span>
+    </IconTooltip>
   );
 }

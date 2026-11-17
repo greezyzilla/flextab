@@ -14,6 +14,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Badge, badgeVariants } from "~src/components/ui/badge";
 import badgeSource from "~src/components/ui/badge.tsx?raw";
 import { DUPLICATE_TONE, DuplicateIcon, DuplicateRibbon } from "~src/components/DuplicateMark";
+import { TooltipProvider } from "~src/components/ui/tooltip";
 import { GROUP_COLORS, groupTintSurface } from "~src/lib/groupColors";
 import type { GroupColor } from "~src/types";
 
@@ -111,6 +112,7 @@ beforeAll(() => {
   );
   const root = createRoot(host);
   flushSync(() => root.render(
+    <TooltipProvider>
     <div className="bg-black-900 p-2">
       <div data-surface="page">{marks("page")}</div>
       <div className="bg-black-800" data-surface="panel">{marks("panel")}</div>
@@ -123,7 +125,8 @@ beforeAll(() => {
           ))}
         </div>
       ))}
-    </div>,
+    </div>
+    </TooltipProvider>,
   ));
 });
 
@@ -135,7 +138,7 @@ function collect(): Probe[] {
     const variant = el.dataset.probe!.split(" ")[1];
     out.push({ name: el.dataset.probe!, el, hover: badgeHover(variant) });
   }
-  for (const el of host.querySelectorAll<HTMLElement>('[title="This address is in this group more than once"]')) {
+  for (const el of host.querySelectorAll<HTMLElement>('[data-duplicate-mark]')) {
     const where = el.closest<HTMLElement>("[data-row]")?.dataset.row ?? el.closest<HTMLElement>("[data-surface]")!.dataset.surface!;
     const tone = TONES.find((t) => el.className.includes(DUPLICATE_TONE[t][el.textContent ? "ribbon" : "icon"].split(" ").pop()!))!;
     out.push({ name: `${el.textContent ? "ribbon" : "icon"} ${tone} @ ${where}`, el });

@@ -51,7 +51,7 @@ describe("AppearancePreview (TASK-30)", () => {
 
   it("shows the Duplicate tabs setting on the sample's duplicate pair, live (TASK-68)", async () => {
     render(<AppearancePreview />)
-    const marks = () => [...preview().querySelectorAll<HTMLElement>('[title="This address is in this group more than once"]')]
+    const marks = () => [...preview().querySelectorAll<HTMLElement>('[data-duplicate-mark]')]
     // Ribbon by default: one on each copy of the same address.
     expect(marks().map((m) => m.textContent)).toEqual(["DUPE", "DUPE"])
     await act(async () => { useSettingsStore.getState().setDuplicateMark("icon") })
@@ -65,7 +65,7 @@ describe("AppearancePreview (TASK-30)", () => {
 
   it("shows the duplicate mark's colour, corner and text choices on the sample (TASK-68)", async () => {
     render(<AppearancePreview />)
-    const marks = () => [...preview().querySelectorAll<HTMLElement>('[title="This address is in this group more than once"]')]
+    const marks = () => [...preview().querySelectorAll<HTMLElement>('[data-duplicate-mark]')]
     expect(marks().every((m) => m.className.includes("text-caution") && m.className.includes("-right-["))).toBe(true)
     await act(async () => { useSettingsStore.setState({ duplicateTone: "accent", duplicateCorner: "left", duplicateLabel: "count" }) })
     // The sample holds the same address twice, so each ribbon counts 2 copies.

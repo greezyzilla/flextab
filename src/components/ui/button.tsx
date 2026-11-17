@@ -3,6 +3,7 @@ import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "~src/lib/utils"
+import { hasClippedText } from "~src/lib/displayUrl"
 import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip"
 
 const buttonVariants = cva(
@@ -143,5 +144,24 @@ export const IconTooltip = React.forwardRef<
   )
 })
 IconTooltip.displayName = "IconTooltip"
+
+/**
+ * The app Tooltip for text that may be cut (TASK-69): it opens only while the
+ * trigger, or a `[data-clip]` inside it, is actually clipped, so a name that
+ * fits never pops a copy of itself.
+ */
+export function ClippedTooltip({ content, side, children }: {
+  content: React.ReactNode
+  side?: IconButtonProps["tooltipSide"]
+  children: React.ReactElement
+}) {
+  const ref = React.useRef<HTMLButtonElement>(null)
+  const clipped = () => {
+    const el = ref.current
+    if (!el) return false
+    return (el.hasAttribute("data-clip") && el.scrollWidth > el.clientWidth + 1) || hasClippedText(el)
+  }
+  return <IconTooltip ref={ref} content={content} side={side} when={clipped}>{children}</IconTooltip>
+}
 
 export { Button, IconButton, buttonVariants }

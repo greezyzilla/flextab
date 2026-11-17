@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { fireEvent, render, screen, within } from "@testing-library/react"
 import { useState } from "react"
 import { DestinationPicker, type PickerValue } from "./DestinationPicker"
+import { TooltipProvider } from "./ui/tooltip"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import { RECENT_DESTINATIONS_KEY } from "~src/lib/recentDestinations"
 import type { SavedSpace } from "~src/types"
@@ -39,7 +40,7 @@ const expanded = (name: string) => screen.getByRole("button", { name }).getAttri
 
 describe("DestinationPicker panel size (TASK-72)", () => {
   it("opens only the current destination's branch; a header folds or opens its own", () => {
-    render(<Panel start={{ spaceId: "sw", projectId: "pw", categoryId: "ca", groupId: "g1" }} />)
+    render(<TooltipProvider><Panel start={{ spaceId: "sw", projectId: "pw", categoryId: "ca", groupId: "g1" }} /></TooltipProvider>)
     expect([expanded("Work"), expanded("Watch"), expanded("Anime"), expanded("Frontend"), expanded("Personal")])
       .toEqual(["true", "true", "true", "false", "false"])
     expect(screen.getByRole("radio", { name: "Summer 2026" })).toBeChecked()
@@ -53,7 +54,7 @@ describe("DestinationPicker panel size (TASK-72)", () => {
   })
 
   it("draws one guide per open branch, heavier the higher the level", () => {
-    const { container } = render(<Panel start={{ spaceId: "sw", projectId: "pw", categoryId: "ca" }} />)
+    const { container } = render(<TooltipProvider><Panel start={{ spaceId: "sw", projectId: "pw", categoryId: "ca" }} /></TooltipProvider>)
     const guides = [...container.querySelectorAll<HTMLElement>("[data-guide]")]
     expect(guides.map((g) => [g.dataset.guide, g.style.background])).toEqual([
       ["0", "hsl(var(--ink) / 0.38)"], ["1", "hsl(var(--ink) / 0.24)"], ["2", "hsl(var(--ink) / 0.14)"],
@@ -63,7 +64,7 @@ describe("DestinationPicker panel size (TASK-72)", () => {
   })
 
   it("search opens every matching branch", () => {
-    render(<Panel start={{ spaceId: "sw", projectId: "pw", categoryId: "ca" }} />)
+    render(<TooltipProvider><Panel start={{ spaceId: "sw", projectId: "pw", categoryId: "ca" }} /></TooltipProvider>)
     fireEvent.change(screen.getByRole("searchbox", { name: "Find a destination" }), { target: { value: "react" } })
     expect(screen.getByRole("radio", { name: "React 19" })).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: /^New / })).not.toBeInTheDocument()
@@ -72,7 +73,7 @@ describe("DestinationPicker panel size (TASK-72)", () => {
   })
 
   it("names a new group, category or project inline at panel size", () => {
-    render(<Panel start={{ spaceId: "sw", projectId: "pw", categoryId: "ca" }} />)
+    render(<TooltipProvider><Panel start={{ spaceId: "sw", projectId: "pw", categoryId: "ca" }} /></TooltipProvider>)
     fireEvent.click(screen.getByRole("button", { name: "New group in Anime" }))
     const name = screen.getByRole("textbox", { name: "New group name" })
     fireEvent.change(name, { target: { value: "Fall 2026" } })
@@ -86,14 +87,14 @@ describe("DestinationPicker panel size (TASK-72)", () => {
   })
 
   it("at category level, categories are the choices", () => {
-    render(<Panel groupLevel={false} start={{ spaceId: "sw", projectId: "pw", categoryId: "ca" }} />)
+    render(<TooltipProvider><Panel groupLevel={false} start={{ spaceId: "sw", projectId: "pw", categoryId: "ca" }} /></TooltipProvider>)
     expect(screen.getByRole("radio", { name: "Anime" })).toBeChecked()
     expect(screen.queryByRole("button", { name: "Anime" })).not.toBeInTheDocument()
   })
 
   it("a recent chip picks its place and opens its branch", async () => {
     recent = [{ spaceId: "sp", projectId: "pr", categoryId: "cl" }, { spaceId: "sw", projectId: "pw", categoryId: "ca", groupId: "g2" }]
-    render(<Panel start={{ spaceId: "sw", projectId: "pw", categoryId: "ca", groupId: "g2" }} />)
+    render(<TooltipProvider><Panel start={{ spaceId: "sw", projectId: "pw", categoryId: "ca", groupId: "g2" }} /></TooltipProvider>)
     const chips = await screen.findByText("Recent")
     const box = chips.parentElement as HTMLElement
     expect(within(box).getAllByRole("button").map((b) => b.getAttribute("aria-pressed"))).toEqual(["false", "true"])

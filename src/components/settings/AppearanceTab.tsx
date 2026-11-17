@@ -4,7 +4,7 @@ import type { ThemeMode } from "~src/lib/theme";
 import { useSettingsStore, HUE_PRESETS, FONT_OPTIONS, type GroupLayout, type Density, type FontKey, type DuplicateMark, type DuplicateTone, type DuplicateCorner, type DuplicateLabel } from "~src/store/useSettingsStore";
 import { Switch } from "~src/components/ui/switch";
 import { Slider } from "~src/components/ui/slider";
-import { Button } from "~src/components/ui/button";
+import { Button, IconTooltip } from "~src/components/ui/button";
 import { SettingRow, ToggleGroup, GroupHeading, type SettingControlProps } from "./shared";
 import { LayoutIcon, ListIcon, GridIcon } from "./icons";
 import { canGroupTabs, releaseTabGroups, requestTabGroups } from "~src/services/openTab";
@@ -83,13 +83,14 @@ export function AppearanceTab() {
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 {HUE_PRESETS.map(p => (
-                  <button
-                    key={p.hue}
-                    onClick={() => setHue(p.hue)}
-                    className={`h-5 w-5 rounded-full border transition-all ${hue === p.hue ? 'border-ink/70 scale-110' : 'border-transparent hover:border-ink/40'}`}
-                    style={{ backgroundColor: `hsl(${p.hue} 85% 56%)` }}
-                    title={p.label}
-                  />
+                  <IconTooltip key={p.hue} content={p.label}>
+                    <button
+                      onClick={() => setHue(p.hue)}
+                      aria-label={p.label}
+                      className={`h-5 w-5 rounded-full border transition-all ${hue === p.hue ? 'border-ink/70 scale-110' : 'border-transparent hover:border-ink/40'}`}
+                      style={{ backgroundColor: `hsl(${p.hue} 85% 56%)` }}
+                    />
+                  </IconTooltip>
                 ))}
               </div>
             </div>

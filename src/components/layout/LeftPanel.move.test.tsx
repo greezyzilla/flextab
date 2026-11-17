@@ -4,12 +4,16 @@ import userEvent from "@testing-library/user-event"
 import { DndContext } from "@dnd-kit/core"
 import { LeftPanel } from "./LeftPanel"
 import { TooltipProvider } from "~src/components/ui/tooltip"
+import { stubResizeObserver } from "~src/test/stubResizeObserver"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import { useUIStore } from "~src/store/useUIStore"
 import { showUndoToast } from "~src/components/ui/sonner"
 import * as yjs from "~src/lib/yjsDoc"
 import { useDropIndicator } from "~src/store/useDropIndicator"
 import { act } from "@testing-library/react"
+
+// Tooltips open in these tests; their arrow needs a ResizeObserver (TASK-69).
+stubResizeObserver()
 
 vi.mock("~src/components/ui/sonner", () => ({ showUndoToast: vi.fn() }))
 

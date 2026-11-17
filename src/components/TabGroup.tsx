@@ -114,16 +114,17 @@ function SavedTabItem({ tab, groupId, location, copies = 1, unsorted }: { tab: S
             gutter pushes the favicon in: favicons line up with the group icon. */}
         <span className="relative w-5 h-5 shrink-0">
           <FaviconImg src={tab.favicon} alt="" />
-          <button
-            type="button"
-            {...attributes}
-            {...listeners}
-            aria-label={`Reorder ${tab.title}`}
-            className="absolute -inset-0.5 flex items-center justify-center rounded bg-black-800 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-1 focus-visible:ring-ring outline-none cursor-grab active:cursor-grabbing transition-opacity"
-            title="Drag to reorder"
-          >
-            <DragHandleIcon className="w-3.5 h-3.5 text-fg-muted" />
-          </button>
+          <IconTooltip content="Drag to reorder">
+            <button
+              type="button"
+              {...attributes}
+              {...listeners}
+              aria-label={`Reorder ${tab.title}`}
+              className="absolute -inset-0.5 flex items-center justify-center rounded bg-black-800 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-1 focus-visible:ring-ring outline-none cursor-grab active:cursor-grabbing transition-opacity"
+            >
+              <DragHandleIcon className="w-3.5 h-3.5 text-fg-muted" />
+            </button>
+          </IconTooltip>
           {isDuplicate && duplicateMark === "icon" && <DuplicateIcon tone={duplicateTone} />}
         </span>
 
@@ -155,9 +156,11 @@ function SavedTabItem({ tab, groupId, location, copies = 1, unsorted }: { tab: S
             {/* TASK-72: the browser tab opened from this card moved on (next
                 episode). A passive signal like "dup"; the action lives in ⋯. */}
             {change && (
-              <Badge variant="accent" size="sm" className="shrink-0 max-w-[40%] truncate font-normal" title={`Open tab is on ${change.to}`}>
-                <span aria-hidden>→{"\u00a0"}</span>{change.to}
-              </Badge>
+              <IconTooltip content={`Open tab is on ${change.to}`}>
+                <Badge variant="accent" size="sm" className="shrink-0 max-w-[40%] truncate font-normal">
+                  <span aria-hidden>→{"\u00a0"}</span>{change.to}
+                </Badge>
+              </IconTooltip>
             )}
           </a>
         </IconTooltip>
@@ -384,16 +387,17 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
           <div className="flex items-center gap-2.5 min-w-0">
             <span className="w-5 flex justify-center shrink-0"><GroupIcon className="h-3.5 w-3.5 text-fg-subtle" /></span>
             <h3 className="min-w-0 text-fg-muted font-sans text-[13px] font-medium">
-              <button
-                ref={renameButtonRef}
-                type="button"
-                className="block max-w-full text-left truncate rounded outline-none focus-visible:ring-1 focus-visible:ring-ring hover:text-fg transition-colors"
-                onClick={() => { setRenameValue(group.name); setIsRenaming(true); }}
-                aria-label={`Rename ${group.name}${colorLabel ? ` (${colorLabel})` : ''}`}
-                title="Rename group"
-              >
-                {group.name}
-              </button>
+              <IconTooltip content="Rename group">
+                <button
+                  ref={renameButtonRef}
+                  type="button"
+                  className="block max-w-full text-left truncate rounded outline-none focus-visible:ring-1 focus-visible:ring-ring hover:text-fg transition-colors"
+                  onClick={() => { setRenameValue(group.name); setIsRenaming(true); }}
+                  aria-label={`Rename ${group.name}${colorLabel ? ` (${colorLabel})` : ''}`}
+                >
+                  {group.name}
+                </button>
+              </IconTooltip>
             </h3>
             <span className="text-fg-subtle text-xs font-sans shrink-0">{sortedTabs.length} tab{sortedTabs.length !== 1 ? 's' : ''}</span>
           </div>

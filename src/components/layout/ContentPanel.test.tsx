@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event"
 import { DndContext } from "@dnd-kit/core"
 import { ContentPanel } from "./ContentPanel"
 import { TooltipProvider } from "~src/components/ui/tooltip"
+import { withResizeObserver } from "~src/test/stubResizeObserver"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import { useUIStore } from "~src/store/useUIStore"
 import { useSettingsStore } from "~src/store/useSettingsStore"
@@ -224,8 +225,10 @@ describe("content header tools (TASK-61)", () => {
     // The item, not its tooltip, owns data-state: the pressed style keys off "on".
     expect(list).toHaveAttribute("data-state", "on")
     expect(grid).toHaveAttribute("data-state", "off")
-    await user.hover(grid)
-    expect(await screen.findByRole("tooltip")).toHaveTextContent("Grid view")
+    await withResizeObserver(async () => {
+      await user.hover(grid)
+      expect(await screen.findByRole("tooltip")).toHaveTextContent("Grid view")
+    })
     await user.click(grid)
     expect(useSettingsStore.getState().groupLayout).toBe("grid")
     expect(grid).toHaveAttribute("aria-checked", "true")
@@ -252,8 +255,15 @@ describe("saved tab card: update to the open page (TASK-72)", () => {
     vi.mocked(chrome.tabs.get).mockResolvedValue({ id: 5, url: "https://anime.test/show/episode/2", title: "Show (Episode 02)" } as never)
     const user = setup()
     // A passive signal on the card whose tab moved, like "dup"; no extra button.
-    expect(await screen.findByTitle("Open tab is on Episode 02")).toHaveTextContent("Episode 02")
-    expect(screen.queryByTitle(/Open tab is on Episode 04/)).not.toBeInTheDocument()
+    const changeBadge = (to: string) => (_: string, el: Element | null) => el?.tagName === "DIV" && new RegExp(`^→\\s*${to}$`).test(el.textContent ?? "")
+    const badge = await screen.findByText(changeBadge("Episode 02"))
+    expect(screen.queryByText(changeBadge("Episode 04"))).not.toBeInTheDocument()
+    // It explains itself in the app tooltip, not a native title (TASK-69).
+    await withResizeObserver(async () => {
+      await user.hover(badge)
+      expect(await screen.findByRole("tooltip", {}, { timeout: 2000 })).toHaveTextContent("Open tab is on Episode 02")
+      await user.unhover(badge)
+    })
     expect(screen.queryByRole("button", { name: /^Update / })).not.toBeInTheDocument()
     // The action lives in ⋯ only.
     await user.click(screen.getByRole("button", { name: "Actions for Show (Episode 01)" }))

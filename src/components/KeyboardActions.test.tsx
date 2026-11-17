@@ -5,10 +5,14 @@ import { DndContext } from "@dnd-kit/core";
 import { ProfilePanel } from "./layout/ProfilePanel";
 import { TabGroup } from "./TabGroup";
 import { TooltipProvider } from "./ui/tooltip";
+import { stubResizeObserver } from "~src/test/stubResizeObserver";
 import { useAuthStore } from "~src/store/useAuthStore";
 import { useSettingsStore } from "~src/store/useSettingsStore";
 import { setSpaces } from "~src/lib/yjsDoc";
 import { syncActiveSelection, useSavedSpacesStore, useActiveGroups } from "~src/store/useSavedSpacesStore";
+
+// Tooltips open in these tests; their arrow needs a ResizeObserver (TASK-69).
+stubResizeObserver();
 
 const { login } = vi.hoisted(() => ({ login: vi.fn() }));
 

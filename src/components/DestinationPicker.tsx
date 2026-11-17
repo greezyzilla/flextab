@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from "react"
+import { Fragment, useEffect, useId, useMemo, useRef, useState } from "react"
 import type React from "react"
 import { commitOnBlur } from "~src/lib/inlineEdit";
 import { v7 as uuidv7 } from "uuid"
@@ -10,6 +10,7 @@ import { Input, INLINE_CREATE_HINT, inlineEditFrame, SearchField } from "~src/co
 import { CategoryIcon, GroupIcon, ProjectIcon, SpaceAvatar, UnsortedIcon } from "~src/components/levelIcons"
 import { loadRecentDestinations, type RecentDestination } from "~src/lib/recentDestinations"
 import { GroupColorSwatch } from "~src/components/GroupColorMenu"
+import { IconTooltip } from "~src/components/ui/button"
 import { groupColorFill } from "~src/lib/groupColors"
 import { DEFAULT_SPACE_NAME, ensureCategoryPath, findUnsorted, isUnsortedGroup, orderedGroups, UNSORTED_NAME } from "~src/lib/defaultPath"
 
@@ -152,12 +153,11 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
                 value.projectId === target.projectId &&
                 value.categoryId === target.categoryId &&
                 (!groupLevel || value.groupId === target.groupId)
-              return (
+              const path = describeDestination(savedSpaces, target)
+              const chip = (
                 <button
-                  key={`${target.spaceId}:${target.projectId}:${target.categoryId}`}
                   type="button"
                   aria-pressed={selected}
-                  title={describeDestination(savedSpaces, target) ?? undefined}
                   onClick={() => onChange(target)}
                   className={P ? `${P.chip} ${selected ? "bg-ink/[0.12]" : "bg-ink/[0.06] hover:bg-ink/[0.09]"}` : `flex max-w-full items-center gap-1.5 rounded-md border px-2 py-1 text-xs outline-none transition-colors focus-visible:ring-1 focus-visible:ring-ring ${
                     selected ? "border-[var(--accent)] text-fg" : "border-ink/10 text-fg-muted hover:bg-ink/[0.05]"
@@ -170,6 +170,9 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
                   <span className={`truncate text-fg-subtle${P ? " text-[13px]" : ""}`}>{group ? parts.category.name : parts.project.name}</span>
                 </button>
               )
+              const key = `${target.spaceId}:${target.projectId}:${target.categoryId}`
+              // The path names the space and project the chip leaves out, so it shows on every hover, not only when cut.
+              return path ? <IconTooltip key={key} content={path}>{chip}</IconTooltip> : <Fragment key={key}>{chip}</Fragment>
             })}
           </div>
         </div>

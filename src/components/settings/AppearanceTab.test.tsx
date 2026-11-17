@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AppearanceTab } from "./AppearanceTab";
+import { TooltipProvider } from "~src/components/ui/tooltip";
 import { APPEARANCE_DEFAULTS, useSettingsStore } from "~src/store/useSettingsStore";
 
 beforeEach(() => {
@@ -17,7 +18,7 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe("appearance control accessibility", () => {
   it("names every slider and describes its value and purpose", () => {
-    render(<AppearanceTab />);
+    render(<TooltipProvider><AppearanceTab /></TooltipProvider>);
     for (const [name, value, description] of [
       ["Accent hue", "214 degrees", "The colour for accents and highlights."],
       ["Colour intensity", "100 percent", "How much colour shows. 0 = neutral grayscale; higher = vivid accent + tinted surfaces."],
@@ -34,7 +35,7 @@ describe("appearance control accessibility", () => {
 
   it("updates the setting and announced value from the keyboard", async () => {
     const user = userEvent.setup();
-    render(<AppearanceTab />);
+    render(<TooltipProvider><AppearanceTab /></TooltipProvider>);
     await user.tab();
     expect(within(screen.getByRole("radiogroup", { name: "Mode" })).getByRole("radio", { name: "System" })).toHaveFocus();
     const hue = screen.getByRole("slider", { name: "Accent hue" });
@@ -51,7 +52,7 @@ describe("appearance control accessibility", () => {
 
   it("names the motion switch and toggles it with Space", async () => {
     const user = userEvent.setup();
-    render(<AppearanceTab />);
+    render(<TooltipProvider><AppearanceTab /></TooltipProvider>);
     const control = screen.getByRole("switch", { name: "Reduce motion" });
     expect(control).toHaveAccessibleDescription("Minimise animations and transitions across the app.");
     expect(control).not.toBeChecked();
@@ -63,7 +64,7 @@ describe("appearance control accessibility", () => {
 
   it("offers System, Light and Dark, following the device by default", async () => {
     const user = userEvent.setup();
-    render(<AppearanceTab />);
+    render(<TooltipProvider><AppearanceTab /></TooltipProvider>);
     const mode = screen.getByRole("radiogroup", { name: "Mode" });
     expect(mode).toHaveAccessibleDescription("Follow your device, or always use light or dark.");
     expect(within(mode).getAllByRole("radio").map(r => r.getAttribute("aria-label"))).toEqual(["System", "Light", "Dark"]);
@@ -77,7 +78,7 @@ describe("appearance control accessibility", () => {
 
   it("labels option groups, including conditional grid columns", async () => {
     const user = userEvent.setup();
-    render(<AppearanceTab />);
+    render(<TooltipProvider><AppearanceTab /></TooltipProvider>);
     for (const name of ["Mode", "Font", "Group layout", "Density"]) {
       expect(screen.getByRole("radiogroup", { name })).toHaveAccessibleDescription();
     }
@@ -90,7 +91,7 @@ describe("appearance control accessibility", () => {
 
   it("picks how duplicate tabs are marked, Ribbon by default, and resets to it (TASK-68)", async () => {
     const user = userEvent.setup();
-    render(<AppearanceTab />);
+    render(<TooltipProvider><AppearanceTab /></TooltipProvider>);
     const mark = screen.getByRole("radiogroup", { name: "Duplicate tabs" });
     expect(mark).toHaveAccessibleDescription("How a tab saved twice in the same group is marked.");
     expect(within(mark).getByRole("radio", { name: "Ribbon" })).toBeChecked();
@@ -104,7 +105,7 @@ describe("appearance control accessibility", () => {
 
   it("offers colour for any mark, and corner and text only for the ribbon (TASK-68)", async () => {
     const user = userEvent.setup();
-    render(<AppearanceTab />);
+    render(<TooltipProvider><AppearanceTab /></TooltipProvider>);
     const pick = (group: string, name: string) => user.click(within(screen.getByRole("radiogroup", { name: group })).getByRole("radio", { name }));
     for (const name of ["Duplicate colour", "Ribbon corner", "Ribbon text"]) {
       expect(screen.getByRole("radiogroup", { name })).toHaveAccessibleDescription();
@@ -124,7 +125,7 @@ describe("appearance control accessibility", () => {
   });
 
   it("keeps label references unique when multiple instances mount", () => {
-    const { container } = render(<><AppearanceTab /><AppearanceTab /></>);
+    const { container } = render(<TooltipProvider><AppearanceTab /><AppearanceTab /></TooltipProvider>);
     const ids = Array.from(container.querySelectorAll("[id]")).map(el => el.id);
     expect(new Set(ids).size).toBe(ids.length);
     expect(screen.getAllByRole("switch", { name: "Reduce motion" })).toHaveLength(2);
@@ -141,14 +142,14 @@ describe("Open as tab groups (TASK-31)", () => {
   };
 
   it("is not offered in a browser without tab groups", () => {
-    render(<AppearanceTab />);
+    render(<TooltipProvider><AppearanceTab /></TooltipProvider>);
     expect(screen.queryByRole("switch", { name: "Open as tab groups" })).not.toBeInTheDocument();
   });
 
   it("turns off and gives the permission back", async () => {
     supported(true);
     const user = userEvent.setup();
-    render(<AppearanceTab />);
+    render(<TooltipProvider><AppearanceTab /></TooltipProvider>);
     const toggle = screen.getByRole("switch", { name: "Open as tab groups" });
     expect(toggle).toBeChecked();
     expect(toggle).toHaveAccessibleDescription("Open all puts a group's tabs in a browser tab group with the same name and color.");
@@ -162,7 +163,7 @@ describe("Open as tab groups (TASK-31)", () => {
     supported(false);
     useSettingsStore.setState({ openAsTabGroups: false });
     const user = userEvent.setup();
-    render(<AppearanceTab />);
+    render(<TooltipProvider><AppearanceTab /></TooltipProvider>);
     const toggle = screen.getByRole("switch", { name: "Open as tab groups" });
     await user.click(toggle);
     expect(c.permissions.request).toHaveBeenCalledWith({ permissions: ["tabGroups"] });
