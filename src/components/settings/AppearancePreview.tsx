@@ -14,9 +14,11 @@ import type { SavedGroup, SavedTab } from "~src/types"
 // previews every control too. Everything in it is a real component (the search
 // field, the Save all tabs button, the category header, TabGroup's look-only
 // `preview` variant), styled by the live theme tokens, never the person's data.
-const tab = (id: string, title: string, host: string): SavedTab => ({ id: `appearance-preview-${id}`, title, url: `https://${host}/`, favicon: "", order: 0 })
+const tab = (id: string, title: string, host: string, path = "/"): SavedTab => ({ id: `appearance-preview-${id}`, title, url: `https://${host}${path}`, favicon: "", order: 0 })
+// The first two are long, so Title cut and Link cut show on them (TASK-71).
 const RESEARCH_TABS = [
-  tab("b", "Postgres EXPLAIN guide", "postgresql.org"), tab("c", "Customer interview notes", "notion.so"),
+  tab("b", "[BD] Black Clover: Mahou Tei no Ken (BD) Episode 2 Subtitle Indonesia - Kuramanime", "v20.kuramanime.ing", "/anime/4116/black-clover-mahou-tei-no-ken/episode/2"),
+  tab("c", "[FLEX-413] Billing retries fail when the card is replaced in the middle of a cycle - Jira", "acme.atlassian.net", "/jira/software/projects/FLEX/boards/7?selectedIssue=FLEX-413"),
   tab("d", "Figma: checkout v3", "figma.com"), tab("e", "Sprint board", "linear.app"),
   tab("f", "Pull request #91", "github.com"), tab("g", "Invoice #2291", "stripe.com"),
 ]

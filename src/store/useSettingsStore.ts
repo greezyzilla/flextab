@@ -1,3 +1,4 @@
+import type { LinkCutScope } from "~src/lib/displayUrl";
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { storage } from './syncStorage';
@@ -66,6 +67,9 @@ export const APPEARANCE_DEFAULTS = {
   reduceMotion: false,
   fontFamily: 'inter' as FontKey,
   uiScale: 1,          // 0.8-1.2, whole-UI zoom
+  titleCut: 50,        // 0-100, where "…" sits in a cut saved tab title (TASK-71)
+  linkCut: 50,         // 0-100, where "…" sits in a cut saved tab link (TASK-71)
+  linkCutScope: 'all' as LinkCutScope, // which part of the link is cut: all, site or path (TASK-71)
   duplicateMark: 'ribbon' as DuplicateMark,
   duplicateTone: 'caution' as DuplicateTone,
   duplicateCorner: 'right' as DuplicateCorner,  // ribbon only
@@ -84,6 +88,9 @@ interface SettingsState {
   reduceMotion: boolean;
   fontFamily: FontKey;
   uiScale: number;     // 0.8-1.2 whole-UI zoom
+  titleCut: number;    // 0-100, "…" position in a cut saved tab title: 0 keeps the end, 100 the start
+  linkCut: number;     // 0-100, the same for a saved tab link
+  linkCutScope: LinkCutScope; // which part of the link gives way first
   duplicateMark: DuplicateMark;
   duplicateTone: DuplicateTone;
   duplicateCorner: DuplicateCorner;
@@ -105,6 +112,9 @@ interface SettingsState {
   setReduceMotion: (reduceMotion: boolean) => void;
   setFontFamily: (fontFamily: FontKey) => void;
   setUiScale: (uiScale: number) => void;
+  setTitleCut: (titleCut: number) => void;
+  setLinkCut: (linkCut: number) => void;
+  setLinkCutScope: (linkCutScope: LinkCutScope) => void;
   setDuplicateMark: (duplicateMark: DuplicateMark) => void;
   setDuplicateTone: (duplicateTone: DuplicateTone) => void;
   setDuplicateCorner: (duplicateCorner: DuplicateCorner) => void;
@@ -137,6 +147,9 @@ export const useSettingsStore = create<SettingsState>()(
       setReduceMotion: (reduceMotion) => set({ reduceMotion }),
       setFontFamily: (fontFamily) => set({ fontFamily }),
       setUiScale: (uiScale) => set({ uiScale }),
+      setTitleCut: (titleCut) => set({ titleCut }),
+      setLinkCut: (linkCut) => set({ linkCut }),
+      setLinkCutScope: (linkCutScope) => set({ linkCutScope }),
       setDuplicateMark: (duplicateMark) => set({ duplicateMark }),
       setDuplicateTone: (duplicateTone) => set({ duplicateTone }),
       setDuplicateCorner: (duplicateCorner) => set({ duplicateCorner }),

@@ -4,7 +4,7 @@ import { describe, it, expect, vi } from "vitest";
 // pure fieldMerge is importable without a real store.
 vi.mock("~src/store/useSettingsStore", () => ({
   useSettingsStore: {
-    getState: () => ({ groupLayout: "grid", gridColumns: 3, density: "cozy", hue: 214, intensity: 100, autoSync: true }),
+    getState: () => ({ groupLayout: "grid", gridColumns: 3, density: "cozy", hue: 214, intensity: 100, titleCut: 50, linkCut: 50, linkCutScope: "all", autoSync: true }),
     setState: vi.fn(),
     subscribe: vi.fn(() => () => {}),
   },
@@ -17,9 +17,15 @@ vi.mock("./api", () => ({ apiGetSettings: vi.fn(), apiPutSettings: vi.fn() }));
 
 import { fieldMerge } from "./settingsSync";
 
-const base = { groupLayout: "grid", gridColumns: 3, density: "cozy", hue: 214, intensity: 100, autoSync: true } as const;
+const base = { groupLayout: "grid", gridColumns: 3, density: "cozy", hue: 214, intensity: 100, titleCut: 50, linkCut: 50, linkCutScope: "all", autoSync: true } as const;
 
 describe("settings fieldMerge (field-level 3-way)", () => {
+  it("carries where titles and links are cut between devices; an account without them keeps this device's (TASK-71)", () => {
+    expect(fieldMerge(base, { ...base, titleCut: 80, linkCut: 0 }, { ...base })).toMatchObject({ titleCut: 80, linkCut: 0 })
+    const { titleCut: _t, linkCut: _l, ...older } = base
+    expect(fieldMerge(base, older, { ...base, titleCut: 25 })).toMatchObject({ titleCut: 25, linkCut: 50 })
+  });
+
   it("keeps a field the local device changed since base", () => {
     const local = { ...base, hue: 30 }; // this device changed hue
     const remote = { ...base, hue: 200 }; // server still has the old-ish value

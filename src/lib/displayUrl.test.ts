@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { fitMiddle, fitTail, hasClippedText, splitDisplayUrl } from "./displayUrl"
+import { fitLink, fitMiddle, fitTail, hasClippedText, splitDisplayUrl } from "./displayUrl"
 
 describe("splitDisplayUrl (TASK-54)", () => {
   it("splits host and the rest, which together are the URL without its scheme", () => {
@@ -64,6 +64,19 @@ describe("fitMiddle (TASK-54 titles)", () => {
     expect(Math.abs(start.length - end.length)).toBeLessThanOrEqual(2)
     expect(r.text.length * 6).toBeLessThanOrEqual(120)
   })
+  it("puts the ellipsis where the start share says (TASK-71): 0 keeps the end, 1 the start", () => {
+    const t = "[BD] Black Clover: Mahou Tei no Ken (BD) Episode 2 Subtitle Indonesia - Kuramanime"
+    const at = (share: number) => fitMiddle(t, 120, w, 6, share).text
+    expect(at(0).startsWith("…")).toBe(true)
+    expect(t.endsWith(at(0).slice(1))).toBe(true)
+    expect(at(1).endsWith("…")).toBe(true)
+    expect(t.startsWith(at(1).slice(0, -1))).toBe(true)
+    expect(at(0.5)).toBe(fitMiddle(t, 120, w, 6).text) // the default is the middle
+    const [start, end] = at(0.25).split("…")
+    expect(start.length).toBeLessThan(end.length)
+    expect(at(-1)).toBe(at(0)) // out of range: clamped
+    expect(at(2)).toBe(at(1))
+  })
   it("drops spaces at the cut and never splits a surrogate pair", () => {
     const t = "ab 😀😀😀😀 cd"
     for (const width of [18, 24, 30, 36, 42, 48]) {
@@ -93,5 +106,37 @@ describe("hasClippedText", () => {
     root.append(box(180, 100))
     expect(hasClippedText(root)).toBe(true)
     expect(hasClippedText(null)).toBe(false)
+  })
+})
+
+describe("fitLink: which part of a link gives way (TASK-71)", () => {
+  const w = (from: number, to: number) => (to - from) * 6 // 6px per character
+  const host = "www.rat-mart.com", rest = "/blog/scam-is-a-scam", full = host + rest // 16 + 20 characters
+  it("leaves a link that fits alone", () => {
+    expect(fitLink(host, rest, 300, w, 6, 0, "all")).toEqual({ host, rest, cut: false })
+  })
+  it("all: cuts the whole link as one", () => {
+    const r = fitLink(host, rest, 162, w, 6, 0, "all")
+    expect(r.host).toBe("")
+    expect(r.rest.startsWith("…")).toBe(true)
+    expect(full.endsWith(r.rest.slice(1))).toBe(true)
+    expect(r.rest).toBe("…t.com/blog/scam-is-a-scam")
+  })
+  it("path: keeps the site whole and cuts the path; a site wider than its share cuts the whole link", () => {
+    const r = fitLink(host, rest, 162, w, 6, 0, "path")
+    expect(r).toMatchObject({ host, cut: true })
+    expect(r.rest.startsWith("…") && rest.endsWith(r.rest.slice(1))).toBe(true)
+    const tight = fitLink(host, rest, 150, w, 6, 0, "path") // the site would take 64% of the line
+    expect(tight.host).toBe("")
+    expect(tight.rest).toBe(fitLink(host, rest, 150, w, 6, 0, "all").rest)
+  })
+  it("site: keeps the path whole and cuts the site; a path that doesn't fit alone cuts the whole link", () => {
+    const r = fitLink(host, rest, 180, w, 6, 0.5, "site")
+    expect(r).toMatchObject({ rest, cut: true })
+    expect(r.host).toContain("…")
+    expect((r.host + r.rest).length * 6).toBeLessThanOrEqual(180)
+    const tight = fitLink(host, rest, 120, w, 6, 0.5, "site") // the path alone fills the line
+    expect(tight.host).toBe("")
+    expect(tight.rest).toBe(fitLink(host, rest, 120, w, 6, 0.5, "all").rest)
   })
 })

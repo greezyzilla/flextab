@@ -12,6 +12,9 @@ function snapshot() {
     density: s.density,
     hue: s.hue,
     intensity: s.intensity,
+    titleCut: s.titleCut,
+    linkCut: s.linkCut,
+    linkCutScope: s.linkCutScope,
     autoSync: s.autoSync,
   };
 }

@@ -6,6 +6,14 @@ import { Switch } from "~src/components/ui/switch";
 import { Slider } from "~src/components/ui/slider";
 import { Button, IconTooltip } from "~src/components/ui/button";
 import { SettingRow, ToggleGroup, GroupHeading, type SettingControlProps } from "./shared";
+import type { LinkCutScope } from "~src/lib/displayUrl";
+
+/** What each Link cut scope does, shown under its choice (TASK-71). */
+const LINK_CUT_SCOPE_NOTE: Record<LinkCutScope, string> = {
+  all: "The whole link is shortened as one.",
+  site: "Only the site is shortened, so the path stays whole. If the path alone doesn't fit, the whole link is shortened.",
+  path: "Only the path is shortened, so the site stays whole. If the site alone doesn't fit, the whole link is shortened.",
+};
 import { LayoutIcon, ListIcon, GridIcon } from "./icons";
 import { canGroupTabs, releaseTabGroups, requestTabGroups } from "~src/services/openTab";
 
@@ -41,7 +49,7 @@ export function HueSlider({ value, onChange, ...controlProps }: { value: number;
 export function AppearanceTab() {
   const {
     theme, setTheme, hue, setHue, intensity, setIntensity, groupTint, setGroupTint, radius, setRadius,
-    fontFamily, setFontFamily, uiScale, setUiScale,
+    fontFamily, setFontFamily, uiScale, setUiScale, titleCut, setTitleCut, linkCut, setLinkCut, linkCutScope, setLinkCutScope,
     groupLayout, setGroupLayout, gridColumns, setGridColumns, density, setDensity,
     duplicateMark, setDuplicateMark, duplicateTone, setDuplicateTone,
     duplicateCorner, setDuplicateCorner, duplicateLabel, setDuplicateLabel,
@@ -155,6 +163,42 @@ export function AppearanceTab() {
               <Slider {...controlProps} aria-valuetext={`${Math.round(uiScale * 100)} percent`} min={0.8} max={1.2} step={0.05} value={[uiScale]} onValueChange={(v) => setUiScale(v[0])} className="flex-1" />
               <span className="text-fg-subtle text-xs font-sans w-9 text-right shrink-0">{Math.round(uiScale * 100)}%</span>
             </div>
+          )}
+        </SettingRow>
+
+        {/* Where a long saved tab title or link is cut (TASK-71): the value is
+            where the "…" sits, so its thumb sits where the cut does. */}
+        <SettingRow label="Title cut" description="Where a long tab title is shortened. 0% keeps its end, 100% keeps its start.">
+          {(controlProps) => (
+            <div className="flex items-center gap-3">
+              <Slider {...controlProps} aria-valuetext={`${titleCut} percent`} min={0} max={100} step={5} value={[titleCut]} onValueChange={(v) => setTitleCut(v[0])} className="flex-1" />
+              <span className="text-fg-subtle text-xs font-sans w-9 text-right shrink-0">{titleCut}%</span>
+            </div>
+          )}
+        </SettingRow>
+
+        <SettingRow label="Link cut" description="Where a long link is shortened. 0% keeps its end, 100% keeps its start.">
+          {(controlProps) => (
+            <div className="flex items-center gap-3">
+              <Slider {...controlProps} aria-valuetext={`${linkCut} percent`} min={0} max={100} step={5} value={[linkCut]} onValueChange={(v) => setLinkCut(v[0])} className="flex-1" />
+              <span className="text-fg-subtle text-xs font-sans w-9 text-right shrink-0">{linkCut}%</span>
+            </div>
+          )}
+        </SettingRow>
+
+        {/* Which part of the link gives way; its description says what to expect, fallback included. */}
+        <SettingRow label="Link cut applies to" description={LINK_CUT_SCOPE_NOTE[linkCutScope]}>
+          {(controlProps) => (
+            <ToggleGroup<LinkCutScope>
+              {...controlProps}
+              value={linkCutScope}
+              onChange={setLinkCutScope}
+              options={[
+                { value: 'all', label: 'All' },
+                { value: 'site', label: 'Site' },
+                { value: 'path', label: 'Path' },
+              ]}
+            />
           )}
         </SettingRow>
       </section>

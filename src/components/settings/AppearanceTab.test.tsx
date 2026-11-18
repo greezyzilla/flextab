@@ -25,12 +25,14 @@ describe("appearance control accessibility", () => {
       ["Group tint", "35 percent", "How strongly a coloured group tints its card. 0 = no tint, the colour shows only as its dot."],
       ["Roundness", "8 pixels", "Corner radius across the UI. 0 = sharp, higher = softer."],
       ["Interface scale", "100 percent", "Zoom the whole UI in or out."],
+      ["Title cut", "50 percent", "Where a long tab title is shortened. 0% keeps its end, 100% keeps its start."],
+      ["Link cut", "50 percent", "Where a long link is shortened. 0% keeps its end, 100% keeps its start."],
     ]) {
       const slider = screen.getByRole("slider", { name });
       expect(slider).toHaveAccessibleDescription(description);
       expect(slider).toHaveAttribute("aria-valuetext", value);
     }
-    expect(screen.getAllByRole("slider")).toHaveLength(5);
+    expect(screen.getAllByRole("slider")).toHaveLength(7);
   });
 
   it("updates the setting and announced value from the keyboard", async () => {
@@ -48,6 +50,25 @@ describe("appearance control accessibility", () => {
     await user.keyboard("{ArrowRight}");
     expect(useSettingsStore.getState().uiScale).toBe(1.05);
     expect(scale).toHaveAttribute("aria-valuetext", "105 percent");
+    // Title and link cuts move in steps of 5 (TASK-71).
+    const titleCut = screen.getByRole("slider", { name: "Title cut" });
+    titleCut.focus();
+    await user.keyboard("{ArrowLeft}");
+    expect(useSettingsStore.getState().titleCut).toBe(45);
+    const linkCut = screen.getByRole("slider", { name: "Link cut" });
+    linkCut.focus();
+    await user.keyboard("{ArrowRight}");
+    expect(useSettingsStore.getState().linkCut).toBe(55);
+    expect(linkCut).toHaveAttribute("aria-valuetext", "55 percent");
+    // Which part of the link gives way: All by default, each choice saying what to expect.
+    const shorten = screen.getByRole("radiogroup", { name: "Link cut applies to" });
+    expect(within(shorten).getByRole("radio", { name: "All" })).toHaveAttribute("aria-checked", "true");
+    expect(shorten).toHaveAccessibleDescription("The whole link is shortened as one.");
+    await user.click(within(shorten).getByRole("radio", { name: "Path" }));
+    expect(useSettingsStore.getState().linkCutScope).toBe("path");
+    expect(shorten).toHaveAccessibleDescription("Only the path is shortened, so the site stays whole. If the site alone doesn't fit, the whole link is shortened.");
+    await user.click(within(shorten).getByRole("radio", { name: "Site" }));
+    expect(shorten).toHaveAccessibleDescription("Only the site is shortened, so the path stays whole. If the path alone doesn't fit, the whole link is shortened.");
   });
 
   it("names the motion switch and toggles it with Space", async () => {

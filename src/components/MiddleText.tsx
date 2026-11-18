@@ -4,6 +4,7 @@ import { fitMiddle } from "~src/lib/displayUrl"
 /**
  * One line of text that, when too long, is cut in the middle: its start and
  * its end stay, "…" replaces the middle (TASK-54, saved tab titles).
+ * `startShare` moves the "…" (TASK-71): 0 keeps the end, 1 keeps the start.
  *
  * Same measuring as TabUrl: Range rects over a hidden copy in the line's own
  * font, exact fractional widths, re-measured when the line or the text's
@@ -12,7 +13,7 @@ import { fitMiddle } from "~src/lib/displayUrl"
  * column sizes exactly as it did with a plain truncated span. Without
  * ResizeObserver it falls back to an end ellipsis. `data-cut` marks a cut.
  */
-export function MiddleText({ text, className = "" }: { text: string; className?: string }) {
+export function MiddleText({ text, className = "", startShare = 0.5 }: { text: string; className?: string; startShare?: number }) {
   const lineRef = useRef<HTMLSpanElement>(null)
   const probeRef = useRef<HTMLSpanElement>(null)
   const [fit, setFit] = useState<{ text: string; cut: boolean } | null>(null)
@@ -25,14 +26,14 @@ export function MiddleText({ text, className = "" }: { text: string; className?:
     const width = (from: number, to: number) => { range.setStart(node, from); range.setEnd(node, to); return range.getBoundingClientRect().width }
     const update = () => {
       const w = line.getBoundingClientRect().width
-      setFit(w > 0 ? fitMiddle(text, w, (f, t) => width(f + 1, t + 1), width(0, 1)) : null)
+      setFit(w > 0 ? fitMiddle(text, w, (f, t) => width(f + 1, t + 1), width(0, 1), startShare) : null)
     }
     update()
     const ro = new ResizeObserver(update)
     ro.observe(line)
     ro.observe(probe)
     return () => ro.disconnect()
-  }, [text])
+  }, [text, startShare])
 
   return (
     <span className={`relative block min-w-0 overflow-hidden ${className}`}>

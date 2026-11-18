@@ -62,6 +62,10 @@ function SavedTabItem({ tab, groupId, location, copies = 1, unsorted }: { tab: S
   const duplicateTone = useSettingsStore((s) => s.duplicateTone);
   const duplicateCorner = useSettingsStore((s) => s.duplicateCorner);
   const duplicateLabel = useSettingsStore((s) => s.duplicateLabel);
+  // Where a long title and link are cut, from Settings › Appearance (TASK-71).
+  const titleCut = useSettingsStore((s) => s.titleCut);
+  const linkCut = useSettingsStore((s) => s.linkCut);
+  const linkCutScope = useSettingsStore((s) => s.linkCutScope);
   const linkRef = useRef<HTMLAnchorElement>(null);
 
   const onClick =(event: React.MouseEvent<HTMLAnchorElement>) => {
@@ -150,8 +154,8 @@ function SavedTabItem({ tab, groupId, location, copies = 1, unsorted }: { tab: S
             onClick={onClick}
           >
             <div className="flex flex-col min-w-0">
-              <MiddleText text={tab.title} className="text-fg text-xs font-sans" />
-              <TabUrl url={tab.url} />
+              <MiddleText text={tab.title} className="text-fg text-xs font-sans" startShare={titleCut / 100} />
+              <TabUrl url={tab.url} pathShare={linkCut / 100} scope={linkCutScope} />
             </div>
             {/* TASK-72: the browser tab opened from this card moved on (next
                 episode). A passive signal like "dup"; the action lives in ⋯. */}
