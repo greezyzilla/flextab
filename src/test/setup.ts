@@ -80,7 +80,6 @@ global.chrome = {
   action: {
     setBadgeText: vi.fn(async () => {}),
     setBadgeBackgroundColor: vi.fn(async () => {}),
-    setBadgeTextColor: vi.fn(async () => {}),
     setTitle: vi.fn(async () => {}),
     setIcon: vi.fn(async () => {}),
     openPopup: vi.fn(async () => {}),

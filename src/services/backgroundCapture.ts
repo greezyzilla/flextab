@@ -1,7 +1,7 @@
 // Capture from outside any FlexTab page (TASK-2): the global keyboard
 // commands and the right-click menu, handled in the background service
 // worker. They save instantly to the last destination (same default as the
-// popup) and confirm with the toolbar badge; the popup then offers Undo for
+// popup) and confirm on the toolbar icon; the popup then offers Undo for
 // the last such save.
 import {
   captureTabs, closeSavedTabs, isCaptureFailure, loadCloseAfter, loadSuggestedDestination, POPUP_CLOSE_PORT, POPUP_SUBJECT_KEY,
@@ -9,7 +9,8 @@ import {
 } from "~src/services/capture"
 import { isSavableTabUrl } from "~src/services/saveTabsAsGroup"
 import * as yjs from "~src/lib/yjsDoc"
-import { flashBadge } from "~src/services/toolbarBadge"
+import { flashMark, showResting } from "~src/services/toolbarIcon"
+import type { ToolbarMark } from "~src/services/toolbarMarks"
 
 export const MENU_SAVE_PAGE = "flextab-save-page"
 export const MENU_SAVE_LINK = "flextab-save-link"
@@ -17,7 +18,7 @@ export const MENU_SAVE_WINDOW = "flextab-save-window"
 export const COMMAND_SAVE_PAGE = "save-page"
 export const COMMAND_SAVE_WINDOW = "save-window"
 
-const BADGE_MS = 2500
+const MARK_MS = 2500
 
 export type BackgroundCaptureKind = "page" | "link" | "window"
 export type BackgroundCaptureOutcome = "saved" | "already" | "unsavable" | "no-destination" | "no-workspace" | "failed"
@@ -45,14 +46,18 @@ export function commandKind(command: string): BackgroundCaptureKind | null {
 }
 
 /**
- * Confirm a capture on the toolbar badge of the tab it came from (the front
- * tab when there is none); the badge then returns to its resting state (TASK-78).
+ * Answer a capture on the toolbar icon of the tab it came from (the front tab
+ * when there is none), TASK-78. A save is answered by the tab's resting state:
+ * the saved check when the page in front is now saved. A capture that did not
+ * save shows its mark for a moment, then the tab returns to its resting state.
  */
-async function confirm(tab: chrome.tabs.Tab | undefined, text: string, color: string, title: string): Promise<void> {
+async function confirm(tab: chrome.tabs.Tab | undefined, mark?: { mark: ToolbarMark; title: string }): Promise<void> {
   try {
     const id = tab?.id ?? (await chrome.tabs.query({ active: true, lastFocusedWindow: true }))[0]?.id
-    if (id !== undefined) await flashBadge(id, text, color, title, BADGE_MS)
-  } catch (_) { /* badge is best-effort feedback */ }
+    if (id === undefined) return
+    if (mark) await flashMark(id, mark.mark, mark.title, MARK_MS)
+    else await showResting(id)
+  } catch (_) { /* the icon is best-effort feedback */ }
 }
 
 /** Open somewhere the user can finish: the popup if the browser allows, else the new tab page. */
@@ -97,7 +102,7 @@ export async function captureFromBackground(
   // opens to ask, holding the link when it was a link. An empty workspace has
   // nothing to pick from, so it still gets its default space (TASK-37).
   if (!tabs.some((t) => isSavableTabUrl(t.url))) {
-    await confirm(context.tab, "×", "#6b7280", "FlexTab: this page can't be saved")
+    await confirm(context.tab, { mark: "unsavable", title: "FlexTab: this page can't be saved" })
     return "unsavable"
   }
   const suggestion = await loadSuggestedDestination()
@@ -120,11 +125,11 @@ export async function captureFromBackground(
     return "no-destination"
   }
   if (!result.persisted) {
-    await confirm(context.tab, "!", "#dc2626", "FlexTab: couldn't save to this device")
+    await confirm(context.tab, { mark: "failed", title: "FlexTab: couldn't save to this device" })
     return "failed"
   }
   if (result.tabIds.length === 0) {
-    await confirm(context.tab, "✓", "#6b7280", "FlexTab: already saved")
+    await confirm(context.tab)
     return "already"
   }
 
@@ -133,7 +138,7 @@ export async function captureFromBackground(
   const closeKind = kind === "window" ? "window" : kind === "link" ? null : "popup"
   const closed = closeKind && await loadCloseAfter(closeKind) ? await closeSavedTabs(tabs) : []
   await storeLastCapture({ ...result, closed })
-  await confirm(context.tab, String(result.tabIds.length), "#16a34a", `FlexTab: saved ${result.tabIds.length} tab${result.tabIds.length === 1 ? "" : "s"}`)
+  await confirm(context.tab)
   return "saved"
 }
 
