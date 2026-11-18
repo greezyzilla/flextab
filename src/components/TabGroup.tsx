@@ -1,9 +1,10 @@
 import { useFlash } from "~src/hooks/useFlash";
+import { Icon } from "~src/components/ui/icon"
+import { GripVertical, SquareArrowOutUpRight } from "lucide-react"
 import { useState, useRef, useEffect } from "react";
 import { SortableContext, useSortable } from "@dnd-kit/sortable";
 import { useDroppable } from "@dnd-kit/core";
 import { DuplicateIcon, DuplicateRibbon } from "./DuplicateMark";
-import { DragHandleIcon } from "./icons/DragHandleIcon";
 import { FaviconImg } from "./FaviconImg";
 import { CSS } from "@dnd-kit/utilities";
 import type { SavedGroup, SavedTab } from "~src/types";
@@ -126,7 +127,7 @@ function SavedTabItem({ tab, groupId, location, copies = 1, unsorted }: { tab: S
               aria-label={`Reorder ${tab.title}`}
               className="absolute -inset-0.5 flex items-center justify-center rounded bg-black-800 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-1 focus-visible:ring-ring outline-none cursor-grab active:cursor-grabbing transition-opacity"
             >
-              <DragHandleIcon className="w-3.5 h-3.5 text-fg-muted" />
+              <Icon icon={GripVertical} size="sm" className="text-fg-muted" />
             </button>
           </IconTooltip>
           {isDuplicate && duplicateMark === "icon" && <DuplicateIcon tone={duplicateTone} />}
@@ -360,7 +361,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
       <div className="flex items-center justify-between gap-2 min-h-[26px] group/header" style={{ paddingInline: 'var(--density-px-tab)' }}>
         {unsorted ? (
           <div className="flex items-center gap-2.5 min-w-0">
-            <span className="w-5 flex justify-center shrink-0"><UnsortedIcon className="h-3.5 w-3.5 text-fg-subtle" /></span>
+            <span className="w-5 flex justify-center shrink-0"><UnsortedIcon size="sm" className="text-fg-subtle" /></span>
             <h3 className="text-fg-muted font-sans text-[11px] font-medium uppercase tracking-wider">Unsorted</h3>
             <span className="min-w-0 truncate text-fg-subtle text-xs font-sans">
               {sortedTabs.length} tab{sortedTabs.length !== 1 ? 's' : ''} · drag into a group to file them
@@ -370,7 +371,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
           // Icon kept and the frame's padding cancelled by negative margins, so
           // the name stays where it was and the header keeps its height (TASK-62).
           <div className={`flex flex-1 min-w-0 items-center gap-2.5 -ml-1.5 pl-1.5 pr-1.5 -my-1 py-1 ${inlineEditFrame}`}>
-            <span className="w-5 flex justify-center shrink-0"><GroupIcon className="h-3.5 w-3.5 text-fg-subtle" /></span>
+            <span className="w-5 flex justify-center shrink-0"><GroupIcon size="sm" className="text-fg-subtle" /></span>
             <Input
               variant="inline"
               ref={renameRef}
@@ -389,7 +390,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
           </div>
         ) : (
           <div className="flex items-center gap-2.5 min-w-0">
-            <span className="w-5 flex justify-center shrink-0"><GroupIcon className="h-3.5 w-3.5 text-fg-subtle" /></span>
+            <span className="w-5 flex justify-center shrink-0"><GroupIcon size="sm" className="text-fg-subtle" /></span>
             <h3 className="min-w-0 text-fg-muted font-sans text-[13px] font-medium">
               <IconTooltip content="Rename group">
                 <button
@@ -421,9 +422,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
               <DropdownMenu open={openAllMenu} onOpenChange={setOpenAllMenu}>
                 <DropdownMenuTrigger asChild>
                   <IconButton aria-label={`Open all tabs in ${group.name}`} tooltip="Open all" className={openAllMenu ? 'bg-ink/10 text-fg' : ''}>
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 5h6v6M19 5l-8 8M11 5H6a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1v-5" />
-                    </svg>
+                    <Icon icon={SquareArrowOutUpRight} size="sm" />
                   </IconButton>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">

@@ -1,4 +1,6 @@
 import * as SliderPrimitive from "@radix-ui/react-slider";
+import type { IconWeight } from "~src/components/ui/icon";
+import { Icon } from "~src/components/ui/icon"
 import { Monitor, Moon, Sun } from "lucide-react";
 import type { ThemeMode } from "~src/lib/theme";
 import { useSettingsStore, HUE_PRESETS, FONT_OPTIONS, type GroupLayout, type Density, type FontKey, type DuplicateMark, type DuplicateTone, type DuplicateCorner, type DuplicateLabel } from "~src/store/useSettingsStore";
@@ -14,7 +16,7 @@ const LINK_CUT_SCOPE_NOTE: Record<LinkCutScope, string> = {
   site: "Only the site is shortened, so the path stays whole. If the path alone doesn't fit, the whole link is shortened.",
   path: "Only the path is shortened, so the site stays whole. If the site alone doesn't fit, the whole link is shortened.",
 };
-import { LayoutIcon, ListIcon, GridIcon } from "./icons";
+import { ListIcon, GridIcon } from "./icons";
 import { canGroupTabs, releaseTabGroups, requestTabGroups } from "~src/services/openTab";
 
 const HUE_GRADIENT =
@@ -49,7 +51,7 @@ export function HueSlider({ value, onChange, ...controlProps }: { value: number;
 export function AppearanceTab() {
   const {
     theme, setTheme, hue, setHue, intensity, setIntensity, groupTint, setGroupTint, radius, setRadius,
-    fontFamily, setFontFamily, uiScale, setUiScale, titleCut, setTitleCut, linkCut, setLinkCut, linkCutScope, setLinkCutScope,
+    fontFamily, setFontFamily, uiScale, setUiScale, titleCut, setTitleCut, linkCut, setLinkCut, linkCutScope, setLinkCutScope, iconWeight, setIconWeight,
     groupLayout, setGroupLayout, gridColumns, setGridColumns, density, setDensity,
     duplicateMark, setDuplicateMark, duplicateTone, setDuplicateTone,
     duplicateCorner, setDuplicateCorner, duplicateLabel, setDuplicateLabel,
@@ -74,9 +76,9 @@ export function AppearanceTab() {
               value={theme}
               onChange={setTheme}
               options={[
-                { value: 'system', label: 'System', icon: <Monitor className="h-3 w-3" aria-hidden /> },
-                { value: 'light', label: 'Light', icon: <Sun className="h-3 w-3" aria-hidden /> },
-                { value: 'dark', label: 'Dark', icon: <Moon className="h-3 w-3" aria-hidden /> },
+                { value: 'system', label: 'System', icon: <Icon icon={Monitor} size="xs" /> },
+                { value: 'light', label: 'Light', icon: <Icon icon={Sun} size="xs" /> },
+                { value: 'dark', label: 'Dark', icon: <Icon icon={Moon} size="xs" /> },
               ]}
             />
           )}
@@ -153,6 +155,22 @@ export function AppearanceTab() {
               value={fontFamily}
               onChange={setFontFamily}
               options={FONT_OPTIONS.map(f => ({ value: f.key, label: f.label }))}
+            />
+          )}
+        </SettingRow>
+
+        {/* Every icon is drawn through Icon (TASK-76), so one weight reaches them all. */}
+        <SettingRow label="Icon weight" description="How thick the lines of every icon are.">
+          {(controlProps) => (
+            <ToggleGroup<IconWeight>
+              {...controlProps}
+              value={iconWeight}
+              onChange={setIconWeight}
+              options={[
+                { value: 'thin', label: 'Thin' },
+                { value: 'regular', label: 'Regular' },
+                { value: 'bold', label: 'Bold' },
+              ]}
             />
           )}
         </SettingRow>

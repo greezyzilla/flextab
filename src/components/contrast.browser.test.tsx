@@ -10,13 +10,19 @@ import "~/style.css";
 import type { CSSProperties } from "react";
 import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { Badge, badgeVariants } from "~src/components/ui/badge";
 import badgeSource from "~src/components/ui/badge.tsx?raw";
 import { DUPLICATE_TONE, DuplicateIcon, DuplicateRibbon } from "~src/components/DuplicateMark";
 import { TooltipProvider } from "~src/components/ui/tooltip";
 import { GROUP_COLORS, groupTintSurface } from "~src/lib/groupColors";
 import type { GroupColor } from "~src/types";
+
+// The mark's icon reads its stroke weight from the settings store, which
+// listens to chrome.storage; this page has no extension APIs.
+vi.mock("~src/store/useSettingsStore", () => ({
+  useSettingsStore: (pick: (s: { iconWeight: "regular" }) => unknown) => pick({ iconWeight: "regular" }),
+}));
 
 const MIN = 4.5;
 const HUES = Array.from({ length: 36 }, (_, i) => i * 10);

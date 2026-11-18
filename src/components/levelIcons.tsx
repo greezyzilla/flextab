@@ -1,4 +1,5 @@
 import { Folder, Inbox, Layers, ListTree } from "lucide-react"
+import { Icon, type IconSize } from "~src/components/ui/icon"
 
 /**
  * One distinct shape per organisational level (TASK-1, option B), used
@@ -6,30 +7,30 @@ import { Folder, Inbox, Layers, ListTree } from "lucide-react"
  * picker) so a level is recognisable by shape, never by colour alone
  * (WCAG 1.4.1). Labels stay visible next to every icon (icons alone are
  * ambiguous). Space = its avatar (same letters/colour as the rail);
- * Tab = its favicon.
+ * Tab = its favicon. Drawn through Icon (TASK-76): `size` is from its scale.
  */
-type IconProps = { className?: string }
+type IconProps = { size?: IconSize; className?: string }
 
-export function ProjectIcon({ className = "h-3.5 w-3.5" }: IconProps) {
-  return <Folder className={className} strokeWidth={1.75} aria-hidden />
+export function ProjectIcon({ size = "sm", className }: IconProps) {
+  return <Icon icon={Folder} size={size} className={className} />
 }
 
 /** A category is a part of a project: a sub-list in the project's tree. */
-export function CategoryIcon({ className = "h-3.5 w-3.5" }: IconProps) {
-  return <ListTree className={className} strokeWidth={1.75} aria-hidden />
+export function CategoryIcon({ size = "sm", className }: IconProps) {
+  return <Icon icon={ListTree} size={size} className={className} />
 }
 
 /** A group is a stack of saved tabs. */
-export function GroupIcon({ className = "h-3.5 w-3.5" }: IconProps) {
-  return <Layers className={className} strokeWidth={1.75} aria-hidden />
+export function GroupIcon({ size = "sm", className }: IconProps) {
+  return <Icon icon={Layers} size={size} className={className} />
 }
 
 /**
  * Unsorted (TASK-20) is the system's tray for tabs saved without a group:
  * a tray shape, not a dashed one (dashed means "empty / create" in this app).
  */
-export function UnsortedIcon({ className = "h-3.5 w-3.5" }: IconProps) {
-  return <Inbox className={className} strokeWidth={1.75} aria-hidden />
+export function UnsortedIcon({ size = "sm", className }: IconProps) {
+  return <Icon icon={Inbox} size={size} className={className} />
 }
 
 const RAIL_TEXT_RATIO = 12 / 40;

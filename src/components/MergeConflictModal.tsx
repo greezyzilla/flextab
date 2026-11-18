@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react"
+import { Icon } from "~src/components/ui/icon"
 import { ChevronRight } from "lucide-react"
 import { useMergeConflict } from "~src/store/useMergeConflict"
 import { resolveMergeConflicts, dismissMergeConflicts } from "~src/services/syncEngine"
@@ -137,7 +138,7 @@ export function MergeConflictModal() {
             onClick={() => setShowMerged((v) => !v)}
             className="flex items-center gap-1.5 rounded text-fg-muted text-xs outline-none hover:text-fg focus-visible:ring-1 focus-visible:ring-ring"
           >
-            <ChevronRight className={cn("h-3.5 w-3.5 transition-transform", showMerged && "rotate-90")} aria-hidden />
+            <Icon icon={ChevronRight} size="sm" className={cn("transition-transform", showMerged && "rotate-90")} />
             {plural(mergedCount, "other change")} merged automatically
           </button>
           {showMerged && (

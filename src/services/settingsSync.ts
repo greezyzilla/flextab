@@ -15,6 +15,7 @@ function snapshot() {
     titleCut: s.titleCut,
     linkCut: s.linkCut,
     linkCutScope: s.linkCutScope,
+    iconWeight: s.iconWeight,
     autoSync: s.autoSync,
   };
 }

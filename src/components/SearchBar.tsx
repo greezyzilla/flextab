@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect, type ReactNode } from "react";
+import { Icon } from "~src/components/ui/icon"
 import { shortcutLabel } from "~src/lib/platform";
 import { openOrFocus } from "~src/services/openTab";
 import { revealInWorkspace } from "~src/services/reveal";
@@ -201,9 +202,9 @@ export function SearchBar() {
     } else {
       const space = savedSpaces.find((s) => s.id === hit.spaceId);
       icon = hit.level === "space" ? <SpaceAvatar space={space} size={16} />
-        : hit.level === "project" ? <ProjectIcon className="h-4 w-4 shrink-0 text-fg-subtle" />
-        : hit.level === "category" ? <CategoryIcon className="h-4 w-4 shrink-0 text-fg-subtle" />
-        : <GroupIcon className="h-4 w-4 shrink-0 text-fg-subtle" />;
+        : hit.level === "project" ? <ProjectIcon size="md" className="text-fg-subtle" />
+        : hit.level === "category" ? <CategoryIcon size="md" className="text-fg-subtle" />
+        : <GroupIcon size="md" className="text-fg-subtle" />;
       title = hit.name; detail = hit.path.join(" › ");
       aside = <span className="text-fg-subtle text-[11px]">{LEVEL[hit.level]}</span>;
     }

@@ -1,4 +1,6 @@
 import * as React from "react"
+import { Icon } from "~src/components/ui/icon"
+import { Search } from "lucide-react"
 import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "~src/lib/utils"
@@ -81,9 +83,7 @@ const SearchField = React.forwardRef<HTMLInputElement, SearchFieldProps>(
           boxClassName,
         )}
       >
-        <svg className={cn("shrink-0 text-fg-subtle", panel ? "h-[18px] w-[18px]" : "h-4 w-4")} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
+        <Icon icon={Search} size="md" className="text-fg-subtle" />
         {/* A long placeholder ends in "…" when the box is narrow, not mid-word. */}
         <Input ref={ref} variant="inline" className={cn("flex-1 text-ellipsis font-sans", panel ? "text-[15px]" : "text-sm", className)} {...props} />
         {trailing}

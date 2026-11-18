@@ -2,6 +2,7 @@
 // so anatomy, sizes, spacing, type, buttons and focus are the same everywhere. Call sites pass
 // content, never spacing classes.
 import * as React from "react"
+import { Icon } from "~src/components/ui/icon"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog"
 import { TriangleAlert, X } from "lucide-react"
@@ -116,7 +117,7 @@ export function Modal({
             {kind === "dialog" && dismissible && (
               <DialogPrimitive.Close data-modal-close
                 className="absolute right-3.5 top-3.5 flex h-7 w-7 items-center justify-center rounded-md text-fg-subtle outline-none transition-colors hover:bg-ink/10 hover:text-fg focus-visible:ring-1 focus-visible:ring-ring">
-                <X className="h-4 w-4" aria-hidden />
+                <Icon icon={X} size="md" />
                 <span className="sr-only">Close</span>
               </DialogPrimitive.Close>
             )}
@@ -211,7 +212,7 @@ export function ModalFooter({ start, cancel = "Cancel", cancelDisabled, primary 
           data-modal-primary data-modal-tone={primary.tone ?? "primary"} disabled={primary.disabled} onClick={primary.onClick}>
           {/* A primary that turns destructive gains an icon, so the change shows even
               when the accent is red like the destructive fill (TASK-49). */}
-          {primary.tone === "destructive" && <TriangleAlert className="h-4 w-4" aria-hidden data-modal-danger-icon="" />}
+          {primary.tone === "destructive" && <Icon icon={TriangleAlert} size="md" data-modal-danger-icon="" />}
           {primary.label}
         </Button>
       )}

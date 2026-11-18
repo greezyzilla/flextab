@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
+import { ChevronRight, GripVertical } from "lucide-react"
+import { Icon } from "~src/components/ui/icon"
+import { cn } from "~src/lib/utils"
 import { commitOnBlur } from "~src/lib/inlineEdit";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
-import { DragHandleIcon } from "~src/components/icons/DragHandleIcon";
 import { categoryDragId, projectDragId } from "~src/services/dragDrop";
 import { useDropIndicator } from "~src/store/useDropIndicator";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
@@ -44,7 +46,7 @@ function NewProjectSlot({ onClick }: { onClick: () => void }) {
         onClick={onClick}
         className="w-full flex items-center gap-2 rounded-md border border-dashed border-ink/15 pl-[23px] pr-[7px] py-[5px] text-left text-[13px] font-sans text-fg-subtle hover:border-ink/35 hover:bg-ink/[0.03] hover:text-fg transition-colors outline-none focus-visible:ring-1 focus-visible:ring-ring"
       >
-        <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden />
+        <Icon icon={Plus} size="sm" />
         <span className="truncate">New project…</span>
       </button>
       </ShortcutTooltip>
@@ -81,8 +83,8 @@ function CreateRow({ kind, onCommit, onCancel }: {
     <div className={project ? "mx-2 pl-1 pr-2" : `flex items-center gap-1 mx-2 pr-1 text-fg-muted ${inlineEditFrame}`}>
       <div className={`flex-1 min-w-0 flex items-center gap-2 ${project ? `pl-6 pr-2 py-1.5 text-fg-muted ${inlineEditFrame}` : "pl-7 pr-1 py-[6px]"}`}>
         {project
-          ? <ProjectIcon className="h-3.5 w-3.5 shrink-0 text-fg-subtle" />
-          : <CategoryIcon className="h-3 w-3 shrink-0" />}
+          ? <ProjectIcon size="sm" className="text-fg-subtle" />
+          : <CategoryIcon size="xs" />}
         <Input
           variant="inline"
           autoFocus
@@ -344,16 +346,13 @@ export function LeftPanel() {
                         aria-expanded={isExpanded}
                         className="h-6 w-5 shrink-0 flex items-center justify-center rounded text-fg-subtle hover:text-fg outline-none focus-visible:ring-1 focus-visible:ring-ring"
                       >
-                        <svg className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
-                          fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                        </svg>
+                        <Icon icon={ChevronRight} size="xs" className={cn("transition-transform", isExpanded && "rotate-90")} />
                       </button>
 
                       {renamingId === project.id ? (
                         // Same label box as the name button below, icon kept, so the text doesn't move (TASK-62).
                         <div className="flex-1 min-w-0 flex items-center gap-2 py-1.5">
-                          <ProjectIcon className="h-3.5 w-3.5 shrink-0 text-fg-subtle" />
+                          <ProjectIcon size="sm" className="text-fg-subtle" />
                           <Input variant="inline" ref={renameRef} type="text" value={renameValue}
                             aria-label="Project name"
                             placeholder="Project name"
@@ -373,7 +372,7 @@ export function LeftPanel() {
                         >
                           <IconDragHandle id={projectDragId(currentSpace.id, project.id)} label={project.name}
                             reveal="group-hover/proj:opacity-100" conceal="group-hover/proj:opacity-0">
-                            <ProjectIcon className="h-3.5 w-3.5 shrink-0 text-fg-subtle" />
+                            <ProjectIcon size="sm" className="text-fg-subtle" />
                           </IconDragHandle>
                           <span className="flex-1 font-sans text-[13px] font-medium truncate">{project.name}</span>
                         </button>
@@ -389,7 +388,7 @@ export function LeftPanel() {
                           tooltipSide="top"
                           onClick={e => { e.stopPropagation(); handleAddCategory(project.id); }}
                         >
-                          <Plus className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+                          <Icon icon={Plus} size="sm" />
                         </IconButton>
                       </ActionSlot>
                       <RowActions
@@ -423,7 +422,7 @@ export function LeftPanel() {
                               // The category row's own box (mx-2 + pl-7 py-[6px] label), so the name stays put (TASK-62).
                               <div className={`flex items-center gap-1 mx-2 pr-1 text-fg ${inlineEditFrame}`}>
                                 <div className="flex-1 min-w-0 flex items-center gap-2 pl-7 pr-1 py-[6px]">
-                                  <CategoryIcon className="h-3 w-3 shrink-0" />
+                                  <CategoryIcon size="xs" />
                                   <Input variant="inline" ref={renameRef} type="text" value={renameValue}
                                     aria-label="Category name"
                                     placeholder="Category name"
@@ -449,7 +448,7 @@ export function LeftPanel() {
                               >
                                 <IconDragHandle id={categoryDragId(currentSpace.id, project.id, category.id)} label={category.name}
                                   reveal="group-hover/cat:opacity-100" conceal="group-hover/cat:opacity-0">
-                                  <CategoryIcon className="h-3 w-3 shrink-0" />
+                                  <CategoryIcon size="xs" />
                                 </IconDragHandle>
                                 <span className="flex-1 font-sans text-[13px] truncate">{category.name}</span>
                               </button>
@@ -549,7 +548,7 @@ function IconDragHandle({ id, label, reveal, conceal, children }: {
           onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
           className={`absolute -inset-1 flex items-center justify-center rounded opacity-0 cursor-grab active:cursor-grabbing transition-opacity ${reveal}`}
         >
-          <DragHandleIcon className="h-3 w-3 text-fg-muted" />
+          <Icon icon={GripVertical} size="xs" className="text-fg-muted" />
         </span>
       </IconTooltip>
     </span>

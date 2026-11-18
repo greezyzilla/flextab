@@ -1,4 +1,5 @@
 import { Fragment, useRef, useState, type ReactNode } from "react"
+import { Icon } from "~src/components/ui/icon"
 import { MoreHorizontal } from "lucide-react"
 import { IconButton } from "./button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "./dropdown-menu"
@@ -76,7 +77,7 @@ export function RowActions({ label, items, reveal = "", conceal = "", rest, note
               onClick={(e) => e.stopPropagation()}
               className={`absolute inset-0 ${open ? "opacity-100 bg-ink/10 text-fg" : reveal}`}
             >
-              <MoreHorizontal className="h-3.5 w-3.5" aria-hidden />
+              <Icon icon={MoreHorizontal} size="sm" />
             </IconButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" onCloseAutoFocus={(e) => {

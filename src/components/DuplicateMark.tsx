@@ -1,4 +1,5 @@
 import { TriangleAlert } from "lucide-react";
+import { Icon } from "~src/components/ui/icon"
 import { IconTooltip } from "~src/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "~src/components/ui/tooltip";
 import type { DuplicateCorner, DuplicateLabel, DuplicateTone } from "~src/store/useSettingsStore";
@@ -57,7 +58,7 @@ export function DuplicateIcon({ tone }: { tone: DuplicateTone }) {
       data-duplicate-mark="icon"
       className={`absolute -bottom-[6px] -right-[6px] grid h-[13px] w-[13px] place-items-center ${DUPLICATE_TONE[tone].icon} [filter:drop-shadow(0_0_1px_var(--row))_drop-shadow(0_0_1px_var(--row))] group-hover:[filter:drop-shadow(0_0_1px_var(--row-hover))_drop-shadow(0_0_1px_var(--row-hover))]`}
     >
-      <TriangleAlert className="h-[13px] w-[13px]" strokeWidth={2.5} aria-hidden />
+      <Icon icon={TriangleAlert} size="sm" />
     </span>
     </IconTooltip>
   );

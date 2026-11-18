@@ -1,4 +1,5 @@
 import { useRef } from "react"
+import { Icon } from "~src/components/ui/icon"
 import * as Dialog from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
 
@@ -40,7 +41,7 @@ export function Drawer({ id, side, open, onClose, children }: DrawerProps) {
             {side === "left" ? "Navigation" : "Opened tabs"}
           </Dialog.Title>
           <Dialog.Close aria-label="Close panel" className="h-8 w-8 flex items-center justify-center rounded-md text-fg-muted hover:bg-ink/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            <X className="h-4 w-4" />
+            <Icon icon={X} size="md" />
           </Dialog.Close>
         </div>
         <div className="min-h-0 flex-1 [&>div]:w-full">{children}</div>

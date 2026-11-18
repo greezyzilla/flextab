@@ -1,8 +1,10 @@
 import { Fragment, useEffect, useId, useMemo, useRef, useState } from "react"
+import { Icon, type IconSize } from "~src/components/ui/icon"
+import { cn } from "~src/lib/utils"
 import type React from "react"
 import { commitOnBlur } from "~src/lib/inlineEdit";
 import { v7 as uuidv7 } from "uuid"
-import { Check, Plus } from "lucide-react"
+import { Check, ChevronRight, Plus } from "lucide-react"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import type { SavedSpace } from "~src/types"
 import type { SaveTabsTarget } from "~src/services/saveTabsAsGroup"
@@ -104,7 +106,8 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
   // swaps sizes for the popup's own (15px rows, 14px boxes, neutral selection)
   // and folds the tree to the branch of the current destination.
   const P = panel ? PANEL : null
-  const ic = P ? P.icon : "h-3 w-3 shrink-0"
+  // The panel (popup) sets rows at 15px, so its icons are md; the page tree is xs.
+  const ic: IconSize = P ? "md" : "xs"
   const isOpen = (id: string) => !panel || !!q || open.has(id)
   const toggle = (id: string) => setOpen((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })
   // A panel branch header: chevron, level icon, name. Its guide line marks
@@ -120,9 +123,7 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
     >
       {/* The sidebar tree's own chevron (LeftPanel), at panel size. */}
       <span className="mr-1 flex w-5 shrink-0 justify-center text-fg-subtle" aria-hidden>
-        <svg className={`h-[18px] w-[18px] transition-transform ${isOpen(id) ? "rotate-90" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-        </svg>
+        <Icon icon={ChevronRight} size="md" className={cn("transition-transform", isOpen(id) && "rotate-90")} />
       </span>
       <span className="mr-3 flex shrink-0">{icon}</span>
       <span className="truncate">{label}</span>
@@ -164,7 +165,7 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
                   }`}
                   style={selected && !P ? { backgroundColor: "var(--accent-subtle)" } : undefined}
                 >
-                  {group ? (isUnsortedGroup(group) ? <UnsortedIcon className={P ? P.chipIcon : "h-3 w-3 shrink-0"} /> : <GroupIcon className={P ? P.chipIcon : "h-3 w-3 shrink-0"} />) : <CategoryIcon className={P ? P.chipIcon : "h-3 w-3 shrink-0"} />}
+                  {group ? (isUnsortedGroup(group) ? <UnsortedIcon size={ic} className={P ? P.chipIcon : undefined} /> : <GroupIcon size={ic} className={P ? P.chipIcon : undefined} />) : <CategoryIcon size={ic} className={P ? P.chipIcon : undefined} />}
                   <span className="truncate">{group ? group.name : parts.category.name}</span>
                   {group?.color && <GroupColorSwatch fill={groupColorFill(group.color)} className="h-2 w-2" />}
                   <span className={`truncate text-fg-subtle${P ? " text-[13px]" : ""}`}>{group ? parts.category.name : parts.project.name}</span>
@@ -196,9 +197,9 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
             {guide(0, space.id)}
             {isOpen(space.id) && space.projects.map((project) => (
               <div key={project.id} className={P ? "relative" : undefined}>
-                {P ? branchHeader(1, project.id, <ProjectIcon className={ic} />, project.name, "text-[15px] font-medium leading-[22px] text-fg-muted") : (
+                {P ? branchHeader(1, project.id, <ProjectIcon size={ic} />, project.name, "text-[15px] font-medium leading-[22px] text-fg-muted") : (
                   <div className="flex items-center gap-2 pl-5 pr-3 py-1 text-xs text-fg-muted">
-                    <ProjectIcon className="h-3.5 w-3.5 shrink-0 text-fg-subtle" />
+                    <ProjectIcon size="sm" className="text-fg-subtle" />
                     <span className="truncate font-medium">{project.name}</span>
                   </div>
                 )}
@@ -215,7 +216,7 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
                         indentClass="pl-10"
                         indent={P ? panelIndent(2) + 24 : undefined}
                         selected={inCategory}
-                        icon={<CategoryIcon className={ic} />}
+                        icon={<CategoryIcon size={ic} />}
                         label={category.name}
                         onSelect={() => onChange(at)}
                       />
@@ -231,9 +232,9 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
                   const leaf = P ? panelIndent(3) + 24 : undefined
                   return (
                     <div key={category.id} className={P ? "relative" : undefined}>
-                      {P ? branchHeader(2, category.id, <CategoryIcon className={ic} />, category.name, "text-[15px] leading-[22px] text-fg-muted") : (
+                      {P ? branchHeader(2, category.id, <CategoryIcon size={ic} />, category.name, "text-[15px] leading-[22px] text-fg-muted") : (
                         <div className="flex items-center gap-2 pl-10 pr-3 py-1 text-xs text-fg-muted">
-                          <CategoryIcon className="h-3 w-3 shrink-0" />
+                          <CategoryIcon size="xs" />
                           <span className="truncate">{category.name}</span>
                         </div>
                       )}
@@ -245,7 +246,7 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
                             indentClass="pl-14"
                             indent={leaf}
                             selected={unsortedSelected}
-                            icon={<UnsortedIcon className={ic} />}
+                            icon={<UnsortedIcon size={ic} />}
                             label={UNSORTED_NAME}
                             onSelect={() => onChange(unsorted ? { ...at, groupId: unsorted.id } : at)}
                           />
@@ -256,7 +257,7 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
                               indentClass="pl-14"
                               indent={leaf}
                               selected={inCategory && value.groupId === group.id}
-                              icon={<GroupIcon className={ic} />}
+                              icon={<GroupIcon size={ic} />}
                               label={group.name}
                               trailing={group.color && <GroupColorSwatch fill={groupColorFill(group.color)} className={P ? "h-2.5 w-2.5" : "h-2 w-2"} />}
                               onSelect={() => onChange({ ...at, groupId: group.id })}
@@ -268,7 +269,7 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
                               indentClass="pl-14"
                               indent={leaf}
                               selected
-                              icon={<GroupIcon className={ic} />}
+                              icon={<GroupIcon size={ic} />}
                               label={`New group: ${value.newGroupName}`}
                               onSelect={() => {}}
                             />
@@ -278,7 +279,7 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
                               <NameRow
                                 indentClass="pl-14"
                                 indent={leaf}
-                                icon={<GroupIcon className={`${ic} text-fg-muted`} />}
+                                icon={<GroupIcon size={ic} className="text-fg-muted" />}
                                 label="New group name"
                                 placeholder="Group name"
                                 onCommit={(name) => { setCreating(null); onChange({ ...at, newGroupName: name }) }}
@@ -288,7 +289,7 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
                               <CreateChoice
                                 indentClass="pl-12"
                                 indent={leaf}
-                                iconClass="h-3 w-3"
+                                iconSize="xs"
                                 label="New group"
                                 ariaLabel={`New group in ${category.name}`}
                                 onClick={() => setCreating({ kind: "group", ...at })}
@@ -305,7 +306,7 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
                     <NameRow
                       indentClass="pl-10"
                       indent={P ? panelIndent(2) + 24 : undefined}
-                      icon={<CategoryIcon className={`${ic} text-fg-muted`} />}
+                      icon={<CategoryIcon size={ic} className="text-fg-muted" />}
                       label="New category name"
                       placeholder="Category name"
                       onCommit={(name) => createCategory(space.id, project.id, name)}
@@ -315,7 +316,7 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
                     <CreateChoice
                       indentClass="pl-8"
                       indent={P ? panelIndent(2) + 24 : undefined}
-                      iconClass="h-3 w-3"
+                      iconSize="xs"
                       label="New category"
                       ariaLabel={`New category in ${project.name}`}
                       onClick={() => setCreating({ kind: "category", spaceId: space.id, projectId: project.id })}
@@ -329,7 +330,7 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
                 <NameRow
                   indentClass="pl-5"
                   indent={P ? panelIndent(1) + 24 : undefined}
-                  icon={<ProjectIcon className={P ? `${ic} text-fg-muted` : "h-3.5 w-3.5 shrink-0 text-fg-muted"} />}
+                  icon={<ProjectIcon size={P ? ic : "sm"} className="text-fg-muted" />}
                   label="New project name"
                   placeholder="Project name"
                   onCommit={(name) => createProject(space.id, name)}
@@ -339,7 +340,7 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
                 <CreateChoice
                   indentClass="pl-3"
                   indent={P ? panelIndent(1) + 24 : undefined}
-                  iconClass="h-3.5 w-3.5"
+                  iconSize="sm"
                   label="New project"
                   ariaLabel={`New project in ${space.name}`}
                   onClick={() => setCreating({ kind: "project", spaceId: space.id })}
@@ -358,10 +359,9 @@ const panelIndent = (level: number) => 12 + 16 * level
 /** Guide line weight per level (space, project, category): the higher the level, the heavier, so each line names its level. */
 const GUIDE_WEIGHT = [0.38, 0.24, 0.14] as const
 const PANEL = {
-  icon: "h-[18px] w-[18px] shrink-0",
   caption: "text-[13px] leading-[18px] text-fg-subtle",
   chip: "flex h-9 max-w-full items-center gap-2 rounded-[10px] px-2.5 text-[15px] text-fg outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
-  chipIcon: "h-[18px] w-[18px] shrink-0 text-fg-subtle",
+  chipIcon: "text-fg-subtle",
 }
 
 /** One selectable row (a radio, visually a list item). */
@@ -386,7 +386,7 @@ export function Choice({ name, indentClass, indent, selected, icon, label, trail
         <span className="min-w-0 truncate">{label}</span>
         {trailing}
         <span className="flex-1" />
-        {selected && <Check className="h-[18px] w-[18px] shrink-0 text-fg" aria-hidden />}
+        {selected && <Icon icon={Check} size="md" className="text-fg" />}
       </label>
     )
   }
@@ -402,7 +402,7 @@ export function Choice({ name, indentClass, indent, selected, icon, label, trail
       <span className="min-w-0 truncate">{label}</span>
       {trailing}
       <span className="flex-1" />
-      {selected && <Check className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--accent-text)" }} aria-hidden />}
+      {selected && <Icon icon={Check} size="sm" className="text-fg-accent" />}
     </label>
   )
 }
@@ -420,8 +420,8 @@ export function Choice({ name, indentClass, indent, selected, icon, label, trail
  * With its py-0.5 wrapper it is as tall as a Choice row (2 + 1 + 3 = 6px a
  * side), so the name row that replaces it keeps the list still (TASK-62).
  */
-function CreateChoice({ indentClass, indent, iconClass, label, ariaLabel, onClick }: {
-  indentClass: string; indent?: number; iconClass: string; label: string; ariaLabel: string; onClick: () => void
+function CreateChoice({ indentClass, indent, iconSize, label, ariaLabel, onClick }: {
+  indentClass: string; indent?: number; iconSize: IconSize; label: string; ariaLabel: string; onClick: () => void
 }) {
   if (indent !== undefined) {
     // Panel size: the + sits in the icon column of the items it creates
@@ -434,7 +434,7 @@ function CreateChoice({ indentClass, indent, iconClass, label, ariaLabel, onClic
           onClick={onClick}
           className="flex min-h-9 w-full items-center gap-3 rounded-[10px] border border-dashed border-ink/15 px-[7px] text-left text-[15px] text-fg-subtle transition-colors hover:border-ink/35 hover:bg-ink/[0.03] hover:text-fg outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <Plus className="h-4 w-4 shrink-0" aria-hidden />
+          <Icon icon={Plus} size="md" />
           <span className="truncate">{label}…</span>
         </button>
       </div>
@@ -448,7 +448,7 @@ function CreateChoice({ indentClass, indent, iconClass, label, ariaLabel, onClic
         onClick={onClick}
         className="flex w-full items-center gap-2 rounded-md border border-dashed border-ink/15 px-[7px] py-[3px] text-left text-xs text-fg-subtle transition-colors hover:border-ink/35 hover:bg-ink/[0.03] hover:text-fg outline-none focus-visible:ring-1 focus-visible:ring-ring"
       >
-        <Plus className={`${iconClass} shrink-0`} aria-hidden />
+        <Icon icon={Plus} size={iconSize} />
         <span className="truncate">{label}…</span>
       </button>
     </div>

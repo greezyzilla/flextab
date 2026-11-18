@@ -1,4 +1,5 @@
 // A workspace tree inside a modal: spaces, then their groups as one path line, then tabs.
+import { Icon } from "~src/components/ui/icon"
 // Shared by the sign-in choice (both sides) and the version preview, so the same data looks the
 // same in both places (modal standard §11).
 import { useState, type ReactNode } from "react"
@@ -35,7 +36,7 @@ function Disclosure({ open, onToggle, label, children }: { open: boolean; onTogg
   return (
     <button type="button" aria-expanded={open} aria-label={label} onClick={onToggle}
       className="flex w-full min-w-0 items-center gap-2 rounded-md px-1 py-1 text-left outline-none hover:bg-ink/[0.04] focus-visible:ring-1 focus-visible:ring-ring">
-      <ChevronRight className={cn("h-3.5 w-3.5 shrink-0 text-fg-subtle transition-transform", open && "rotate-90")} aria-hidden />
+      <Icon icon={ChevronRight} size="sm" className={cn("text-fg-subtle transition-transform", open && "rotate-90")} />
       {children}
     </button>
   )

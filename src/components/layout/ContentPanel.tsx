@@ -1,4 +1,6 @@
 import { useActiveCategory, useActiveSpace, useActiveProject, useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
+import { GripVertical, LayoutGrid, List } from "lucide-react"
+import { Icon } from "~src/components/ui/icon"
 import { ShortcutTooltip } from "~src/components/ui/kbd";
 import { shortcutLabel } from "~src/lib/platform";
 import { useCommandShortcuts } from "~src/hooks/useCommandShortcuts";
@@ -10,7 +12,6 @@ import { ToggleGroup, ToggleGroupItem } from "~src/components/ui/toggle-group";
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { DragHandleIcon } from "../icons/DragHandleIcon";
 import { useRef, useCallback, useEffect, useState } from "react";
 import { Input, INLINE_CREATE_HINT, inlineEditFrame } from "~src/components/ui/input";
 import { v7 as uuidv7 } from "uuid";
@@ -52,7 +53,7 @@ function SortableGroup({ group, location, layout, gridColumns }: {
       <div className="absolute left-1 z-10 opacity-0 group-hover/sortable:opacity-30 hover:!opacity-80 focus-visible:!opacity-100 focus-visible:ring-1 focus-visible:ring-ring outline-none rounded transition-opacity cursor-grab active:cursor-grabbing"
         style={{ top: 'calc(var(--density-p-section) + var(--density-p-group) + 5px)' }} {...attributes} {...listeners}
         aria-label={`Reorder ${group.name}`}>
-        <DragHandleIcon className="w-4 h-4 text-fg-subtle" />
+        <Icon icon={GripVertical} size="md" className="text-fg-subtle" />
       </div>
       <TabGroup group={group} location={location} layout={layout} gridColumns={gridColumns} />
     </div>
@@ -168,7 +169,7 @@ function NewGroupRow({ categoryName, onCommit, onCancel }: {
           group's name will be (TASK-62). */}
       <div className="flex items-center min-h-[26px]" style={{ paddingInline: 'var(--density-px-tab)' }}>
         <div className={`flex flex-1 min-w-0 items-center gap-2.5 -ml-1.5 pl-1.5 pr-1.5 -my-1 py-1 ${inlineEditFrame}`}>
-          <span className="w-5 flex justify-center shrink-0"><GroupIcon className="h-3.5 w-3.5 text-fg-subtle" /></span>
+          <span className="w-5 flex justify-center shrink-0"><GroupIcon size="sm" className="text-fg-subtle" /></span>
           <Input
             variant="inline"
             autoFocus
@@ -222,7 +223,7 @@ function EmptySectionDrop({ location }: { location: GroupLocation }) {
       <div className="flex flex-col gap-1">
         <span className="flex items-center gap-1.5 text-fg-muted text-sm">
           Drag tabs here from Opened Tabs
-          <ArrowRight className="h-3.5 w-3.5 text-fg-subtle" aria-hidden />
+          <Icon icon={ArrowRight} size="sm" className="text-fg-subtle" />
         </span>
         {savePage && <span className="text-fg-subtle text-xs">Or press {shortcutLabel(savePage)} on any page to save it.</span>}
       </div>
@@ -249,7 +250,7 @@ export function CategoryHeader({ id, name, counts, isCurrent = false, onNewGroup
       <div className="sticky top-0 z-20 bg-black-900 h-12 px-6 flex items-center justify-between gap-3 border-b border-ink/[0.12]">
         {/* h2 under the panel's h1 (the space); groups are h3 (TASK-28). */}
         <h2 id={`section-${id}`} className={`flex items-center gap-2 min-w-0 font-sans text-base ${isCurrent ? 'text-fg' : 'text-fg'}`}>
-          <CategoryIcon className="h-4 w-4 shrink-0" />
+          <CategoryIcon size="md" />
           <span className="truncate font-semibold">{name}</span>
           {counts && <span className="text-fg-subtle text-xs font-normal shrink-0">{counts}</span>}
         </h2>
@@ -352,7 +353,7 @@ function Breadcrumb({ space, project, category, onProject, onCategory }: {
           {sep}
           <button type="button" onClick={onProject}
             className="flex items-center gap-1.5 min-w-0 rounded px-1 -mx-1 text-fg hover:text-ink outline-none focus-visible:ring-1 focus-visible:ring-ring">
-            <ProjectIcon className="h-3.5 w-3.5 shrink-0" />
+            <ProjectIcon size="sm" />
             <span className="truncate max-w-[14rem] font-medium">{project.name}</span>
           </button>
         </>
@@ -362,7 +363,7 @@ function Breadcrumb({ space, project, category, onProject, onCategory }: {
           {sep}
           <button type="button" onClick={onCategory} aria-current="location"
             className="flex items-center gap-1.5 min-w-0 rounded px-1 -mx-1 text-fg-muted hover:text-fg outline-none focus-visible:ring-1 focus-visible:ring-ring">
-            <CategoryIcon className="h-3.5 w-3.5 shrink-0" />
+            <CategoryIcon size="sm" />
             <span className="truncate max-w-[12rem]">{category.name}</span>
           </button>
         </>
@@ -469,7 +470,7 @@ export function ContentPanel() {
   } else if (!activeProject) {
     body = (
       <LevelEmptyState
-        icon={<ProjectIcon className="h-6 w-6" />}
+        icon={<ProjectIcon size="xl" />}
         title={`${activeSpace.name} has no projects yet`}
         body="A project is one thing you work on, like a client, a course or a trip. Each project gets its own page."
         action={
@@ -490,7 +491,7 @@ export function ContentPanel() {
   } else if (categories.length === 0) {
     body = (
       <LevelEmptyState
-        icon={<CategoryIcon className="h-6 w-6" />}
+        icon={<CategoryIcon size="xl" />}
         title={`${activeProject.name} has no categories yet`}
         body="Categories split a project into parts, like Research, Design and Admin. Groups of saved tabs live inside a category."
         action={
@@ -552,14 +553,10 @@ export function ContentPanel() {
               onValueChange={(v) => { if (v) setGroupLayout(v as GroupLayout) }}
             >
               <ToggleGroupItem value="list" aria-label="List view" tooltip="List view">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-                </svg>
+                <Icon icon={List} size="md" />
               </ToggleGroupItem>
               <ToggleGroupItem value="grid" aria-label="Grid view" tooltip="Grid view">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25a2.25 2.25 0 0 1-2.25-2.25v-2.25Z" />
-                </svg>
+                <Icon icon={LayoutGrid} size="md" />
               </ToggleGroupItem>
             </ToggleGroup>
           )}

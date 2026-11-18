@@ -1,11 +1,12 @@
 import { useDndContext } from "@dnd-kit/core";
+import { Icon } from "~src/components/ui/icon"
+import { GripVertical } from "lucide-react"
 import { DraggedTabGroup } from "./DraggedTabGroup";
 import type { GroupColor, SavedGroup, SavedSpace, SavedTab } from "~src/types";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { useSortPreview } from "~src/store/useSortPreview";
 import { resolveOverGroupId } from "~src/services/dragDrop";
 import { groupColorFill, groupTintSurface } from "~src/lib/groupColors";
-import { DragHandleIcon } from "../icons/DragHandleIcon";
 import { FaviconImg } from "../FaviconImg";
 import { CategoryIcon, ProjectIcon, spaceAvatarColors } from "../levelIcons";
 
@@ -80,7 +81,7 @@ export function DragOverlayContent({ activeId, draggedGroup, draggedTab, dragged
         style={overColor ? { borderColor: groupColorFill(overColor), backgroundColor: groupTintSurface(overColor, { base: 'var(--color-black-800)', strength: 2 }) } : undefined}
       >
         <div className="opacity-100 cursor-grabbing p-1 rounded">
-          <DragHandleIcon />
+          <Icon icon={GripVertical} size="xs" className="text-fg-subtle" />
         </div>
 
         {draggedTab && (

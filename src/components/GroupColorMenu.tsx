@@ -1,4 +1,5 @@
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu"
+import { Icon } from "~src/components/ui/icon"
 import { useEffect } from "react"
 import { Check } from "lucide-react"
 import type { GroupColor } from "~src/types"
@@ -41,7 +42,7 @@ function ColorItem({ value, label, fill, onPreview }: { value: string; label: st
       <GroupColorSwatch fill={fill} />
       <span className="flex-1">{label}</span>
       <DropdownMenuPrimitive.ItemIndicator>
-        <Check className="h-3.5 w-3.5" aria-hidden />
+        <Icon icon={Check} size="sm" />
       </DropdownMenuPrimitive.ItemIndicator>
     </DropdownMenuPrimitive.RadioItem>
   )

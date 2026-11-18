@@ -1,4 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, type ReactNode } from "react"
+import { Icon } from "~src/components/ui/icon"
 import { describeAlsoSaved, savedElsewhere, type SavedLocation } from "~src/lib/savedUrlIndex"
 import { WorkspaceLoadError } from "~src/components/WorkspaceLoadError"
 import "@fontsource-variable/inter"
@@ -11,7 +12,7 @@ import { FaviconImg } from "~src/components/FaviconImg"
 import { cn } from "~src/lib/utils"
 import { ClippedTooltip, IconTooltip } from "~src/components/ui/button"
 import { TooltipProvider } from "~src/components/ui/tooltip"
-import { Ban, BookmarkPlus, Check, CopyPlus, FolderInput, ListX, Replace, RotateCw, SquareArrowOutUpRight, Undo2 } from "lucide-react"
+import { AppWindow, Ban, BookmarkPlus, Check, CopyPlus, FolderInput, ListX, Replace, RotateCw, Undo2, type LucideIcon } from "lucide-react"
 import { CategoryIcon, GroupIcon, ProjectIcon, SpaceAvatar, UnsortedIcon } from "~src/components/levelIcons"
 import { DEFAULT_CATEGORY_NAME, DEFAULT_PROJECT_NAME, DEFAULT_SPACE_NAME, UNSORTED_NAME, findUnsorted, isUnsortedGroup } from "~src/lib/defaultPath"
 import { DestinationPicker, type PickerValue } from "~src/components/DestinationPicker"
@@ -324,7 +325,7 @@ function IndexPopup() {
 
   const ok = !loading && (status.kind === "saved" || status.kind === "already" || status.kind === "updated" || status.kind === "known")
   const tile = status.kind === "unsavable"
-    ? <Ban className="h-[22px] w-[22px] text-fg-subtle" strokeWidth={1.75} aria-hidden />
+    ? <Icon icon={Ban} size="xl" className="text-fg-subtle" />
     : currentTab && <FaviconImg src={currentTab.favIconUrl} alt="" className="h-[22px] w-[22px]" />
 
   const lead = (t: string) => <span className="font-medium text-fg-muted">{t}</span>
@@ -381,7 +382,7 @@ function IndexPopup() {
       choose,
     ]
     : status.kind === "known" ? [
-      { icon: SquareArrowOutUpRight, label: "Open in FlexTab", onClick: openSaved },
+      { icon: AppWindow, label: "Open in FlexTab", onClick: openSaved },
       { icon: CopyPlus, label: "Save a copy in another group", onClick: togglePagePicker, expanded: picking },
     ]
     : status.kind === "offer" ? [
@@ -416,7 +417,7 @@ function IndexPopup() {
         <div className="grid grid-cols-[44px_minmax(0,1fr)] items-center gap-x-3">
           <span className="relative grid h-11 w-11 place-items-center rounded-[13px] bg-ink/[0.06]">
             {tile}
-            {ok && <span className="absolute -bottom-1 -right-1 grid h-[18px] w-[18px] place-items-center rounded-full bg-success ring-2 ring-black-900"><Check className="h-[11px] w-[11px] text-black-900" strokeWidth={3.5} aria-hidden /></span>}
+            {ok && <span className="absolute -bottom-1 -right-1 grid h-[18px] w-[18px] place-items-center rounded-full bg-success ring-2 ring-black-900"><Icon icon={Check} size="badge-lg" className="text-black-900" /></span>}
           </span>
           <div className="min-w-0">
             {(() => {
@@ -522,18 +523,18 @@ const SUGGESTED: Partial<Record<DestinationSource, string>> = {
   first: "Saving creates a new space",
 }
 
-type Step = { icon: typeof Undo2; label: string; onClick: () => void; expanded?: boolean; name?: string }
+type Step = { icon: LucideIcon; label: string; onClick: () => void; expanded?: boolean; name?: string }
 
 /** The panel's actions: one box of full-width rows, an icon and a short label each. */
 function Steps({ steps, disabled }: { steps: Step[]; disabled: boolean }) {
   if (steps.length === 0) return null
   return (
     <div className="overflow-hidden rounded-[14px] bg-ink/[0.04]">
-      {steps.map(({ icon: Icon, label, onClick, expanded, name }) => (
+      {steps.map(({ icon: glyph, label, onClick, expanded, name }) => (
         <button key={label} type="button" onClick={onClick} disabled={disabled} aria-expanded={expanded} aria-label={name}
           className={cn("grid min-h-11 w-full grid-cols-[20px_minmax(0,1fr)] items-center gap-x-3 px-3 py-[11px] text-left text-[15px] leading-[22px] text-fg outline-none transition-colors [overflow-wrap:anywhere] [&+&]:border-t [&+&]:border-ink/[0.07] hover:bg-ink/[0.05] focus-visible:bg-ink/[0.07] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:opacity-50",
             expanded && "bg-ink/[0.07]")}>
-          <Icon className="h-5 w-5 text-fg-muted" strokeWidth={1.75} aria-hidden />
+          <Icon icon={glyph} size="lg" className="text-fg-muted" />
           <span className="[text-wrap:pretty]">{label}</span>
         </button>
       ))}
@@ -571,12 +572,12 @@ function placeOf(spaces: SavedSpace[], d: CaptureDestination | null): Place {
 
 /** Where the tab lives, one level per row at body size, each with its level's icon. */
 function Location({ place, withGroup }: { place: Place; withGroup: boolean }) {
-  const icon = "h-[18px] w-[18px] text-fg-subtle"
+  const icon = "text-fg-subtle"
   const rows: Array<[ReactNode, string | undefined]> = [
     [<SpaceAvatar key="s" space={place.space} size={18} />, place.space?.name],
-    [<ProjectIcon key="p" className={icon} />, place.project?.name],
-    [<CategoryIcon key="c" className={icon} />, place.category?.name],
-    ...(withGroup && place.group ? [[place.group.unsorted ? <UnsortedIcon key="g" className={icon} /> : <GroupIcon key="g" className={icon} />, place.group.name] as [ReactNode, string]] : []),
+    [<ProjectIcon key="p" size="md" className={icon} />, place.project?.name],
+    [<CategoryIcon key="c" size="md" className={icon} />, place.category?.name],
+    ...(withGroup && place.group ? [[place.group.unsorted ? <UnsortedIcon key="g" size="md" className={icon} /> : <GroupIcon key="g" size="md" className={icon} />, place.group.name] as [ReactNode, string]] : []),
   ]
   return (
     <div aria-label={place.path ?? undefined} className="flex flex-col rounded-[14px] border border-ink/[0.09] px-[11px] py-1.5">

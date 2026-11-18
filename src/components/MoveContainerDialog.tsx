@@ -79,7 +79,7 @@ export function MoveContainerDialog({ kind, name, current, onConfirm, onClose }:
                       name={group}
                       indentClass="pl-5"
                       selected={isPicked(t)}
-                      icon={<ProjectIcon className="h-3.5 w-3.5 shrink-0" />}
+                      icon={<ProjectIcon size="sm" />}
                       label={project.name}
                       trailing={isCurrent(t) ? here : undefined}
                       onSelect={() => setTarget(t)}

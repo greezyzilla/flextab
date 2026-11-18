@@ -15,7 +15,6 @@ import { SourceColumn } from "~src/components/WorkspaceTree";
 import { Button } from "~src/components/ui/button";
 import { Badge } from "~src/components/ui/badge";
 import { SettingRow, GroupHeading, formatDate, formatBytes } from "./shared";
-import { HistoryIcon, DataIcon } from "./icons";
 
 // Backup groups the two "save & restore your workspace" surfaces: automatic
 // version history and manual export/import. (History needs sign-in; export/

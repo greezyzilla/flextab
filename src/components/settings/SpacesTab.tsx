@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Icon } from "~src/components/ui/icon"
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { useRoute, navigate } from "~src/lib/route";
@@ -144,10 +145,10 @@ function SpaceForm({ space, index, count }: { space: SavedSpace; index: number; 
           {(controlProps) => (
             <div className="flex items-center gap-2" role="group" {...controlProps}>
               <Button variant="secondary" size="sm" disabled={index === 0} onClick={() => reorderSpaces(index, index - 1)}>
-                <ChevronUp className="h-3.5 w-3.5" aria-hidden /> Move up
+                <Icon icon={ChevronUp} size="sm" /> Move up
               </Button>
               <Button variant="secondary" size="sm" disabled={index === count - 1} onClick={() => reorderSpaces(index, index + 1)}>
-                <ChevronDown className="h-3.5 w-3.5" aria-hidden /> Move down
+                <Icon icon={ChevronDown} size="sm" /> Move down
               </Button>
             </div>
           )}

@@ -1,4 +1,5 @@
 import type { LinkCutScope } from "~src/lib/displayUrl";
+import type { IconWeight } from "~src/components/ui/icon";
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { storage } from './syncStorage';
@@ -70,6 +71,7 @@ export const APPEARANCE_DEFAULTS = {
   titleCut: 50,        // 0-100, where "…" sits in a cut saved tab title (TASK-71)
   linkCut: 50,         // 0-100, where "…" sits in a cut saved tab link (TASK-71)
   linkCutScope: 'all' as LinkCutScope, // which part of the link is cut: all, site or path (TASK-71)
+  iconWeight: 'regular' as IconWeight, // stroke of every icon: thin 1.5, regular 1.75, bold 2 (TASK-76)
   duplicateMark: 'ribbon' as DuplicateMark,
   duplicateTone: 'caution' as DuplicateTone,
   duplicateCorner: 'right' as DuplicateCorner,  // ribbon only
@@ -91,6 +93,7 @@ interface SettingsState {
   titleCut: number;    // 0-100, "…" position in a cut saved tab title: 0 keeps the end, 100 the start
   linkCut: number;     // 0-100, the same for a saved tab link
   linkCutScope: LinkCutScope; // which part of the link gives way first
+  iconWeight: IconWeight;      // stroke weight of every icon (TASK-76)
   duplicateMark: DuplicateMark;
   duplicateTone: DuplicateTone;
   duplicateCorner: DuplicateCorner;
@@ -115,6 +118,7 @@ interface SettingsState {
   setTitleCut: (titleCut: number) => void;
   setLinkCut: (linkCut: number) => void;
   setLinkCutScope: (linkCutScope: LinkCutScope) => void;
+  setIconWeight: (iconWeight: IconWeight) => void;
   setDuplicateMark: (duplicateMark: DuplicateMark) => void;
   setDuplicateTone: (duplicateTone: DuplicateTone) => void;
   setDuplicateCorner: (duplicateCorner: DuplicateCorner) => void;
@@ -150,6 +154,7 @@ export const useSettingsStore = create<SettingsState>()(
       setTitleCut: (titleCut) => set({ titleCut }),
       setLinkCut: (linkCut) => set({ linkCut }),
       setLinkCutScope: (linkCutScope) => set({ linkCutScope }),
+      setIconWeight: (iconWeight) => set({ iconWeight }),
       setDuplicateMark: (duplicateMark) => set({ duplicateMark }),
       setDuplicateTone: (duplicateTone) => set({ duplicateTone }),
       setDuplicateCorner: (duplicateCorner) => set({ duplicateCorner }),

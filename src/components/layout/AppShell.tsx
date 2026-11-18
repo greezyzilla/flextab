@@ -1,4 +1,6 @@
 import { ContentPanel, LeftPanel, ProfilePanel, RightPanel, Drawer, DragOverlayContent } from "~src/components"
+import { Icon } from "~src/components/ui/icon"
+import { Menu, PanelRight } from "lucide-react"
 import { SearchBar } from "~src/components/SearchBar"
 import { SyncStatusIndicator } from "~src/components/SyncStatusIndicator"
 import { Toaster } from "~src/components/ui/sonner"
@@ -16,19 +18,11 @@ import { useBackgroundNotices } from "~src/hooks/useBackgroundNotices"
 import { useUIStore } from "~src/store/useUIStore"
 
 function MenuIcon() {
-  return (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5" />
-    </svg>
-  )
+  return <Icon icon={Menu} size="lg" />
 }
 
 function OpenedTabsIcon() {
-  return (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 4.5v15m-3.75 0h13.5A2.25 2.25 0 0 0 21 17.25V6.75A2.25 2.25 0 0 0 18.75 4.5H5.25A2.25 2.25 0 0 0 3 6.75v10.5A2.25 2.25 0 0 0 5.25 19.5Z" />
-    </svg>
-  )
+  return <Icon icon={PanelRight} size="lg" />
 }
 
 /**

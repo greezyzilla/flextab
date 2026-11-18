@@ -15,5 +15,3 @@ export { DragOverlayContent } from './dnd/DragOverlayContent';
 export { DraggedTabGroup } from './dnd/DraggedTabGroup';
 
 // Icons
-export * from './icons/DragHandleIcon';
-export * from './icons/ChevronDownIcon';

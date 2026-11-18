@@ -1,4 +1,6 @@
 import { useState, useRef, useCallback, useEffect, type ReactNode } from "react"
+import { Icon } from "~src/components/ui/icon"
+import { cn } from "~src/lib/utils"
 import { toast } from "sonner"
 import { ActionSlot } from "~src/components/ui/row-actions"
 import { showUndoToast } from "~src/components/ui/sonner"
@@ -11,14 +13,13 @@ import { useDraggable, useDroppable } from "@dnd-kit/core"
 import { OPEN_PANEL_ZONE, OPEN_TAB_ZONE, OPEN_WINDOW_ZONE, isNoMove, previewWindows } from "~src/services/moveOpenTab"
 import { useOpenTabPreview } from "~src/store/useOpenTabPreview"
 import type { OpenTabDragData, OpenTabZoneData } from "~src/hooks/useDragAndDrop"
-import { DragHandleIcon } from "../icons/DragHandleIcon"
 import { FaviconImg } from "../FaviconImg"
 import { TabUrl } from "../TabUrl"
 import { flexTabPageText, openTabText } from "~src/lib/openTabText"
 import { SaveSessionModal } from "../SaveSessionModal"
 import { useWindows } from "~src/hooks/useWindows"
 import { IconButton } from "~src/components/ui/button"
-import { BookmarkPlus, Check, Loader2, LocateFixed, X } from "lucide-react"
+import { BookmarkPlus, Check, ChevronRight, GripVertical, Loader2, LocateFixed, X } from "lucide-react"
 import { useSavedUrlIndex } from "~src/hooks/useSavedUrlIndex"
 import { describeSaved, normalizeUrl, type SavedLocation } from "~src/lib/savedUrlIndex"
 
@@ -34,7 +35,7 @@ function flexTabIcon(): string | undefined {
   return icon ? chrome.runtime.getURL(icon) : undefined
 }
 /** The one save mark: a row's Save and a window's Save draw the same icon at the same size. */
-const SaveIcon = () => <BookmarkPlus className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+const SaveIcon = () => <Icon icon={BookmarkPlus} size="sm" />
 
 
 /**
@@ -125,16 +126,16 @@ const OpenedTab = ({ tab, windowId, windowLabel, saved, closeAfterSave }: { tab:
           aria-label={`Drag ${name}`}
           className="peer pointer-events-auto absolute -inset-0.5 z-10 flex items-center justify-center rounded opacity-0 group-hover/tab:opacity-100 focus-visible:opacity-100 focus-visible:ring-1 focus-visible:ring-ring outline-none cursor-grab active:cursor-grabbing transition-opacity"
         >
-          <DragHandleIcon className="w-3.5 h-3.5 text-fg-muted" />
+          <Icon icon={GripVertical} size="sm" className="text-fg-muted" />
         </button>
         <span className="relative block transition-opacity group-hover/tab:opacity-0 peer-focus-visible:opacity-0">
-          {loading ? <Loader2 className="w-4 h-4 m-0.5 animate-spin motion-reduce:animate-none text-fg-subtle" strokeWidth={1.75} aria-label="Loading" />
+          {loading ? <Icon icon={Loader2} size="md" className="m-0.5 animate-spin motion-reduce:animate-none text-fg-subtle" label="Loading" />
             : flexTab ? <img src={flexTabIcon()} alt="" className="w-5 h-5" />
             : <FaviconImg src={tab.favIconUrl} alt="" />}
           {/* Saved: the popup's flag, a green check on the page's icon. */}
           {savedLabel && (
             <span role="img" aria-label={savedLabel} className="absolute -bottom-1 -right-1 grid h-3 w-3 place-items-center rounded-full bg-success ring-2 ring-black-900">
-              <Check className="h-2 w-2 text-black-900" strokeWidth={4} aria-hidden />
+              <Icon icon={Check} size="badge" className="text-black-900" />
             </span>
           )}
         </span>
@@ -152,7 +153,7 @@ const OpenedTab = ({ tab, windowId, windowLabel, saved, closeAfterSave }: { tab:
         {/* Actions, on hover/focus: a saved tab can be shown where it is saved; an unsaved one saved. */}
         {savedLabel ? (
           <IconButton aria-label={`${savedLabel}. Show in workspace`} tooltip="Show in workspace" onClick={showSaved}>
-            <LocateFixed className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+            <Icon icon={LocateFixed} size="sm" />
           </IconButton>
         ) : savable && (
           <IconButton aria-label={`${closes ? "Save and close" : "Save"} ${name}`} tooltip={closes ? "Save and close" : "Save"} onClick={() => void save()}>
@@ -160,7 +161,7 @@ const OpenedTab = ({ tab, windowId, windowLabel, saved, closeAfterSave }: { tab:
           </IconButton>
         )}
         <IconButton aria-label={`Close ${name}`} tooltip="Close tab" onClick={() => void close()}>
-          <X className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+          <Icon icon={X} size="sm" />
         </IconButton>
       </span>
     </div>
@@ -252,12 +253,7 @@ export function RightPanel() {
               <WindowHeader windowId={windowId} tabCount={windows.find((w) => w.id === windowId)?.tabs?.length ?? 0} label={label}>
                 <IconButton variant="subtle" onClick={() => toggleWindow(windowId)}
                   aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} Window ${index + 1}`} aria-expanded={!isCollapsed}>
-                  <svg
-                    className={`w-3.5 h-3.5 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
-                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
+                  <Icon icon={ChevronRight} size="sm" className={cn("transition-transform", !isCollapsed && "rotate-90")} />
                 </IconButton>
                 <span className="text-xs text-fg-subtle font-sans flex-1">
                   Window {index + 1}
