@@ -226,7 +226,7 @@ function EmptySectionDrop({ location }: { location: GroupLocation }) {
         </span>
         {savePage && <span className="text-fg-subtle text-xs">Or press {shortcutLabel(savePage)} on any page to save it.</span>}
       </div>
-      <ShortcutTooltip label="Save all tabs" shortcut="Mod+Shift+S" side="left">
+      <ShortcutTooltip label="Save all tabs" shortcut="Mod+Shift+S" side="top">
         <Button
           variant="secondary"
           size="sm"
@@ -564,7 +564,7 @@ export function ContentPanel() {
             </ToggleGroup>
           )}
           {activeCategory && (
-            <ShortcutTooltip label="Save all tabs" shortcut="Mod+Shift+S" side="left">
+            <ShortcutTooltip label="Save all tabs" shortcut="Mod+Shift+S" side="top">
               <Button variant="ghost" size="sm" onClick={() => setSaveAllOpen(true)}>Save all tabs</Button>
             </ShortcutTooltip>
           )}

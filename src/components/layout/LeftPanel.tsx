@@ -308,7 +308,7 @@ export function LeftPanel() {
         {currentSpace && (
           <RowActions
             label={`Actions for ${currentSpace.name}`}
-            tooltipSide="right"
+            tooltipSide="top"
             items={[
               { label: "Rename", onSelect: () => startRename(currentSpace.id, currentSpace.name), takesFocus: true },
               { label: "Space settings…", onSelect: () => navigate(`${SPACES_ROUTE}/${encodeURIComponent(currentSpace.id)}`) },
@@ -386,7 +386,7 @@ export function LeftPanel() {
                         <IconButton
                           aria-label={`New category in ${project.name}`}
                           tooltip="New category"
-                          tooltipSide="right"
+                          tooltipSide="top"
                           onClick={e => { e.stopPropagation(); handleAddCategory(project.id); }}
                         >
                           <Plus className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
