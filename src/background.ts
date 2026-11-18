@@ -14,6 +14,7 @@ import { recordLandedSnapshot, LANDED_SNAPSHOT_KEY } from "~src/services/landedS
 import type { SavedSpace } from "~src/types";
 import { clearLimitNotice, LIMIT_RECHECK_KEY, saveLimitNotice } from "~src/services/syncLimit";
 import { captureFromBackground, commandKind, menuKind, registerCaptureMenus, registerPopupClose } from "~src/services/backgroundCapture";
+import { installToolbarBadge } from "~src/services/toolbarBadge";
 
 const API_BASE_URL = process.env.PLASMO_PUBLIC_API_URL || "http://localhost:3000";
 const AUTH_SUCCESS_PATH = "/auth/success";
@@ -51,6 +52,7 @@ void getDeviceId();
 
 chrome.runtime.onInstalled.addListener(() => { registerCaptureMenus(); });
 registerPopupClose();
+installToolbarBadge();
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   const kind = menuKind(info.menuItemId);
   if (kind) void captureFromBackground(kind, { tab, linkUrl: info.linkUrl, linkText: info.selectionText });

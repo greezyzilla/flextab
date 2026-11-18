@@ -10,6 +10,7 @@ import {
 const { loadTokens } = vi.hoisted(() => ({ loadTokens: vi.fn(async () => ({ access_token: "t" }) as unknown) }))
 vi.mock("~src/services/api", () => ({ loadTokens }))
 vi.mock("~src/utils/favicon", () => ({ faviconToDataUrl: vi.fn(async (u: string) => u) }))
+vi.mock("~src/services/savedMarkIcon", () => ({ savedIconImages: vi.fn(async () => ({ 16: "marked" })), defaultIconPaths: vi.fn(() => ({})) }))
 
 const tree = (): SavedSpace[] => [{
   id: "s", name: "Work", order: 0,
@@ -53,18 +54,28 @@ describe("captureFromBackground", () => {
     expect(await captureFromBackground("page", { tab })).toBe("saved")
     expect(stored()[0].tabs.map(t => t.url)).toEqual(["https://a.example"])
     expect(disk.flextab_last_capture).toMatchObject({ target: { groupId: "g" }, closed: [] })
-    expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ text: "1" })
+    expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ tabId: 1, text: "1" })
     expect(await captureFromBackground("page", { tab })).toBe("already")
   })
 
-  it("clears the badge after a moment", async () => {
+  it("confirms on the tab's own badge, then returns it to the resting check (TASK-78)", async () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] })
-    await captureFromBackground("page", { tab: { id: 1, url: "https://a.example" } as chrome.tabs.Tab })
-    await captureFromBackground("page", { tab: { id: 2, url: "https://e.example" } as chrome.tabs.Tab })
+    const page = { id: 1, url: "https://a.example", active: true } as chrome.tabs.Tab
+    vi.mocked(chrome.tabs.get).mockResolvedValue(page as never)
+    await captureFromBackground("page", { tab: page })
+    expect(chrome.action.setBadgeText).toHaveBeenLastCalledWith({ tabId: 1, text: "1" })
     vi.advanceTimersByTime(3000)
-    expect(chrome.action.setBadgeText).toHaveBeenLastCalledWith({ text: "" })
-    expect(chrome.action.setTitle).toHaveBeenLastCalledWith({ title: "FlexTab" })
+    await vi.waitFor(() => expect(chrome.action.setTitle).toHaveBeenLastCalledWith({ tabId: 1, title: "FlexTab: Saved in Work › Site › Research › Reading" }))
+    expect(chrome.action.setBadgeText).toHaveBeenLastCalledWith({ tabId: 1, text: "" })
+    await vi.waitFor(() => expect(chrome.action.setIcon).toHaveBeenLastCalledWith({ tabId: 1, imageData: { 16: "marked" } }))
     vi.useRealTimers()
+  })
+
+  it("confirms on the front tab when the event names none", async () => {
+    vi.mocked(chrome.tabs.query).mockResolvedValue([{ id: 7, url: "https://a.example" }] as never)
+    await captureFromBackground("page", {})
+    expect(chrome.tabs.query).toHaveBeenCalledWith({ active: true, lastFocusedWindow: true })
+    expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ tabId: 7, text: "1" })
   })
 
   it("saves a link with its URL as the title fallback", async () => {
@@ -119,7 +130,7 @@ describe("captureFromBackground", () => {
 
   it("flags an unsavable page with the badge and writes nothing", async () => {
     expect(await captureFromBackground("page", { tab: { id: 1, url: "chrome://settings" } as chrome.tabs.Tab })).toBe("unsavable")
-    expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ text: "×" })
+    expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ tabId: 1, text: "×" })
   })
 
   it("opens FlexTab instead of saving before the first new tab has created the workspace", async () => {
@@ -168,7 +179,7 @@ describe("captureFromBackground", () => {
       Object.assign(disk, items)
     }) as never)
     expect(await captureFromBackground("page", { tab: { id: 1, url: "https://a.example" } as chrome.tabs.Tab })).toBe("failed")
-    expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ text: "!" })
+    expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ tabId: 1, text: "!" })
   })
 })
 

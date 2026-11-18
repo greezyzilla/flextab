@@ -9,6 +9,7 @@ import {
 } from "~src/services/capture"
 import { isSavableTabUrl } from "~src/services/saveTabsAsGroup"
 import * as yjs from "~src/lib/yjsDoc"
+import { flashBadge } from "~src/services/toolbarBadge"
 
 export const MENU_SAVE_PAGE = "flextab-save-page"
 export const MENU_SAVE_LINK = "flextab-save-link"
@@ -43,17 +44,14 @@ export function commandKind(command: string): BackgroundCaptureKind | null {
   return null
 }
 
-let badgeTimer: ReturnType<typeof setTimeout> | null = null
-async function flashBadge(text: string, color: string, title: string): Promise<void> {
+/**
+ * Confirm a capture on the toolbar badge of the tab it came from (the front
+ * tab when there is none); the badge then returns to its resting state (TASK-78).
+ */
+async function confirm(tab: chrome.tabs.Tab | undefined, text: string, color: string, title: string): Promise<void> {
   try {
-    await chrome.action.setBadgeBackgroundColor({ color })
-    await chrome.action.setBadgeText({ text })
-    await chrome.action.setTitle({ title })
-    if (badgeTimer) clearTimeout(badgeTimer)
-    badgeTimer = setTimeout(() => {
-      void chrome.action.setBadgeText({ text: "" })
-      void chrome.action.setTitle({ title: "FlexTab" })
-    }, BADGE_MS)
+    const id = tab?.id ?? (await chrome.tabs.query({ active: true, lastFocusedWindow: true }))[0]?.id
+    if (id !== undefined) await flashBadge(id, text, color, title, BADGE_MS)
   } catch (_) { /* badge is best-effort feedback */ }
 }
 
@@ -99,7 +97,7 @@ export async function captureFromBackground(
   // opens to ask, holding the link when it was a link. An empty workspace has
   // nothing to pick from, so it still gets its default space (TASK-37).
   if (!tabs.some((t) => isSavableTabUrl(t.url))) {
-    await flashBadge("×", "#6b7280", "FlexTab: this page can't be saved")
+    await confirm(context.tab, "×", "#6b7280", "FlexTab: this page can't be saved")
     return "unsavable"
   }
   const suggestion = await loadSuggestedDestination()
@@ -122,11 +120,11 @@ export async function captureFromBackground(
     return "no-destination"
   }
   if (!result.persisted) {
-    await flashBadge("!", "#dc2626", "FlexTab: couldn't save to this device")
+    await confirm(context.tab, "!", "#dc2626", "FlexTab: couldn't save to this device")
     return "failed"
   }
   if (result.tabIds.length === 0) {
-    await flashBadge("✓", "#6b7280", "FlexTab: already saved")
+    await confirm(context.tab, "✓", "#6b7280", "FlexTab: already saved")
     return "already"
   }
 
@@ -135,7 +133,7 @@ export async function captureFromBackground(
   const closeKind = kind === "window" ? "window" : kind === "link" ? null : "popup"
   const closed = closeKind && await loadCloseAfter(closeKind) ? await closeSavedTabs(tabs) : []
   await storeLastCapture({ ...result, closed })
-  await flashBadge(String(result.tabIds.length), "#16a34a", `FlexTab: saved ${result.tabIds.length} tab${result.tabIds.length === 1 ? "" : "s"}`)
+  await confirm(context.tab, String(result.tabIds.length), "#16a34a", `FlexTab: saved ${result.tabIds.length} tab${result.tabIds.length === 1 ? "" : "s"}`)
   return "saved"
 }
 
