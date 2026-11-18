@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react"
+import { useState, useRef, useCallback, useEffect, type ReactNode } from "react"
 import { toast } from "sonner"
 import { ActionSlot } from "~src/components/ui/row-actions"
 import { showUndoToast } from "~src/components/ui/sonner"
@@ -7,7 +7,10 @@ import { captureTabs, closeSavedTabs, isCaptureFailure, loadCloseAfter, loadDefa
 import { isSavableTabUrl } from "~src/services/saveTabsAsGroup"
 import { describeAlsoSaved } from "~src/lib/savedUrlIndex"
 import { revealInWorkspace } from "~src/services/reveal"
-import { useDraggable } from "@dnd-kit/core"
+import { useDraggable, useDroppable } from "@dnd-kit/core"
+import { OPEN_PANEL_ZONE, OPEN_TAB_ZONE, OPEN_WINDOW_ZONE, isNoMove, previewWindows } from "~src/services/moveOpenTab"
+import { useOpenTabPreview } from "~src/store/useOpenTabPreview"
+import type { OpenTabDragData, OpenTabZoneData } from "~src/hooks/useDragAndDrop"
 import { DragHandleIcon } from "../icons/DragHandleIcon"
 import { FaviconImg } from "../FaviconImg"
 import { TabUrl } from "../TabUrl"
@@ -39,9 +42,10 @@ const bareUrl = (u?: string) => (u ?? "").replace(/^https?:\/\//, "").replace(/\
  * each: go to it (the row), save it (or, once saved, go to where it is), close
  * it, or drag it to a place. Saving closes it too when Settings › Saving says
  * so ("Close after dragging a tab in"); every save and close can be undone.
- * Pages that can't be saved (browser, extension, local) can only be closed.
+ * Pages that can't be saved (browser, extension, local) can't be saved, but
+ * can still be dragged to another spot or window (TASK-73).
  */
-const OpenedTab = ({ tab, windowId, saved, closeAfterSave }: { tab: chrome.tabs.Tab, windowId: number, saved?: SavedLocation[], closeAfterSave: boolean }) => {
+const OpenedTab = ({ tab, windowId, windowLabel, saved, closeAfterSave }: { tab: chrome.tabs.Tab, windowId: number, windowLabel: string, saved?: SavedLocation[], closeAfterSave: boolean }) => {
   const savedLabel = describeSaved(saved)
   const savable = isSavableTabUrl(tab.url)
   const flexTab = isFlexTabPage(tab.url)
@@ -78,8 +82,14 @@ const OpenedTab = ({ tab, windowId, saved, closeAfterSave }: { tab: chrome.tabs.
     chrome.windows.update(windowId, { focused: true })
   }
 
-  // Only a page that can be saved can be dragged into the workspace.
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: tab.id!, disabled: !savable })
+  // Any tab can be dragged: to another spot or window here (TASK-73), or, if
+  // it can be saved, into the workspace (an unsavable one is refused there).
+  // Its own window and index, even while it is shown in another window's list.
+  const place: OpenTabDragData = { windowId: tab.windowId ?? windowId, index: tab.index ?? 0, name }
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: tab.id!, data: place })
+  // Dropped on this row, a tab lands beside it, on the side the line shows.
+  const zone = `${OPEN_TAB_ZONE}${tab.id}`
+  const { setNodeRef: setDropRef } = useDroppable({ id: zone, data: { windowId: place.windowId, index: place.index, label: windowLabel } satisfies OpenTabZoneData })
   // Save and Close appear on hover/focus only, so at rest a row is just the
   // page. They take their room then (the title ellipsizes), never cover text.
   const onHover = "hidden group-hover/tab:flex group-focus-within/tab:flex"
@@ -89,11 +99,12 @@ const OpenedTab = ({ tab, windowId, saved, closeAfterSave }: { tab: chrome.tabs.
     // The whole row goes to the tab; the few controls sit above that.
     <div
       className="relative flex gap-2.5 items-center w-full rounded-md px-3 py-1.5 text-left group/tab transition-colors hover:bg-ink/[0.04] focus-within:bg-ink/[0.04]"
-      ref={setNodeRef}
-      style={{
-        transform: transform ? `translate(${transform.x}px, ${transform.y}px)` : undefined,
-        opacity: isDragging ? 0.5 : 1,
-      }}
+      ref={(el) => { setNodeRef(el); setDropRef(el) }}
+      data-open-zone={zone}
+      // While dragged, the row stays where it is, dimmed; the card that
+      // follows the pointer is the overlay. A row that moved away left a
+      // blank slot, which read as a place to drop (TASK-73).
+      style={{ opacity: isDragging ? 0.5 : 1 }}
     >
       <button
         type="button"
@@ -105,18 +116,16 @@ const OpenedTab = ({ tab, windowId, saved, closeAfterSave }: { tab: chrome.tabs.
       {/* Favicon slot doubles as the drag handle on hover/focus, as on saved
           tabs, so no empty gutter sits in front of the favicon (TASK-5). */}
       <span className="relative w-5 h-5 shrink-0 pointer-events-none">
-        {savable && (
-          <button
-            type="button"
-            {...attributes}
-            {...listeners}
-            aria-label={`Drag ${name} to save it`}
-            className="peer pointer-events-auto absolute -inset-0.5 z-10 flex items-center justify-center rounded opacity-0 group-hover/tab:opacity-100 focus-visible:opacity-100 focus-visible:ring-1 focus-visible:ring-ring outline-none cursor-grab active:cursor-grabbing transition-opacity"
-          >
-            <DragHandleIcon className="w-3.5 h-3.5 text-fg-muted" />
-          </button>
-        )}
-        <span className={`relative block transition-opacity ${savable ? "group-hover/tab:opacity-0 peer-focus-visible:opacity-0" : ""}`}>
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          aria-label={`Drag ${name}`}
+          className="peer pointer-events-auto absolute -inset-0.5 z-10 flex items-center justify-center rounded opacity-0 group-hover/tab:opacity-100 focus-visible:opacity-100 focus-visible:ring-1 focus-visible:ring-ring outline-none cursor-grab active:cursor-grabbing transition-opacity"
+        >
+          <DragHandleIcon className="w-3.5 h-3.5 text-fg-muted" />
+        </button>
+        <span className="relative block transition-opacity group-hover/tab:opacity-0 peer-focus-visible:opacity-0">
           {loading ? <Loader2 className="w-4 h-4 m-0.5 animate-spin motion-reduce:animate-none text-fg-subtle" strokeWidth={1.75} aria-label="Loading" />
             : flexTab ? <img src={flexTabIcon()} alt="" className="w-5 h-5" />
             : <FaviconImg src={tab.favIconUrl} alt="" />}
@@ -156,6 +165,23 @@ const OpenedTab = ({ tab, windowId, saved, closeAfterSave }: { tab: chrome.tabs.
   )
 }
 
+/**
+ * A window's sticky header (TASK-73): a tab dropped on it goes to the end of
+ * that window. It lights up like a group card taking a tab, unless the drop
+ * would leave the tab where it is.
+ */
+function WindowHeader({ windowId, tabCount, label, children }: { windowId: number, tabCount: number, label: string, children: ReactNode }) {
+  const { setNodeRef, isOver, active } = useDroppable({ id: `${OPEN_WINDOW_ZONE}${windowId}`, data: { windowId, index: tabCount, label } satisfies OpenTabZoneData })
+  const from = active?.data.current as OpenTabDragData | undefined
+  const takes = isOver && typeof active?.id === "number" && !!from && !isNoMove(from, { windowId, index: tabCount })
+  return (
+    <div ref={setNodeRef} className="sticky top-0 z-10 bg-black-900 border-b border-line h-14 pl-4 pr-6 flex items-center gap-2">
+      {takes && <span aria-hidden data-window-drop className="pointer-events-none absolute inset-0 -z-10 border" style={{ borderColor: "var(--accent)", backgroundColor: "var(--accent-subtle)" }} />}
+      {children}
+    </div>
+  )
+}
+
 /** Settings › Saving's "Close after dragging a tab in", kept current while the panel is open. */
 function useCloseAfterDrag(): boolean {
   const [on, setOn] = useState(false)
@@ -172,7 +198,12 @@ function useCloseAfterDrag(): boolean {
 
 export function RightPanel() {
   const { windows } = useWindows({ populate: true })
-  const parentRef = useRef<HTMLDivElement>(null)
+  // While an open tab is dragged here, the lists show it where it would land (TASK-73).
+  const preview = useOpenTabPreview((s) => s.preview)
+  const shown = previewWindows(windows, preview)
+  const parentRef = useRef<HTMLDivElement | null>(null)
+  // The whole list: an open tab let go here moves in the browser, never into the workspace (TASK-73).
+  const { setNodeRef: setPanelRef } = useDroppable({ id: OPEN_PANEL_ZONE })
   const [collapsed, setCollapsed] = useState<Set<number>>(new Set())
   const [saveModal, setSaveModal] = useState<{ tabs: chrome.tabs.Tab[] } | null>(null)
   const savedIndex = useSavedUrlIndex()
@@ -202,11 +233,12 @@ export function RightPanel() {
       </div>
 
       {/* Tab list */}
-      <div ref={parentRef} className="flex-1 overflow-y-auto">
-        {windows.map((window, index) => {
+      <div ref={(el) => { parentRef.current = el; setPanelRef(el) }} className="flex-1 overflow-y-auto">
+        {shown.map((window, index) => {
           const windowId = window.id!
           const isCollapsed = collapsed.has(windowId)
           const tabs = (window.tabs ?? []).filter((t) => t.id !== selfId)
+          const label = `Window ${index + 1}`
 
           return (
             // A line between windows, on the section (not the sticky header), so a
@@ -214,7 +246,8 @@ export function RightPanel() {
             <div key={windowId} className={index > 0 ? "border-t border-line" : undefined}>
               {/* Window header. pr-6 + ActionSlot put its save button in the
                   same column as the rows' trailing slot (p-3 list + px-3 row). */}
-              <div className="sticky top-0 z-10 bg-black-900 border-b border-line h-14 pl-4 pr-6 flex items-center gap-2">
+              {/* The hidden FlexTab tab counts too: the end is past every real tab. */}
+              <WindowHeader windowId={windowId} tabCount={windows.find((w) => w.id === windowId)?.tabs?.length ?? 0} label={label}>
                 <IconButton variant="subtle" onClick={() => toggleWindow(windowId)}
                   aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} Window ${index + 1}`} aria-expanded={!isCollapsed}>
                   <svg
@@ -234,13 +267,13 @@ export function RightPanel() {
                   <SaveIcon />
                 </IconButton>
                 </ActionSlot>
-              </div>
+              </WindowHeader>
 
               {/* Tabs */}
               {!isCollapsed && (
                 <div className="flex flex-col gap-0.5 p-3">
                   {tabs.map(tab => (
-                    <OpenedTab key={tab.id} tab={tab} windowId={windowId} saved={savedIndex.get(normalizeUrl(tab.url))} closeAfterSave={closeAfterSave} />
+                    <OpenedTab key={tab.id} tab={tab} windowId={windowId} windowLabel={label} saved={savedIndex.get(normalizeUrl(tab.url))} closeAfterSave={closeAfterSave} />
                   ))}
                 </div>
               )}

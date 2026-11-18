@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { DndContext } from "@dnd-kit/core"
 import { TooltipProvider } from "~src/components/ui/tooltip"
 import { RightPanel } from "./RightPanel"
+import { useOpenTabPreview } from "~src/store/useOpenTabPreview"
 
 const tabs = [
   { id: 1, windowId: 9, index: 0, title: "FlexTab", url: "chrome-extension://x/newtab.html" },
@@ -42,17 +43,30 @@ beforeEach(() => {
   ;(chrome.tabs as unknown as { getCurrent: () => Promise<chrome.tabs.Tab> }).getCurrent = vi.fn(async () => tabs[0])
 })
 
+describe("an open tab dragged in Opened Tabs (TASK-73)", () => {
+  it("shows the tab where it would land, the rows around it making room", async () => {
+    useOpenTabPreview.getState().show({ tabId: 20, from: { windowId: 10, index: 0 }, slot: { windowId: 9, index: 2 }, label: "Window 1" })
+    renderPanel()
+    await waitFor(() => expect(screen.getAllByRole("button", { name: "Go to FlexTab" })).toHaveLength(1))
+    const order = screen.getAllByRole("button", { name: /^Go to / }).map((b) => b.getAttribute("aria-label"))
+    expect(order.slice(0, 3)).toEqual(["Go to Docs", "Go to Lone", "Go to News"])
+    expect(screen.getByText("Window 1").parentElement!.textContent).toContain("8 tabs") // counted as it will be
+    act(() => useOpenTabPreview.getState().show(null))
+    expect(screen.getAllByRole("button", { name: /^Go to / }).map((b) => b.getAttribute("aria-label")).at(-1)).toBe("Go to Lone")
+  })
+})
+
 describe("Opened Tabs rows (TASK-60)", () => {
-  it("leaves out the tab FlexTab runs in; a page that can't be saved can only be closed", async () => {
+  it("leaves out the tab FlexTab runs in; a page that can't be saved can't be saved, but can be moved (TASK-73)", async () => {
     renderPanel()
     // The tab this page runs in is gone; another FlexTab page stays listed.
     await waitFor(() => expect(screen.getAllByRole("button", { name: "Go to FlexTab" })).toHaveLength(1))
     expect(screen.getByRole("button", { name: "Go to FlexTab" }).parentElement!.textContent).not.toContain("x/newtab")
     const version = row("Version")
-    expect(within(version).queryByRole("button", { name: /^Drag/ })).not.toBeInTheDocument()
+    expect(within(version).getByRole("button", { name: "Drag Version" })).toBeInTheDocument()
     expect(within(version).queryByRole("button", { name: /^Save/ })).not.toBeInTheDocument()
     expect(within(version).getByRole("button", { name: "Close Version" })).toBeInTheDocument()
-    expect(within(row("News")).getByRole("button", { name: "Drag News to save it" })).toBeInTheDocument()
+    expect(within(row("News")).getByRole("button", { name: "Drag News" })).toBeInTheDocument()
   })
 
   it("saves in one click to the default place, and closes too when the setting says so, with Undo", async () => {

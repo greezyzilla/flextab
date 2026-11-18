@@ -71,6 +71,9 @@ export function useWindows(options: {
     TabEventManager.onTabCreated(handler);
     TabEventManager.onTabRemoved(handler);
     TabEventManager.onTabUpdated(handler);
+    // A tab moved within its window, or into another one (TASK-73).
+    TabEventManager.onTabMoved(handler);
+    chrome.tabs.onAttached?.addListener(handler);
 
     return () => {
       WindowEventManager.removeWindowCreatedListener(handler);
@@ -79,6 +82,8 @@ export function useWindows(options: {
       TabEventManager.removeTabCreatedListener(handler);
       TabEventManager.removeTabRemovedListener(handler);
       TabEventManager.removeTabUpdatedListener(handler);
+      TabEventManager.removeTabMovedListener(handler);
+      chrome.tabs.onAttached?.removeListener(handler);
     };
   }, [fetchWindows]);
 

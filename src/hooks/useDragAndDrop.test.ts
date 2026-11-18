@@ -7,6 +7,7 @@ import { showUndoToast } from "~src/components/ui/sonner"
 import * as yjs from "~src/lib/yjsDoc"
 import { useDropIndicator } from "~src/store/useDropIndicator"
 import { useSortPreview } from "~src/store/useSortPreview"
+import { useOpenTabPreview } from "~src/store/useOpenTabPreview"
 
 vi.mock("~src/components/ui/sonner", () => ({ showUndoToast: vi.fn() }))
 
@@ -203,5 +204,117 @@ describe("tabs and groups make room in another list while dragging (TASK-64)", (
     act(() => result.current.handleDragOver(at(42 as any, "droppable-g2", 52)))
     act(() => result.current.handleDragOver(at(projectDragId("h", "p1"), "droppable-g2", 52)))
     expect(useSortPreview.getState().preview).toBeNull()
+  })
+})
+
+describe("moving an open tab in Opened Tabs (TASK-73)", () => {
+  const from = { windowId: 1, index: 0, name: "Docs" }
+  const row = (index: number, windowId = 2) => ({ windowId, index, label: `Window ${windowId}` })
+  const at = (overId: string | null, data: object | undefined, y: number) => ({
+    active: { id: 5, data: { current: from } },
+    over: overId ? { id: overId, rect: { top: 100, height: 20 }, data: { current: data } } : null,
+    activatorEvent: { clientX: 0, clientY: 50 }, delta: { x: 0, y },
+  }) as any
+  beforeEach(() => {
+    useDropIndicator.getState().show(null, null)
+    useOpenTabPreview.getState().show(null)
+    vi.mocked(chrome.tabs.query).mockResolvedValue([{ id: 5 }, { id: 6 }] as any)
+    vi.mocked(chrome.tabs.move).mockResolvedValue({} as any)
+  })
+
+  it("shows the tab where it would land, so the rows make room; no line (TASK-73)", () => {
+    const { result } = renderHook(() => useDragAndDrop())
+    const shown = () => useOpenTabPreview.getState().preview
+    act(() => result.current.handleDragOver(at("open-tab:9", row(1), 52))) // top half: before the row
+    expect(shown()).toMatchObject({ tabId: 5, from: { windowId: 1, index: 0 }, slot: { windowId: 2, index: 1 }, label: "Window 2" })
+    expect(useDropIndicator.getState().zone).toBeNull()
+    act(() => result.current.handleDragMove(at("open-tab:9", row(1), 66))) // bottom half, 14px on
+    expect(shown()?.slot).toEqual({ windowId: 2, index: 2 })
+    act(() => result.current.handleDragMove(at("open-tab:5", row(0, 1), 80))) // over itself, shown there: kept
+    expect(shown()?.slot).toEqual({ windowId: 2, index: 2 })
+    act(() => result.current.handleDragMove(at("open-tab:9", row(1), 70))) // 10px back up but still bottom half: same spot
+    act(() => result.current.handleDragMove(at("open-window:2", { windowId: 2, index: 3, label: "Window 2" }, 90)))
+    expect(shown()).toBeNull() // its header lights up instead; the lists stay put
+    act(() => result.current.handleDragMove(at("open-tab:7", row(1, 1), 52))) // beside itself in its own window
+    expect(shown()).toBeNull()
+    act(() => result.current.handleDragMove(at("open-tab:9", row(1), 66)))
+    act(() => result.current.handleDragCancel())
+    expect(shown()).toBeNull()
+  })
+
+  it("waits for the pointer to move before showing another spot, so moving rows cannot loop", () => {
+    const { result } = renderHook(() => useDragAndDrop())
+    act(() => result.current.handleDragOver(at("open-tab:9", row(1), 52)))
+    act(() => result.current.handleDragMove(at("open-tab:8", row(2), 55))) // a row moved under a still pointer
+    expect(useOpenTabPreview.getState().preview?.slot).toEqual({ windowId: 2, index: 1 })
+  })
+
+  it("drops where the tab was shown, even released over itself", async () => {
+    const { result } = renderHook(() => useDragAndDrop())
+    act(() => result.current.handleDragOver(at("open-tab:9", row(1), 66)))
+    await act(() => result.current.handleDragEnd(at("open-tab:5", row(0, 1), 66)))
+    expect(chrome.tabs.move).toHaveBeenCalledWith(5, { windowId: 2, index: 2 })
+    expect(useOpenTabPreview.getState().preview).toBeNull()
+  })
+
+  it("without a preview yet, moves the tab beside the row under it, or to the end of a window whose header it is on, with Undo", async () => {
+    const { result } = renderHook(() => useDragAndDrop())
+    await act(() => result.current.handleDragEnd(at("open-tab:9", row(1), 66)))
+    expect(chrome.tabs.move).toHaveBeenCalledWith(5, { windowId: 2, index: 2 })
+    expect(showUndoToast).toHaveBeenCalledWith("Moved “Docs” to Window 2", expect.any(Function))
+    await act(() => result.current.handleDragEnd(at("open-window:2", { windowId: 2, index: 3, label: "Window 2" }, 52)))
+    expect(chrome.tabs.move).toHaveBeenLastCalledWith(5, { windowId: 2, index: 3 })
+    await act(() => result.current.handleDragEnd(at("open-tab:7", row(2, 1), 66))) // within its own window
+    expect(chrome.tabs.move).toHaveBeenLastCalledWith(5, { windowId: 1, index: 2 })
+    expect(showUndoToast).toHaveBeenLastCalledWith("Moved “Docs”", expect.any(Function))
+    vi.mocked(showUndoToast).mock.lastCall![1]()
+    await vi.waitFor(() => expect(chrome.tabs.move).toHaveBeenLastCalledWith(5, { windowId: 1, index: 0 }))
+  })
+
+  it("moves nothing where the tab would stay put, or between targets", async () => {
+    const { result } = renderHook(() => useDragAndDrop())
+    await act(() => result.current.handleDragEnd(at("open-tab:5", row(0, 1), 52)))
+    await act(() => result.current.handleDragEnd(at("open-tabs-panel", undefined, 52)))
+    expect(chrome.tabs.move).not.toHaveBeenCalled()
+    expect(showUndoToast).not.toHaveBeenCalled()
+  })
+
+  it("over Opened Tabs an open tab meets only its rows and headers; saved items never meet them", async () => {
+    const { result } = renderHook(() => useDragAndDrop())
+    vi.mocked(chrome.tabs.get).mockResolvedValue({ id: 5 } as any)
+    await act(() => result.current.handleDragStart({ active: { id: 5 } } as any))
+    const r = (top: number, bottom: number, left = 0, right = 300) => ({ top, bottom, left, right, width: right - left, height: bottom - top })
+    const droppableRects = new Map<string, ReturnType<typeof r>>([
+      ["open-tabs-panel", r(0, 400)], ["open-window:1", r(0, 40)], ["open-tab:9", r(50, 70)], ["open-tab:8", r(72, 92)], ["droppable-g", r(0, 400, -400, 10)],
+    ])
+    const hit = (x: number, y: number) => result.current.collisionDetectionStrategy({
+      active: { id: 5 } as any, collisionRect: r(y - 10, y + 10, x - 150, x + 150), droppableRects: droppableRects as any,
+      droppableContainers: [...droppableRects.keys()].map(zone) as any, pointerCoordinates: { x, y },
+    }).map((h) => h.id)
+    expect(hit(100, 60)).toEqual(["open-tab:9"])
+    expect(hit(100, 71)).toEqual(["open-tab:9"]) // the gap between rows: the nearest row
+    expect(hit(100, 300)).toEqual([]) // empty panel space: nothing, not the workspace under the card
+    expect(hit(-100, 60)).toEqual(["droppable-g"])
+    // A row read where it is now (it moved aside), and a stuck header over a row wins the tie.
+    const live = { ...zone("open-tab:7"), node: { current: { getBoundingClientRect: () => r(200, 220) } } }
+    const header = zone("open-window:2")
+    droppableRects.set("open-window:2", r(205, 245)); droppableRects.set("open-tab:7", r(0, 1))
+    const at210 = result.current.collisionDetectionStrategy({
+      active: { id: 5 } as any, collisionRect: r(200, 220), droppableRects: droppableRects as any,
+      droppableContainers: [zone("open-tabs-panel"), live, header] as any, pointerCoordinates: { x: 100, y: 210 },
+    }).map((h) => h.id)
+    expect(at210).toEqual(["open-window:2"])
+    const at202 = result.current.collisionDetectionStrategy({
+      active: { id: 5 } as any, collisionRect: r(200, 220), droppableRects: droppableRects as any,
+      droppableContainers: [zone("open-tabs-panel"), live, header] as any, pointerCoordinates: { x: 100, y: 202 },
+    }).map((h) => h.id)
+    expect(at202).toEqual(["open-tab:7"])
+    act(() => result.current.handleDragCancel())
+    await act(() => result.current.handleDragEnd({ active: { id: 5 }, over: null } as any))
+    const saved = result.current.collisionDetectionStrategy({
+      active: { id: "t1" } as any, collisionRect: r(50, 70, 0, 300), droppableRects: droppableRects as any,
+      droppableContainers: ["open-tabs-panel", "open-tab:9"].map(zone) as any, pointerCoordinates: { x: 100, y: 60 },
+    })
+    expect(saved).toEqual([])
   })
 })

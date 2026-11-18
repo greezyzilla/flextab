@@ -23,8 +23,80 @@ import { useDropIndicator } from "~src/store/useDropIndicator"
 import { useSortPreview } from "~src/store/useSortPreview"
 import { commitPreview, groupPreview, tabPreview } from "~src/services/sortPreview"
 import type { Edge } from "~src/services/moveTo"
+import { OPEN_PANEL_ZONE, OPEN_TAB_ZONE, OPEN_WINDOW_ZONE, isNoMove, isOpenTabsZone, moveOpenTab, type OpenTabPreview, type TabPlace } from "~src/services/moveOpenTab"
+import { useOpenTabPreview } from "~src/store/useOpenTabPreview"
 
 type PointerDragEvent = Pick<DragMoveEvent, "active" | "over" | "activatorEvent" | "delta">
+
+/** What an Opened Tabs row or window header tells the drag about itself (TASK-73). */
+export interface OpenTabZoneData { windowId: number; index: number; label: string }
+/** What a dragged open tab tells about itself. */
+export interface OpenTabDragData extends TabPlace { name: string }
+
+/**
+ * Where a dragged open tab would land in Opened Tabs (TASK-73): beside the row
+ * under the pointer, on the side the pointer is on, or at the end of a window
+ * whose header it is over. Null off Opened Tabs, or where it would not move.
+ */
+function openTabSpot(event: PointerDragEvent): { slot: TabPlace; label: string; zone: string; edge: Edge | null } | null {
+  const over = event.over
+  const from = event.active.data?.current as OpenTabDragData | undefined
+  const data = over?.data?.current as OpenTabZoneData | undefined
+  if (typeof event.active.id !== "number" || !over || !from || !data) return null
+  const zone = over.id.toString()
+  // The rows move aside while dragging, so the row's place now, not at drag start.
+  const live = typeof document === "undefined" ? null : document.querySelector(`[data-open-zone="${zone}"]`)?.getBoundingClientRect()
+  const edge = zone.startsWith(OPEN_TAB_ZONE) ? edgeAt(live?.height ? live : over.rect, pointerY(event)) : null
+  if (!edge && !zone.startsWith(OPEN_WINDOW_ZONE)) return null
+  const slot = { windowId: data.windowId, index: data.index + (edge === "after" ? 1 : 0) }
+  return isNoMove(from, slot) ? null : { slot, label: data.label, zone, edge }
+}
+
+/**
+ * Where an open tab dragged in Opened Tabs is shown (TASK-73): at the spot it
+ * would land, or where it is (null). Undefined keeps the current preview: the
+ * pointer is over the tab itself, already shown at its new spot.
+ */
+function openTabPreviewAt(event: PointerDragEvent): OpenTabPreview | null | undefined {
+  const id = event.active.id
+  if (typeof id !== "number") return null
+  if (event.over?.id === `${OPEN_TAB_ZONE}${id}`) return undefined
+  const spot = openTabSpot(event)
+  const from = event.active.data?.current as OpenTabDragData | undefined
+  // A window header takes the tab at its end and lights up, as a group card
+  // does; the lists stay put, so the header never slides away under the pointer.
+  return spot?.edge && from ? { tabId: id, from: { windowId: from.windowId, index: from.index }, slot: spot.slot, label: spot.label } : null
+}
+
+/**
+ * An open tab over Opened Tabs (TASK-73) meets the row or window header under
+ * the pointer, or the nearest one within 8px; empty panel space meets nothing,
+ * so a drop there never reaches the workspace. Rects are read now, since the
+ * rows move aside while dragging. Null: the pointer is not over the panel.
+ */
+function openTabsCollision({ droppableContainers, droppableRects, pointerCoordinates }: Parameters<CollisionDetection>[0]): ReturnType<CollisionDetection> | null {
+  if (!pointerCoordinates) return null
+  const { x, y } = pointerCoordinates
+  const zones = droppableContainers.filter((c) => isOpenTabsZone(c.id.toString()))
+  const rectOf = (c: (typeof zones)[number]) => {
+    const r = c.node.current?.getBoundingClientRect()
+    return r && r.height ? r : droppableRects.get(c.id)
+  }
+  const panel = zones.find((c) => c.id === OPEN_PANEL_ZONE)
+  const p = panel && rectOf(panel)
+  if (!p || x < p.left || x > p.right || y < p.top || y > p.bottom) return null
+  let best: { container: (typeof zones)[number]; distance: number; header: boolean } | null = null
+  for (const container of zones) {
+    if (container === panel) continue
+    const rect = rectOf(container)
+    if (!rect || x < rect.left || x > rect.right) continue
+    const distance = y < rect.top ? rect.top - y : y > rect.bottom ? y - rect.bottom : 0
+    // A stuck window header covers the rows scrolling under it: it wins a tie.
+    const header = container.id.toString().startsWith(OPEN_WINDOW_ZONE)
+    if (distance <= 8 && (!best || distance < best.distance || (distance === best.distance && header && !best.header))) best = { container, distance, header }
+  }
+  return best ? [{ id: best.container.id, data: { droppableContainer: best.container, value: best.distance } }] : []
+}
 
 /**
  * Where a dragged project or category would go next to a row of its own
@@ -136,6 +208,10 @@ export function useDragAndDrop() {
       return hits.length > 0 ? hits : rectIntersection(zones)
     }
     if (typeof activeId === "number") {
+      // Over Opened Tabs an open tab moves in the browser (TASK-73); it never
+      // reaches past the panel into the workspace from there.
+      const inPanel = openTabsCollision(args)
+      if (inPanel) return inPanel
       const droppableCollisions = rectIntersection({
         ...args,
         droppableContainers: args.droppableContainers.filter((c) =>
@@ -146,7 +222,8 @@ export function useDragAndDrop() {
       return pointerWithin(args)
     }
 
-    const allCollisions = pointerWithin(args)
+    // Saved tabs and groups never land in Opened Tabs.
+    const allCollisions = pointerWithin({ ...args, droppableContainers: args.droppableContainers.filter((c) => !isOpenTabsZone(c.id.toString())) })
     const droppableCollisions = rectIntersection({
       ...args,
       droppableContainers: args.droppableContainers.filter((c) =>
@@ -167,6 +244,17 @@ export function useDragAndDrop() {
   const showReorderSpot = (event: PointerDragEvent) => {
     const spot = reorderSpot(event)
     useDropIndicator.getState().show(spot?.zone ?? null, spot?.edge ?? null)
+    // An open tab in Opened Tabs: shown where it would land, the rows make room (TASK-73).
+    const open = openTabPreviewAt(event)
+    const shown = useOpenTabPreview.getState().preview
+    if (open !== undefined && !(open?.tabId === shown?.tabId && open?.slot.windowId === shown?.slot.windowId && open?.slot.index === shown?.slot.index)) {
+      const now = pointerAt(event)
+      const last = settledAt.current
+      if (!(now && last && Math.hypot(now.x - last.x, now.y - last.y) < PREVIEW_SETTLE_PX)) {
+        settledAt.current = now
+        useOpenTabPreview.getState().show(open)
+      }
+    }
     const next = sortPreviewAt(event)
     if (next === undefined) return
     const current = useSortPreview.getState().preview
@@ -199,6 +287,7 @@ export function useDragAndDrop() {
     stopSpring()
     useDropIndicator.getState().show(null, null)
     useSortPreview.getState().show(null)
+    useOpenTabPreview.getState().show(null)
     settledAt.current = null
     setDraggedContainer(null)
   }
@@ -211,6 +300,8 @@ export function useDragAndDrop() {
     useDropIndicator.getState().show(null, null)
     const preview = useSortPreview.getState().preview
     useSortPreview.getState().show(null)
+    const openPreview = useOpenTabPreview.getState().preview
+    useOpenTabPreview.getState().show(null)
     settledAt.current = null
     setActiveId(null)
     setDraggedTab(null)
@@ -219,6 +310,17 @@ export function useDragAndDrop() {
     setDraggedContainer(null)
 
     if (!over) return
+
+    // An open tab dropped in Opened Tabs moves in the browser, with Undo (TASK-73):
+    // to where it was shown, or, if nothing was shown yet, beside the row under it.
+    if (typeof active.id === "number" && isOpenTabsZone(over.id.toString())) {
+      const open = openPreview?.tabId === active.id ? openPreview : openTabSpot(event)
+      const from = active.data?.current as OpenTabDragData | undefined
+      if (!open || !from) return
+      const undo = await moveOpenTab(active.id, from, open.slot)
+      if (undo) showUndoToast(from.windowId === open.slot.windowId ? `Moved “${from.name}”` : `Moved “${from.name}” to ${open.label}`, () => void undo())
+      return
+    }
 
     // Dropped while shown in another list: it lands where it was shown.
     if (preview && preview.id === active.id) {
