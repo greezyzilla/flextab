@@ -32,7 +32,8 @@ export function useWindows(options: {
       if (populate) {
         windows.forEach((window, i) => {
           if (window.tabs?.length) {
-            windows[i].tabs = window.tabs.filter(tab => !!tab.url);
+            // A tab that has not committed yet has only a pendingUrl: still listed (TASK-73).
+            windows[i].tabs = window.tabs.filter(tab => !!(tab.url || tab.pendingUrl));
           }
         });
       }

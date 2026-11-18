@@ -47,7 +47,7 @@ describe("an open tab dragged in Opened Tabs (TASK-73)", () => {
   it("shows the tab where it would land, the rows around it making room", async () => {
     useOpenTabPreview.getState().show({ tabId: 20, from: { windowId: 10, index: 0 }, slot: { windowId: 9, index: 2 }, label: "Window 1" })
     renderPanel()
-    await waitFor(() => expect(screen.getAllByRole("button", { name: "Go to FlexTab" })).toHaveLength(1))
+    await waitFor(() => expect(screen.getAllByRole("button", { name: "Go to Settings · Appearance" })).toHaveLength(1))
     const order = screen.getAllByRole("button", { name: /^Go to / }).map((b) => b.getAttribute("aria-label"))
     expect(order.slice(0, 3)).toEqual(["Go to Docs", "Go to Lone", "Go to News"])
     expect(screen.getByText("Window 1").parentElement!.textContent).toContain("8 tabs") // counted as it will be
@@ -60,8 +60,8 @@ describe("Opened Tabs rows (TASK-60)", () => {
   it("leaves out the tab FlexTab runs in; a page that can't be saved can't be saved, but can be moved (TASK-73)", async () => {
     renderPanel()
     // The tab this page runs in is gone; another FlexTab page stays listed.
-    await waitFor(() => expect(screen.getAllByRole("button", { name: "Go to FlexTab" })).toHaveLength(1))
-    expect(screen.getByRole("button", { name: "Go to FlexTab" }).parentElement!.textContent).not.toContain("x/newtab")
+    await waitFor(() => expect(screen.getAllByRole("button", { name: "Go to Settings · Appearance" })).toHaveLength(1))
+    expect(screen.getByRole("button", { name: "Go to Settings · Appearance" }).parentElement!.textContent).not.toContain("x/newtab")
     const version = row("Version")
     expect(within(version).getByRole("button", { name: "Drag Version" })).toBeInTheDocument()
     expect(within(version).queryByRole("button", { name: /^Save/ })).not.toBeInTheDocument()
@@ -108,20 +108,21 @@ describe("Opened Tabs rows (TASK-60)", () => {
     expect(cap.reopenTabs).toHaveBeenCalledWith([{ windowId: 9, index: 3, url: "chrome://version" }])
   })
 
-  it("names a FlexTab page FlexTab and shows no machine address; an address that repeats the title isn't shown twice", async () => {
+  it("names a FlexTab page for which page it is, FlexTab under it, no machine address; a page with no title is named by its site, its address under it", async () => {
     renderPanel()
-    await waitFor(() => expect(screen.getAllByRole("button", { name: "Go to FlexTab" })).toHaveLength(1))
-    const flex = row("FlexTab")
-    expect(flex.textContent).toBe("FlexTab")
+    await waitFor(() => expect(screen.getAllByRole("button", { name: "Go to Settings · Appearance" })).toHaveLength(1))
+    const flex = row("Settings · Appearance")
+    expect(flex.textContent).toBe("Settings · AppearanceFlexTab") // which FlexTab page, FlexTab under it
     expect(within(flex).queryByText(/chrome-extension/)).not.toBeInTheDocument()
-    expect(row("about:blank").textContent).toBe("about:blank")
-    expect(row("slow.example/page").textContent).toBe("slow.example/page")
+    expect(row("Blank page").textContent).toBe("Blank pageabout:blank") // named for what it is, its address under it
+    // Chrome titles a page it has no title for with its address: named by its site, the address under it.
+    expect(row("slow.example").textContent).toMatch(/^slow\.example.*slow\.example.*\/page/)
     expect(row("News").textContent).toContain("news.example")
   })
 
   it("marks a loading tab; a page that can't be saved reads quieter", async () => {
     renderPanel()
-    expect(within(row("slow.example/page").parentElement!).getByLabelText("Loading")).toBeInTheDocument()
+    expect(within(row("slow.example").parentElement!).getByLabelText("Loading")).toBeInTheDocument()
     expect(within(row("Version")).getByText("Version").className).toContain("text-fg-subtle")
     expect(within(row("News")).getByText("News").className).toContain("text-fg ")
   })

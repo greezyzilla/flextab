@@ -15,6 +15,10 @@ describe("splitDisplayUrl (TASK-54)", () => {
     expect(splitDisplayUrl("https://example.test?q=1")).toEqual({ host: "example.test", rest: "?q=1" })
   })
 
+  it("splits a local file as file:// and its path, so its file name stays in view", () => {
+    expect(splitDisplayUrl("file:///Users/me/notes/readme.txt")).toEqual({ host: "file://", rest: "/Users/me/notes/readme.txt" })
+  })
+
   it("returns null for other schemes and missing URLs", () => {
     expect(splitDisplayUrl("chrome://settings/")).toBeNull()
     expect(splitDisplayUrl(undefined)).toBeNull()

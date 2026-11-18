@@ -2,11 +2,14 @@
  * Splits a web URL for display as host + the rest (TASK-54), so the rest can
  * be cut from its start and its end (episode, slug, id) stays visible.
  * Host and rest together are exactly what the card showed before
- * (the URL without its http(s):// scheme). Other schemes return null.
+ * (the URL without its http(s):// scheme). A local file splits as "file://"
+ * + its path, so its file name stays visible too. Other schemes return null.
  */
 export function splitDisplayUrl(url?: string): { host: string; rest: string } | null {
   const m = url?.match(/^https?:\/\/([^/?#]+)(.*)$/i)
-  return m ? { host: m[1], rest: m[2] } : null
+  if (m) return { host: m[1], rest: m[2] }
+  const file = url?.match(/^file:\/\/(\/.*)$/i)
+  return file ? { host: "file://", rest: file[1] } : null
 }
 
 /**

@@ -14,6 +14,7 @@ import type { OpenTabDragData, OpenTabZoneData } from "~src/hooks/useDragAndDrop
 import { DragHandleIcon } from "../icons/DragHandleIcon"
 import { FaviconImg } from "../FaviconImg"
 import { TabUrl } from "../TabUrl"
+import { flexTabPageText, openTabText } from "~src/lib/openTabText"
 import { SaveSessionModal } from "../SaveSessionModal"
 import { useWindows } from "~src/hooks/useWindows"
 import { IconButton } from "~src/components/ui/button"
@@ -35,7 +36,6 @@ function flexTabIcon(): string | undefined {
 /** The one save mark: a row's Save and a window's Save draw the same icon at the same size. */
 const SaveIcon = () => <BookmarkPlus className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
 
-const bareUrl = (u?: string) => (u ?? "").replace(/^https?:\/\//, "").replace(/\/$/, "")
 
 /**
  * One open tab (TASK-60). What people do with an open tab here is one click
@@ -49,10 +49,12 @@ const OpenedTab = ({ tab, windowId, windowLabel, saved, closeAfterSave }: { tab:
   const savedLabel = describeSaved(saved)
   const savable = isSavableTabUrl(tab.url)
   const flexTab = isFlexTabPage(tab.url)
-  const name = flexTab ? "FlexTab" : tab.title || tab.url || "tab"
-  // The address line only when it says something the title doesn't (a blank or
-  // still-loading page is titled by its own address), and never for FlexTab.
-  const showAddress = !flexTab && !!tab.title && bareUrl(tab.title) !== bareUrl(tab.url)
+  // A tab Chrome has no title for is named by its site, its address under it;
+  // the address line shows only when it says something the name doesn't. A
+  // FlexTab page is named for which page it is, "FlexTab" under it.
+  const text = flexTab ? flexTabPageText(tab.url ?? "") : openTabText(tab)
+  const name = text.name
+  const address = text.address
   const loading = tab.status === "loading"
   // A pinned tab is never closed by saving, so its button never says it will be.
   const closes = closeAfterSave && !tab.pinned
@@ -143,7 +145,7 @@ const OpenedTab = ({ tab, windowId, windowLabel, saved, closeAfterSave }: { tab:
           {/* A page that can't be saved reads quieter, so it's clear before you try. */}
           <span className={`${savable ? "text-fg" : "text-fg-subtle"} text-xs font-sans truncate`}>{name}</span>
         </span>
-        {showAddress && <TabUrl url={tab.url} />}
+        {address && <TabUrl url={address} />}
       </span>
 
       <span className={`${onHover} relative z-10 shrink-0 items-center gap-0.5 -my-1`}>
