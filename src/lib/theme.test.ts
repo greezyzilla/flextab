@@ -62,4 +62,11 @@ describe("theme mode", () => {
     expect(media.length).toBeGreaterThan(10);
     expect(forced).toEqual(media);
   });
+
+  it("tells the browser the theme, so native scrollbars and controls follow it (TASK-74)", () => {
+    const css = readFileSync(resolve(__dirname, "../../style.css"), "utf8");
+    expect(css).toMatch(/@layer theme \{\s*:root \{[^}]*color-scheme: dark;/);
+    expect(css).toMatch(/:root:not\(\.dark\) \{\s*color-scheme: light;/);
+    expect(css).toMatch(/\n {2}:root\.light \{\s*color-scheme: light;/);
+  });
 });

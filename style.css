@@ -39,6 +39,10 @@
 
 @layer theme {
   :root {
+    /* Native parts the browser draws (scrollbars, checkboxes, select menus)
+       follow the theme, so a dark page never shows a light scrollbar track
+       (TASK-74). The light blocks below set it back to light. */
+    color-scheme: dark;
     /* Light neutral grays (rarely used) */
     --color-black-50: #fafafa;
     --color-black-100: #f5f5f5;
@@ -172,6 +176,7 @@
      - Status text uses the 700-900 shades instead of the 200-400 ones. */
   @media (prefers-color-scheme: light) {
     :root:not(.dark) {
+      color-scheme: light;
       --color-black-950: hsl(var(--hue), var(--surface-sat), 93%);
       --color-black-900: hsl(var(--hue), var(--surface-sat), 97%);
       --color-black-800: hsl(var(--hue), var(--surface-sat), 100%);
@@ -220,6 +225,7 @@
     }
   }
   :root.light {
+    color-scheme: light;
     --color-black-950: hsl(var(--hue), var(--surface-sat), 93%);
     --color-black-900: hsl(var(--hue), var(--surface-sat), 97%);
     --color-black-800: hsl(var(--hue), var(--surface-sat), 100%);
