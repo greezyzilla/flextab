@@ -9,7 +9,7 @@ vi.mock('~src/store/useAuthStore', async () => {
 
 const initial = {
   groupLayout: 'list' as const, gridColumns: 2, density: 'comfortable' as const,
-  hue: 214, intensity: 100, titleCut: 50, linkCut: 50, linkCutScope: 'all' as const, iconWeight: 'regular' as const, autoSync: true,
+  hue: 214, intensity: 100, titleCut: 50, linkCut: 50, linkCutScope: 'all' as const, tabPreview: 'hover' as const, iconWeight: 'regular' as const, autoSync: true,
 };
 let store: typeof import('~src/store/useSettingsStore').useSettingsStore;
 let sync: typeof import('./settingsSync');

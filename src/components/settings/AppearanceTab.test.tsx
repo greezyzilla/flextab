@@ -71,6 +71,19 @@ describe("appearance control accessibility", () => {
     expect(shorten).toHaveAccessibleDescription("Only the site is shortened, so the path stays whole. If the path alone doesn't fit, the whole link is shortened.");
   });
 
+  it("lets the cut tab preview open on hover or only while Alt is held, saying how in its description (TASK-80)", async () => {
+    const user = userEvent.setup();
+    useSettingsStore.setState({ tabPreview: "hover" });
+    render(<TooltipProvider><AppearanceTab /></TooltipProvider>);
+    const preview = screen.getByRole("radiogroup", { name: "Full title and link" });
+    expect(within(preview).getByRole("radio", { name: "On hover" })).toHaveAttribute("aria-checked", "true");
+    expect(preview).toHaveAccessibleDescription("Pointing at a cut tab shows its full title and link.");
+    await user.click(within(preview).getByRole("radio", { name: /^Hold (Alt|Option)$/ }));
+    expect(useSettingsStore.getState().tabPreview).toBe("alt");
+    expect(preview).toHaveAccessibleDescription(/^Hold (Alt|Option) while pointing at a cut tab, or while it has keyboard focus, to see its full title and link\.$/);
+    useSettingsStore.setState({ tabPreview: "hover" });
+  });
+
   it("names the motion switch and toggles it with Space", async () => {
     const user = userEvent.setup();
     render(<TooltipProvider><AppearanceTab /></TooltipProvider>);

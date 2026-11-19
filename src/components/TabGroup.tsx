@@ -19,7 +19,9 @@ import { ensureUnsortedGroup, isUnsortedGroup } from "~src/lib/defaultPath";
 import { normalizeUrl } from "~src/lib/savedUrlIndex";
 import { openGroupTabs, openOrFocus } from "~src/services/openTab";
 import { ActionSlot, RowActions } from "./ui/row-actions";
-import { IconButton, IconTooltip } from "./ui/button";
+import { IconButton, IconTooltip, isFocusVisible } from "./ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+import { useAltHeld, useArmAlt } from "~src/lib/altKey";
 import { hasClippedText } from "~src/lib/displayUrl";
 import { TabUrl } from "./TabUrl";
 import { restoreLinkedTab, updateLinkedTab } from "~src/services/openLinks";
@@ -68,11 +70,23 @@ function SavedTabItem({ tab, groupId, location, copies = 1, unsorted }: { tab: S
   const linkCut = useSettingsStore((s) => s.linkCut);
   const linkCutScope = useSettingsStore((s) => s.linkCutScope);
   const linkRef = useRef<HTMLAnchorElement>(null);
+  // The full title and link on demand (TASK-80): with "Hold Alt" it opens only
+  // while Alt is held over the card (or on it by keyboard), with no delay.
+  const manualPreview = useSettingsStore((s) => s.tabPreview) === "alt";
+  const [overLink, setOverLink] = useState(false);
+  const [overPreview, setOverPreview] = useState(false);
+  const [focusedByKey, setFocusedByKey] = useState(false);
+  const aimed = overLink || overPreview || focusedByKey;
+  const altHeld = useAltHeld(manualPreview);
+  useArmAlt(manualPreview && aimed);
+  const previewOpen = manualPreview && altHeld && aimed && hasClippedText(linkRef.current);
 
   const onClick =(event: React.MouseEvent<HTMLAnchorElement>) => {
     // Modified/middle clicks keep the native "always open a new tab" link
     // behaviour. A plain click goes to the tab if it is already open (TASK-4).
-    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    // With "Hold Alt" previews, Alt is part of looking, so Alt+click opens the
+    // card like a plain click instead of Chrome's download.
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || (event.altKey && !manualPreview)) return;
     event.preventDefault();
     void openOrFocus(tab.url, { ...location, groupId, tabId: tab.id });
   }
@@ -100,6 +114,44 @@ function SavedTabItem({ tab, groupId, location, copies = 1, unsorted }: { tab: S
       addSavedTab(spaceId, projectId, categoryId, target, tab);
     });
   };
+
+  const previewContent = (
+    <span className="flex max-w-80 flex-col gap-0.5 break-words">
+      <span className="text-fg">{tab.title}</span>
+      <span className="break-all text-fg-subtle">{tab.url}</span>
+    </span>
+  );
+  const cardLink = (
+    <a
+      ref={linkRef}
+      href={tab.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`Open ${tab.title}`}
+      className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer overflow-hidden rounded outline-none focus-visible:ring-1 focus-visible:ring-ring"
+      onClick={onClick}
+      {...(manualPreview ? {
+        onPointerEnter: () => setOverLink(true),
+        onPointerLeave: () => setOverLink(false),
+        onFocus: (e: React.FocusEvent<HTMLAnchorElement>) => setFocusedByKey(isFocusVisible(e.currentTarget)),
+        onBlur: () => setFocusedByKey(false),
+      } : {})}
+    >
+      <div className="flex flex-col min-w-0">
+        <MiddleText text={tab.title} className="text-fg text-xs font-sans" startShare={titleCut / 100} />
+        <TabUrl url={tab.url} pathShare={linkCut / 100} scope={linkCutScope} />
+      </div>
+      {/* TASK-72: the browser tab opened from this card moved on (next
+          episode). A passive signal like "dup"; the action lives in ⋯. */}
+      {change && (
+        <IconTooltip content={`Open tab is on ${change.to}`}>
+          <Badge variant="accent" size="sm" className="shrink-0 max-w-[40%] truncate font-normal">
+            <span aria-hidden>→{"\u00a0"}</span>{change.to}
+          </Badge>
+        </IconTooltip>
+      )}
+    </a>
+  );
 
   return (
     <div
@@ -135,40 +187,21 @@ function SavedTabItem({ tab, groupId, location, copies = 1, unsorted }: { tab: S
 
         {/* The full title and address, by hover or keyboard focus, only when
             the card has cut one of them (TASK-54): a tooltip on every card
-            would follow the pointer across the grid. */}
-        <IconTooltip
-          when={() => hasClippedText(linkRef.current)}
-          content={
-            <span className="flex max-w-80 flex-col gap-0.5 break-words">
-              <span className="text-fg">{tab.title}</span>
-              <span className="break-all text-fg-subtle">{tab.url}</span>
-            </span>
-          }
-        >
-          <a
-            ref={linkRef}
-            href={tab.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={`Open ${tab.title}`}
-            className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer overflow-hidden rounded outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            onClick={onClick}
-          >
-            <div className="flex flex-col min-w-0">
-              <MiddleText text={tab.title} className="text-fg text-xs font-sans" startShare={titleCut / 100} />
-              <TabUrl url={tab.url} pathShare={linkCut / 100} scope={linkCutScope} />
-            </div>
-            {/* TASK-72: the browser tab opened from this card moved on (next
-                episode). A passive signal like "dup"; the action lives in ⋯. */}
-            {change && (
-              <IconTooltip content={`Open tab is on ${change.to}`}>
-                <Badge variant="accent" size="sm" className="shrink-0 max-w-[40%] truncate font-normal">
-                  <span aria-hidden>→{"\u00a0"}</span>{change.to}
-                </Badge>
-              </IconTooltip>
-            )}
-          </a>
-        </IconTooltip>
+            would follow the pointer across the grid. Settings › Appearance can
+            make it open only while Alt is held (TASK-80). */}
+        {manualPreview ? (
+          <Tooltip open={previewOpen}>
+            <TooltipTrigger asChild>{cardLink}</TooltipTrigger>
+            {/* Stays open while the pointer moves onto it (WCAG 1.4.13); releasing Alt closes it. */}
+            <TooltipContent onPointerEnter={() => setOverPreview(true)} onPointerLeave={() => setOverPreview(false)}>
+              {previewContent}
+            </TooltipContent>
+          </Tooltip>
+        ) : (
+          <IconTooltip when={() => hasClippedText(linkRef.current)} content={previewContent}>
+            {cardLink}
+          </IconTooltip>
+        )}
 
         {/* Same actions as dragging and the old hover ✕, reachable by keyboard (TASK-5). */}
         <RowActions

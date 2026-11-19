@@ -13,6 +13,8 @@ export type DuplicateMark = 'ribbon' | 'icon' | 'off';
 export type DuplicateTone = 'caution' | 'accent' | 'neutral';
 export type DuplicateCorner = 'right' | 'left';
 export type DuplicateLabel = 'dupe' | 'count';
+/** When a cut saved tab shows its full title and link (TASK-80): as you point, or only while Alt is held. */
+export type TabPreview = 'hover' | 'alt';
 
 /** UI font options (system stacks — nothing bundled). Maps to --font-sans in useTheme. */
 export const FONT_OPTIONS: { key: FontKey; label: string }[] = [
@@ -71,6 +73,7 @@ export const APPEARANCE_DEFAULTS = {
   titleCut: 50,        // 0-100, where "…" sits in a cut saved tab title (TASK-71)
   linkCut: 50,         // 0-100, where "…" sits in a cut saved tab link (TASK-71)
   linkCutScope: 'all' as LinkCutScope, // which part of the link is cut: all, site or path (TASK-71)
+  tabPreview: 'hover' as TabPreview, // full title + link of a cut tab: on hover, or only while Alt is held (TASK-80)
   iconWeight: 'regular' as IconWeight, // stroke of every icon: thin 1.5, regular 1.75, bold 2 (TASK-76)
   duplicateMark: 'ribbon' as DuplicateMark,
   duplicateTone: 'caution' as DuplicateTone,
@@ -93,6 +96,7 @@ interface SettingsState {
   titleCut: number;    // 0-100, "…" position in a cut saved tab title: 0 keeps the end, 100 the start
   linkCut: number;     // 0-100, the same for a saved tab link
   linkCutScope: LinkCutScope; // which part of the link gives way first
+  tabPreview: TabPreview;      // when a cut tab's full title and link show
   iconWeight: IconWeight;      // stroke weight of every icon (TASK-76)
   duplicateMark: DuplicateMark;
   duplicateTone: DuplicateTone;
@@ -118,6 +122,7 @@ interface SettingsState {
   setTitleCut: (titleCut: number) => void;
   setLinkCut: (linkCut: number) => void;
   setLinkCutScope: (linkCutScope: LinkCutScope) => void;
+  setTabPreview: (tabPreview: TabPreview) => void;
   setIconWeight: (iconWeight: IconWeight) => void;
   setDuplicateMark: (duplicateMark: DuplicateMark) => void;
   setDuplicateTone: (duplicateTone: DuplicateTone) => void;
@@ -154,6 +159,7 @@ export const useSettingsStore = create<SettingsState>()(
       setTitleCut: (titleCut) => set({ titleCut }),
       setLinkCut: (linkCut) => set({ linkCut }),
       setLinkCutScope: (linkCutScope) => set({ linkCutScope }),
+      setTabPreview: (tabPreview) => set({ tabPreview }),
       setIconWeight: (iconWeight) => set({ iconWeight }),
       setDuplicateMark: (duplicateMark) => set({ duplicateMark }),
       setDuplicateTone: (duplicateTone) => set({ duplicateTone }),

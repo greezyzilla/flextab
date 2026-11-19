@@ -105,7 +105,7 @@ const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
 )
 IconButton.displayName = "IconButton"
 
-function isFocusVisible(el: Element): boolean {
+export function isFocusVisible(el: Element): boolean {
   try { return el.matches(":focus-visible") } catch { return true }
 }
 

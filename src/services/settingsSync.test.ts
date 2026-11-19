@@ -4,7 +4,7 @@ import { describe, it, expect, vi } from "vitest";
 // pure fieldMerge is importable without a real store.
 vi.mock("~src/store/useSettingsStore", () => ({
   useSettingsStore: {
-    getState: () => ({ groupLayout: "grid", gridColumns: 3, density: "cozy", hue: 214, intensity: 100, titleCut: 50, linkCut: 50, linkCutScope: "all", iconWeight: "regular", autoSync: true }),
+    getState: () => ({ groupLayout: "grid", gridColumns: 3, density: "cozy", hue: 214, intensity: 100, titleCut: 50, linkCut: 50, linkCutScope: "all", tabPreview: "hover", iconWeight: "regular", autoSync: true }),
     setState: vi.fn(),
     subscribe: vi.fn(() => () => {}),
   },
@@ -17,7 +17,7 @@ vi.mock("./api", () => ({ apiGetSettings: vi.fn(), apiPutSettings: vi.fn() }));
 
 import { fieldMerge } from "./settingsSync";
 
-const base = { groupLayout: "grid", gridColumns: 3, density: "cozy", hue: 214, intensity: 100, titleCut: 50, linkCut: 50, linkCutScope: "all", iconWeight: "regular", autoSync: true } as const;
+const base = { groupLayout: "grid", gridColumns: 3, density: "cozy", hue: 214, intensity: 100, titleCut: 50, linkCut: 50, linkCutScope: "all", tabPreview: "hover", iconWeight: "regular", autoSync: true } as const;
 
 describe("settings fieldMerge (field-level 3-way)", () => {
   it("carries where titles and links are cut between devices; an account without them keeps this device's (TASK-71)", () => {

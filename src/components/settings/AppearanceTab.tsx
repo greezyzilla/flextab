@@ -9,12 +9,22 @@ import { Slider } from "~src/components/ui/slider";
 import { Button, IconTooltip } from "~src/components/ui/button";
 import { SettingRow, ToggleGroup, GroupHeading, type SettingControlProps } from "./shared";
 import type { LinkCutScope } from "~src/lib/displayUrl";
+import type { TabPreview } from "~src/store/useSettingsStore";
+import { isMac } from "~src/lib/platform";
 
 /** What each Link cut scope does, shown under its choice (TASK-71). */
 const LINK_CUT_SCOPE_NOTE: Record<LinkCutScope, string> = {
   all: "The whole link is shortened as one.",
   site: "Only the site is shortened, so the path stays whole. If the path alone doesn't fit, the whole link is shortened.",
   path: "Only the path is shortened, so the site stays whole. If the site alone doesn't fit, the whole link is shortened.",
+};
+
+/** Alt is Option on macOS (TASK-80). */
+const ALT_KEY = isMac() ? "Option" : "Alt";
+/** When a cut tab's full title and link show, said under the choice (TASK-80). */
+const TAB_PREVIEW_NOTE: Record<TabPreview, string> = {
+  hover: "Pointing at a cut tab shows its full title and link.",
+  alt: `Hold ${ALT_KEY} while pointing at a cut tab, or while it has keyboard focus, to see its full title and link.`,
 };
 import { ListIcon, GridIcon } from "./icons";
 import { canGroupTabs, releaseTabGroups, requestTabGroups } from "~src/services/openTab";
@@ -51,7 +61,7 @@ export function HueSlider({ value, onChange, ...controlProps }: { value: number;
 export function AppearanceTab() {
   const {
     theme, setTheme, hue, setHue, intensity, setIntensity, groupTint, setGroupTint, radius, setRadius,
-    fontFamily, setFontFamily, uiScale, setUiScale, titleCut, setTitleCut, linkCut, setLinkCut, linkCutScope, setLinkCutScope, iconWeight, setIconWeight,
+    fontFamily, setFontFamily, uiScale, setUiScale, titleCut, setTitleCut, linkCut, setLinkCut, linkCutScope, setLinkCutScope, tabPreview, setTabPreview, iconWeight, setIconWeight,
     groupLayout, setGroupLayout, gridColumns, setGridColumns, density, setDensity,
     duplicateMark, setDuplicateMark, duplicateTone, setDuplicateTone,
     duplicateCorner, setDuplicateCorner, duplicateLabel, setDuplicateLabel,
@@ -215,6 +225,21 @@ export function AppearanceTab() {
                 { value: 'all', label: 'All' },
                 { value: 'site', label: 'Site' },
                 { value: 'path', label: 'Path' },
+              ]}
+            />
+          )}
+        </SettingRow>
+
+        {/* The preview of a cut tab, on hover or only on demand (TASK-80). */}
+        <SettingRow label="Full title and link" description={TAB_PREVIEW_NOTE[tabPreview]}>
+          {(controlProps) => (
+            <ToggleGroup<TabPreview>
+              {...controlProps}
+              value={tabPreview}
+              onChange={setTabPreview}
+              options={[
+                { value: 'hover', label: 'On hover' },
+                { value: 'alt', label: `Hold ${ALT_KEY}` },
               ]}
             />
           )}
