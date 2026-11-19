@@ -148,6 +148,18 @@ it("cancels a closed login tab without canceling a different pending tab", async
   expect(session[oauth.OAUTH_PENDING_KEY]).toBeUndefined();
 });
 
+it("starts a login from any new tab route, and only from the extension's own pages", async () => {
+  oauth.registerOAuthMessages();
+  const listener = vi.mocked(chrome.runtime.onMessage.addListener).mock.calls[0][0];
+  const respond = vi.fn();
+  for (const url of [chrome.runtime.getURL("newtab.html.evil#/signin"), chrome.runtime.getURL("other.html#newtab.html"), `${api}/newtab.html#/signin`])
+    expect(listener({ type: oauth.OAUTH_START, provider: "google" }, { id: chrome.runtime.id, url }, respond)).toBeUndefined();
+  expect(chrome.tabs.create).not.toHaveBeenCalled();
+  const started = new Promise<any>(resolve => listener({ type: oauth.OAUTH_START, provider: "google" }, { id: chrome.runtime.id, url: chrome.runtime.getURL("newtab.html#/signin") }, resolve));
+  expect(await started).toEqual({ ok: true });
+  expect(session[oauth.OAUTH_PENDING_KEY]).toBeDefined();
+});
+
 it("authenticates message senders and accepts only top-frame callback messages", async () => {
   oauth.registerOAuthMessages();
   const listener = vi.mocked(chrome.runtime.onMessage.addListener).mock.calls[0][0];

@@ -127,7 +127,9 @@ export function registerOAuthMessages(): void {
     let run: Promise<unknown>;
     if (message.type === OAUTH_START) {
       // A webpage content script cannot start a login, even from our API host.
-      if (![chrome.runtime.getURL("newtab.html"), chrome.runtime.getURL("popup.html")].includes(sender.url ?? "")) return;
+      // The new tab page keeps its route in the fragment (#/signin), so the
+      // page is compared without it.
+      if (![chrome.runtime.getURL("newtab.html"), chrome.runtime.getURL("popup.html")].includes((sender.url ?? "").split("#")[0])) return;
       run = startOAuthLogin(message.provider);
     } else {
       if (sender.frameId !== 0 || typeof sender.tab?.id !== "number" || !sender.url) return;
