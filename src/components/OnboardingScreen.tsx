@@ -242,10 +242,12 @@ export function OnboardingScreen({ onBack }: {
               </p>
             </>}>
               {/* Fastest path first (Hick): one click, no password. Each creates the
-                  account too, so the screen never guesses "welcome back". */}
+                  account too, so the screen never guesses "welcome back". Provider
+                  buttons stay neutral, as on every sign-in page: the accent belongs to
+                  this form's own submit. Focus still opens on the first provider. */}
               <div className="flex flex-col gap-3">
                 {providers?.includes('google') && (
-                  <Button variant="default" onClick={() => void startOAuth("google")} className="w-full" data-modal-primary="">
+                  <Button variant="secondary" onClick={() => void startOAuth("google")} className="w-full" data-modal-primary="">
                     <GoogleMark />
                     Continue with Google
                   </Button>
@@ -288,7 +290,7 @@ export function OnboardingScreen({ onBack }: {
                     value={password} onChange={e => setPassword(e.target.value)} required
                     aria-describedby={error ? "signin-error" : undefined} />
                 </div>
-                <Button variant="secondary" type="submit" disabled={loading} className="w-full">
+                <Button variant="default" type="submit" disabled={loading} className="w-full">
                   {loading ? 'Please wait…' : creating ? 'Create account' : 'Sign in'}
                 </Button>
                 <p id="signin-error" role="alert" className="h-4 truncate text-danger text-xs leading-4">{error}</p>
