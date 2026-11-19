@@ -19,7 +19,7 @@ import { useSettingsStore, type GroupLayout } from "~src/store/useSettingsStore"
 import { useUIStore } from "~src/store/useUIStore";
 import type { GroupLocation } from "~src/services/dragDrop";
 import { CategoryIcon, GroupIcon, ProjectIcon, SpaceAvatar } from "~src/components/levelIcons";
-import { findUnsorted, firstGroupOrder, isUnsortedGroup, orderedGroups } from "~src/lib/defaultPath";
+import { createSpace, findUnsorted, firstGroupOrder, isUnsortedGroup, orderedGroups } from "~src/lib/defaultPath";
 import { withPreview } from "~src/services/sortPreview";
 import { useSortPreview } from "~src/store/useSortPreview";
 import { spacesHaveTabs } from "~src/services/spacesTree";
@@ -460,12 +460,7 @@ export function ContentPanel() {
             label="New space"
             placeholder="Space name"
             inputLabel="New space name"
-            onCommit={name => {
-              const id = uuidv7();
-              const store = useSavedSpacesStore.getState();
-              store.addSavedSpace({ id, name, projects: [], order: 0 });
-              store.setActiveSpace(id);
-            }}
+            onCommit={name => useSavedSpacesStore.getState().setActiveSpace(createSpace(name))}
           />
         }
       />

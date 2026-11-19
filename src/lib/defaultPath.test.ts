@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest"
 import * as yjs from "~src/lib/yjsDoc"
-import { ensureCategoryPath, ensureSpace, ensureUnsortedGroup, ensureUnsortedPath, findUnsorted, firstGroupOrder, isUnsortedGroup, orderedGroups } from "./defaultPath"
+import { createSpace, ensureCategoryPath, ensureSpace, ensureUnsortedGroup, ensureUnsortedPath, findUnsorted, firstGroupOrder, isUnsortedGroup, orderedGroups } from "./defaultPath"
 
 beforeEach(async () => {
   await yjs.clearState()
@@ -37,6 +37,28 @@ describe("default path", () => {
     expect(ensureUnsortedGroup({ spaceId: "s", projectId: "p", categoryId: "gone" })).toBeNull()
     expect(ensureUnsortedPath("s", { projectId: "p", categoryId: "c" })).toEqual({ spaceId: "s", projectId: "p", categoryId: "c", groupId: id })
     expect(ensureUnsortedPath("nope")).toBeNull()
+  })
+
+  it("createSpace starts a named space with General › Uncategorized and no group, appended (TASK-98)", () => {
+    const id = createSpace("Atelier", "#8b5cf6")
+    const space = yjs.getSpaces().find((s) => s.id === id)!
+    expect(space).toMatchObject({ name: "Atelier", color: "#8b5cf6", order: 1 })
+    expect(space.projects).toHaveLength(1)
+    expect(space.projects[0]).toMatchObject({ name: "General", order: 0 })
+    expect(space.projects[0].categories).toEqual([expect.objectContaining({ name: "Uncategorized", order: 0, groups: [] })])
+    const plain = createSpace("Plain")
+    expect("color" in yjs.getSpaces().find((s) => s.id === plain)!).toBe(false)
+  })
+
+  it("the first save into a created space uses its path and adds Unsorted there (TASK-98 keeps TASK-20)", () => {
+    const id = createSpace("Atelier")
+    const project = yjs.getSpaces().find((s) => s.id === id)!.projects[0]
+    const path = ensureUnsortedPath(id)!
+    expect(path).toMatchObject({ spaceId: id, projectId: project.id, categoryId: project.categories[0].id })
+    const after = yjs.getSpaces().find((s) => s.id === id)!
+    expect(after.projects).toHaveLength(1)
+    expect(after.projects[0].categories).toHaveLength(1)
+    expect(after.projects[0].categories[0].groups).toEqual([expect.objectContaining({ id: path.groupId, name: "Unsorted" })])
   })
 
   it("orders Unsorted first, then the user's groups by order", () => {

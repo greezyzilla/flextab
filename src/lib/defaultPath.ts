@@ -39,6 +39,25 @@ export function ensureSpace(): string {
 }
 
 /**
+ * A space someone names (TASK-98): it starts with General › Uncategorized, the
+ * same shape as the first-install seed, so the next screen is a category ready
+ * to save into, not a second empty state. No group: Unsorted only exists while
+ * it holds tabs (TASK-20), and it appears with the first saved tab. One
+ * transaction, so the space never exists without its path. Returns the id.
+ */
+export function createSpace(name: string, color?: string): string {
+  const id = uuidv7()
+  yjs.addSpace({
+    id, name, order: yjs.getSpaces().length, ...(color ? { color } : {}),
+    projects: [{
+      id: uuidv7(), name: DEFAULT_PROJECT_NAME, order: 0,
+      categories: [{ id: uuidv7(), name: DEFAULT_CATEGORY_NAME, order: 0, groups: [] }],
+    }],
+  })
+  return id
+}
+
+/**
  * The category to save into: the preferred project/category when they exist,
  * else the first existing one, creating "General" / "Uncategorized" only for
  * a level that has none. Null only if the space itself is unknown.

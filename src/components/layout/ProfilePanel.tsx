@@ -8,13 +8,13 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-
 import { CSS } from "@dnd-kit/utilities";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { useAuthStore } from "~src/store/useAuthStore";
-import { v7 as uuidv7 } from "uuid";
 import { navigate, useRoute } from "~src/lib/route";
 import { SETTINGS_ROUTE, isSettingsRoute } from "~src/components/SettingsPage";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "~src/components/ui/dropdown-menu";
 import { Tooltip, TooltipTrigger, TooltipContent } from "~src/components/ui/tooltip";
 import { ShortcutTooltip } from "~src/components/ui/kbd";
 import { useUIStore } from "~src/store/useUIStore";
+import { createSpace } from "~src/lib/defaultPath";
 import { Input, INLINE_CREATE_HINT } from "~src/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "~src/components/ui/avatar";
 import { spaceAvatarColors } from "~src/components/levelIcons";
@@ -23,7 +23,7 @@ import { parseContainerDrag, spaceDragId } from "~src/services/dragDrop";
 import { SPRING_LOAD_MS } from "~src/hooks/useDragAndDrop";
 
 export function ProfilePanel() {
-  const { savedSpaces, activeSpaceId, setActiveSpace, addSavedSpace } = useSavedSpacesStore();
+  const { savedSpaces, activeSpaceId, setActiveSpace } = useSavedSpacesStore();
   const { user, isAuthenticated } = useAuthStore();
   const manifestIcon = typeof chrome !== "undefined" && chrome.runtime?.getManifest
     ? chrome.runtime.getManifest().icons?.["128"]
@@ -62,9 +62,8 @@ export function ProfilePanel() {
     setCreatingSpace(false);
     const name = newSpaceName.trim();
     if (!commit || !name) return;
-    const id = uuidv7();
-    addSavedSpace({ id, name, projects: [], order: savedSpaces.length });
-    setActiveSpace(id);
+    // Starts with General › Uncategorized, so it opens on a category (TASK-98).
+    setActiveSpace(createSpace(name));
     navigate("/");
   };
 

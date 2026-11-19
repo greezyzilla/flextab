@@ -94,7 +94,13 @@ describe("Add space by keyboard (TASK-81)", () => {
     fireEvent.keyDown(again, { key: "Enter" })
     const created = useSavedSpacesStore.getState().savedSpaces.find(s => s.name === "Gamma")
     expect(created).toBeTruthy()
-    expect(useSavedSpacesStore.getState().activeSpaceId).toBe(created!.id)
+    // Opens on its General › Uncategorized, ready to save (TASK-98).
+    const { activeSpaceId, activeProjectId, activeCategoryId } = useSavedSpacesStore.getState()
+    expect(activeSpaceId).toBe(created!.id)
+    expect(created!.projects.map(p => p.name)).toEqual(["General"])
+    expect(activeProjectId).toBe(created!.projects[0].id)
+    expect(activeCategoryId).toBe(created!.projects[0].categories[0].id)
+    expect(created!.projects[0].categories[0]).toMatchObject({ name: "Uncategorized", groups: [] })
   })
 
   it("leaves the request to the empty workspace's New space entry when there are no spaces", () => {

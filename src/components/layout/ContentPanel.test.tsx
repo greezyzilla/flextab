@@ -34,7 +34,9 @@ describe("empty states create in place", () => {
     expect(screen.queryByRole("navigation", { name: "Location" })).not.toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "New space…" }))
     await user.keyboard("Studio{Enter}")
-    expect(await screen.findByText("Studio has no projects yet")).toBeInTheDocument()
+    // It opens on its General › Uncategorized, not on "no projects yet" (TASK-98).
+    expect(await screen.findByRole("navigation", { name: "Location" })).toHaveTextContent(/Studio.*General.*Uncategorized/)
+    expect(screen.queryByText("Studio has no projects yet")).toBeNull()
     const [space] = yjs.getSpaces()
     expect(space.name).toBe("Studio")
     expect(useSavedSpacesStore.getState().activeSpaceId).toBe(space.id)
@@ -51,6 +53,9 @@ describe("empty states create in place", () => {
     expect(screen.queryByText(/Enter to create/)).toBeNull()
     await user.keyboard("Atelier{Enter}")
     expect(yjs.getSpaces()[0].name).toBe("Atelier")
+    // No second empty state: the new space opens on its category (TASK-98).
+    expect(screen.queryByText("Atelier has no projects yet")).toBeNull()
+    expect(useSavedSpacesStore.getState().activeCategoryId).toBe(yjs.getSpaces()[0].projects[0].categories[0].id)
   })
 
   it("names a project right where the button was, with no chained category prompt", async () => {
