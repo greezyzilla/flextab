@@ -13,6 +13,8 @@ import { navigate, useRoute } from "~src/lib/route";
 import { SETTINGS_ROUTE, isSettingsRoute } from "~src/components/SettingsPage";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "~src/components/ui/dropdown-menu";
 import { Tooltip, TooltipTrigger, TooltipContent } from "~src/components/ui/tooltip";
+import { ShortcutTooltip } from "~src/components/ui/kbd";
+import { useUIStore } from "~src/store/useUIStore";
 import { Input } from "~src/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "~src/components/ui/avatar";
 import { spaceAvatarColors } from "~src/components/levelIcons";
@@ -44,6 +46,15 @@ export function ProfilePanel() {
     setNewSpaceName("");
     setCreatingSpace(true);
   };
+
+  // Alt+N (TASK-81) opens this same field. With no spaces on the workspace
+  // page, the empty state's "New space" entry answers instead.
+  const spaceNamingRequest = useUIStore((s) => s.spaceNamingRequest);
+  useEffect(() => {
+    if (spaceNamingRequest === 0) return;
+    if (savedSpaces.length === 0 && !inSettings) return;
+    handleAddSpace();
+  }, [spaceNamingRequest]);
 
   const finishCreateSpace = (commit: boolean) => {
     if (newSpaceDone.current) return;
@@ -155,19 +166,16 @@ export function ProfilePanel() {
             </div>
           </div>
         )}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              type="button"
-              aria-label="Add space"
-              onClick={handleAddSpace}
-              className="w-10 h-10 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring border border-ink/30 border-dashed text-fg-subtle flex items-center justify-center cursor-pointer hover:border-ink/50 hover:text-fg-muted transition-colors"
-            >
-              <Icon icon={Plus} size="xl" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="right">Add space</TooltipContent>
-        </Tooltip>
+        <ShortcutTooltip label="Add space" shortcut="Alt+N" side="right">
+          <button
+            type="button"
+            aria-label="Add space"
+            onClick={handleAddSpace}
+            className="w-10 h-10 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring border border-ink/30 border-dashed text-fg-subtle flex items-center justify-center cursor-pointer hover:border-ink/50 hover:text-fg-muted transition-colors"
+          >
+            <Icon icon={Plus} size="xl" />
+          </button>
+        </ShortcutTooltip>
         </div>
       </div>
       <div className="flex flex-col gap-2 py-4 items-center">

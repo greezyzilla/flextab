@@ -34,7 +34,7 @@ beforeEach(async () => {
     activeCategoryId: "c1",
     expandedProjectIds: [],
   })
-  useUIStore.setState({ creating: null, leftDrawerOpen: false, namingGroupIn: null })
+  useUIStore.setState({ creating: null, leftDrawerOpen: false, namingGroupIn: null, spaceNamingRequest: 0 })
   renderHook(() => useKeyboardShortcuts())
 })
 
@@ -107,6 +107,36 @@ describe("keyboard shortcuts follow the destination policy", () => {
     input.dispatchEvent(new KeyboardEvent("keydown", { key: "n", bubbles: true }))
     expect(useUIStore.getState().namingGroupIn).toBeNull()
     input.remove()
+  })
+
+  it("Alt+N (Option+N on macOS, a dead key) asks for a new space, writes nothing and swallows the dead key (TASK-81)", () => {
+    const optionN = new KeyboardEvent("keydown", { key: "Dead", code: "KeyN", altKey: true, bubbles: true, cancelable: true })
+    document.dispatchEvent(optionN)
+    expect(optionN.defaultPrevented).toBe(true)
+    expect(useUIStore.getState().spaceNamingRequest).toBe(1)
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "n", code: "KeyN", altKey: true, bubbles: true }))
+    expect(useUIStore.getState().spaceNamingRequest).toBe(2)
+    expect(spaces()).toHaveLength(2)
+    // N and Shift+N never fire on it.
+    expect(useUIStore.getState().namingGroupIn).toBeNull()
+    expect(useUIStore.getState().creating).toBeNull()
+  })
+
+  it("leaves Alt+Shift+N, Cmd+Alt+N and Alt+N in a field or behind a modal alone (TASK-81)", () => {
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "N", code: "KeyN", altKey: true, shiftKey: true, bubbles: true }))
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "n", code: "KeyN", altKey: true, metaKey: true, bubbles: true }))
+    const input = document.createElement("input")
+    document.body.appendChild(input)
+    input.dispatchEvent(new KeyboardEvent("keydown", { key: "Dead", code: "KeyN", altKey: true, bubbles: true }))
+    input.remove()
+    const modal = document.createElement("div")
+    modal.setAttribute("data-modal", "")
+    const button = document.createElement("button")
+    modal.appendChild(button)
+    document.body.appendChild(modal)
+    button.dispatchEvent(new KeyboardEvent("keydown", { key: "Dead", code: "KeyN", altKey: true, bubbles: true }))
+    modal.remove()
+    expect(useUIStore.getState().spaceNamingRequest).toBe(0)
   })
 
   it("/ focuses search and ? opens the shortcut sheet", () => {

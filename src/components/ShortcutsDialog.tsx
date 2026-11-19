@@ -11,6 +11,7 @@ const IN_FLEXTAB: { label: string; keys: string[] }[] = [
   { label: "Search tabs, groups and spaces", keys: ["/", "Mod+K"] },
   { label: "New group in this category", keys: ["N"] },
   { label: "New project in this space", keys: ["Shift+N"] },
+  { label: "New space", keys: ["Alt+N"] },
   { label: "Save all tabs", keys: ["Mod+Shift+S"] },
 ]
 

@@ -379,6 +379,8 @@ export function ContentPanel() {
   const activeCategory = useActiveCategory();
   const { setActiveCategory, setActiveProject, addSavedProject, addSavedCategory, toggleExpandedProject } = useSavedSpacesStore();
   const noSpaces = useSavedSpacesStore((s) => s.savedSpaces.length === 0);
+  // Alt+N with no spaces opens this page's "New space" field (TASK-81).
+  const spaceNamingRequest = useUIStore((s) => s.spaceNamingRequest);
   const { groupLayout, setGroupLayout, gridColumns } = useSettingsStore();
   const { scrollTarget, setSaveAllOpen } = useUIStore();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -452,6 +454,8 @@ export function ContentPanel() {
         body="Spaces keep your tabs apart, like Work and Personal. Saving a tab creates one for you."
         action={
           <InlineCreate
+            key={spaceNamingRequest}
+            startEditing={spaceNamingRequest > 0}
             label="New space"
             placeholder="Space name"
             inputLabel="New space name"

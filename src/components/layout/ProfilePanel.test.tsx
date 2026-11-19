@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { fireEvent, render, screen } from "@testing-library/react"
+import { act, fireEvent, render, screen } from "@testing-library/react"
 import { DndContext } from "@dnd-kit/core"
 import { ProfilePanel } from "./ProfilePanel"
 import { TooltipProvider } from "~src/components/ui/tooltip"
@@ -7,6 +7,7 @@ import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import { useDropIndicator } from "~src/store/useDropIndicator"
 import { DragOverlayContent } from "~src/components/dnd/DragOverlayContent"
 import * as yjs from "~src/lib/yjsDoc"
+import { useUIStore } from "~src/store/useUIStore"
 
 // TASK-66: rail spaces reorder by drag; a click still switches.
 const spaces = [
@@ -74,3 +75,31 @@ describe("rail spaces (TASK-66)", () => {
     expect(document.querySelector('[data-dragged-space="a"]')!.firstElementChild!.className).toContain("ring-2")
   })
 })
+
+describe("Add space by keyboard (TASK-81)", () => {
+  it("Alt+N opens the rail's name field, focused; Enter creates and selects the space, Esc creates nothing", () => {
+    renderRail()
+    act(() => useUIStore.getState().requestSpaceNaming())
+    const field = screen.getByRole("textbox", { name: "New space name" })
+    expect(field).toHaveFocus()
+    fireEvent.keyDown(field, { key: "Escape" })
+    expect(screen.queryByRole("textbox", { name: "New space name" })).toBeNull()
+    expect(useSavedSpacesStore.getState().savedSpaces).toHaveLength(2)
+    act(() => useUIStore.getState().requestSpaceNaming())
+    const again = screen.getByRole("textbox", { name: "New space name" })
+    fireEvent.change(again, { target: { value: "Gamma" } })
+    fireEvent.keyDown(again, { key: "Enter" })
+    const created = useSavedSpacesStore.getState().savedSpaces.find(s => s.name === "Gamma")
+    expect(created).toBeTruthy()
+    expect(useSavedSpacesStore.getState().activeSpaceId).toBe(created!.id)
+  })
+
+  it("leaves the request to the empty workspace's New space entry when there are no spaces", () => {
+    yjs.setSpaces([])
+    useSavedSpacesStore.setState({ savedSpaces: [], activeSpaceId: null })
+    renderRail()
+    act(() => useUIStore.getState().requestSpaceNaming())
+    expect(screen.queryByRole("textbox", { name: "New space name" })).toBeNull()
+  })
+})
+

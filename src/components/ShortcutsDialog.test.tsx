@@ -18,6 +18,7 @@ describe("ShortcutsDialog (TASK-13)", () => {
     const dialog = screen.getByRole("dialog", { name: "Keyboard shortcuts" })
     const page = within(dialog).getByRole("region", { name: "In FlexTab" })
     expect(page).toHaveTextContent("New group in this category")
+    expect(page).toHaveTextContent("New space") // Alt+N (TASK-81)
     expect(page).toHaveTextContent("Search tabs, groups and spaces")
     expect(page).not.toHaveTextContent("Show these shortcuts") // you are already in it
     const anywhere = within(dialog).getByRole("region", { name: "Anywhere in Chrome" })

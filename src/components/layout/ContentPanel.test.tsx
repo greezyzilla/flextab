@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { render, screen, waitFor } from "@testing-library/react"
+import { render, screen, waitFor, act } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { DndContext } from "@dnd-kit/core"
 import { ContentPanel } from "./ContentPanel"
@@ -38,6 +38,17 @@ describe("empty states create in place", () => {
     const [space] = yjs.getSpaces()
     expect(space.name).toBe("Studio")
     expect(useSavedSpacesStore.getState().activeSpaceId).toBe(space.id)
+  })
+
+  it("with no spaces, Alt+N opens this New space field, focused (TASK-81)", async () => {
+    yjs.setSpaces([])
+    useSavedSpacesStore.setState({ savedSpaces: [], activeSpaceId: null })
+    const user = setup()
+    act(() => useUIStore.getState().requestSpaceNaming())
+    const field = screen.getByRole("textbox", { name: "New space name" })
+    expect(field).toHaveFocus()
+    await user.keyboard("Atelier{Enter}")
+    expect(yjs.getSpaces()[0].name).toBe("Atelier")
   })
 
   it("names a project right where the button was, with no chained category prompt", async () => {

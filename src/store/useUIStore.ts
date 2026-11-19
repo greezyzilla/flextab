@@ -50,6 +50,14 @@ interface UIState {
   startNamingGroup: (categoryId: string) => void
   endNamingGroup: () => void
 
+  /**
+   * Alt+N asks for a new space (TASK-81). Each request bumps the counter; the
+   * rail's Add space field answers it, or the empty workspace's "New space"
+   * entry when there are no spaces yet. 0 = never asked.
+   */
+  spaceNamingRequest: number
+  requestSpaceNaming: () => void
+
   /** The "Save all tabs" dialog (button + keyboard shortcut). */
   saveAllOpen: boolean
   setSaveAllOpen: (open: boolean) => void
@@ -95,6 +103,9 @@ export const useUIStore = create<UIState>((set) => ({
   namingGroupIn: null,
   startNamingGroup: (namingGroupIn) => set({ namingGroupIn }),
   endNamingGroup: () => set({ namingGroupIn: null }),
+
+  spaceNamingRequest: 0,
+  requestSpaceNaming: () => set((s) => ({ spaceNamingRequest: s.spaceNamingRequest + 1 })),
 
   saveAllOpen: false,
   setSaveAllOpen: (saveAllOpen) => set({ saveAllOpen }),

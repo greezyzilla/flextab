@@ -86,6 +86,16 @@ export function useKeyboardShortcuts() {
         return;
       }
 
+      // Alt+N (Option+N on macOS) — new space, the third of the N family
+      // (N group, Shift+N project). Matched by key position: on macOS
+      // Option+N is a dead key (e.key "Dead", it would type ˜), and
+      // preventDefault keeps that dead-key state from reaching any field.
+      if (!mod && e.altKey && !e.shiftKey && e.code === "KeyN") {
+        e.preventDefault();
+        useUIStore.getState().requestSpaceNaming();
+        return;
+      }
+
       // Ctrl+Shift+S / Cmd+Shift+S — "Save all tabs" (preview, scope, destination)
       if (mod && e.shiftKey && e.key.toLowerCase() === "s") {
         e.preventDefault();
