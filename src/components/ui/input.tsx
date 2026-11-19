@@ -1,6 +1,6 @@
 import * as React from "react"
 import { Icon } from "~src/components/ui/icon"
-import { Search } from "lucide-react"
+import { Eye, EyeOff, Search } from "lucide-react"
 import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "~src/lib/utils"
@@ -93,4 +93,39 @@ const SearchField = React.forwardRef<HTMLInputElement, SearchFieldProps>(
 )
 SearchField.displayName = "SearchField"
 
-export { Input, SearchField }
+/**
+ * A password field: the field box with a trailing show/hide button, so a typo
+ * can be checked before submitting. The button names its next action ("Show
+ * password" / "Hide password") and never takes the field's focus away.
+ */
+export interface PasswordFieldProps extends Omit<InputProps, "type" | "variant"> {
+  /** Classes for the box (width, flex), not the input. */
+  boxClassName?: string
+}
+
+const PasswordField = React.forwardRef<HTMLInputElement, PasswordFieldProps>(
+  ({ boxClassName, className, ...props }, ref) => {
+    const [shown, setShown] = React.useState(false)
+    return (
+      <div
+        data-password-field
+        className={cn("flex h-9 items-center gap-1 pl-3 pr-1 focus-within:border-ink/50 has-[[aria-invalid=true]]:border-danger", fieldFrame, boxClassName)}
+      >
+        <Input ref={ref} type={shown ? "text" : "password"} variant="inline" className={cn("flex-1 text-sm", className)} {...props} />
+        <button
+          type="button"
+          aria-label={shown ? "Hide password" : "Show password"}
+          aria-controls={props.id}
+          onMouseDown={e => e.preventDefault()}
+          onClick={() => setShown(s => !s)}
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-fg-subtle outline-none hover:text-fg-muted focus-visible:ring-1 focus-visible:ring-ink/50"
+        >
+          <Icon icon={shown ? EyeOff : Eye} size="md" />
+        </button>
+      </div>
+    )
+  },
+)
+PasswordField.displayName = "PasswordField"
+
+export { Input, PasswordField, SearchField }

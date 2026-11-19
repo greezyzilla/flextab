@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
-import { render, screen } from "@testing-library/react"
-import { Input, SearchField, inlineEditFrame } from "./input"
+import { fireEvent, render, screen } from "@testing-library/react"
+import { Input, PasswordField, SearchField, inlineEditFrame } from "./input"
 
 describe("text field spec (TASK-57)", () => {
   it("a form field draws the approved search look with one neutral focus and an invalid edge", () => {
@@ -29,5 +29,16 @@ describe("text field spec (TASK-57)", () => {
 
   it("an inline create/rename frame firms to the same focus edge", () => {
     expect(inlineEditFrame).toContain("focus-within:outline-ink/50")
+  })
+  it("a password field shows and hides what was typed, and its button names the next action", () => {
+    const { container } = render(<><label htmlFor="pw">Password</label><PasswordField id="pw" /></>)
+    const input = container.querySelector("#pw") as HTMLInputElement
+    expect(input.type).toBe("password")
+    expect(input.closest("[data-password-field]")).toHaveClass("h-9", "border-ink/10", "bg-ink/5", "focus-within:border-ink/50")
+    fireEvent.click(screen.getByRole("button", { name: "Show password" }))
+    expect(input.type).toBe("text")
+    fireEvent.click(screen.getByRole("button", { name: "Hide password" }))
+    expect(input.type).toBe("password")
+    expect(screen.getByRole("button", { name: "Show password" })).toHaveAttribute("aria-controls", "pw")
   })
 })

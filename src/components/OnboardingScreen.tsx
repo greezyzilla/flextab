@@ -3,7 +3,7 @@ import { Check, Copy, Mail, ShieldCheck, TriangleAlert } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "~src/components/ui/button"
 import { Icon } from "~src/components/ui/icon"
-import { Input } from "~src/components/ui/input"
+import { Input, PasswordField } from "~src/components/ui/input"
 import { Label } from "~src/components/ui/label"
 import { Modal, ModalHeader } from "~src/components/ui/modal"
 import { ApiError, apiForgotPassword, apiGetSignInOptions, apiRegister, apiResendVerification } from "~src/services/api"
@@ -283,9 +283,9 @@ export function OnboardingScreen({ onBack }: {
                       <button type="button" className="text-fg-subtle text-[11px] leading-4 underline hover:text-fg" onClick={() => { setError(''); setStep({ kind: "forgot" }) }}>Forgot password?</button>
                     )}
                   </div>
-                  <Input id="signin-password" type="password" placeholder={creating ? "At least 8 characters" : "Enter your password"} autoComplete={creating ? "new-password" : "current-password"}
+                  <PasswordField id="signin-password" placeholder={creating ? "At least 8 characters" : "Enter your password"} autoComplete={creating ? "new-password" : "current-password"}
                     minLength={creating ? 8 : undefined} maxLength={creating ? 72 : undefined}
-                    value={password} onChange={e => setPassword(e.target.value)} className="w-full" required
+                    value={password} onChange={e => setPassword(e.target.value)} required
                     aria-describedby={error ? "signin-error" : undefined} />
                 </div>
                 <Button variant="secondary" type="submit" disabled={loading} className="w-full">
@@ -329,20 +329,25 @@ export function OnboardingScreen({ onBack }: {
   )
 }
 
-/** One step: its content and, right after, its closing links, as one group. */
+/** One step: its content and, right after, its closing links, as one group.
+ *  The content reads from the left like the form; the closing links (switch
+ *  mode, go back, legal) sit centred under it, as on every sign-in screen. */
 function Frame({ children, footer, status = false }: { children: React.ReactNode; footer?: React.ReactNode; status?: boolean }) {
   return (
     <div className="flex flex-col gap-5">
       <div role={status ? "status" : undefined} className="flex flex-col gap-5">{children}</div>
-      {footer && <div className="flex flex-col gap-2">{footer}</div>}
+      {footer && <div className="flex flex-col items-center gap-2 text-center">{footer}</div>}
     </div>
   )
 }
 
 /** A step's heading: its mark, its title, what it means. Same place in every step. */
+/** A step's head. With a mark it is a status (waiting, sent, closed, done) and
+ *  sits centred, like a loading or result screen; without one it heads a form
+ *  and reads from the left with the fields. */
 function StepHead({ tile, title, children }: { tile?: React.ReactNode; title: string; children?: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-4">
+    <div className={`flex flex-col gap-4 ${tile ? "items-center text-center" : ""}`}>
       {tile}
       <div className="flex flex-col gap-1.5">
         <h3 className="text-fg text-base font-semibold">{title}</h3>
@@ -466,7 +471,7 @@ function CheckEmail({ reason, email, trySignIn, onChangeEmail, onBack }: {
         <Button variant="secondary" className="w-full" disabled={left > 0 || sending} onClick={() => void resend()}>
           {sending ? "Sending…" : left > 0 ? `Resend email in ${left}s` : "Resend email"}
         </Button>
-        <p role="status" className="h-4 truncate text-fg-muted text-xs leading-4">{note}</p>
+        <p role="status" className="h-4 truncate text-center text-fg-muted text-xs leading-4">{note}</p>
       </div>
     </Frame>
   )
@@ -491,7 +496,7 @@ function Forgot({ initialEmail, onSent, onBack }: { initialEmail: string; onSent
     }
   }
   return (
-    <Frame footer={<button type="button" className="self-start text-fg-subtle text-xs underline hover:text-fg" onClick={onBack}>Back to sign in</button>}>
+    <Frame footer={<button type="button" className="text-fg-subtle text-xs underline hover:text-fg" onClick={onBack}>Back to sign in</button>}>
       <StepHead title="Reset your password" />
       <form onSubmit={submit} className="flex flex-col gap-3">
         <div className="flex flex-col gap-1.5">
