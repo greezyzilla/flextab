@@ -1,6 +1,7 @@
 import { useEffect } from "react"
 import { toast } from "sonner"
 import { SESSION_EXPIRED_KEY } from "~src/services/api"
+import { SIGN_IN_ROUTE } from "~src/lib/workspaceAccess"
 import { useAuthStore } from "~src/store/useAuthStore"
 import { useSyncStore } from "~src/store/useSyncStore"
 import { usePlanStore } from "~src/store/usePlanStore"
@@ -60,6 +61,9 @@ function applyPushPending(pending: unknown) {
 // toast instead of the onboarding inline banner.
 function showSessionExpired(expired: unknown) {
   if (expired !== true) return
+  // The sign-in dialog opens over the workspace (TASK-79) and says the same in
+  // its own note, which also clears the flag: no toast on top of it.
+  if (location.hash.replace(/^#/, "") === SIGN_IN_ROUTE) return
   toast.error("Your session expired", {
     description: "Sign in again to keep syncing. Your tabs are still saved on this device.",
   })

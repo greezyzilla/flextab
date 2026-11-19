@@ -15,10 +15,10 @@ beforeEach(() => {
 })
 
 describe("AccountTab sign-in methods (TASK-8)", () => {
-  it("warns a password-only account that it cannot be recovered, and offers linking", async () => {
+  it("tells a password-only account it has one way in, and offers linking", async () => {
     vi.mocked(apiListIdentities).mockResolvedValue({ identities: [], has_password: true })
     render(<AccountTab />)
-    expect(await screen.findByRole("note")).toHaveTextContent("FlexTab can't reset it")
+    expect(await screen.findByRole("note")).toHaveTextContent("Only a password gets you into this account")
     expect(await screen.findByRole("button", { name: "Link Google" })).toBeInTheDocument()
   })
 
@@ -53,7 +53,7 @@ describe("AccountTab sign-in methods (TASK-8)", () => {
     useAuthStore.setState({ user: { id: "u", name: "Me", email: "me@example.com", avatar: "", provider: "email", has_password: true, identities: [] } })
     vi.mocked(apiListIdentities).mockReturnValue(new Promise(() => {}))
     render(<AccountTab />)
-    expect(screen.getByRole("note")).toHaveTextContent("FlexTab can't reset it")
+    expect(screen.getByRole("note")).toHaveTextContent("Only a password gets you into this account")
   })
 
   it("does not flash the warning for a linked account while the list loads, and shows its rows once providers are known", async () => {

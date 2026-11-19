@@ -162,7 +162,7 @@ Gates:
 - `tools/ui-shots/modals.cjs` must report the §5 gaps, the §6 sizes and the §8 focus target for
   every modal, in light and dark.
 
-## 10. The 15 modals under this standard
+## 10. The 16 modals under this standard
 
 | Modal | Kind | Size | Primary (label, tone) | Focus on open | Notable change |
 |---|---|---|---|---|---|
@@ -181,6 +181,7 @@ Gates:
 | Delete "Work"? (space) | alert | S | "Delete space" (destructive) | name field | none beyond the primitive |
 | Keyboard shortcuts | dialog, passive | M | none | the dialog itself (`initialFocus="dialog"`): nothing is highlighted before use | description at 14px |
 | Your plan syncs up to N tabs | alert | S | "Got it" | primary | "See plan" moves to footer start |
+| Sign in / turn on sync (TASK-79) | dialog | L | "Continue with Google" | primary (Google, the fastest path, ahead of the email field) | two panes with no footer: the offer (title, the person's own counts, trust) on the accent side, the actions on the other; the action pane turns into waiting, tab-closed and done in place. Click outside closes unless a field was edited |
 
 ## 11. Open decisions
 

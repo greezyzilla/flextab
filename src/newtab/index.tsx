@@ -39,11 +39,6 @@ function NewTabPage() {
   // The popup's "Open in FlexTab" (TASK-75).
   useRevealRequests(hydrated && !authLoading)
 
-  // Signing in from the sign-in screen lands back in the workspace.
-  useEffect(() => {
-    if (isAuthenticated && onSignInRoute) navigate("/")
-  }, [isAuthenticated, onSignInRoute])
-
   useEffect(() => {
     initialize()
   }, [])
@@ -79,14 +74,13 @@ function NewTabPage() {
   if (authLoading) return <LoadingScreen />
   if (!hydrated) return <LoadingScreen />
   // The workspace is always local and usable, signed in or not (TASK-7).
-  // Sign-in is a place you go to (rail, popup, getting-started card), with a
-  // way back to the tabs, never a wall in front of them.
-  if (onSignInRoute && !isAuthenticated) return <OnboardingScreen onBack={() => navigate("/")} />
-
+  // Sign-in is a place you go to (rail, popup, getting-started card): it opens
+  // over the workspace (TASK-79), never as a wall in front of it.
   return (
     <TooltipProvider delayDuration={300}>
       <ErrorBoundary>
         <AppShell />
+        {onSignInRoute && <OnboardingScreen onBack={() => navigate("/")} />}
         <SyncConflictModal />
         <OverCapNotice />
         <MergeConflictModal />

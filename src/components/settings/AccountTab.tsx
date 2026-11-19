@@ -197,11 +197,12 @@ export function AccountTab() {
       <SettingRow label="Sign-in methods" description="Providers linked to your account. Link more or remove ones you don't use.">
         <div className="flex flex-col gap-2">
           {idError && <div className="text-danger text-xs font-sans">{idError}</div>}
-          {/* A password-only account has no way back in if the password is lost:
-              FlexTab sends no email, so there is no reset (TASK-8). */}
+          {/* A password-only account has one way in. A reset by email exists when
+              the server can send email (TASK-79), but a linked provider is a second
+              way in that never depends on a mailbox. */}
           {identities?.length === 0 && hasPassword && (
             <p role="note" className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-warning-body text-xs font-sans leading-relaxed">
-              Only a password protects this account, and FlexTab can't reset it. Link Google or GitHub so you can always get back in.
+              Only a password gets you into this account. Link Google or GitHub as a second way in.
             </p>
           )}
           {providerRows === null ? (

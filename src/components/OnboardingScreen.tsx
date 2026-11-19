@@ -1,14 +1,28 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
+import { Check, Copy, Mail, ShieldCheck, TriangleAlert } from "lucide-react"
+import { toast } from "sonner"
 import { Button } from "~src/components/ui/button"
+import { Icon } from "~src/components/ui/icon"
 import { Input } from "~src/components/ui/input"
 import { Label } from "~src/components/ui/label"
-import { apiGetAuthProviders } from "~src/services/api"
+import { Modal, ModalHeader } from "~src/components/ui/modal"
+import { ApiError, apiForgotPassword, apiGetSignInOptions, apiRegister, apiResendVerification } from "~src/services/api"
 import { SESSION_EXPIRED_KEY } from "~src/services/api"
+import { OAUTH_PENDING_KEY } from "~src/services/oauthLogin"
+import { spaceTabCount } from "~src/services/spacesTree"
 import { useAuthStore } from "~src/store/useAuthStore"
+import { useMergeConflict } from "~src/store/useMergeConflict"
+import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
+import { useSettingsStore } from "~src/store/useSettingsStore"
+import { useSyncConflict } from "~src/store/useSyncConflict"
+import { useSyncStore } from "~src/store/useSyncStore"
 
 // Where the legal pages are hosted (flextab-landing's /terms.html and
-// /privacy.html).
+// /privacy.html). The site is also where FlexTab is installed from.
 const LEGAL_BASE_URL = "https://flextabmanager.com"
+
+// The offer side carries the accent, so it reads as FlexTab in any theme.
+const GLOW = "radial-gradient(90% 70% at 100% 0%, color-mix(in srgb, var(--accent) 26%, transparent), transparent 70%), radial-gradient(80% 60% at 0% 100%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%), var(--color-black-950)"
 
 /** The same mark as the space rail's (manifest icon tinted with the accent), so this reads as the same app. */
 function AppMark() {
@@ -36,25 +50,69 @@ function AppMark() {
   )
 }
 
+function GoogleMark() {
+  return (
+    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-sm bg-white">
+      <svg className="w-4 h-4" viewBox="0 0 24 24" aria-hidden>
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                  </svg>
+    </span>
+  )
+}
+
+type Provider = "google" | "github"
+/** Where sign-in is: offering, waiting on the provider's tab, that tab closed,
+ * an email link on its way (verify a sign-up, or reset a password), asking for
+ * the address to reset, or signed in. */
+type Step =
+  | { kind: "offer" }
+  | { kind: "waiting"; provider: Provider; tabId: number }
+  | { kind: "closed"; provider: Provider }
+  | { kind: "check"; reason: "verify" | "reset"; email: string }
+  | { kind: "forgot" }
+  | { kind: "done" }
+
+const PROVIDER_NAME: Record<Provider, string> = { google: "Google", github: "GitHub" }
+/** One email per address per minute (the server's cooldown too). */
+const RESEND_SECONDS = 60
+
 /**
- * Sign-in (TASK-7). Reached only from inside the app ("Sign in to sync", the
- * rail, the popup), so it is one focused column: no product pitch competing
- * with the task, and back to the tabs where back navigation is expected.
+ * Sign-in (TASK-7), revamped as "turn on sync" (TASK-79). Reached only from
+ * inside the app (the sync badge, the rail, the popup), by someone already
+ * using FlexTab on this device. So it opens over their own workspace and
+ * speaks in their numbers, and it carries the whole journey: the offer, the
+ * wait while the provider's tab is open (with a way back to that tab, and
+ * word when it was closed), an email sign-up with its verification link (any
+ * address works, not only Google or GitHub ones), a forgotten password, and
+ * the result, with the next step that makes sync worth it: the other computer.
+ * A sync choice or conflict, when the account already has tabs, takes over
+ * from the existing dialogs.
  */
 export function OnboardingScreen({ onBack }: {
-  /** Back to the local workspace: sign-in is a place you visit, never a wall (TASK-7). */
+  /** Back to the workspace: sign-in is a place you visit, never a wall (TASK-7). */
   onBack: () => void
 }) {
-  const { loginWithGoogle, loginWithGithub, loginWithEmail } = useAuthStore()
-  // Only show OAuth buttons for providers the server has configured (Google is
-  // required; GitHub is optional). Default to Google if the check fails.
-  const [providers, setProviders] = useState<string[] | null>(null)
-  useEffect(() => { apiGetAuthProviders().then(setProviders).catch(() => setProviders(['google'])) }, [])
+  const { loginWithGoogle, loginWithGithub, loginWithEmail, isAuthenticated, user } = useAuthStore()
+  // Only offer what the server has configured: OAuth providers with
+  // credentials, and email sign-up/reset when it can send email. Default to
+  // Google if the check fails.
+  const [options, setOptions] = useState<{ providers: string[]; emailSignup: boolean } | null>(null)
+  useEffect(() => { apiGetSignInOptions().then(setOptions).catch(() => setOptions({ providers: ['google'], emailSignup: false })) }, [])
+  const providers = options?.providers ?? null
+  const [mode, setMode] = useState<"signin" | "create">("signin")
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [sessionExpired, setSessionExpired] = useState(false)
+  const [sessionChecked, setSessionChecked] = useState(false)
+  const [step, setStep] = useState<Step>({ kind: "offer" })
+
+  const spaces = useSavedSpacesStore(s => s.savedSpaces)
+  const tabs = spaces.reduce((sum, s) => sum + spaceTabCount(s), 0)
 
   // A 401 / failed refresh drops the user here without explanation — api.ts
   // leaves a note in storage; show it once so the sign-out isn't silent.
@@ -65,106 +123,450 @@ export function OnboardingScreen({ onBack }: {
           setSessionExpired(true)
           void chrome.storage.local.remove(SESSION_EXPIRED_KEY)
         }
-      })
-    } catch (_) { /* no extension context */ }
+      }).finally(() => setSessionChecked(true))
+    } catch (_) { setSessionChecked(true) /* no extension context */ }
   }, [])
+
+  // Already signed in when this opened: there is nothing to offer, back to the tabs.
+  // Signed in while it is open (any provider, any tab): show the result.
+  const signedInAtOpen = useRef(isAuthenticated)
+  useEffect(() => { if (signedInAtOpen.current) onBack() }, [])
+  useEffect(() => { if (isAuthenticated && !signedInAtOpen.current) setStep({ kind: "done" }) }, [isAuthenticated])
+
+  // The provider's tab closed without a session: say so, never wait forever.
+  // (A successful sign-in stores the tokens before it closes the tab.)
+  useEffect(() => {
+    if (step.kind !== "waiting") return
+    const onRemoved = (tabId: number) => {
+      if (tabId !== step.tabId) return
+      void chrome.storage.local.get("auth_tokens").then(r => { if (!r.auth_tokens) setStep({ kind: "closed", provider: step.provider }) })
+    }
+    chrome.tabs.onRemoved.addListener(onRemoved)
+    return () => chrome.tabs.onRemoved.removeListener(onRemoved)
+  }, [step])
+
+  const startOAuth = async (provider: Provider) => {
+    await (provider === "google" ? loginWithGoogle() : loginWithGithub())
+    try {
+      const pending = (await chrome.storage.session.get(OAUTH_PENDING_KEY))[OAUTH_PENDING_KEY]
+      if (typeof pending?.tabId === "number") setStep({ kind: "waiting", provider, tabId: pending.tabId })
+    } catch (_) { /* no extension context: stay on the offer */ }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setLoading(true)
     try {
-      await loginWithEmail(email, password)
+      if (mode === "create") {
+        await apiRegister(email.trim(), password)
+        setStep({ kind: "check", reason: "verify", email: email.trim() })
+      } else {
+        await loginWithEmail(email.trim(), password)
+      }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Something went wrong')
+      // Signed up but not verified yet: back to the link, not a dead end.
+      if (err instanceof ApiError && err.code === "email_unverified") setStep({ kind: "check", reason: "verify", email: email.trim() })
+      else setError(formProblem(err))
     } finally {
       setLoading(false)
     }
   }
 
+  // The sync choice / conflict dialogs own the screen while they are open.
+  const choicePending = useSyncConflict(s => s.pending)
+  const mergePending = useMergeConflict(s => s.pending)
+
+  const offer = tabs === 0
+    ? "Open your tabs on any computer."
+    : `Back up ${plural(tabs, "tab")}. Open them anywhere.`
+  const emailSignup = options?.emailSignup === true
+  const creating = mode === "create" && emailSignup
+
   return (
-    <div className="min-h-screen w-screen overflow-y-auto bg-black-900 font-sans">
-      <div className="px-6 pt-5">
-        <Button variant="link" onClick={onBack} className="!px-0 !text-sm !text-fg-muted hover:!text-fg">
-          ← Back to my tabs
-        </Button>
-      </div>
-
-      <main className="mx-auto flex w-full max-w-[400px] flex-col gap-6 px-6 pb-12 pt-6 sm:pt-14">
-        <AppMark />
-
-        {sessionExpired && (
-          <div className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-warning-body/90 text-xs leading-relaxed">
-            Your session expired. Sign in again to keep syncing. Your tabs are still saved on this device.
+    // Opens once everything it shows is known (the sign-in options, a session
+    // that expired), so nothing arrives later and moves what is on screen.
+    <Modal kind="dialog" size="l" open={options !== null && sessionChecked && !signedInAtOpen.current && !choicePending && !mergePending}
+      onOpenChange={o => { if (!o) onBack() }} dirty={email !== '' || password !== ''} initialFocus="primary">
+      {/* One size for every step, so moving between them never resizes the card:
+          exactly the tallest step (sign-in under two providers, its message line
+          included), measured, so no step carries dead space of its own. In rem,
+          so it grows with the UI scale; it scrolls rather than clips. */}
+      <div className="-m-5 grid min-h-0 flex-1 overflow-y-auto rounded-xl sm:h-[30.125rem] sm:flex-none sm:grid-cols-2">
+        {/* Brand at the top, the promise in the middle, trust at the foot: the space
+            is shared out, not left in one hole. */}
+        <section className="flex flex-col justify-between gap-8 p-8 pt-12" style={{ background: GLOW }}>
+          <div className="flex items-center gap-3">
+            <AppMark />
+            <span className="text-fg text-base font-semibold">FlexTab</span>
           </div>
-        )}
+          <div className="flex flex-col gap-3">
+            <ModalHeader title={<span className="block text-2xl font-semibold leading-tight tracking-tight">Your tabs,{" "}<br />on every device</span>}
+              description={offer} />
+            {sessionExpired && (
+              <p role="note" className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-warning-body/90 text-xs leading-relaxed">
+                Session expired. Your tabs are safe here.
+              </p>
+            )}
+          </div>
+          {/* Trust, in the privacy policy's own promises (flextab-landing Privacy.tsx). */}
+          <p className="flex items-start gap-2 text-fg-subtle text-xs leading-relaxed">
+            <Icon icon={ShieldCheck} size="sm" className="mt-px shrink-0 text-fg-subtle" />
+            We never read or sell your browsing.
+          </p>
+        </section>
 
-        {/* One heading for both: the provider buttons sign in or create the
-            account, so the screen never guesses "welcome back". New accounts are
-            Google/GitHub only (TASK-8): those providers own account recovery. */}
-        <div className="flex flex-col gap-2">
-          <h1 className="text-fg text-xl font-medium">Sync your tabs</h1>
-          <p className="text-fg-subtle text-sm leading-relaxed">Google or GitHub signs you in, or creates a free account. The tabs on this device stay put.</p>
-        </div>
-
-        {/* Fastest path first (Hick): one click, no password. Google is the one
-            primary action; everything else is secondary. */}
-        <div className="flex flex-col gap-3">
-          {(providers === null || providers.includes('google')) && (
-            <Button variant="default" onClick={loginWithGoogle} className="w-full">
-              <span className="flex h-5 w-5 items-center justify-center rounded-sm bg-white">
-                <svg className="w-4 h-4" viewBox="0 0 24 24" aria-hidden>
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+        {/* Every step shares one frame: content from the same top line, left
+            aligned, full-width buttons stacked, and its closing links pinned to the
+            foot. A message under the buttons only takes the empty middle, so it
+            never moves anything (no reserved slots needed). */}
+        {/* Each step is one group (its links included), centred, so a short step
+            shares out the space instead of leaving a hole. pt-12 keeps it clear of
+            the close button. Messages have a reserved line, so nothing moves. */}
+        <section className="flex min-h-0 flex-col justify-center p-8 pt-12">
+          {step.kind === "offer" && (
+            <Frame footer={<>
+              {emailSignup && (
+                <p className="text-fg-subtle text-xs">
+                  {creating ? "Already have an account? " : "New to FlexTab? "}
+                  <button type="button" className="underline hover:text-fg" onClick={() => { setError(''); setMode(creating ? "signin" : "create") }}>
+                    {creating ? "Sign in" : "Create an account"}
+                  </button>
+                </p>
+              )}
+              <p className="text-fg-subtle text-[11px] leading-relaxed">
+                By continuing, you accept the{' '}
+                <a href={`${LEGAL_BASE_URL}/terms.html`} target="_blank" rel="noreferrer" className="underline hover:text-fg">Terms</a>
+                {' '}and{' '}
+                <a href={`${LEGAL_BASE_URL}/privacy.html`} target="_blank" rel="noreferrer" className="underline hover:text-fg">Privacy Policy</a>.
+              </p>
+            </>}>
+              {/* Fastest path first (Hick): one click, no password. Each creates the
+                  account too, so the screen never guesses "welcome back". */}
+              <div className="flex flex-col gap-3">
+                {providers?.includes('google') && (
+                  <Button variant="default" onClick={() => void startOAuth("google")} className="w-full" data-modal-primary="">
+                    <GoogleMark />
+                    Continue with Google
+                  </Button>
+                )}
+                {providers?.includes('github') && (
+                  <Button variant="secondary" onClick={() => void startOAuth("github")} className="w-full">
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  <path d="M12 1C5.92 1 1 5.92 1 12c0 4.86 3.15 8.98 7.52 10.44.55.1.75-.24.75-.53v-1.86c-3.06.67-3.71-1.47-3.71-1.47-.5-1.27-1.22-1.61-1.22-1.61-1-.68.08-.67.08-.67 1.1.08 1.68 1.13 1.68 1.13.98 1.68 2.57 1.2 3.2.92.1-.71.38-1.2.69-1.47-2.44-.28-5.01-1.22-5.01-5.43 0-1.2.43-2.18 1.13-2.95-.11-.28-.49-1.4.11-2.92 0 0 .92-.3 3.02 1.13a10.5 10.5 0 0 1 5.5 0c2.1-1.42 3.02-1.13 3.02-1.13.6 1.52.22 2.64.11 2.92.7.77 1.13 1.75 1.13 2.95 0 4.22-2.58 5.15-5.03 5.42.4.34.75 1.01.75 2.04v3.03c0 .29.2.63.76.52A11 11 0 0 0 23 12c0-6.08-4.92-11-11-11z" />
                 </svg>
-              </span>
-              Continue with Google
-            </Button>
+                    Continue with GitHub
+                  </Button>
+                )}
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-px bg-ink/10" />
+                <span className="text-fg-subtle text-xs">{creating ? "or create an account with email" : "or sign in with email"}</span>
+                <div className="flex-1 h-px bg-ink/10" />
+              </div>
+
+              {/* Any address works, whoever runs its mail: the link we send proves it.
+                  Labels stay visible while typing (WCAG 1.3.1 / 3.3.2). */}
+              <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="signin-email">Email</Label>
+                  <Input id="signin-email" type="email" placeholder="you@example.com" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full" required
+                    aria-describedby={error ? "signin-error" : undefined} />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  {/* Same height with or without "Forgot password?", so switching to
+                      "Create an account" moves nothing. */}
+                  <div className="flex h-4 items-center justify-between">
+                    <Label htmlFor="signin-password">Password</Label>
+                    {!creating && emailSignup && (
+                      <button type="button" className="text-fg-subtle text-[11px] leading-4 underline hover:text-fg" onClick={() => { setError(''); setStep({ kind: "forgot" }) }}>Forgot password?</button>
+                    )}
+                  </div>
+                  <Input id="signin-password" type="password" placeholder={creating ? "At least 8 characters" : "Enter your password"} autoComplete={creating ? "new-password" : "current-password"}
+                    minLength={creating ? 8 : undefined} maxLength={creating ? 72 : undefined}
+                    value={password} onChange={e => setPassword(e.target.value)} className="w-full" required
+                    aria-describedby={error ? "signin-error" : undefined} />
+                </div>
+                <Button variant="secondary" type="submit" disabled={loading} className="w-full">
+                  {loading ? 'Please wait…' : creating ? 'Create account' : 'Sign in'}
+                </Button>
+                <p id="signin-error" role="alert" className="h-4 truncate text-danger text-xs leading-4">{error}</p>
+              </form>
+            </Frame>
           )}
-          {providers?.includes('github') && (
-            <Button variant="secondary" onClick={loginWithGithub} className="w-full">
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                <path d="M12 1C5.92 1 1 5.92 1 12c0 4.86 3.15 8.98 7.52 10.44.55.1.75-.24.75-.53v-1.86c-3.06.67-3.71-1.47-3.71-1.47-.5-1.27-1.22-1.61-1.22-1.61-1-.68.08-.67.08-.67 1.1.08 1.68 1.13 1.68 1.13.98 1.68 2.57 1.2 3.2.92.1-.71.38-1.2.69-1.47-2.44-.28-5.01-1.22-5.01-5.43 0-1.2.43-2.18 1.13-2.95-.11-.28-.49-1.4.11-2.92 0 0 .92-.3 3.02 1.13a10.5 10.5 0 0 1 5.5 0c2.1-1.42 3.02-1.13 3.02-1.13.6 1.52.22 2.64.11 2.92.7.77 1.13 1.75 1.13 2.95 0 4.22-2.58 5.15-5.03 5.42.4.34.75 1.01.75 2.04v3.03c0 .29.2.63.76.52A11 11 0 0 0 23 12c0-6.08-4.92-11-11-11z" />
-              </svg>
-              Continue with GitHub
-            </Button>
+
+          {step.kind === "waiting" && <Waiting provider={step.provider} tabId={step.tabId} onCancel={() => setStep({ kind: "offer" })} />}
+
+          {step.kind === "closed" && (
+            <Frame>
+              <StepHead tile={<Tile tone="neutral">{step.provider === "google" ? <GoogleMark /> : <Icon icon={TriangleAlert} size="md" />}</Tile>}
+                title={`The ${PROVIDER_NAME[step.provider]} tab was closed`} />
+              <div className="flex flex-col gap-2">
+                <Button variant="default" className="w-full" onClick={() => void startOAuth(step.provider)}>Try again</Button>
+                <Button variant="secondary" className="w-full" onClick={() => setStep({ kind: "offer" })}>Other ways to sign in</Button>
+              </div>
+            </Frame>
           )}
-        </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex-1 h-px bg-ink/10" />
-          <span className="text-fg-subtle text-xs">or sign in with email</span>
-          <div className="flex-1 h-px bg-ink/10" />
-        </div>
+          {step.kind === "check" && (
+            <CheckEmail reason={step.reason} email={step.email}
+              // A verified sign-up signs in by itself once the person is back here.
+              trySignIn={step.reason === "verify" ? () => loginWithEmail(step.email, password) : undefined}
+              onChangeEmail={() => { setMode("create"); setStep({ kind: "offer" }) }}
+              onBack={() => { setMode("signin"); setStep({ kind: "offer" }) }} />
+          )}
 
-        {/* Labels stay visible while typing (WCAG 1.3.1 / 3.3.2). */}
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="signin-email">Email</Label>
-            <Input id="signin-email" type="email" placeholder="you@example.com" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full" required
-              aria-describedby={error ? "signin-error" : undefined} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="signin-password">Password</Label>
-            <Input id="signin-password" type="password" placeholder="Enter your password" autoComplete="current-password"
-              value={password} onChange={e => setPassword(e.target.value)} className="w-full" required
-              aria-describedby={error ? "signin-error" : undefined} />
-          </div>
-          {error && <div id="signin-error" role="alert" className="text-danger text-xs">{error}</div>}
-          <Button variant="secondary" type="submit" disabled={loading} className="w-full">
-            {loading ? 'Please wait…' : 'Sign in'}
-          </Button>
-        </form>
+          {step.kind === "forgot" && (
+            <Forgot initialEmail={email} onSent={(to) => setStep({ kind: "check", reason: "reset", email: to })}
+              onBack={() => setStep({ kind: "offer" })} />
+          )}
 
-        <p className="text-fg-subtle text-[11px] leading-relaxed">
-          By continuing, you agree to FlexTab's{' '}
-          <a href={`${LEGAL_BASE_URL}/terms.html`} target="_blank" rel="noreferrer" className="underline hover:text-fg">terms of service</a>
-          {' '}and{' '}
-          <a href={`${LEGAL_BASE_URL}/privacy.html`} target="_blank" rel="noreferrer" className="underline hover:text-fg">privacy policy</a>.
-        </p>
-      </main>
+          {step.kind === "done" && <Done spaces={spaces.length} tabs={tabs} provider={user?.provider} onBack={onBack} />}
+        </section>
+      </div>
+    </Modal>
+  )
+}
+
+/** One step: its content and, right after, its closing links, as one group. */
+function Frame({ children, footer, status = false }: { children: React.ReactNode; footer?: React.ReactNode; status?: boolean }) {
+  return (
+    <div className="flex flex-col gap-5">
+      <div role={status ? "status" : undefined} className="flex flex-col gap-5">{children}</div>
+      {footer && <div className="flex flex-col gap-2">{footer}</div>}
     </div>
   )
+}
+
+/** A step's heading: its mark, its title, what it means. Same place in every step. */
+function StepHead({ tile, title, children }: { tile?: React.ReactNode; title: string; children?: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-4">
+      {tile}
+      <div className="flex flex-col gap-1.5">
+        <h3 className="text-fg text-base font-semibold">{title}</h3>
+        {children && <div className="flex flex-col gap-1.5 text-fg-muted text-sm leading-relaxed">{children}</div>}
+      </div>
+    </div>
+  )
+}
+
+function Tile({ tone, children, spinning = false }: { tone: "accent" | "success" | "neutral"; children: React.ReactNode; spinning?: boolean }) {
+  const look = tone === "success" ? "bg-success/15 text-success" : tone === "neutral" ? "bg-ink/10 text-fg-muted" : "text-[var(--accent-text)]"
+  return (
+    <span className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${look}`} style={tone === "accent" ? { backgroundColor: "var(--accent-subtle)" } : undefined}>
+      {spinning && <span aria-hidden className="absolute inset-0 rounded-full border-2 border-[var(--accent)] border-t-transparent motion-safe:animate-spin" />}
+      {children}
+    </span>
+  )
+}
+
+/** Seconds left until another email may go to the address (0 = now). */
+function useCooldown(initial: number) {
+  const [until, setUntil] = useState(() => Date.now() + initial * 1000)
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    if (until <= Date.now()) return
+    const t = setInterval(() => {
+      const n = Date.now()
+      setNow(n)
+      if (n >= until) clearInterval(t)
+    }, 1000)
+    return () => clearInterval(t)
+  }, [until])
+  return { left: Math.max(0, Math.ceil((until - now) / 1000)), start: (s: number) => { setUntil(Date.now() + s * 1000); setNow(Date.now()) } }
+}
+
+/** What went wrong, short enough for the form's one-line slot. */
+function formProblem(err: unknown): string {
+  if (err instanceof ApiError) {
+    if (err.status === 401) return "Wrong email or password."
+    if (err.code === "weak_password") return "Use 8 to 72 characters."
+    if (err.code === "invalid_email") return "Enter a valid email address."
+    if (err.code === "email_throttled" && err.retryAfter) return `Email just sent. Ask again in ${err.retryAfter}s.`
+    if (err.code === "email_unavailable") return "Email is off right now. Use Google or GitHub."
+    if (err.status === 429) return "Too many tries. Wait a minute, then retry."
+    if (err.status >= 500) return "FlexTab is busy. Try again in a moment."
+  }
+  if (err instanceof TypeError) return "Can't reach FlexTab. Check your connection."
+  return err instanceof Error && err.message ? err.message : "Something went wrong. Try again."
+}
+
+function sendProblem(err: unknown, cooldown: (s: number) => void): string {
+  if (err instanceof ApiError && err.status === 429 && err.retryAfter) cooldown(err.retryAfter)
+  return formProblem(err)
+}
+
+/** An email link is on its way: say where, how long it may take, and offer a resend. */
+function CheckEmail({ reason, email, trySignIn, onChangeEmail, onBack }: {
+  reason: "verify" | "reset"
+  email: string
+  trySignIn?: () => Promise<void>
+  onChangeEmail: () => void
+  onBack: () => void
+}) {
+  const { left, start } = useCooldown(RESEND_SECONDS)
+  const [note, setNote] = useState('')
+  const [sending, setSending] = useState(false)
+
+  // Back from the email (the tab regains focus): try to sign in quietly.
+  useEffect(() => {
+    if (!trySignIn) return
+    const attempt = () => { void trySignIn().catch(() => {}) }
+    window.addEventListener("focus", attempt)
+    return () => window.removeEventListener("focus", attempt)
+  }, [trySignIn])
+
+  const resend = async () => {
+    setSending(true)
+    setNote('')
+    try {
+      await (reason === "verify" ? apiResendVerification(email) : apiForgotPassword(email))
+      start(RESEND_SECONDS)
+      setNote("Sent again.")
+    } catch (err) {
+      setNote(sendProblem(err, start))
+    } finally {
+      setSending(false)
+    }
+  }
+  const checkNow = async () => {
+    if (!trySignIn) return
+    setNote('')
+    try {
+      await trySignIn()
+    } catch (err) {
+      setNote(err instanceof ApiError && err.code === "email_unverified"
+        ? "Not verified yet."
+        : err instanceof Error ? err.message : "Couldn't sign in. Try again.")
+    }
+  }
+
+  return (
+    <Frame footer={
+      <p className="text-fg-subtle text-xs">
+        <button type="button" className="underline hover:text-fg" onClick={reason === "verify" ? onChangeEmail : onBack}>
+          {reason === "verify" ? "Use a different email" : "Try another email"}
+        </button>
+      </p>
+    }>
+      <StepHead tile={<Tile tone="accent"><Icon icon={Mail} size="md" /></Tile>} title="Check your email">
+        <p>
+          {reason === "verify"
+            ? <>Link sent to <span className="text-fg break-all">{email}</span>.</>
+            : <>If <span className="text-fg break-all">{email}</span> has an account, a reset link is on its way.</>}
+        </p>
+        <p className="text-fg-subtle text-xs">Not there? Check spam.</p>
+      </StepHead>
+      <div className="flex flex-col gap-2">
+        {trySignIn
+          ? <Button variant="default" className="w-full" onClick={() => void checkNow()}>I've opened the link</Button>
+          : <Button variant="default" className="w-full" onClick={onBack}>Back to sign in</Button>}
+        <Button variant="secondary" className="w-full" disabled={left > 0 || sending} onClick={() => void resend()}>
+          {sending ? "Sending…" : left > 0 ? `Resend email in ${left}s` : "Resend email"}
+        </Button>
+        <p role="status" className="h-4 truncate text-fg-muted text-xs leading-4">{note}</p>
+      </div>
+    </Frame>
+  )
+}
+
+/** Ask for the address to send a reset link to. */
+function Forgot({ initialEmail, onSent, onBack }: { initialEmail: string; onSent: (email: string) => void; onBack: () => void }) {
+  const [email, setEmail] = useState(initialEmail)
+  const [error, setError] = useState('')
+  const [sending, setSending] = useState(false)
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSending(true)
+    setError('')
+    try {
+      await apiForgotPassword(email.trim())
+      onSent(email.trim())
+    } catch (err) {
+      setError(sendProblem(err, () => {}))
+    } finally {
+      setSending(false)
+    }
+  }
+  return (
+    <Frame footer={<button type="button" className="self-start text-fg-subtle text-xs underline hover:text-fg" onClick={onBack}>Back to sign in</button>}>
+      <StepHead title="Reset your password" />
+      <form onSubmit={submit} className="flex flex-col gap-3">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="forgot-email">Email</Label>
+          <Input id="forgot-email" type="email" placeholder="you@example.com" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full" required
+            aria-describedby={error ? "forgot-error" : undefined} />
+        </div>
+        <Button variant="default" type="submit" disabled={sending} className="w-full">{sending ? "Sending…" : "Send reset link"}</Button>
+        <p id="forgot-error" role="alert" className="h-4 truncate text-danger text-xs leading-4">{error}</p>
+      </form>
+    </Frame>
+  )
+}
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`
+
+/** The provider's tab is open: point back to it, and let the person stop. */
+function Waiting({ provider, tabId, onCancel }: { provider: Provider; tabId: number; onCancel: () => void }) {
+  const name = PROVIDER_NAME[provider]
+  const openTab = () => {
+    void chrome.tabs.update(tabId, { active: true }).then(t => { if (t?.windowId !== undefined) void chrome.windows.update(t.windowId, { focused: true }) }).catch(() => {})
+  }
+  const cancel = () => {
+    // Closing the tab ends the attempt (the worker drops it on tab removal).
+    void chrome.tabs.remove(tabId).catch(() => {})
+    onCancel()
+  }
+  return (
+    <Frame status>
+      <StepHead tile={<Tile tone="accent" spinning>{provider === "google" ? <GoogleMark /> : <Icon icon={Mail} size="md" />}</Tile>}
+        title={`Finish in the ${name} tab`} />
+      <div className="flex flex-col gap-2">
+        <Button variant="secondary" className="w-full" onClick={openTab}>Open the {name} tab</Button>
+        <Button variant="ghost" className="w-full" onClick={cancel}>Cancel</Button>
+      </div>
+    </Frame>
+  )
+}
+
+/** Signed in: what happened to the tabs, and the step that makes sync worth it. */
+function Done({ spaces, tabs, provider, onBack }: { spaces: number; tabs: number; provider?: string; onBack: () => void }) {
+  const autoSync = useSettingsStore(s => s.autoSync)
+  const lastSyncedAt = useSyncStore(s => s.lastSyncedAt)
+  const [since] = useState(() => Date.now())
+  const synced = lastSyncedAt !== null && lastSyncedAt >= since
+  const detail = !autoSync
+    ? "Auto-sync is off."
+    : tabs === 0 ? "New saves are backed up."
+    : synced ? `${plural(tabs, "tab")} backed up.`
+    : `Backing up ${plural(tabs, "tab")}…`
+  const account = provider === "google" ? "Google" : provider === "github" ? "GitHub" : "your email"
+  const copy = () => {
+    void navigator.clipboard.writeText(LEGAL_BASE_URL).then(() => toast.success("Link copied"), () => toast.error("Couldn't copy the link"))
+  }
+  return (
+    <Frame status>
+      <StepHead tile={<Tile tone="success"><Icon icon={Check} size="md" /></Tile>} title={autoSync ? "Sync is on" : "You're signed in"}>
+        {detail}
+      </StepHead>
+      {/* The step that makes sync worth it, as a plain list under a rule: no box in a box. */}
+      <div className="flex flex-col gap-3 border-t border-ink/10 pt-4">
+        <h4 className="text-fg text-sm font-medium">Add your other computer</h4>
+        <ol className="flex flex-col gap-3 text-sm">
+          <li className="flex items-center justify-between gap-3">
+            <span className="flex items-center gap-2.5 text-fg-muted"><Num n={1} />Install FlexTab</span>
+            <Button variant="secondary" size="sm" onClick={copy}><Icon icon={Copy} size="sm" />Copy link</Button>
+          </li>
+          <li className="flex items-center gap-2.5 text-fg-muted"><Num n={2} />Sign in with {account}</li>
+        </ol>
+      </div>
+      <Button variant="default" className="w-full" onClick={onBack}>Go to my tabs</Button>
+    </Frame>
+  )
+}
+
+function Num({ n }: { n: number }) {
+  return <span aria-hidden className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-ink/10 text-[11px] text-fg">{n}</span>
 }

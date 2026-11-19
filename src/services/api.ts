@@ -201,6 +201,10 @@ export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
+    /** The server's machine-readable reason (e.g. "email_unverified"), when it gives one. */
+    public code?: string,
+    /** Seconds the server asks to wait before trying again (429). */
+    public retryAfter?: number,
   ) {
     super(message);
     this.name = "ApiError";
@@ -230,6 +234,42 @@ export function getOAuthUrl(provider: string): string {
 export async function apiGetAuthProviders(): Promise<string[]> {
   const res = await apiFetch<{ providers: string[] }>("/api/auth/providers");
   return res.providers ?? [];
+}
+
+/** Every way to sign in that works right now: OAuth providers, and whether email sign-up is on. */
+export async function apiGetSignInOptions(): Promise<{ providers: string[]; emailSignup: boolean }> {
+  const res = await apiFetch<{ providers?: string[]; email_signup?: boolean }>("/api/auth/providers");
+  return { providers: res.providers ?? [], emailSignup: res.email_signup === true };
+}
+
+/** POST to a public auth endpoint; failures keep the server's code and wait time. */
+async function publicAuthPost<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = (await res.json().catch(() => ({}))) ?? {};
+  if (!res.ok) {
+    const retry = Number(data.retry_after ?? res.headers.get("Retry-After"));
+    throw new ApiError(res.status, data.error || res.statusText, data.code, Number.isFinite(retry) && retry > 0 ? retry : undefined);
+  }
+  return data as T;
+}
+
+/** Email sign-up (TASK-79): the account waits for the link sent to the address. */
+export function apiRegister(email: string, password: string): Promise<{ status: string }> {
+  return publicAuthPost("/api/auth/register", { email, password });
+}
+
+/** A new verification link for an email sign-up still waiting for one. */
+export function apiResendVerification(email: string): Promise<{ status: string }> {
+  return publicAuthPost("/api/auth/verification/resend", { email });
+}
+
+/** A password reset link (or, for a sign-up still waiting, its verification link). */
+export function apiForgotPassword(email: string): Promise<{ status: string }> {
+  return publicAuthPost("/api/auth/password/forgot", { email });
 }
 
 export type SyncPushResult =
@@ -337,7 +377,7 @@ export async function apiLogin(email: string, password: string): Promise<TokenDa
   });
   if (!res.ok) {
     const body = (await res.json().catch(() => ({}))) ?? {};
-    throw new ApiError(res.status, body.error || res.statusText);
+    throw new ApiError(res.status, body.error || res.statusText, body.code);
   }
   return res.json();
 }

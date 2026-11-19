@@ -45,3 +45,18 @@ describe("useBackgroundNotices: plan limit (TASK-9)", () => {
     expect(useSyncStore.getState().limit).toBeNull()
   })
 })
+
+describe("useBackgroundNotices: session expired", () => {
+  it("toasts on the workspace, but not over the sign-in dialog that already says it (TASK-79)", async () => {
+    vi.mocked(chrome.storage.local.get).mockResolvedValueOnce({} as never)
+    renderHook(() => useBackgroundNotices())
+    await waitFor(() => expect(chrome.storage.onChanged.addListener).toHaveBeenCalled())
+    window.history.replaceState(null, "", "#/signin")
+    listener()({ flextab_session_expired: { newValue: true } }, "local")
+    expect(toastError).not.toHaveBeenCalled()
+    expect(chrome.storage.local.remove).not.toHaveBeenCalledWith("flextab_session_expired")
+    window.history.replaceState(null, "", "#/")
+    listener()({ flextab_session_expired: { newValue: true } }, "local")
+    expect(toastError).toHaveBeenCalledWith("Your session expired", expect.anything())
+  })
+})

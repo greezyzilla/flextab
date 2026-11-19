@@ -75,6 +75,9 @@ The weight is synced with the other appearance settings (`iconWeight`).
 | Selected | `Check` |
 | Duplicate, or a warning | `TriangleAlert` |
 | Settings / Account | `Settings` / `User` |
+| Privacy | `ShieldCheck` |
+| Copy (a link) | `Copy` |
+| Email (a link was sent) | `Mail` |
 | Navigation menu / Opened Tabs panel | `Menu` / `PanelRight` |
 | List / Grid view | `List` / `LayoutGrid` |
 | Settings sections | Spaces `Boxes`, Saving `Bookmark`, Appearance `Palette`, Sync `Cloud`, Backup `History`, Plan & Usage `Gauge`, Transactions `Receipt`, Account `User` |
