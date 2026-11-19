@@ -1,5 +1,5 @@
 import { useActiveCategory, useActiveSpace, useActiveProject, useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
-import { GripVertical, LayoutGrid, List } from "lucide-react"
+import { Boxes, GripVertical, LayoutGrid, List } from "lucide-react"
 import { Icon } from "~src/components/ui/icon"
 import { ShortcutTooltip } from "~src/components/ui/kbd";
 import { shortcutLabel } from "~src/lib/platform";
@@ -115,15 +115,17 @@ function InlineCreate({ label, placeholder, inputLabel, startEditing = false, on
     setValue("");
     if (commit && name) onCommit(name); else onCancel?.();
   };
-  // Both states take the same space (fixed control row, hint line always
-  // reserved), so swapping button ↔ input doesn't shift the centred block.
+  // Both states take the same 36px row, so swapping button ↔ input doesn't
+  // shift the centred block. Enter/Esc is read to screen readers, not
+  // printed, like every other create field (TASK-62).
   return (
-    <div className="flex w-64 flex-col items-center gap-1.5">
+    <div className="flex w-64 flex-col items-center">
       <div className="flex h-9 w-full items-center justify-center">
         {editing ? (
           <Input
             autoFocus
             aria-label={inputLabel}
+            aria-description={INLINE_CREATE_HINT}
             placeholder={placeholder}
             value={value}
             onChange={e => setValue(e.target.value)}
@@ -132,13 +134,12 @@ function InlineCreate({ label, placeholder, inputLabel, startEditing = false, on
               if (e.key === "Escape") { e.preventDefault(); finish(false); }
             }}
             onBlur={commitOnBlur(() => finish(true))}
-            className="w-full text-center"
+            className="w-full"
           />
         ) : (
           <Button variant="default" size="sm" onClick={() => setEditing(true)}>{label}…</Button>
         )}
       </div>
-      <span className={`text-[11px] text-fg-subtle font-sans ${editing ? "" : "invisible"}`}>Enter to create · Esc to cancel</span>
     </div>
   );
 }
@@ -449,7 +450,7 @@ export function ContentPanel() {
     // Zero spaces is a valid workspace (TASK-37): say so and offer the first one.
     body = (
       <LevelEmptyState
-        icon={<SpaceAvatar size={24} />}
+        icon={<Icon icon={Boxes} size="xl" />}
         title="No spaces yet"
         body="Spaces keep your tabs apart, like Work and Personal. Saving a tab creates one for you."
         action={
@@ -470,7 +471,7 @@ export function ContentPanel() {
       />
     );
   } else if (!activeSpace) {
-    body = <LevelEmptyState icon={<SpaceAvatar size={24} />} title="Pick a space" body="Spaces keep your tabs apart, like Work and Personal. Pick one on the left." />;
+    body = <LevelEmptyState icon={<Icon icon={Boxes} size="xl" />} title="Pick a space" body="Spaces keep your tabs apart, like Work and Personal. Pick one on the left." />;
   } else if (!activeProject) {
     body = (
       <LevelEmptyState

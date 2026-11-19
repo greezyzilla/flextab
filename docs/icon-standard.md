@@ -82,7 +82,7 @@ The weight is synced with the other appearance settings (`iconWeight`).
 | List / Grid view | `List` / `LayoutGrid` |
 | Settings sections | Spaces `Boxes`, Saving `Bookmark`, Appearance `Palette`, Sync `Cloud`, Backup `History`, Plan & Usage `Gauge`, Transactions `Receipt`, Account `User` |
 
-`Layers` means Group only. Settings › Spaces is `Boxes`, so the two never share a shape.
+`Layers` means Group only. Settings › Spaces is `Boxes`, so the two never share a shape. `Boxes` also marks the empty states with no space to show ("No spaces yet", "Pick a space"), where there is no space avatar to draw.
 
 A new meaning gets one glyph, added to this table. A glyph already in the table is never reused
 for a second meaning.

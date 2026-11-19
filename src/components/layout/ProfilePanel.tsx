@@ -15,7 +15,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { Tooltip, TooltipTrigger, TooltipContent } from "~src/components/ui/tooltip";
 import { ShortcutTooltip } from "~src/components/ui/kbd";
 import { useUIStore } from "~src/store/useUIStore";
-import { Input } from "~src/components/ui/input";
+import { Input, INLINE_CREATE_HINT } from "~src/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "~src/components/ui/avatar";
 import { spaceAvatarColors } from "~src/components/levelIcons";
 import { SIGN_IN_ROUTE } from "~src/lib/workspaceAccess";
@@ -143,15 +143,18 @@ export function ProfilePanel() {
         </SortableContext>
         {creatingSpace && (
           <div className="relative">
+            {/* The space to be, drawn like the Add space button: a dashed circle
+                that takes the name's first letters as they are typed. */}
             <div aria-hidden className="w-10 h-10 rounded-full border border-dashed border-ink/50 flex items-center justify-center text-xs font-medium text-fg-muted">
-              {(newSpaceName.trim().slice(0, 2) || "··").toUpperCase()}
+              {newSpaceName.trim().slice(0, 2).toUpperCase()}
             </div>
-            <div className="absolute left-14 top-0 z-50 bg-black-800 border border-black-700 rounded-lg shadow-xl p-2 w-48 flex flex-col gap-1">
-              {/* A small floating form, not a row: the form field with its neutral
-                  focus (TASK-62). The hint stays; here it costs no layout. */}
+            {/* The app's popover surface (same tokens as menus) around the form
+                field; Enter/Esc is read to screen readers, not printed (TASK-62). */}
+            <div className="absolute left-14 top-0 z-50 w-48 rounded-md border bg-popover p-1 text-popover-foreground shadow-md">
               <Input
                 autoFocus
                 aria-label="New space name"
+                aria-description={INLINE_CREATE_HINT}
                 placeholder="Space name"
                 value={newSpaceName}
                 onChange={e => setNewSpaceName(e.target.value)}
@@ -162,7 +165,6 @@ export function ProfilePanel() {
                 }}
                 className="w-full text-xs"
               />
-              <span className="text-[11px] text-fg-subtle font-sans">Enter to create · Esc to cancel</span>
             </div>
           </div>
         )}

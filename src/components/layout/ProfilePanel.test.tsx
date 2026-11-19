@@ -82,6 +82,9 @@ describe("Add space by keyboard (TASK-81)", () => {
     act(() => useUIStore.getState().requestSpaceNaming())
     const field = screen.getByRole("textbox", { name: "New space name" })
     expect(field).toHaveFocus()
+    // Enter/Esc is read to screen readers, never printed (TASK-62).
+    expect(field).toHaveAttribute("aria-description", "Enter to create, Escape to cancel")
+    expect(screen.queryByText(/Enter to create/)).toBeNull()
     fireEvent.keyDown(field, { key: "Escape" })
     expect(screen.queryByRole("textbox", { name: "New space name" })).toBeNull()
     expect(useSavedSpacesStore.getState().savedSpaces).toHaveLength(2)

@@ -47,6 +47,8 @@ describe("empty states create in place", () => {
     act(() => useUIStore.getState().requestSpaceNaming())
     const field = screen.getByRole("textbox", { name: "New space name" })
     expect(field).toHaveFocus()
+    expect(field).toHaveAttribute("aria-description", "Enter to create, Escape to cancel")
+    expect(screen.queryByText(/Enter to create/)).toBeNull()
     await user.keyboard("Atelier{Enter}")
     expect(yjs.getSpaces()[0].name).toBe("Atelier")
   })
