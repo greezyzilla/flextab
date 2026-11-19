@@ -33,6 +33,8 @@ const buttonVariants = cva(
         default: "h-9 px-3.5 py-2",
         sm: "h-8 rounded-md px-3 text-xs",
         lg: "h-10 rounded-md px-8",
+        // Beside a 44px field (Input variant "lg").
+        xl: "h-11 rounded-md px-5 text-[15px]",
         icon: "h-9 w-9",
       },
     },

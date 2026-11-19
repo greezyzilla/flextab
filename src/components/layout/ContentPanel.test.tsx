@@ -25,14 +25,15 @@ const setup = () => {
 }
 
 describe("empty states create in place", () => {
-  it("with no spaces says so and names the first space in place (TASK-37)", async () => {
+  it("with no spaces shows the clean slate, no location row, and names the first space in place (TASK-37, TASK-98)", async () => {
     yjs.setSpaces([])
     useSavedSpacesStore.setState({ savedSpaces: [], activeSpaceId: null })
     const user = setup()
-    expect(screen.getByText("No spaces yet")).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "A clean slate." })).toBeInTheDocument()
     expect(screen.queryByText(/Pick one on the left/)).not.toBeInTheDocument()
     expect(screen.queryByRole("navigation", { name: "Location" })).not.toBeInTheDocument()
-    await user.click(screen.getByRole("button", { name: "New space…" }))
+    expect(screen.queryByRole("button", { name: "Save all tabs" })).not.toBeInTheDocument()
+    await user.click(screen.getByRole("textbox", { name: "New space name" }))
     await user.keyboard("Studio{Enter}")
     // It opens on its General › Uncategorized, not on "no projects yet" (TASK-98).
     expect(await screen.findByRole("navigation", { name: "Location" })).toHaveTextContent(/Studio.*General.*Uncategorized/)

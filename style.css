@@ -310,3 +310,13 @@
   transition-duration: 0.01ms !important;
   scroll-behavior: auto !important;
 }
+
+/* The clean slate's loose tabs (TASK-98): a slow bob that keeps each tab's
+   tilt (--r). Still under reduced motion, from the app setting or the OS. */
+@keyframes ft-drift {
+  0%, 100% { transform: translateY(0) rotate(var(--r)); }
+  50% { transform: translateY(-8px) rotate(var(--r)); }
+}
+.ft-drift { transform: rotate(var(--r)); animation: ft-drift 7s ease-in-out infinite; }
+:root.reduce-motion .ft-drift { animation: none !important; }
+@media (prefers-reduced-motion: reduce) { .ft-drift { animation: none; } }

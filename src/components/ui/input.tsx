@@ -21,6 +21,10 @@ const inputVariants = cva("flex w-full font-sans outline-none disabled:cursor-no
     variant: {
       // Form field (TASK-57): the approved header search look for every field.
       default: `h-9 px-3 py-1 text-sm text-fg placeholder:text-fg-subtle ${fieldFrame} focus-visible:border-ink/50 aria-[invalid=true]:border-danger`,
+      // The same field at the popup panel's size (44px, 15px text, like
+      // SearchField "panel"), for a page's one main field (TASK-98 clean slate).
+      // Pairs with Button size "xl".
+      lg: `h-11 px-3.5 py-1 text-[15px] text-fg placeholder:text-fg-subtle ${fieldFrame} focus-visible:border-ink/50 aria-[invalid=true]:border-danger`,
       // Inline create / rename (TASK-62): bare text that sits exactly where the
       // row's label sits. The row around it draws the field (`inlineEditFrame`),
       // so the field adds no padding, height or accent of its own. Font size and

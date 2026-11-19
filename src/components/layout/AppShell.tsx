@@ -16,6 +16,7 @@ import { useTheme } from "~src/hooks/useTheme"
 import { useShellLayout } from "~src/hooks/useMediaQuery"
 import { useBackgroundNotices } from "~src/hooks/useBackgroundNotices"
 import { useUIStore } from "~src/store/useUIStore"
+import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 
 function MenuIcon() {
   return <Icon icon={Menu} size="lg" />
@@ -54,6 +55,9 @@ export function AppShell() {
     toggleLeftDrawer, toggleRightDrawer,
   } = useUIStore()
   const inSettings = isSettingsRoute(useRoute())
+  // With no spaces the tree panel has nothing to show, so the clean slate
+  // spans from the rail to Opened Tabs (TASK-98).
+  const noSpaces = useSavedSpacesStore((s) => s.savedSpaces.length === 0)
 
   return (
     <DndContext
@@ -78,7 +82,7 @@ export function AppShell() {
           </>
         ) : (
           <>
-            {leftInline ? (
+            {noSpaces ? null : leftInline ? (
               <LeftPanel />
             ) : (
               <Drawer id="navigation-drawer" side="left" open={leftDrawerOpen} onClose={() => setLeftDrawerOpen(false)}>
@@ -89,7 +93,7 @@ export function AppShell() {
             <div className="border-x border-line flex-1 flex flex-col min-w-0">
               <header className="h-16 px-3 sm:px-5 flex items-center justify-between gap-2 border-b border-line shrink-0">
                 <div className="flex items-center gap-2 flex-1 min-w-0">
-                  {!leftInline && (
+                  {!leftInline && !noSpaces && (
                     <IconButton onClick={toggleLeftDrawer} className="h-9 w-9 shrink-0" tooltip="Spaces & navigation" tooltipSide="bottom" aria-label="Toggle navigation" aria-haspopup="dialog" aria-expanded={leftDrawerOpen} aria-controls={leftDrawerOpen ? "navigation-drawer" : undefined}>
                       <MenuIcon />
                     </IconButton>

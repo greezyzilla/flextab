@@ -19,12 +19,13 @@ import { useSettingsStore, type GroupLayout } from "~src/store/useSettingsStore"
 import { useUIStore } from "~src/store/useUIStore";
 import type { GroupLocation } from "~src/services/dragDrop";
 import { CategoryIcon, GroupIcon, ProjectIcon, SpaceAvatar } from "~src/components/levelIcons";
-import { createSpace, findUnsorted, firstGroupOrder, isUnsortedGroup, orderedGroups } from "~src/lib/defaultPath";
+import { findUnsorted, firstGroupOrder, isUnsortedGroup, orderedGroups } from "~src/lib/defaultPath";
 import { withPreview } from "~src/services/sortPreview";
 import { useSortPreview } from "~src/store/useSortPreview";
 import { spacesHaveTabs } from "~src/services/spacesTree";
 import { ArrowRight } from "lucide-react";
 import { useWatchMovedTabs } from "~src/hooks/useMovedTabs";
+import { EmptyWorkspace } from "./EmptyWorkspace";
 
 /**
  * The project page. A project is one page; its categories are sections on it
@@ -447,24 +448,9 @@ export function ContentPanel() {
 
   let body: React.ReactNode;
   if (noSpaces) {
-    // Zero spaces is a valid workspace (TASK-37): say so and offer the first one.
-    body = (
-      <LevelEmptyState
-        icon={<Icon icon={Boxes} size="xl" />}
-        title="No spaces yet"
-        body="Spaces keep your tabs apart, like Work and Personal. Saving a tab creates one for you."
-        action={
-          <InlineCreate
-            key={spaceNamingRequest}
-            startEditing={spaceNamingRequest > 0}
-            label="New space"
-            placeholder="Space name"
-            inputLabel="New space name"
-            onCommit={name => useSavedSpacesStore.getState().setActiveSpace(createSpace(name))}
-          />
-        }
-      />
-    );
+    // Zero spaces is a valid workspace (TASK-37): a clean slate that offers
+    // the next space (TASK-98).
+    body = <EmptyWorkspace request={spaceNamingRequest} />;
   } else if (!activeSpace) {
     body = <LevelEmptyState icon={<Icon icon={Boxes} size="xl" />} title="Pick a space" body="Spaces keep your tabs apart, like Work and Personal. Pick one on the left." />;
   } else if (!activeProject) {
@@ -531,16 +517,16 @@ export function ContentPanel() {
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden min-h-0">
-      {/* Location header */}
-      <div className="flex justify-between items-center gap-3 h-14 px-6 border-b border-line shrink-0">
-        {/* No spaces (TASK-37): there is no location to show. */}
-        {!noSpaces && <Breadcrumb
+      {/* Location header. With no spaces there is no location and no tool to
+          show, so the row goes and the clean slate takes its height (TASK-98). */}
+      {!noSpaces && <div className="flex justify-between items-center gap-3 h-14 px-6 border-b border-line shrink-0">
+        <Breadcrumb
           space={activeSpace}
           project={activeProject}
           category={activeCategory}
           onProject={() => { if (categories[0]) { setActiveCategory(categories[0].id); scrollToCategory(categories[0].id); } }}
           onCategory={() => { if (activeCategory) scrollToCategory(activeCategory.id); }}
-        />}
+        />
         <div className="flex items-center gap-2 shrink-0">
           {projectHasGroups && (
             // One choice of two: a radio group (arrow keys move it), like Settings › Group layout.
@@ -566,7 +552,7 @@ export function ContentPanel() {
             </ShortcutTooltip>
           )}
         </div>
-      </div>
+      </div>}
 
       {body}
     </div>
