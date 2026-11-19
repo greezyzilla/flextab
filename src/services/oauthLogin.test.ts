@@ -37,7 +37,7 @@ async function attempt(provider = "google") {
   return { pending, callback };
 }
 
-it.each(["google", "github"])("starts %s with a private verifier and a SHA-256 challenge before navigation", async provider => {
+it.each(["google", "github", "gitlab", "discord"])("starts %s with a private verifier and a SHA-256 challenge before navigation", async provider => {
   const { pending } = await attempt(provider);
   const url = new URL(tabs.get(pending.tabId)!);
   const digest = await webcrypto.subtle.digest("SHA-256", new TextEncoder().encode(pending.verifier));
@@ -96,6 +96,13 @@ it("invalidates an old login when a new one starts", async () => {
   expect(await oauth.completeOAuthLogin(old.pending.tabId, old.callback)).toBe(false);
   expect(session[oauth.OAUTH_PENDING_KEY].nonce).toBe(current.pending.nonce);
   expect(fetch).not.toHaveBeenCalled();
+});
+
+it("refuses a provider it does not know before opening any tab", async () => {
+  for (const provider of ["apple", "", undefined, "GOOGLE"]) {
+    await expect(oauth.startOAuthLogin(provider)).rejects.toThrow("Unsupported sign-in provider");
+  }
+  expect(chrome.tabs.create).not.toHaveBeenCalled();
 });
 
 it("refuses to start over an existing session or replace a session established during login", async () => {

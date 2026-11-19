@@ -56,8 +56,8 @@ describe("icon standard", () => {
     if (statSync(path).isDirectory()) return files(path)
     return /\.tsx$/.test(name) && !/\.test\.tsx$/.test(name) ? [path] : []
   })
-  /** Drawings that are not icons, and how many each file has: brand logos (Google, GitHub), a tooltip's arrow, a progress ring. */
-  const NOT_ICONS: Record<string, number> = { "components/OnboardingScreen.tsx": 2, "components/ui/tooltip.tsx": 1, "components/layout/ProfilePanel.tsx": 1 }
+  /** Drawings that are not icons, and how many each file has: brand logos (Google, GitHub, GitLab, Discord), a tooltip's arrow, a progress ring. */
+  const NOT_ICONS: Record<string, number> = { "components/OnboardingScreen.tsx": 4, "components/ui/tooltip.tsx": 1, "components/layout/ProfilePanel.tsx": 1 }
   /** Filled indicator dots inside the shadcn primitives are shapes, not stroked icons. */
   const DOTS = /<Circle className="[^"]*fill-current[^"]*" \/>/g
 

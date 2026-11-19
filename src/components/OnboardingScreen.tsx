@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from "react"
-import { Check, Copy, Mail, ShieldCheck, TriangleAlert } from "lucide-react"
+import { Check, Copy, Mail, ShieldCheck } from "lucide-react"
 import { toast } from "sonner"
-import { Button } from "~src/components/ui/button"
+import { Button, IconTooltip } from "~src/components/ui/button"
 import { Icon } from "~src/components/ui/icon"
 import { Input, PasswordField } from "~src/components/ui/input"
 import { Label } from "~src/components/ui/label"
 import { Modal, ModalHeader } from "~src/components/ui/modal"
 import { ApiError, apiForgotPassword, apiGetSignInOptions, apiRegister, apiResendVerification } from "~src/services/api"
 import { SESSION_EXPIRED_KEY } from "~src/services/api"
-import { OAUTH_PENDING_KEY } from "~src/services/oauthLogin"
+import { OAUTH_PENDING_KEY, OAUTH_PROVIDERS, type OAuthProvider } from "~src/services/oauthLogin"
 import { spaceTabCount } from "~src/services/spacesTree"
 import { useAuthStore } from "~src/store/useAuthStore"
 import { useMergeConflict } from "~src/store/useMergeConflict"
@@ -63,7 +63,36 @@ function GoogleMark() {
   )
 }
 
-type Provider = "google" | "github"
+function GithubMark() {
+  return (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M12 1C5.92 1 1 5.92 1 12c0 4.86 3.15 8.98 7.52 10.44.55.1.75-.24.75-.53v-1.86c-3.06.67-3.71-1.47-3.71-1.47-.5-1.27-1.22-1.61-1.22-1.61-1-.68.08-.67.08-.67 1.1.08 1.68 1.13 1.68 1.13.98 1.68 2.57 1.2 3.2.92.1-.71.38-1.2.69-1.47-2.44-.28-5.01-1.22-5.01-5.43 0-1.2.43-2.18 1.13-2.95-.11-.28-.49-1.4.11-2.92 0 0 .92-.3 3.02 1.13a10.5 10.5 0 0 1 5.5 0c2.1-1.42 3.02-1.13 3.02-1.13.6 1.52.22 2.64.11 2.92.7.77 1.13 1.75 1.13 2.95 0 4.22-2.58 5.15-5.03 5.42.4.34.75 1.01.75 2.04v3.03c0 .29.2.63.76.52A11 11 0 0 0 23 12c0-6.08-4.92-11-11-11z" />
+    </svg>
+  )
+}
+
+/** GitLab and Discord marks: Simple Icons paths (CC0), in each brand's own colour. */
+function GitlabMark() {
+  return (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="#FC6D26" aria-hidden>
+      <path d="m23.6004 9.5927-.0337-.0862L20.3.9814a.851.851 0 0 0-.3362-.405.8748.8748 0 0 0-.9997.0539.8748.8748 0 0 0-.29.4399l-2.2055 6.748H7.5375l-2.2057-6.748a.8573.8573 0 0 0-.29-.4412.8748.8748 0 0 0-.9997-.0537.8585.8585 0 0 0-.3362.4049L.4332 9.5015l-.0325.0862a6.0657 6.0657 0 0 0 2.0119 7.0105l.0113.0087.03.0213 4.976 3.7264 2.462 1.8633 1.4995 1.1321a1.0085 1.0085 0 0 0 1.2197 0l1.4995-1.1321 2.4619-1.8633 5.006-3.7489.0125-.01a6.0682 6.0682 0 0 0 2.0094-7.003z" />
+    </svg>
+  )
+}
+
+function DiscordMark() {
+  return (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="#5865F2" aria-hidden>
+      <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z" />
+    </svg>
+  )
+}
+
+function ProviderMark({ provider }: { provider: Provider }) {
+  return provider === "google" ? <GoogleMark /> : provider === "github" ? <GithubMark /> : provider === "gitlab" ? <GitlabMark /> : <DiscordMark />
+}
+
+type Provider = OAuthProvider
 /** Where sign-in is: offering, waiting on the provider's tab, that tab closed,
  * an email link on its way (verify a sign-up, or reset a password), asking for
  * the address to reset, or signed in. */
@@ -75,7 +104,7 @@ type Step =
   | { kind: "forgot" }
   | { kind: "done" }
 
-const PROVIDER_NAME: Record<Provider, string> = { google: "Google", github: "GitHub" }
+const PROVIDER_NAME: Record<Provider, string> = { google: "Google", github: "GitHub", gitlab: "GitLab", discord: "Discord" }
 /** One email per address per minute (the server's cooldown too). */
 const RESEND_SECONDS = 60
 
@@ -95,13 +124,25 @@ export function OnboardingScreen({ onBack }: {
   /** Back to the workspace: sign-in is a place you visit, never a wall (TASK-7). */
   onBack: () => void
 }) {
-  const { loginWithGoogle, loginWithGithub, loginWithEmail, isAuthenticated, user } = useAuthStore()
+  const { loginWithGoogle, loginWithGithub, loginWithGitlab, loginWithDiscord, loginWithEmail, isAuthenticated, user } = useAuthStore()
   // Only offer what the server has configured: OAuth providers with
   // credentials, and email sign-up/reset when it can send email. Default to
   // Google if the check fails.
   const [options, setOptions] = useState<{ providers: string[]; emailSignup: boolean } | null>(null)
   useEffect(() => { apiGetSignInOptions().then(setOptions).catch(() => setOptions({ providers: ['google'], emailSignup: false })) }, [])
   const providers = options?.providers ?? null
+  const offered = OAUTH_PROVIDERS.filter(p => providers?.includes(p))
+  const compact = offered.length > 2
+  // The dialog focuses the first provider as it opens; its name tooltip waits for
+  // the first key or pointer move, so it never pops up (mid-animation, misplaced)
+  // on its own.
+  const interacted = useRef(false)
+  useEffect(() => {
+    const mark = () => { interacted.current = true }
+    window.addEventListener("keydown", mark, { capture: true, once: true })
+    window.addEventListener("pointermove", mark, { capture: true, once: true })
+    return () => { window.removeEventListener("keydown", mark, { capture: true }); window.removeEventListener("pointermove", mark, { capture: true }) }
+  }, [])
   const [mode, setMode] = useState<"signin" | "create">("signin")
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -146,7 +187,7 @@ export function OnboardingScreen({ onBack }: {
   }, [step])
 
   const startOAuth = async (provider: Provider) => {
-    await (provider === "google" ? loginWithGoogle() : loginWithGithub())
+    await { google: loginWithGoogle, github: loginWithGithub, gitlab: loginWithGitlab, discord: loginWithDiscord }[provider]()
     try {
       const pending = (await chrome.storage.session.get(OAUTH_PENDING_KEY))[OAUTH_PENDING_KEY]
       if (typeof pending?.tabId === "number") setStep({ kind: "waiting", provider, tabId: pending.tabId })
@@ -245,21 +286,22 @@ export function OnboardingScreen({ onBack }: {
                   account too, so the screen never guesses "welcome back". Provider
                   buttons stay neutral, as on every sign-in page: the accent belongs to
                   this form's own submit. Focus still opens on the first provider. */}
-              <div className="flex flex-col gap-3">
-                {providers?.includes('google') && (
-                  <Button variant="secondary" onClick={() => void startOAuth("google")} className="w-full" data-modal-primary="">
-                    <GoogleMark />
-                    Continue with Google
+              <div className={compact ? "grid gap-3" : "flex flex-col gap-3"} style={compact ? { gridTemplateColumns: `repeat(${offered.length}, minmax(0, 1fr))` } : undefined}>
+                {offered.map(p => compact ? (
+                  // More than two: one row of marks, each named by its tooltip and label
+                  // (Clerk's "auto" rule), so the card keeps its height.
+                  <IconTooltip key={p} content={`Continue with ${PROVIDER_NAME[p]}`} when={() => interacted.current}>
+                    <Button variant="secondary" onClick={() => void startOAuth(p)} className="w-full" aria-label={`Continue with ${PROVIDER_NAME[p]}`}
+                      data-modal-primary={p === "google" ? "" : undefined}>
+                      <ProviderMark provider={p} />
+                    </Button>
+                  </IconTooltip>
+                ) : (
+                  <Button key={p} variant="secondary" onClick={() => void startOAuth(p)} className="w-full" data-modal-primary={p === "google" ? "" : undefined}>
+                    <ProviderMark provider={p} />
+                    Continue with {PROVIDER_NAME[p]}
                   </Button>
-                )}
-                {providers?.includes('github') && (
-                  <Button variant="secondary" onClick={() => void startOAuth("github")} className="w-full">
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                  <path d="M12 1C5.92 1 1 5.92 1 12c0 4.86 3.15 8.98 7.52 10.44.55.1.75-.24.75-.53v-1.86c-3.06.67-3.71-1.47-3.71-1.47-.5-1.27-1.22-1.61-1.22-1.61-1-.68.08-.67.08-.67 1.1.08 1.68 1.13 1.68 1.13.98 1.68 2.57 1.2 3.2.92.1-.71.38-1.2.69-1.47-2.44-.28-5.01-1.22-5.01-5.43 0-1.2.43-2.18 1.13-2.95-.11-.28-.49-1.4.11-2.92 0 0 .92-.3 3.02 1.13a10.5 10.5 0 0 1 5.5 0c2.1-1.42 3.02-1.13 3.02-1.13.6 1.52.22 2.64.11 2.92.7.77 1.13 1.75 1.13 2.95 0 4.22-2.58 5.15-5.03 5.42.4.34.75 1.01.75 2.04v3.03c0 .29.2.63.76.52A11 11 0 0 0 23 12c0-6.08-4.92-11-11-11z" />
-                </svg>
-                    Continue with GitHub
-                  </Button>
-                )}
+                ))}
               </div>
 
               <div className="flex items-center gap-3">
@@ -302,7 +344,7 @@ export function OnboardingScreen({ onBack }: {
 
           {step.kind === "closed" && (
             <Frame>
-              <StepHead tile={<Tile tone="neutral">{step.provider === "google" ? <GoogleMark /> : <Icon icon={TriangleAlert} size="md" />}</Tile>}
+              <StepHead tile={<Tile tone="neutral"><ProviderMark provider={step.provider} /></Tile>}
                 title={`The ${PROVIDER_NAME[step.provider]} tab was closed`} />
               <div className="flex flex-col gap-2">
                 <Button variant="default" className="w-full" onClick={() => void startOAuth(step.provider)}>Try again</Button>
@@ -528,7 +570,7 @@ function Waiting({ provider, tabId, onCancel }: { provider: Provider; tabId: num
   }
   return (
     <Frame status>
-      <StepHead tile={<Tile tone="accent" spinning>{provider === "google" ? <GoogleMark /> : <Icon icon={Mail} size="md" />}</Tile>}
+      <StepHead tile={<Tile tone="accent" spinning><ProviderMark provider={provider} /></Tile>}
         title={`Finish in the ${name} tab`} />
       <div className="flex flex-col gap-2">
         <Button variant="secondary" className="w-full" onClick={openTab}>Open the {name} tab</Button>
@@ -549,7 +591,7 @@ function Done({ spaces, tabs, provider, onBack }: { spaces: number; tabs: number
     : tabs === 0 ? "New saves are backed up."
     : synced ? `${plural(tabs, "tab")} backed up.`
     : `Backing up ${plural(tabs, "tab")}…`
-  const account = provider === "google" ? "Google" : provider === "github" ? "GitHub" : "your email"
+  const account = PROVIDER_NAME[provider as Provider] ?? "your email"
   const copy = () => {
     void navigator.clipboard.writeText(LEGAL_BASE_URL).then(() => toast.success("Link copied"), () => toast.error("Couldn't copy the link"))
   }

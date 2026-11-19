@@ -20,6 +20,8 @@ import { SettingRow, GroupHeading } from "./shared";
 const LINKABLE_PROVIDERS: { id: string; label: string }[] = [
   { id: 'google', label: 'Google' },
   { id: 'github', label: 'GitHub' },
+  { id: 'gitlab', label: 'GitLab' },
+  { id: 'discord', label: 'Discord' },
 ];
 
 const PROVIDER_ROW = "flex items-center justify-between gap-3 rounded-lg border border-ink/[0.08] bg-ink/[0.02] px-4 py-3";
@@ -125,6 +127,11 @@ export function AccountTab() {
           .map(i => ({ id: i.provider, label: i.provider, identity: i })),
       ]
     : null;
+  // The placeholder holds as many rows as will arrive: the configured providers
+  // once the server said which, the two most common (Google, GitHub) before.
+  const placeholderRows = availableProviders
+    ? LINKABLE_PROVIDERS.filter(p => availableProviders.includes(p.id))
+    : LINKABLE_PROVIDERS.slice(0, 2);
 
   // --- Password ---
   const [currentPw, setCurrentPw] = useState('');
@@ -208,7 +215,7 @@ export function AccountTab() {
           {providerRows === null ? (
             // Same rows, same height, until the list arrives.
             <div role="status" aria-label="Loading sign-in methods" className="flex flex-col gap-2">
-              {LINKABLE_PROVIDERS.map(p => (
+              {placeholderRows.map(p => (
                 <div key={p.id} aria-hidden className={PROVIDER_ROW}>
                   {/* Bars sit in boxes the height of the text lines they stand for. */}
                   <div className="flex flex-col gap-0.5">

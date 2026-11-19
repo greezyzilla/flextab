@@ -93,7 +93,7 @@ describe('session restore (initialize with tokens)', () => {
 });
 
 describe('login flows', () => {
-  it.each(['Google', 'Github'] as const)('loginWith%s asks the worker to start a correlated attempt', async provider => {
+  it.each(['Google', 'Github', 'Gitlab', 'Discord'] as const)('loginWith%s asks the worker to start a correlated attempt', async provider => {
     await useAuthStore.getState()[`loginWith${provider}`]();
     expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({ type: 'flextab.oauth.start', provider: provider.toLowerCase() });
     expect(chrome.tabs.create).not.toHaveBeenCalled();

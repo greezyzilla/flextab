@@ -15,7 +15,7 @@ already the most used source, and every hand-drawn SVG had a Lucide equivalent.
 
 Three drawings are not icons and stay as they are:
 - a space's letter avatar (`SpaceAvatar`);
-- brand logos: FlexTab, plus Google and GitHub on sign-in;
+- brand logos: FlexTab, plus Google, GitHub, GitLab and Discord on sign-in;
 - non-icon shapes: a tooltip's arrow, the spring-load progress ring, and the filled indicator dots
   inside the shadcn radio and menu primitives.
 

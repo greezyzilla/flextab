@@ -9,6 +9,8 @@ import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import { useSettingsStore } from "~src/store/useSettingsStore"
 import { useSyncConflict } from "~src/store/useSyncConflict"
 import type { SavedSpace } from "~src/types"
+import { TooltipProvider } from "~src/components/ui/tooltip"
+import { stubResizeObserver } from "~src/test/stubResizeObserver"
 
 vi.mock("~src/services/api", async importOriginal => ({
   ...await importOriginal<typeof import("~src/services/api")>(),
@@ -17,6 +19,9 @@ vi.mock("~src/services/api", async importOriginal => ({
   apiResendVerification: vi.fn(async () => ({ status: "sent_if_waiting" })),
   apiForgotPassword: vi.fn(async () => ({ status: "sent_if_registered" })),
 }))
+
+// The compact provider row names each mark with an app tooltip.
+stubResizeObserver()
 
 const loginWithEmail = vi.fn()
 const loginWithGoogle = vi.fn()
@@ -181,6 +186,31 @@ describe("sign-in screen (TASK-7)", () => {
     render(<OnboardingScreen onBack={vi.fn()} />)
     await ready()
     expect(screen.getByRole("dialog")).toHaveTextContent("Open your tabs on any computer.")
+  })
+
+  it("offers GitLab and Discord when the server has them, as one row of named marks past two providers (TASK-79)", async () => {
+    const loginWithGitlab = vi.fn(), loginWithDiscord = vi.fn()
+    useAuthStore.setState({ loginWithGitlab, loginWithDiscord })
+    vi.mocked(apiGetSignInOptions).mockResolvedValueOnce({ providers: ["discord", "google", "gitlab", "github"], emailSignup: true })
+    const user = userEvent.setup()
+    render(<TooltipProvider><OnboardingScreen onBack={vi.fn()} /></TooltipProvider>)
+    const google = await ready()
+    const row = ["Google", "GitHub", "GitLab", "Discord"].map(n => screen.getByRole("button", { name: `Continue with ${n}` }))
+    // Fixed order whatever the server lists; marks only, the name is the button's label.
+    expect(row.every(b => b.textContent === "" && b.parentElement === google.parentElement)).toBe(true)
+    expect(google).toHaveFocus()
+    await user.click(row[2])
+    expect(loginWithGitlab).toHaveBeenCalledOnce()
+    await user.click(row[3])
+    expect(loginWithDiscord).toHaveBeenCalledOnce()
+  })
+
+  it("keeps full buttons with their names for two providers or fewer (TASK-79)", async () => {
+    vi.mocked(apiGetSignInOptions).mockResolvedValueOnce({ providers: ["gitlab", "google"], emailSignup: false })
+    render(<OnboardingScreen onBack={vi.fn()} />)
+    expect((await ready()).textContent).toBe("Continue with Google")
+    expect(screen.getByRole("button", { name: "Continue with GitLab" })).toHaveTextContent("Continue with GitLab")
+    expect(screen.queryByRole("button", { name: /Continue with (GitHub|Discord)/ })).not.toBeInTheDocument()
   })
 
   it("waits on the provider's tab, can bring it back, and can stop (TASK-79)", async () => {

@@ -7,8 +7,12 @@ export const OAUTH_CALLBACK = "flextab.oauth.callback";
 const ATTEMPT_TTL = 10 * 60 * 1000;
 const secretPattern = /^[A-Za-z0-9_-]{43}$/;
 
+/** The OAuth providers the extension can start a sign-in with; the server says which are configured. */
+export const OAUTH_PROVIDERS = ["google", "github", "gitlab", "discord"] as const;
+export type OAuthProvider = (typeof OAUTH_PROVIDERS)[number];
+
 type PendingLogin = {
-  provider: "google" | "github";
+  provider: OAuthProvider;
   verifier: string;
   nonce: string;
   tabId: number;
@@ -35,7 +39,8 @@ function withOAuthLock<T>(work: () => Promise<T>): Promise<T> {
 // Only the worker owns attempts. session storage survives worker suspension,
 // clears on browser restart, and is not exposed to content scripts by default.
 export async function startOAuthLogin(provider: unknown): Promise<void> {
-  if (provider !== "google" && provider !== "github") throw new Error("Unsupported sign-in provider");
+  if (!OAUTH_PROVIDERS.includes(provider as OAuthProvider)) throw new Error("Unsupported sign-in provider");
+  const chosen = provider as OAuthProvider;
   await withOAuthLock(async () => {
     if ((await chrome.storage.local.get("auth_tokens")).auth_tokens) throw new Error("Sign out before starting another sign-in");
     const previous = await pendingLogin();
@@ -44,14 +49,14 @@ export async function startOAuthLogin(provider: unknown): Promise<void> {
     const verifier = base64url(crypto.getRandomValues(new Uint8Array(32)));
     const nonce = base64url(crypto.getRandomValues(new Uint8Array(32)));
     const challenge = base64url(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier))));
-    const url = new URL(`${API_BASE_URL}/api/auth/${provider}`);
+    const url = new URL(`${API_BASE_URL}/api/auth/${chosen}`);
     url.searchParams.set("state", nonce);
     url.searchParams.set("code_challenge", challenge);
     url.searchParams.set("code_challenge_method", "S256");
     const tab = await chrome.tabs.create({ url: "about:blank" });
     if (typeof tab.id !== "number") throw new Error("Could not open sign-in tab");
     try {
-      await chrome.storage.session.set({ [OAUTH_PENDING_KEY]: { provider, verifier, nonce, tabId: tab.id, expiresAt: Date.now() + ATTEMPT_TTL } satisfies PendingLogin });
+      await chrome.storage.session.set({ [OAUTH_PENDING_KEY]: { provider: chosen, verifier, nonce, tabId: tab.id, expiresAt: Date.now() + ATTEMPT_TTL } satisfies PendingLogin });
       await chrome.tabs.update(tab.id, { url: url.toString() });
     } catch (error) {
       await chrome.storage.session.remove(OAUTH_PENDING_KEY);

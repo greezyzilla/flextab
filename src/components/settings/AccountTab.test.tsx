@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { AccountTab } from "./AccountTab"
 import { useAuthStore } from "~src/store/useAuthStore"
-import { apiListIdentities } from "~src/services/api"
+import { apiGetAuthProviders, apiListIdentities } from "~src/services/api"
 
 vi.mock("~src/services/api", async importOriginal => ({
   ...await importOriginal<typeof import("~src/services/api")>(),
@@ -47,6 +47,14 @@ describe("AccountTab sign-in methods (TASK-8)", () => {
     const loading = screen.getByRole("status", { name: "Loading sign-in methods" })
     expect(loading.children).toHaveLength(2)
     expect(screen.queryByText("Loading…")).not.toBeInTheDocument()
+  })
+
+  it("sizes the placeholder to the providers the server offers once it said which (TASK-79)", async () => {
+    vi.mocked(apiListIdentities).mockReturnValue(new Promise(() => {}))
+    vi.mocked(apiGetAuthProviders).mockResolvedValueOnce(["google", "github", "gitlab", "discord"])
+    render(<AccountTab />)
+    const loading = screen.getByRole("status", { name: "Loading sign-in methods" })
+    await waitFor(() => expect(loading.children).toHaveLength(4))
   })
 
   it("warns a password-only account from the first frame, using what /api/me sent (TASK-41)", async () => {

@@ -1,6 +1,6 @@
 import { clearKeptOnSignOut, markKeptOnSignOut } from "~src/services/keptWorkspace";
 import { toast } from "sonner";
-import { cancelPendingOAuth, OAUTH_START } from "~src/services/oauthLogin";
+import { cancelPendingOAuth, OAUTH_START, type OAuthProvider } from "~src/services/oauthLogin";
 import { RESOLUTION_PUSH_KEY, withSyncWriteLock } from "~src/services/syncPolicy";
 import { create } from "zustand";
 import { loadTokens, saveTokens, clearTokens, apiFetch, apiLogin, apiLogout, apiDeleteAccount, ApiError, type LinkedIdentity } from "~src/services/api";
@@ -42,6 +42,8 @@ interface AuthState {
   initialize: () => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   loginWithGithub: () => Promise<void>;
+  loginWithGitlab: () => Promise<void>;
+  loginWithDiscord: () => Promise<void>;
   loginWithEmail: (email: string, password: string) => Promise<void>;
   handleAuthCallback: (tokens: TokenData, alreadyStored?: boolean) => Promise<void>;
   /**
@@ -58,7 +60,7 @@ interface AuthState {
   fetchUser: () => Promise<void>;
 }
 
-async function requestOAuthLogin(provider: "google" | "github"): Promise<void> {
+async function requestOAuthLogin(provider: OAuthProvider): Promise<void> {
   try {
     const result = await chrome.runtime.sendMessage({ type: OAUTH_START, provider });
     if (!result?.ok) throw new Error("Sign-in could not start. Please try again.");
@@ -121,6 +123,10 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   loginWithGoogle: () => requestOAuthLogin("google"),
 
   loginWithGithub: () => requestOAuthLogin("github"),
+
+  loginWithGitlab: () => requestOAuthLogin("gitlab"),
+
+  loginWithDiscord: () => requestOAuthLogin("discord"),
 
   loginWithEmail: async (email: string, password: string) => {
     const tokens = await apiLogin(email, password);
