@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Icon } from "~src/components/ui/icon"
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, ShieldAlert, SlidersHorizontal } from "lucide-react";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { useRoute, navigate } from "~src/lib/route";
 import { showUndoToast } from "~src/components/ui/sonner";
@@ -10,7 +10,7 @@ import { Input } from "~src/components/ui/input";
 import { SpaceAvatar } from "~src/components/levelIcons";
 import { Modal, ModalBody, ModalField, ModalFooter, ModalHeader } from "~src/components/ui/modal";
 import type { SavedSpace } from "~src/types";
-import { SettingRow } from "./shared";
+import { SettingRow, SettingsSection } from "./shared";
 import { SETTINGS_ROUTE } from "./types";
 
 export const SPACE_COLORS = [
@@ -114,7 +114,8 @@ function SpaceForm({ space, index, count }: { space: SavedSpace; index: number; 
   const color = space.color ?? "";
 
   return (
-    <div className="flex flex-col gap-7" aria-label={`${space.name} settings`} role="group">
+    <div className="flex flex-col gap-12" aria-label={`${space.name} settings`} role="group">
+      <SettingsSection title="Details" icon={SlidersHorizontal} subtitle="Name, letters, colour and order of this space.">
       <SettingRow label="Name" description="Shown on the rail and across your workspace.">
         {(controlProps) => (
           <Input {...controlProps} id="space-name" placeholder="e.g. Work" value={name} onChange={e => setName(e.target.value)}
@@ -125,16 +126,16 @@ function SpaceForm({ space, index, count }: { space: SavedSpace; index: number; 
         {(controlProps) => (
           <Input {...controlProps} id="space-abbreviation" value={abbreviation} onChange={e => setAbbreviation(e.target.value.slice(0, 2))}
             placeholder={space.name.slice(0, 2).toUpperCase()}
-            onBlur={commitAbbreviation} onKeyDown={onEnter(commitAbbreviation)} className="w-20" />
+            onBlur={commitAbbreviation} onKeyDown={onEnter(commitAbbreviation)} className="w-full" />
         )}
       </SettingRow>
       <SettingRow label="Color" description="The space's colour on the rail.">
         {(controlProps) => (
-          <div className="flex flex-wrap gap-2" role="group" {...controlProps}>
+          <div className="flex items-center justify-between gap-1" role="group" {...controlProps}>
             {SPACE_COLORS.map(c => (
               <button key={c || "default"} type="button" onClick={() => { if (c !== color) updateSavedSpace({ ...space, color: c || undefined }); }}
                 aria-label={`${SPACE_COLOR_NAMES[c] ?? c} color`} aria-pressed={color === c}
-                className={`h-6 w-6 rounded-full border-2 outline-none transition-all focus-visible:ring-1 focus-visible:ring-ring ${color === c ? "border-ink/70 scale-110" : "border-transparent hover:border-ink/30"}`}
+                className={`h-4 w-4 shrink-0 rounded-full border-2 outline-none transition-all focus-visible:ring-1 focus-visible:ring-ring ${color === c ? "border-ink/70 scale-110" : "border-transparent hover:border-ink/30"}`}
                 style={{ backgroundColor: c || "hsl(var(--ink) / 0.15)" }} />
             ))}
           </div>
@@ -144,16 +145,17 @@ function SpaceForm({ space, index, count }: { space: SavedSpace; index: number; 
         <SettingRow label="Order" description={`Position ${index + 1} of ${count} on the rail.`}>
           {(controlProps) => (
             <div className="flex items-center gap-2" role="group" {...controlProps}>
-              <Button variant="secondary" size="sm" disabled={index === 0} onClick={() => reorderSpaces(index, index - 1)}>
+              <Button variant="ghost" size="sm" disabled={index === 0} onClick={() => reorderSpaces(index, index - 1)}>
                 <Icon icon={ChevronUp} size="sm" /> Move up
               </Button>
-              <Button variant="secondary" size="sm" disabled={index === count - 1} onClick={() => reorderSpaces(index, index + 1)}>
+              <Button variant="ghost" size="sm" disabled={index === count - 1} onClick={() => reorderSpaces(index, index + 1)}>
                 <Icon icon={ChevronDown} size="sm" /> Move down
               </Button>
             </div>
           )}
         </SettingRow>
       )}
+      </SettingsSection>
       <DangerZone space={space} />
     </div>
   );
@@ -204,20 +206,13 @@ function DangerZone({ space }: { space: SavedSpace }) {
   const [open, setOpen] = useState(false);
   const { projects, tabs } = countOf(space);
   return (
-    <section className="flex flex-col gap-3 border-t border-ink/10 pt-6" aria-labelledby="danger-zone-heading">
-      <h3 id="danger-zone-heading" className="text-fg-subtle text-[11px] font-medium font-sans uppercase tracking-wider">Danger zone</h3>
-      <div className="flex items-start justify-between gap-4 rounded-lg border border-red-400/25 p-4">
-        <div className="min-w-0">
-          <div className="text-sm font-sans font-medium text-fg">Delete this space</div>
-          <p className="mt-0.5 text-xs font-sans leading-relaxed text-fg-subtle">
-            {`Removes ${plural(projects, "project")} and ${plural(tabs, "tab")} on every synced device.`}
-          </p>
-        </div>
+    <SettingsSection title="Danger zone" icon={ShieldAlert} subtitle="Delete this space and everything in it.">
+      <SettingRow label="Delete this space" description={`Removes ${plural(projects, "project")} and ${plural(tabs, "tab")} on every synced device.`}>
         <Button variant="danger" size="sm" onClick={() => setOpen(true)}>
           Delete space…
         </Button>
-      </div>
+      </SettingRow>
       <DeleteSpaceDialog space={space} open={open} onOpenChange={setOpen} />
-    </section>
+    </SettingsSection>
   );
 }

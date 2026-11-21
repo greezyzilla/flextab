@@ -291,7 +291,7 @@ export function windowGroupName(): string {
 export const CLOSE_AFTER_SAVE_KEY = "flextab_close_after_save"
 
 /**
- * Settings › Saving & closing (TASK-60): one switch per way of saving, each
+ * Settings › Saving › Saving and closing (TASK-60): one switch per way of saving, each
  * off until the person turns it on.
  * - drag: an open tab dragged into the workspace, and the Save button on an open tab;
  * - window: "Save this window as a group", and the window shortcut / right-click;

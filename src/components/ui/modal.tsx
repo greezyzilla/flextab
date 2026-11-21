@@ -250,9 +250,10 @@ export function ModalOptionCard({ id, value, selected, title, hint, danger, asid
     <Label htmlFor={id}
       className={cn(
         "flex cursor-pointer items-start gap-2.5 rounded-lg border px-4 py-2.5 transition-colors",
-        selected ? (danger ? "border-red-500/50 bg-red-500/10" : "border-[var(--accent)] bg-[var(--accent-subtle)]") : "border-ink/10 hover:bg-ink/[0.03]",
+        selected ? (danger ? "border-danger/70 bg-danger/10" : "border-[var(--accent)] bg-[var(--accent-subtle)]") : "border-ink/10 hover:bg-ink/[0.03]",
       )}>
-      <RadioGroupItem value={value} id={id} className="mt-0.5" disabled={disabled} />
+      {/* A destructive choice's radio is red too (danger-standard §3), so a chosen one never mixes the accent into the red card. */}
+      <RadioGroupItem value={value} id={id} className={cn("mt-0.5", danger && "text-danger data-[state=checked]:border-danger")} disabled={disabled} />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="text-sm leading-5 text-fg">{title}</span>
         {hint && <span className="text-xs leading-4 text-fg-subtle">{hint}</span>}

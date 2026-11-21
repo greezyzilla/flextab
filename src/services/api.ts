@@ -457,8 +457,12 @@ export interface PlanUsage {
 export interface PlanStatus {
   plan: string;
   limits: PlanLimits;
-  /** Plus/Pro-tier limits, so the UI can show what each upgrade buys. */
+  /** Every tier's limits, so the plan cards compare them whichever plan the user is on. */
+  free_limits?: PlanLimits;
   plus_limits?: PlanLimits;
+  /** The current plan was granted by an admin, not bought; granted_until is null when it has no end date. */
+  granted?: boolean;
+  granted_until?: string | null;
   pro_limits?: PlanLimits;
   usage: PlanUsage;
 }

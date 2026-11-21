@@ -166,8 +166,8 @@ describe("Modal (TASK-43)", () => {
       <ModalOptionCard id="oa" value="a" selected={false} title="Add" hint="Beside yours." />
       <ModalOptionCard id="ob" value="b" selected danger title="Replace" hint="Removes yours." aside="5 tabs" />
     </RadioGroup><ModalNote>Small print.</ModalNote></ModalGroup>} />)
-    expect(screen.getByText("Replace").closest("label")!.className).toMatch(/red-500/)
-    expect(screen.getByText("Add").closest("label")!.className).not.toMatch(/accent-subtle|red-500/)
+    expect(screen.getByText("Replace").closest("label")!.className).toMatch(/border-danger/)
+    expect(screen.getByText("Add").closest("label")!.className).not.toMatch(/accent-subtle|border-danger/)
     expect(screen.getByRole("group", { name: "Choices" })).toBeInTheDocument()
     expect(screen.getByText("Small print.")).toBeInTheDocument()
     expect(screen.getByText("5 tabs")).toBeInTheDocument()

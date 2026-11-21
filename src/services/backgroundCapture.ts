@@ -133,7 +133,7 @@ export async function captureFromBackground(
     return "already"
   }
 
-  // Settings › Saving & closing: a window follows "after saving a window", the page
+  // Settings › Saving › Saving and closing: a window follows "after saving a window", the page
   // follows "after saving from the popup" (the same act from the keyboard). A link has no tab.
   const closeKind = kind === "window" ? "window" : kind === "link" ? null : "popup"
   const closed = closeKind && await loadCloseAfter(closeKind) ? await closeSavedTabs(tabs) : []

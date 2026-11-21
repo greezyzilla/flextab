@@ -29,7 +29,7 @@ describe("checkout availability feedback", () => {
       try {
         vi.mocked(apiGetCheckoutUrl).mockRejectedValueOnce(new ApiError(503, message));
         render(<PlanTab />);
-        await screen.findByText("Current");
+        await screen.findByRole("button", { name: "Current plan" });
         fireEvent.click(screen.getByRole("button", { name: "Upgrade to Plus" }));
         expect(await screen.findByText("Upgrades are currently unavailable. Please try again later.")).toBeInTheDocument();
         expect(screen.queryByText(/aren’t available yet during the beta/)).not.toBeInTheDocument();

@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { render, screen, waitFor } from "@testing-library/react"
+import { render as rtlRender, screen, waitFor } from "@testing-library/react"
+import { TooltipProvider as TestTooltipProvider } from "~src/components/ui/tooltip"
+// Settings rows can carry an info tooltip; the app renders them under its root TooltipProvider.
+const render = (ui: Parameters<typeof rtlRender>[0], options?: Parameters<typeof rtlRender>[1]) => rtlRender(ui, { wrapper: TestTooltipProvider, ...options })
+
 import userEvent from "@testing-library/user-event"
 import { SavingTab } from "./SavingTab"
 
@@ -14,7 +18,7 @@ describe("Settings › Saving (TASK-60)", () => {
   it("shows one switch per way of saving, reads what's stored, and saves a change", async () => {
     const user = userEvent.setup()
     render(<SavingTab />)
-    expect(screen.getByText("Saving & closing")).toBeInTheDocument()
+    expect(screen.getByText("Saving and closing")).toBeInTheDocument()
     const sw = (name: string) => screen.getByRole("switch", { name })
     await waitFor(() => expect(sw("Close after Save all tabs")).toBeChecked())
     // The window shortcut followed Save all's switch until it has its own.

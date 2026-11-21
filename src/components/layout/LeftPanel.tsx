@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { PANEL_HEADER, PANEL_TITLE, PANEL_LIST, PANEL_ROW, PANEL_ROW_LABEL, PANEL_ROW_TEXT, PanelFooter } from "./panelChrome";
 import { ChevronRight, GripVertical } from "lucide-react"
 import { Icon } from "~src/components/ui/icon"
 import { cn } from "~src/lib/utils"
@@ -292,7 +293,7 @@ export function LeftPanel() {
           Settings. Its ⋯ is the same "actions for this thing" as every row's;
           deleting a space stays in Settings › Spaces (TASK-27). pr-3 keeps
           the ⋯ in the tree rows' trailing slot column. */}
-      <div className="h-16 flex items-end justify-between gap-2 pl-4 pr-3 pb-4 border-b border-line">
+      <div className={PANEL_HEADER}>
         {currentSpace && renamingId === currentSpace.id ? (
           // The frame's padding is cancelled by an equal negative margin, so the
           // title neither moves nor changes the header's height (TASK-62).
@@ -305,7 +306,7 @@ export function LeftPanel() {
               className="flex-1 font-sans text-2xl" />
           </div>
         ) : (
-          <h1 className="min-w-0 truncate text-fg font-sans text-2xl">{currentSpace?.name || 'No space'}</h1>
+          <h1 className={PANEL_TITLE}>{currentSpace?.name || 'No space'}</h1>
         )}
         {currentSpace && (
           <RowActions
@@ -320,7 +321,7 @@ export function LeftPanel() {
       </div>
 
       {/* Navigation */}
-      <nav aria-label="Projects and categories" className="flex-1 overflow-y-auto py-4" onKeyDown={handleTreeKeys}>
+      <nav aria-label="Projects and categories" className={PANEL_LIST} onKeyDown={handleTreeKeys}>
         {currentSpace ? (
           <>
             {currentSpace.projects.map((project, projectIndex) => {
@@ -335,7 +336,7 @@ export function LeftPanel() {
                     spaceId={currentSpace.id}
                     projectId={project.id}
                   >
-                    <div className={`group/proj flex items-center gap-1 mx-2 pl-1 pr-1 rounded-md transition-colors ${
+                    <div className={`group/proj flex items-center gap-1 ${PANEL_ROW} ${
                       renamingId === project.id ? `text-fg ${inlineEditFrame}` :
                       activeProjectId === project.id ? 'text-fg' : 'text-fg-muted hover:bg-ink/[0.04]'
                     }`}>
@@ -368,13 +369,13 @@ export function LeftPanel() {
                           onClick={() => toggleProject(project.id)}
                           aria-expanded={isExpanded}
                           aria-current={activeProjectId === project.id ? "page" : undefined}
-                          className="flex-1 min-w-0 flex items-center gap-2 py-1.5 text-left rounded outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                          className={`flex-1 min-w-0 ${PANEL_ROW_LABEL}`}
                         >
                           <IconDragHandle id={projectDragId(currentSpace.id, project.id)} label={project.name}
                             reveal="group-hover/proj:opacity-100" conceal="group-hover/proj:opacity-0">
                             <ProjectIcon size="sm" className="text-fg-subtle" />
                           </IconDragHandle>
-                          <span className="flex-1 font-sans text-[13px] font-medium truncate">{project.name}</span>
+                          <span className={`flex-1 ${PANEL_ROW_TEXT}`}>{project.name}</span>
                         </button>
                       )}
 
@@ -508,18 +509,7 @@ export function LeftPanel() {
         ) : null /* No spaces (TASK-37): nothing to select; the workspace offers New space. */}
       </nav>
 
-      {/* Footer */}
-      <div className="flex items-center justify-end gap-2 px-4 py-2 border-t border-line">
-        {/* The one visible way in to every shortcut (TASK-13). */}
-        <button
-          type="button"
-          onClick={() => useUIStore.getState().setShortcutsOpen(true)}
-          className="flex shrink-0 items-center gap-1.5 rounded-md px-1.5 py-1 text-[11px] font-sans text-fg-subtle outline-none transition-colors hover:bg-ink/[0.06] hover:text-fg focus-visible:ring-1 focus-visible:ring-ring"
-        >
-          Shortcuts
-          <Kbd shortcut="?" />
-        </button>
-      </div>
+      <PanelFooter />
 
     </aside>
   );

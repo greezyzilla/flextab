@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render as rtlRender, screen, waitFor } from "@testing-library/react";
+import { TooltipProvider as TestTooltipProvider } from "~src/components/ui/tooltip";
+// Settings rows can carry an info tooltip; the app renders them under its root TooltipProvider.
+const render = (ui: Parameters<typeof rtlRender>[0], options?: Parameters<typeof rtlRender>[1]) => rtlRender(ui, { wrapper: TestTooltipProvider, ...options });
+
 import userEvent from "@testing-library/user-event";
 import { toast } from "sonner";
 import { SyncTab } from "./SyncTab";

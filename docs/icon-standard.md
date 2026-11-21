@@ -80,7 +80,9 @@ The weight is synced with the other appearance settings (`iconWeight`).
 | Email (a link was sent) | `Mail` |
 | Navigation menu / Opened Tabs panel | `Menu` / `PanelRight` |
 | List / Grid view | `List` / `LayoutGrid` |
-| Settings sections | Spaces `Boxes`, Saving `Bookmark`, Appearance `Palette`, Sync `Cloud`, Backup `History`, Plan & Usage `Gauge`, Transactions `Receipt`, Account `User` |
+| Settings topics (TASK-84) | Spaces `Boxes`, Saving `Bookmark`, Opening `MousePointerClick`, Theme `Palette`, Display `Type`, Layout `PanelsTopLeft`, Sync `Cloud`, Backup `History`, Profile `User`, Sign-in & security `KeyRound`, Plan & billing `Gauge` |
+| Settings sections (TASK-84, header box) | Colour and shape `SwatchBook`, Defaults `RotateCcw`, Text and icons `CaseSensitive`, Long titles and links `Link2`, Motion `Wind`, Groups `Layers` (Group), Duplicate tabs `TriangleAlert` (Duplicate), Opening `MousePointerClick` (Opening), Saving and closing `BookmarkPlus` (Save a page), Where saves go `FolderInput` (choose another group), Sync `RefreshCw` (syncing), Export and import `ArrowDownUp`, Version history `Clock`, Signed in as `AtSign`, Name `TextCursorInput`, This device `Laptop`, Sign-in methods `LogIn`, Devices `MonitorSmartphone`, Danger zone `ShieldAlert`, Plan `CreditCard`, Subscription `CalendarClock` (when the plan renews or ends), Usage `ChartNoAxesColumn`, Payment history `Receipt`, Details (a space) `SlidersHorizontal` |
+| More about a setting (info mark beside a row label, TASK-84) | `Info` |
 
 `Layers` means Group only. Settings › Spaces is `Boxes`, so the two never share a shape. `Boxes` also marks the "Pick a space" empty state, where there is no space avatar to draw.
 

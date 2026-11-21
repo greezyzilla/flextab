@@ -105,7 +105,7 @@ export function RowActions({ label, items, reveal = "", conceal = "", rest, note
                   <DropdownMenuItem
                     disabled={item.disabled}
                     onSelect={() => { if (item.takesFocus) afterClose.current = item.onSelect; else item.onSelect() }}
-                    className={item.danger ? "text-danger focus:bg-red-400/10 focus:text-danger" : undefined}
+                    className={item.danger ? "text-danger focus:bg-danger/10 focus:text-danger" : undefined}
                   >
                     {item.label}
                   </DropdownMenuItem>

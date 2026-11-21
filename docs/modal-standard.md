@@ -112,6 +112,8 @@ There is one title size for both kinds (R1). `<Label>` is never used as option t
   tone with the choice still shows the change when the accent hue is red (TASK-49). The page
   control that opens a destructive flow ("Delete space…") is the `danger` variant (red text on a
   red tint), not a red fill.
+- Every red in a modal (destructive primary, a destructive option card, an inline error) follows
+  `docs/danger-standard.md`.
 - The footer-start action is `link` styled, with its underline visible at rest. It must not read as
   a heading.
 - The footer never stacks vertically (R4, Sign out). If it overflows, buttons wrap with the primary

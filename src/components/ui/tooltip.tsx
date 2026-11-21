@@ -12,10 +12,45 @@ const TooltipTrigger = TooltipPrimitive.Trigger
 const TooltipContent = React.forwardRef<
   React.ElementRef<typeof TooltipPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content>
->(({ className, sideOffset = 4, collisionPadding = 8, children, ...props }, ref) => (
+>(({ className, sideOffset = 4, collisionPadding = 8, children, ...props }, ref) => {
+  // Fit the box to its longest line. CSS alone can't: once a tip wraps, its box takes the full
+  // max-width and leaves a gap after the longest line. The max-width still caps it; a one-line tip
+  // is left as it is. Radix mounts the box through a portal after this component renders, so the
+  // fit runs when the box is attached, and again whenever its size changes (new text).
+  // The text is found inside the box: Radix also renders a hidden copy of it for screen readers.
+  const observer = React.useRef<ResizeObserver | null>(null)
+  const setRefs = React.useCallback((node: HTMLDivElement | null) => {
+    observer.current?.disconnect()
+    observer.current = null
+    if (typeof ref === "function") ref(node)
+    else if (ref) ref.current = node
+    if (!node) return
+    const fit = () => {
+      const el = node.querySelector<HTMLElement>(":scope > [data-tip-text]")
+      if (!el) return
+      node.style.width = ""
+      const range = document.createRange()
+      if (typeof range.getClientRects !== "function") return // no layout engine (jsdom)
+      range.selectNodeContents(el)
+      const lines = Array.from(range.getClientRects())
+      if (lines.length < 2) return
+      // The open animation scales the box (zoom-in-95): measure in layout pixels, not on-screen ones.
+      const scale = node.getBoundingClientRect().width / node.offsetWidth || 1
+      const widest = (Math.max(...lines.map((r) => r.right)) - Math.min(...lines.map((r) => r.left))) / scale
+      const cs = getComputedStyle(node)
+      const chrome = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) + parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth)
+      node.style.width = `${Math.ceil(widest + chrome)}px`
+    }
+    fit()
+    if (typeof ResizeObserver !== "undefined") {
+      observer.current = new ResizeObserver(fit)
+      observer.current.observe(node)
+    }
+  }, [ref])
+  return (
   <TooltipPrimitive.Portal>
     <TooltipPrimitive.Content
-      ref={ref}
+      ref={setRefs}
       sideOffset={sideOffset}
       collisionPadding={collisionPadding}
       className={cn(
@@ -27,7 +62,7 @@ const TooltipContent = React.forwardRef<
       )}
       {...props}
     >
-      {children}
+      <span data-tip-text>{children}</span>
       {/* Points at the control it explains, even when the box is aligned to an
           edge or pushed aside by the screen edge (TASK-69). Same fill and edge
           as the box; it overlaps the box's border by 1px so the two read as one. */}
@@ -39,7 +74,8 @@ const TooltipContent = React.forwardRef<
       </TooltipPrimitive.Arrow>
     </TooltipPrimitive.Content>
   </TooltipPrimitive.Portal>
-))
+  )
+})
 TooltipContent.displayName = TooltipPrimitive.Content.displayName
 
 export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider }

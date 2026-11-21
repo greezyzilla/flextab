@@ -1,3 +1,4 @@
+import { ArrowDownUp, Clock } from "lucide-react";
 import { useRef, useState, useEffect, useMemo, type ChangeEvent } from "react";
 import { useAuthStore } from "~src/store/useAuthStore";
 import { formatRelativeTime } from "~src/store/useSyncStore";
@@ -14,7 +15,7 @@ import { ImportDialog } from "./ImportDialog";
 import { SourceColumn } from "~src/components/WorkspaceTree";
 import { Button } from "~src/components/ui/button";
 import { Badge } from "~src/components/ui/badge";
-import { SettingRow, GroupHeading, formatDate, formatBytes } from "./shared";
+import { SettingRow, SettingsList, SettingsListRow, SettingsNotice, SettingsPage, SettingsSection, formatDate, formatBytes } from "./shared";
 
 // Backup groups the two "save & restore your workspace" surfaces: automatic
 // version history and manual export/import. (History needs sign-in; export/
@@ -23,13 +24,13 @@ export function BackupTab() {
   // Recovery state belongs to the account whose snapshot was selected.
   const historyAccount = useAuthStore(s => s.isAuthenticated ? s.user?.id ?? "authenticated" : "signed-out");
   return (
-    <div className="flex flex-col gap-9">
+    <SettingsPage>
       {/* Export/Import first: short & fixed. Version history last: it grows
           unboundedly, so keep it at the bottom instead of pushing everything
           else down. */}
       <DataTab />
       <HistoryTab key={historyAccount} />
-    </div>
+    </SettingsPage>
   );
 }
 function DataTab() {
@@ -85,34 +86,27 @@ function DataTab() {
   };
 
   return (
-    <div className="flex flex-col gap-7">
+    <SettingsSection title="Export and import" icon={ArrowDownUp} subtitle="Move your tabs in and out of FlexTab.">
       <ImportDialog
         parsed={pendingImport?.parsed ?? null}
         fileName={pendingImport?.fileName ?? ""}
         onClose={() => setPendingImport(null)}
         onDone={(message) => setImportStatus({ type: 'success', message })}
       />
-      <SettingRow label="Export" description="Download all your data as a JSON file.">
-        <div className="flex flex-wrap items-center gap-3">
-          <Button variant="secondary" size="sm" onClick={handleExport}>Export JSON</Button>
-          <span className="text-fg-subtle text-xs font-sans">
-            {savedSpaces.length} space{savedSpaces.length !== 1 ? 's' : ''} · {totalTabs} tab{totalTabs !== 1 ? 's' : ''} · {formatSize(dataSize)}
-          </span>
-        </div>
+      <SettingRow label="Export" description={`All your data as JSON: ${savedSpaces.length} space${savedSpaces.length !== 1 ? 's' : ''}, ${totalTabs} tab${totalTabs !== 1 ? 's' : ''}, ${formatSize(dataSize)}.`} info="Downloads all your data as a JSON file you can import later.">
+        <Button variant="ghost" size="sm" onClick={handleExport}>Export JSON</Button>
       </SettingRow>
 
-      <SettingRow label="Import" description="Add tabs from a FlexTab backup (.json), a bookmarks export from any browser (.html), or a OneTab export (.txt). You see what's inside before anything changes.">
-        <div className="flex flex-col gap-2">
-          <Button variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()} className="self-start">Import…</Button>
-          <input ref={fileInputRef} type="file" accept=".json,.html,.htm,.txt" onChange={handleImport} className="hidden" />
-          {importStatus && (
-            <div role="status" className={`text-xs font-sans ${importStatus.type === 'success' ? 'text-success' : 'text-danger'}`}>
-              {importStatus.message}
-            </div>
-          )}
-        </div>
+      <SettingRow label="Import" description="Add tabs from a backup or another app." info="From a FlexTab backup (.json), a bookmarks export from any browser (.html), or a OneTab export (.txt). You see what's inside before anything changes.">
+        <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()}>Import…</Button>
+        <input ref={fileInputRef} type="file" accept=".json,.html,.htm,.txt" onChange={handleImport} className="hidden" />
+        {importStatus && (
+          <div role="status" className={`text-xs font-sans ${importStatus.type === 'success' ? 'text-success' : 'text-danger'}`}>
+            {importStatus.message}
+          </div>
+        )}
       </SettingRow>
-    </div>
+    </SettingsSection>
   );
 }
 
@@ -154,13 +148,9 @@ function HistoryTab() {
 
   if (!isAuthenticated) {
     return (
-      <div className="flex flex-col gap-7">
-        <SettingRow label="Version history" description="Snapshots of your tabs you can restore.">
-          <div className="rounded-lg border border-ink/[0.08] bg-ink/[0.02] px-5 py-4 text-fg-subtle text-sm font-sans leading-relaxed">
-            Sign in to keep a version history of your spaces and restore earlier states.
-          </div>
-        </SettingRow>
-      </div>
+      <SettingsSection title="Version history" icon={Clock} subtitle="Earlier states of your spaces you can go back to." notice={<SettingsNotice>Sign in to keep a version history of your spaces and restore earlier states.</SettingsNotice>}>
+        {null}
+      </SettingsSection>
     );
   }
 
@@ -207,31 +197,35 @@ function HistoryTab() {
   const previewingSnap = snapshots?.find(s => s.revision === previewing) ?? null;
 
   return (
-    <div className="flex flex-col gap-7">
-      <SettingRow label="Version history" description="Preview and restore retained cloud versions. Syncs within 30 minutes can share a version; older versions are removed at your plan’s history limit. Export JSON to keep a separate local backup.">
-        <div className="flex flex-col gap-2.5">
-          {failed && <div className="text-fg-subtle text-xs font-sans">Couldn't load history.</div>}
-          {!failed && snapshots === null && <div className="text-fg-subtle text-xs font-sans">Loading…</div>}
-          {!failed && snapshots?.length === 0 && <div className="text-fg-subtle text-xs font-sans">No snapshots yet. They appear after your tabs sync.</div>}
-          {restoring && <div className="text-fg-subtle text-xs font-sans">Restoring…</div>}
-          {restoreError && <div role="alert" className="text-danger text-xs font-sans">{restoreError}</div>}
-          {pendingPull && (
-            <Button variant="secondary" size="sm" className="self-start" disabled={restoring} onClick={() => { void handleRestore(); }}>
-              Retry loading workspace
-            </Button>
-          )}
-          {done && <div className="text-xs font-sans" style={{ color: 'var(--accent-text)' }}>Restored.</div>}
-          {snapshots?.map(s => (
-            <SnapshotRow
-              key={s.revision}
-              snapshot={s}
-              restoreDisabled={restoring || pendingPull}
-              onPreview={() => setPreviewing(s.revision)}
-              onRestore={() => setConfirming(s.revision)}
-            />
-          ))}
-        </div>
-      </SettingRow>
+    <SettingsSection
+      title="Version history"
+      icon={Clock}
+      subtitle="Earlier states of your spaces you can go back to."
+      notice={restoreError || pendingPull ? (
+          <SettingsNotice tone="warning">
+            {restoreError && <span role="alert">{restoreError} </span>}
+            {pendingPull && <Button variant="link" size="sm" className="!h-auto !p-0 align-baseline" disabled={restoring} onClick={() => { void handleRestore(); }}>Retry loading workspace</Button>}
+          </SettingsNotice>
+        ) : restoring ? <SettingsNotice>Restoring…</SettingsNotice>
+        : done ? <SettingsNotice>Restored.</SettingsNotice>
+        : undefined}
+    >
+      <SettingsList
+        label="Versions"
+        failed={failed ? { title: "Couldn't load history.", says: "Check your connection, then try again.", onRetry: load } : undefined}
+        loading={snapshots === null ? { label: "Loading versions" } : undefined}
+        empty={snapshots?.length === 0 ? { title: "No snapshots yet.", says: "They appear after your tabs sync." } : undefined}
+      >
+        {snapshots?.map(s => (
+          <SnapshotRow
+            key={s.revision}
+            snapshot={s}
+            restoreDisabled={restoring || pendingPull}
+            onPreview={() => setPreviewing(s.revision)}
+            onRestore={() => setConfirming(s.revision)}
+          />
+        ))}
+      </SettingsList>
 
       {previewingSnap && (
         <SnapshotPreviewModal
@@ -256,7 +250,7 @@ function HistoryTab() {
         destructive={false}
         onConfirm={() => { if (confirming !== null) handleRestore(confirming); }}
       />
-    </div>
+    </SettingsSection>
   );
 }
 
@@ -267,27 +261,20 @@ function SnapshotRow({ snapshot, onPreview, onRestore, restoreDisabled }: {
   restoreDisabled: boolean;
 }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-ink/[0.08] bg-ink/[0.02] px-4 py-3.5">
-      <div className="min-w-0 flex flex-col gap-0.5">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="text-fg-subtle text-[11px] font-mono shrink-0">v{snapshot.revision}</span>
-          <span className="text-fg-muted text-sm font-sans truncate">
-            {formatRelativeTime(new Date(snapshot.created_at).getTime())}
-          </span>
-          {/* Neutral, not accent: in Settings an accent badge means "the current one" (Current, This device). */}
-          {snapshot.kind === "before_resolution" && (
-            <Badge variant="outline" size="sm" className="shrink-0 font-normal">Before resolving a conflict</Badge>
-          )}
-        </div>
-        <span className="text-fg-subtle text-xs font-sans">
-          {snapshot.space_count} space{snapshot.space_count !== 1 ? 's' : ''} · {snapshot.tab_count} tab{snapshot.tab_count !== 1 ? 's' : ''}
-        </span>
-      </div>
-      <div className="flex items-center gap-1.5 shrink-0">
+    <SettingsListRow
+      title={<>
+        <span className="truncate">{formatRelativeTime(new Date(snapshot.created_at).getTime())}</span>
+        {/* Neutral, not accent: in Settings an accent badge means "the current one" (Current, This device). */}
+        {snapshot.kind === "before_resolution" && (
+          <Badge variant="outline" size="sm" className="shrink-0 font-normal">Before resolving a conflict</Badge>
+        )}
+      </>}
+      meta={`v${snapshot.revision} · ${snapshot.space_count} space${snapshot.space_count !== 1 ? 's' : ''} · ${snapshot.tab_count} tab${snapshot.tab_count !== 1 ? 's' : ''}`}
+      action={<>
         <Button variant="ghost" size="sm" onClick={onPreview}>Preview</Button>
         <Button variant="ghost" size="sm" disabled={restoreDisabled} onClick={onRestore}>Restore</Button>
-      </div>
-    </div>
+      </>}
+    />
   );
 }
 

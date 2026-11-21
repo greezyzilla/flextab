@@ -16,8 +16,6 @@ const badgeVariants = cva(
           "border-transparent bg-[var(--accent-fill)] text-[var(--on-accent-fill)] shadow hover:brightness-[var(--accent-fill-hover)]",
         secondary:
           "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        destructive:
-          "border-transparent bg-destructive text-destructive-foreground shadow hover:brightness-90",
         outline: "border-ink/10 text-fg-subtle",
         accent: "border-transparent bg-[color-mix(in_srgb,var(--accent-subtle)_50%,transparent)] text-fg-accent",
         success: "border-transparent bg-green-500/20 text-success",

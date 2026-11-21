@@ -115,12 +115,12 @@ export function SourceColumn({ title, spaces, removed = false, inBoth = new Set(
   return (
     // Removal is shown by a label and struck-through text at fg-subtle, never by
     // opacity, so the list stays readable (>= 4.5:1, TASK-6).
-    <section aria-label={title} className={cn("flex min-h-0 min-w-0 flex-col gap-2 rounded-lg border p-3 transition-colors", removed ? "border-red-400/30" : "border-ink/10")}>
+    <section aria-label={title} className={cn("flex min-h-0 min-w-0 flex-col gap-2 rounded-lg border p-3 transition-colors", removed ? "border-danger/30" : "border-ink/10")}>
       {title !== undefined && (
         <div className="flex shrink-0 items-center justify-between gap-2 px-1">
           <h3 className="text-fg text-xs font-medium">{title}</h3>
           {removed
-            ? <span className="rounded bg-red-400/10 px-1.5 py-0.5 text-[11px] font-medium text-danger">Removed</span>
+            ? <span className="rounded bg-danger/10 px-1.5 py-0.5 text-[11px] font-medium text-danger">Removed</span>
             : <span className="text-fg-subtle text-[11px]">{tabsLabel(tabCount(spaces))}</span>}
         </div>
       )}

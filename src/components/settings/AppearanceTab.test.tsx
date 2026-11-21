@@ -1,7 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { AppearanceTab } from "./AppearanceTab";
+import { ThemeTab, DisplayTab, LayoutTab, OpeningTab } from "./AppearanceTab";
+import { SettingsNav, SettingsContent } from "./SettingsShell";
+
+/** The three Appearance topics (TASK-84) together, as these tests cover them all;
+ * each ends with the same Reset appearance row. */
+function AppearanceTab() {
+  return <><ThemeTab /><DisplayTab /><LayoutTab /></>;
+}
 import { TooltipProvider } from "~src/components/ui/tooltip";
 import { APPEARANCE_DEFAULTS, useSettingsStore } from "~src/store/useSettingsStore";
 
@@ -105,17 +112,19 @@ describe("appearance control accessibility", () => {
     expect(within(mode).getByRole("radio", { name: "System" })).toBeChecked();
     await user.click(within(mode).getByRole("radio", { name: "Light" }));
     expect(useSettingsStore.getState().theme).toBe("light");
-    // Reset to defaults goes back to following the device.
-    await user.click(screen.getByRole("button", { name: "Reset to defaults" }));
+    // Reset appearance goes back to following the device.
+    await user.click(screen.getAllByRole("button", { name: "Reset" })[0]);
     expect(useSettingsStore.getState().theme).toBe("system");
   });
 
   it("labels option groups, including conditional grid columns", async () => {
     const user = userEvent.setup();
     render(<TooltipProvider><AppearanceTab /></TooltipProvider>);
-    for (const name of ["Mode", "Font", "Group layout", "Density"]) {
+    for (const name of ["Mode", "Group layout", "Density"]) {
       expect(screen.getByRole("radiogroup", { name })).toHaveAccessibleDescription();
     }
+    // Font is a dropdown (a list that keeps growing, TASK-84), labelled and described like the rest.
+    expect(screen.getByRole("combobox", { name: "Font" })).toHaveAccessibleDescription("The typeface used across the app.");
     await user.click(within(screen.getByRole("radiogroup", { name: "Group layout" })).getByRole("radio", { name: "Grid" }));
     const columns = screen.getByRole("radiogroup", { name: "Grid columns" });
     expect(columns).toHaveAccessibleDescription("Maximum columns in grid view. Narrow windows show fewer so titles stay readable.");
@@ -126,14 +135,14 @@ describe("appearance control accessibility", () => {
   it("picks how duplicate tabs are marked, Ribbon by default, and resets to it (TASK-68)", async () => {
     const user = userEvent.setup();
     render(<TooltipProvider><AppearanceTab /></TooltipProvider>);
-    const mark = screen.getByRole("radiogroup", { name: "Duplicate tabs" });
+    const mark = screen.getByRole("radiogroup", { name: "Mark" });
     expect(mark).toHaveAccessibleDescription("How a tab saved twice in the same group is marked.");
     expect(within(mark).getByRole("radio", { name: "Ribbon" })).toBeChecked();
     await user.click(within(mark).getByRole("radio", { name: "Icon" }));
     expect(useSettingsStore.getState().duplicateMark).toBe("icon");
     await user.click(within(mark).getByRole("radio", { name: "Off" }));
     expect(useSettingsStore.getState().duplicateMark).toBe("off");
-    await user.click(screen.getByRole("button", { name: "Reset to defaults" }));
+    await user.click(screen.getAllByRole("button", { name: "Reset" })[0]);
     expect(useSettingsStore.getState().duplicateMark).toBe("ribbon");
   });
 
@@ -148,13 +157,13 @@ describe("appearance control accessibility", () => {
     await pick("Ribbon corner", "Left");
     await pick("Ribbon text", "Count");
     expect(useSettingsStore.getState()).toMatchObject({ duplicateTone: "accent", duplicateCorner: "left", duplicateLabel: "count" });
-    await pick("Duplicate tabs", "Icon");
+    await pick("Mark", "Icon");
     expect(screen.getByRole("radiogroup", { name: "Duplicate colour" })).toBeInTheDocument();
     expect(screen.queryByRole("radiogroup", { name: "Ribbon corner" })).toBeNull();
     expect(screen.queryByRole("radiogroup", { name: "Ribbon text" })).toBeNull();
-    await pick("Duplicate tabs", "Off");
+    await pick("Mark", "Off");
     expect(screen.queryByRole("radiogroup", { name: "Duplicate colour" })).toBeNull();
-    await user.click(screen.getByRole("button", { name: "Reset to defaults" }));
+    await user.click(screen.getAllByRole("button", { name: "Reset" })[0]);
     expect(useSettingsStore.getState()).toMatchObject({ duplicateMark: "ribbon", duplicateTone: "caution", duplicateCorner: "right", duplicateLabel: "dupe" });
   });
 
@@ -175,18 +184,23 @@ describe("Open as tab groups (TASK-31)", () => {
     c.permissions = { request: vi.fn(async () => answer), remove: vi.fn(async () => true) };
   };
 
-  it("is not offered in a browser without tab groups", () => {
-    render(<TooltipProvider><AppearanceTab /></TooltipProvider>);
-    expect(screen.queryByRole("switch", { name: "Open as tab groups" })).not.toBeInTheDocument();
+  it("is not offered in a browser without tab groups: Saving & opening has no Opening section then (TASK-84)", () => {
+    window.history.replaceState(null, "", "#/settings/saving");
+    const { unmount } = render(<TooltipProvider><SettingsContent /></TooltipProvider>);
+    expect(screen.queryByRole("region", { name: "Opening" })).not.toBeInTheDocument();
+    unmount();
+    supported(true);
+    render(<TooltipProvider><SettingsContent /></TooltipProvider>);
+    expect(screen.getByRole("region", { name: "Opening" })).toBeInTheDocument();
   });
 
   it("turns off and gives the permission back", async () => {
     supported(true);
     const user = userEvent.setup();
-    render(<TooltipProvider><AppearanceTab /></TooltipProvider>);
+    render(<TooltipProvider><OpeningTab /></TooltipProvider>);
     const toggle = screen.getByRole("switch", { name: "Open as tab groups" });
     expect(toggle).toBeChecked();
-    expect(toggle).toHaveAccessibleDescription("Open all puts a group's tabs in a browser tab group with the same name and color.");
+    expect(toggle).toHaveAccessibleDescription("Open all makes a browser tab group. Open all puts a group's tabs in a browser tab group with the same name and color.");
     await user.click(toggle);
     expect(toggle).not.toBeChecked();
     expect(useSettingsStore.getState().openAsTabGroups).toBe(false);
@@ -197,7 +211,7 @@ describe("Open as tab groups (TASK-31)", () => {
     supported(false);
     useSettingsStore.setState({ openAsTabGroups: false });
     const user = userEvent.setup();
-    render(<TooltipProvider><AppearanceTab /></TooltipProvider>);
+    render(<TooltipProvider><OpeningTab /></TooltipProvider>);
     const toggle = screen.getByRole("switch", { name: "Open as tab groups" });
     await user.click(toggle);
     expect(c.permissions.request).toHaveBeenCalledWith({ permissions: ["tabGroups"] });

@@ -1,13 +1,15 @@
 import * as SliderPrimitive from "@radix-ui/react-slider";
 import type { IconWeight } from "~src/components/ui/icon";
 import { Icon } from "~src/components/ui/icon"
-import { Monitor, Moon, Sun } from "lucide-react";
+import { DUPLICATE_TONE } from "~src/components/DuplicateMark";
+import { Monitor, Moon, Sun, SwatchBook, RotateCcw, CaseSensitive, Layers, Link2, MousePointerClick, TriangleAlert, Wind, MousePointer2, Option, Keyboard, Ribbon, EyeOff, ArrowUpLeft, ArrowUpRight } from "lucide-react";
 import type { ThemeMode } from "~src/lib/theme";
 import { useSettingsStore, HUE_PRESETS, FONT_OPTIONS, type GroupLayout, type Density, type FontKey, type DuplicateMark, type DuplicateTone, type DuplicateCorner, type DuplicateLabel } from "~src/store/useSettingsStore";
 import { Switch } from "~src/components/ui/switch";
 import { Slider } from "~src/components/ui/slider";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~src/components/ui/select";
 import { Button, IconTooltip } from "~src/components/ui/button";
-import { SettingRow, ToggleGroup, GroupHeading, type SettingControlProps } from "./shared";
+import { SettingRow, ToggleGroup, SettingsPage, SettingsSection, type SettingControlProps } from "./shared";
 import type { LinkCutScope } from "~src/lib/displayUrl";
 import type { TabPreview } from "~src/store/useSettingsStore";
 import { isMac } from "~src/lib/platform";
@@ -27,7 +29,7 @@ const TAB_PREVIEW_NOTE: Record<TabPreview, string> = {
   alt: `Hold ${ALT_KEY} while pointing at a cut tab, or while it has keyboard focus, to see its full title and link.`,
 };
 import { ListIcon, GridIcon } from "./icons";
-import { canGroupTabs, releaseTabGroups, requestTabGroups } from "~src/services/openTab";
+import { releaseTabGroups, requestTabGroups } from "~src/services/openTab";
 
 const HUE_GRADIENT =
   "linear-gradient(to right, hsl(0 85% 56%), hsl(60 85% 56%), hsl(120 85% 56%), hsl(180 85% 56%), hsl(240 85% 56%), hsl(300 85% 56%), hsl(360 85% 56%))";
@@ -56,29 +58,28 @@ export function HueSlider({ value, onChange, ...controlProps }: { value: number;
   );
 }
 
-// Appearance = theme (accent + colour) and layout (list/grid, density), merged
-// into one surface since they're all "how the workspace looks".
-export function AppearanceTab() {
-  const {
-    theme, setTheme, hue, setHue, intensity, setIntensity, groupTint, setGroupTint, radius, setRadius,
-    fontFamily, setFontFamily, uiScale, setUiScale, titleCut, setTitleCut, linkCut, setLinkCut, linkCutScope, setLinkCutScope, tabPreview, setTabPreview, iconWeight, setIconWeight,
-    groupLayout, setGroupLayout, gridColumns, setGridColumns, density, setDensity,
-    duplicateMark, setDuplicateMark, duplicateTone, setDuplicateTone,
-    duplicateCorner, setDuplicateCorner, duplicateLabel, setDuplicateLabel,
-    reduceMotion, setReduceMotion, resetAppearance, openAsTabGroups, setOpenAsTabGroups,
-  } = useSettingsStore();
-
-  // TASK-31. Turning it on asks for `tabGroups` right in this click (Chrome
-  // needs the gesture) and only sticks when granted; off gives it back.
-  const changeOpenAsTabGroups = (on: boolean) => {
-    if (!on) { setOpenAsTabGroups(false); void releaseTabGroups(); return; }
-    void requestTabGroups().then((answer) => { if (answer === "granted") setOpenAsTabGroups(true); });
-  };
-
+/**
+ * Appearance (TASK-84): Theme, Display and Layout are three topics in the
+ * Settings nav. "Reset appearance" resets all three, so each of them ends with
+ * it as an ordinary setting row (one Settings language, no page-only parts).
+ */
+export function ResetAppearance() {
+  const resetAppearance = useSettingsStore(s => s.resetAppearance);
   return (
-    <div className="flex flex-col gap-8">
-      <section className="flex flex-col gap-7">
-        <GroupHeading>Theme</GroupHeading>
+    <SettingsSection title="Defaults" icon={RotateCcw} subtitle="Put Theme, Display and Layout back to how FlexTab starts.">
+      <SettingRow label="Reset appearance" description="Theme, Display and Layout go back to their defaults.">
+        <Button variant="ghost" size="sm" onClick={resetAppearance}>Reset</Button>
+      </SettingRow>
+    </SettingsSection>
+  );
+}
+
+/** Settings › Appearance › Theme: mode, colour and shape. */
+export function ThemeTab() {
+  const { theme, setTheme, hue, setHue, intensity, setIntensity, groupTint, setGroupTint, radius, setRadius } = useSettingsStore();
+  return (
+    <SettingsPage>
+      <SettingsSection title="Colour and shape" icon={SwatchBook} subtitle="Light or dark, the accent colour, and how round things are.">
         <SettingRow label="Mode" description="Follow your device, or always use light or dark.">
           {(controlProps) => (
             <ToggleGroup<ThemeMode>
@@ -101,13 +102,13 @@ export function AppearanceTab() {
                 <HueSlider {...controlProps} value={hue} onChange={setHue} />
                 <span className="w-10 shrink-0 rounded-md border border-ink/10 py-0.5 text-center text-xs font-sans text-fg-subtle">{hue}°</span>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center justify-between gap-1">
                 {HUE_PRESETS.map(p => (
                   <IconTooltip key={p.hue} content={p.label}>
                     <button
                       onClick={() => setHue(p.hue)}
                       aria-label={p.label}
-                      className={`h-5 w-5 rounded-full border transition-all ${hue === p.hue ? 'border-ink/70 scale-110' : 'border-transparent hover:border-ink/40'}`}
+                      className={`h-4 w-4 rounded-full border transition-all ${hue === p.hue ? 'border-ink/70 scale-110' : 'border-transparent hover:border-ink/40'}`}
                       style={{ backgroundColor: `hsl(${p.hue} 85% 56%)` }}
                     />
                   </IconTooltip>
@@ -117,55 +118,60 @@ export function AppearanceTab() {
           )}
         </SettingRow>
 
-        <SettingRow label="Colour intensity" description="How much colour shows. 0 = neutral grayscale; higher = vivid accent + tinted surfaces.">
+        <SettingRow label="Colour intensity" description="How much colour shows." info="0 = neutral grayscale; higher = vivid accent + tinted surfaces.">
           {(controlProps) => (
             <div className="flex items-center gap-3">
               <Slider {...controlProps} aria-valuetext={`${intensity} percent`} min={0} max={100} value={[intensity]} onValueChange={(v) => setIntensity(v[0])} className="flex-1" />
-              <span className="text-fg-subtle text-xs font-sans w-9 text-right shrink-0">{intensity}%</span>
+              <span className="text-fg-subtle text-xs font-sans w-10 text-right shrink-0">{intensity}%</span>
             </div>
           )}
         </SettingRow>
 
-        <SettingRow label="Group tint" description="How strongly a coloured group tints its card. 0 = no tint, the colour shows only as its dot.">
+        <SettingRow label="Group tint" description="How strongly a coloured group tints its card." info="0 = no tint, the colour shows only as its dot.">
           {(controlProps) => (
             <div className="flex items-center gap-3">
               <Slider {...controlProps} aria-valuetext={`${groupTint} percent`} min={0} max={100} value={[groupTint]} onValueChange={(v) => setGroupTint(v[0])} className="flex-1" />
-              <span className="text-fg-subtle text-xs font-sans w-9 text-right shrink-0">{groupTint}%</span>
+              <span className="text-fg-subtle text-xs font-sans w-10 text-right shrink-0">{groupTint}%</span>
             </div>
           )}
         </SettingRow>
 
-        {canGroupTabs() && (
-          <SettingRow label="Open as tab groups" description="Open all puts a group's tabs in a browser tab group with the same name and color.">
-            {(controlProps) => (
-              <div className="flex items-center gap-2">
-                <Switch {...controlProps} checked={openAsTabGroups} onCheckedChange={changeOpenAsTabGroups} />
-                <span className="text-fg-muted text-sm font-sans">{openAsTabGroups ? 'On' : 'Off'}</span>
-              </div>
-            )}
-          </SettingRow>
-        )}
-
-        <SettingRow label="Roundness" description="Corner radius across the UI. 0 = sharp, higher = softer.">
+        <SettingRow label="Roundness" description="Corner radius across the UI." info="0 = sharp, higher = softer.">
           {(controlProps) => (
             <div className="flex items-center gap-3">
               <Slider {...controlProps} aria-valuetext={`${radius} pixels`} min={0} max={16} value={[radius]} onValueChange={(v) => setRadius(v[0])} className="flex-1" />
-              <span className="text-fg-subtle text-xs font-sans w-9 text-right shrink-0">{radius}px</span>
+              <span className="text-fg-subtle text-xs font-sans w-10 text-right shrink-0">{radius}px</span>
             </div>
           )}
         </SettingRow>
-      </section>
+      </SettingsSection>
+      <ResetAppearance />
+    </SettingsPage>
+  );
+}
 
-      <section className="flex flex-col gap-7">
-        <GroupHeading>Display</GroupHeading>
+/** Settings › Appearance › Display: type, icons, scale, long titles and motion. */
+export function DisplayTab() {
+  const {
+    fontFamily, setFontFamily, uiScale, setUiScale, titleCut, setTitleCut, linkCut, setLinkCut,
+    linkCutScope, setLinkCutScope, tabPreview, setTabPreview, iconWeight, setIconWeight, reduceMotion, setReduceMotion,
+  } = useSettingsStore();
+  return (
+    <SettingsPage>
+      <SettingsSection title="Text and icons" icon={CaseSensitive} subtitle="Typeface, size and icon lines.">
         <SettingRow label="Font" description="The typeface used across the app.">
           {(controlProps) => (
-            <ToggleGroup<FontKey>
-              {...controlProps}
-              value={fontFamily}
-              onChange={setFontFamily}
-              options={FONT_OPTIONS.map(f => ({ value: f.key, label: f.label }))}
-            />
+            // A list that will keep growing is a dropdown, not a row of buttons (TASK-84).
+            <Select value={fontFamily} onValueChange={(v) => setFontFamily(v as FontKey)}>
+              <SelectTrigger {...controlProps}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {FONT_OPTIONS.map(f => (
+                  <SelectItem key={f.key} value={f.key}>{f.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
         </SettingRow>
 
@@ -194,6 +200,9 @@ export function AppearanceTab() {
           )}
         </SettingRow>
 
+      </SettingsSection>
+
+      <SettingsSection title="Long titles and links" icon={Link2} subtitle="How cut titles and links are shortened and shown.">
         {/* Where a long saved tab title or link is cut (TASK-71): the value is
             where the "…" sits, so its thumb sits where the cut does. */}
         <SettingRow label="Title cut" description="Where a long tab title is shortened. 0% keeps its end, 100% keeps its start.">
@@ -238,16 +247,39 @@ export function AppearanceTab() {
               value={tabPreview}
               onChange={setTabPreview}
               options={[
-                { value: 'hover', label: 'On hover' },
-                { value: 'alt', label: `Hold ${ALT_KEY}` },
+                { value: 'hover', label: 'On hover', icon: <Icon icon={MousePointer2} size="sm" /> },
+                { value: 'alt', label: `Hold ${ALT_KEY}`, icon: <Icon icon={isMac() ? Option : Keyboard} size="sm" /> },
               ]}
             />
           )}
         </SettingRow>
-      </section>
+      </SettingsSection>
 
-      <section className="flex flex-col gap-7">
-        <GroupHeading>Layout</GroupHeading>
+      <SettingsSection title="Motion" icon={Wind} subtitle="Animation across FlexTab.">
+        <SettingRow label="Reduce motion" description="Minimise animations and transitions across the app.">
+          {(controlProps) => (
+            <div className="flex items-center gap-2">
+              <Switch {...controlProps} checked={reduceMotion} onCheckedChange={setReduceMotion} />
+              <span className="text-fg-muted text-sm font-sans">{reduceMotion ? 'On' : 'Off'}</span>
+            </div>
+          )}
+        </SettingRow>
+      </SettingsSection>
+      <ResetAppearance />
+    </SettingsPage>
+  );
+}
+
+/** Settings › Appearance › Layout: how groups are laid out and how duplicates are marked. */
+export function LayoutTab() {
+  const {
+    groupLayout, setGroupLayout, gridColumns, setGridColumns, density, setDensity,
+    duplicateMark, setDuplicateMark, duplicateTone, setDuplicateTone,
+    duplicateCorner, setDuplicateCorner, duplicateLabel, setDuplicateLabel,
+  } = useSettingsStore();
+  return (
+    <SettingsPage>
+      <SettingsSection title="Groups" icon={Layers} subtitle="How group cards are laid out.">
         <SettingRow label="Group layout" description="How saved tab groups are displayed.">
           {(controlProps) => (
             <ToggleGroup<GroupLayout>
@@ -296,16 +328,19 @@ export function AppearanceTab() {
           )}
         </SettingRow>
 
-        <SettingRow label="Duplicate tabs" description="How a tab saved twice in the same group is marked.">
+      </SettingsSection>
+
+      <SettingsSection title="Duplicate tabs" icon={TriangleAlert} subtitle="How a tab saved twice in a group is marked.">
+        <SettingRow label="Mark" description="How a tab saved twice in the same group is marked.">
           {(controlProps) => (
             <ToggleGroup<DuplicateMark>
               {...controlProps}
               value={duplicateMark}
               onChange={setDuplicateMark}
               options={[
-                { value: 'ribbon', label: 'Ribbon' },
-                { value: 'icon', label: 'Icon' },
-                { value: 'off', label: 'Off' },
+                { value: 'ribbon', label: 'Ribbon', icon: <Icon icon={Ribbon} size="sm" /> },
+                { value: 'icon', label: 'Icon', icon: <Icon icon={TriangleAlert} size="sm" /> },
+                { value: 'off', label: 'Off', icon: <Icon icon={EyeOff} size="sm" /> },
               ]}
             />
           )}
@@ -319,9 +354,9 @@ export function AppearanceTab() {
                 value={duplicateTone}
                 onChange={setDuplicateTone}
                 options={[
-                  { value: 'caution', label: 'Warning' },
-                  { value: 'accent', label: 'Accent' },
-                  { value: 'neutral', label: 'Grey' },
+                  { value: 'caution', label: 'Warning', icon: <Icon icon={TriangleAlert} size="sm" className={DUPLICATE_TONE.caution.icon} /> },
+                  { value: 'accent', label: 'Accent', icon: <Icon icon={TriangleAlert} size="sm" className={DUPLICATE_TONE.accent.icon} /> },
+                  { value: 'neutral', label: 'Grey', icon: <Icon icon={TriangleAlert} size="sm" className={DUPLICATE_TONE.neutral.icon} /> },
                 ]}
               />
             )}
@@ -336,8 +371,8 @@ export function AppearanceTab() {
                 value={duplicateCorner}
                 onChange={setDuplicateCorner}
                 options={[
-                  { value: 'right', label: 'Right' },
-                  { value: 'left', label: 'Left' },
+                  { value: 'right', label: 'Right', icon: <Icon icon={ArrowUpRight} size="sm" /> },
+                  { value: 'left', label: 'Left', icon: <Icon icon={ArrowUpLeft} size="sm" /> },
                 ]}
               />
             )}
@@ -345,7 +380,7 @@ export function AppearanceTab() {
         )}
 
         {duplicateMark === 'ribbon' && (
-          <SettingRow label="Ribbon text" description="A word, or how many copies of the tab are in the group.">
+          <SettingRow label="Ribbon text" description="A word, or the number of copies." info="A word, or how many copies of the tab are in the group.">
             {(controlProps) => (
               <ToggleGroup<DuplicateLabel>
                 {...controlProps}
@@ -359,25 +394,35 @@ export function AppearanceTab() {
             )}
           </SettingRow>
         )}
-      </section>
+      </SettingsSection>
+      <ResetAppearance />
+    </SettingsPage>
+  );
+}
 
-      <section className="flex flex-col gap-7">
-        <GroupHeading>Motion</GroupHeading>
-        <SettingRow label="Reduce motion" description="Minimise animations and transitions across the app.">
-          {(controlProps) => (
-            <div className="flex items-center gap-2">
-              <Switch {...controlProps} checked={reduceMotion} onCheckedChange={setReduceMotion} />
-              <span className="text-fg-muted text-sm font-sans">{reduceMotion ? 'On' : 'Off'}</span>
-            </div>
-          )}
-        </SettingRow>
-      </section>
-
-      <div className="pt-2 border-t border-ink/5">
-        <Button variant="ghost" size="sm" onClick={resetAppearance} className="!text-fg-subtle hover:!text-fg">
-          Reset to defaults
-        </Button>
-      </div>
-    </div>
+/**
+ * Settings › Workspace › Saving & opening, last section (TASK-84): what
+ * opening saved tabs does.
+ * Moved out of Theme, where a behaviour sat among colours.
+ */
+export function OpeningTab() {
+  const { openAsTabGroups, setOpenAsTabGroups } = useSettingsStore();
+  // TASK-31. Turning it on asks for `tabGroups` right in this click (Chrome
+  // needs the gesture) and only sticks when granted; off gives it back.
+  const changeOpenAsTabGroups = (on: boolean) => {
+    if (!on) { setOpenAsTabGroups(false); void releaseTabGroups(); return; }
+    void requestTabGroups().then((answer) => { if (answer === "granted") setOpenAsTabGroups(true); });
+  };
+  return (
+    <SettingsSection title="Opening" icon={MousePointerClick} subtitle="What happens when you open a group's tabs.">
+      <SettingRow label="Open as tab groups" description="Open all makes a browser tab group." info="Open all puts a group's tabs in a browser tab group with the same name and color.">
+        {(controlProps) => (
+          <div className="flex items-center gap-2">
+            <Switch {...controlProps} checked={openAsTabGroups} onCheckedChange={changeOpenAsTabGroups} />
+            <span className="text-fg-muted text-sm font-sans">{openAsTabGroups ? 'On' : 'Off'}</span>
+          </div>
+        )}
+      </SettingRow>
+    </SettingsSection>
   );
 }

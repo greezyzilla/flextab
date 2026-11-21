@@ -1,8 +1,12 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render as rtlRender, screen, waitFor } from "@testing-library/react";
+import { TooltipProvider as TestTooltipProvider } from "~src/components/ui/tooltip";
+// Settings rows can carry an info tooltip; the app renders them under its root TooltipProvider.
+const render = (ui: Parameters<typeof rtlRender>[0], options?: Parameters<typeof rtlRender>[1]) => rtlRender(ui, { wrapper: TestTooltipProvider, ...options });
+
 import userEvent from "@testing-library/user-event";
 import { SignOutDialog } from "./SignOutDialog";
-import { AccountTab } from "./settings/AccountTab";
+import { ProfileTab } from "./settings/AccountTab";
 import { ProfilePanel } from "./layout/ProfilePanel";
 import { TooltipProvider } from "./ui/tooltip";
 import { useAuthStore } from "~src/store/useAuthStore";
@@ -126,8 +130,8 @@ describe("safe sign-out choice", () => {
     expect(change).not.toHaveBeenCalled();
   });
 
-  it("routes the Account settings sign-out button through the guard", async () => {
-    render(<AccountTab />);
+  it("routes the Account › Profile sign-out button through the guard", async () => {
+    render(<ProfileTab />);
     fireEvent.click(screen.getByRole("button", { name: "Sign out…" }));
     expect(await screen.findByRole("alertdialog")).toBeInTheDocument();
     expect(logout).not.toHaveBeenCalled();

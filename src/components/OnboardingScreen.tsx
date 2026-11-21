@@ -88,7 +88,8 @@ function DiscordMark() {
   )
 }
 
-function ProviderMark({ provider }: { provider: Provider }) {
+/** The sign-in dialog's provider marks, reused by Settings › Sign-in & security. */
+export function ProviderMark({ provider }: { provider: Provider }) {
   return provider === "google" ? <GoogleMark /> : provider === "github" ? <GithubMark /> : provider === "gitlab" ? <GitlabMark /> : <DiscordMark />
 }
 

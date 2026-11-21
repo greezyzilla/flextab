@@ -103,7 +103,7 @@ export function SyncStatusIndicator() {
     spin = false
   } else if (showConflict) {
     Icon = CloudOff
-    cls = "text-danger-strong"
+    cls = "text-danger"
     label = "Sync conflict"
     detail = "Sync is paused until you choose which changes to keep. Your tabs are safe on this device."
   } else if (showDirty) {
@@ -154,7 +154,7 @@ export function SyncStatusIndicator() {
             aria-hidden
           />
           {paused && <span className="text-warning">Sync paused</span>}
-          {showConflict && !paused && <span className="text-danger-strong">Sync conflict</span>}
+          {showConflict && !paused && <span className="text-danger">Sync conflict</span>}
           {usage && <span className="text-warning tabular-nums">{usage}</span>}
           {!paused && showDirty && (
             <span

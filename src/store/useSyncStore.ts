@@ -60,7 +60,7 @@ export const SYNC_STATUS_META: Record<SyncStatus, { label: string; color: string
   syncing:    { label: "Syncing…",      color: "#eab308", pulse: true },
   offline:    { label: "Offline",       color: "#a3a3a3" },
   paused:     { label: "Auto-sync off", color: "#a3a3a3" },
-  error:      { label: "Sync error",    color: "#ef4444" },
+  error:      { label: "Sync error",    color: "rgb(var(--danger))" },
 }
 
 export function formatRelativeTime(ts: number | null): string {

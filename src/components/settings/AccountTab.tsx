@@ -9,9 +9,13 @@ import {
 import { ConfirmDialog } from "~src/components/ui/confirm-dialog";
 import { Button } from "~src/components/ui/button";
 import { Input } from "~src/components/ui/input";
-import { Badge } from "~src/components/ui/badge";
 import { Modal, ModalBody, ModalField, ModalFooter, ModalHeader } from "~src/components/ui/modal";
-import { SettingRow, GroupHeading } from "./shared";
+import { SettingRow, SettingsList, SettingsListRow, SettingsNotice, SettingsPage, SettingsSection } from "./shared";
+import { DevicesList } from "./SyncTab";
+import { ProviderMark } from "~src/components/OnboardingScreen";
+import type { OAuthProvider } from "~src/services/oauthLogin";
+import { Icon } from "~src/components/ui/icon";
+import { Mail, AtSign, Laptop, LogIn, MonitorSmartphone, ShieldAlert, TextCursorInput } from "lucide-react";
 
 // --- Account Tab ---
 
@@ -24,19 +28,85 @@ const LINKABLE_PROVIDERS: { id: string; label: string }[] = [
   { id: 'discord', label: 'Discord' },
 ];
 
-const PROVIDER_ROW = "flex items-center justify-between gap-3 rounded-lg border border-ink/[0.08] bg-ink/[0.02] px-4 py-3";
-
-export function AccountTab() {
+/**
+ * Settings › Account › Profile (TASK-84): who you are here, and signing this
+ * device out. Routine edits live here, away from sign-in methods and deletion.
+ */
+export function ProfileTab() {
   const { user, fetchUser } = useAuthStore();
-
   const [signOutOpen, setSignOutOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
 
   // Display name
   const [name, setName] = useState(user?.name ?? '');
   const [nameSaving, setNameSaving] = useState(false);
   const [nameSaved, setNameSaved] = useState(false);
   useEffect(() => { setName(user?.name ?? ''); }, [user?.name]);
+
+  const handleSaveName = async () => {
+    const trimmed = name.trim();
+    if (!trimmed || trimmed === user?.name) return;
+    setNameSaving(true);
+    try {
+      await apiUpdateProfile(trimmed);
+      await fetchUser();
+      setNameSaved(true);
+      setTimeout(() => setNameSaved(false), 2000);
+    } catch (_) { /* leave the field for a retry */ } finally {
+      setNameSaving(false);
+    }
+  };
+
+  return (
+    <SettingsPage>
+      <SignOutDialog open={signOutOpen} onOpenChange={setSignOutOpen} />
+      <SettingsSection title="Signed in as" icon={AtSign} subtitle="The account this device uses.">
+      <SettingsList label="Signed in as" empty={user ? undefined : { title: "Not signed in.", says: "Sign in to back up and sync your tabs across devices." }}>
+        {user && (
+          <SettingsListRow
+            mark={user.avatar
+              ? <img src={user.avatar} alt="" className="w-5 h-5 rounded-full" referrerPolicy="no-referrer" />
+              : <span className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-medium" style={{ backgroundColor: 'var(--accent-fill)', color: 'var(--on-accent-fill)' }}>{(user.name || user.email).slice(0, 1).toUpperCase()}</span>}
+            title={<span className="truncate">{user.name}</span>}
+            meta={<span className="break-all">{user.email}</span>}
+          />
+        )}
+      </SettingsList>
+      </SettingsSection>
+
+      <SettingsSection title="Name" icon={TextCursorInput} subtitle="How you appear across FlexTab.">
+      <SettingRow label="Display name" description="Shown across FlexTab. Independent of your provider.">
+        {(controlProps) => (
+          <div className="flex items-center gap-2">
+            <Input {...controlProps} value={name} onChange={e => setName(e.target.value)} maxLength={100} placeholder="e.g. Alex Rivera" className="flex-1 min-w-0" />
+            <Button variant="secondary" size="sm" onClick={handleSaveName} disabled={nameSaving || !name.trim() || name.trim() === user?.name}>
+              {nameSaving ? 'Saving…' : nameSaved ? 'Saved' : 'Save'}
+            </Button>
+          </div>
+        )}
+      </SettingRow>
+      </SettingsSection>
+
+      <SettingsSection title="This device" icon={Laptop} subtitle="Sign this device out of your account.">
+      {/* Sign out is a row like the others, and neutral: it keeps this
+          device's tabs by default. Red is left to the danger zone alone. */}
+      <SettingRow label="Sign out" description="Signs this device out. Your account keeps everything that synced, and you choose what happens to the tabs here.">
+        <Button variant="ghost" size="sm" onClick={() => setSignOutOpen(true)}>
+          Sign out…
+        </Button>
+      </SettingRow>
+      </SettingsSection>
+    </SettingsPage>
+  );
+}
+
+/**
+ * Settings › Account › Sign-in & security (TASK-84): the ways into the
+ * account, the password, and deleting the account as the last section
+ * (a page visited rarely, so a sleepy click on Profile never lands near it).
+ */
+export function SecurityTab() {
+  const { user } = useAuthStore();
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   // Linked sign-in methods
   // Until the list call returns, draw from what /api/me already said, so a
@@ -72,20 +142,6 @@ export function AccountTab() {
     try { chrome.storage?.onChanged?.addListener(onChange); } catch (_) { /* ok */ }
     return () => { try { chrome.storage?.onChanged?.removeListener(onChange); } catch (_) { /* ok */ } };
   }, []);
-
-  const handleSaveName = async () => {
-    const trimmed = name.trim();
-    if (!trimmed || trimmed === user?.name) return;
-    setNameSaving(true);
-    try {
-      await apiUpdateProfile(trimmed);
-      await fetchUser();
-      setNameSaved(true);
-      setTimeout(() => setNameSaved(false), 2000);
-    } catch (_) { /* leave the field for a retry */ } finally {
-      setNameSaving(false);
-    }
-  };
 
   const handleLink = async (provider: string) => {
     setLinking(provider);
@@ -166,102 +222,67 @@ export function AccountTab() {
   };
 
   return (
-    <div className="flex flex-col gap-7">
-      <SignOutDialog open={signOutOpen} onOpenChange={setSignOutOpen} />
+    <SettingsPage>
       <DeleteAccountDialog open={deleteOpen} onOpenChange={setDeleteOpen} />
-      {/* Profile */}
-      <SettingRow label="Profile" description="Your FlexTab account.">
-        {user && (
-          <div className="flex items-center gap-3">
-            {user.avatar ? (
-              <img src={user.avatar} alt={user.name} className="w-9 h-9 rounded-full" referrerPolicy="no-referrer" />
-            ) : (
-              <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium" style={{ backgroundColor: 'var(--accent-fill)', color: 'var(--on-accent-fill)' }}>
-                {(user.name || user.email).slice(0, 1).toUpperCase()}
-              </div>
-            )}
-            <div className="flex flex-col min-w-0">
-              <span className="text-fg text-sm font-sans truncate">{user.name}</span>
-              <span className="text-fg-subtle text-xs font-sans truncate">{user.email}</span>
-            </div>
-          </div>
-        )}
-      </SettingRow>
-
-      {/* Display name */}
-      <SettingRow label="Display name" description="Shown across FlexTab. Independent of your provider.">
-        {(controlProps) => (
-          <div className="flex items-center gap-2">
-            <Input {...controlProps} value={name} onChange={e => setName(e.target.value)} maxLength={100} placeholder="e.g. Alex Rivera" className="flex-1 min-w-0" />
-            <Button variant="secondary" size="sm" onClick={handleSaveName} disabled={nameSaving || !name.trim() || name.trim() === user?.name}>
-              {nameSaving ? 'Saving…' : nameSaved ? 'Saved' : 'Save'}
-            </Button>
-          </div>
-        )}
-      </SettingRow>
-
-      {/* Sign-in methods */}
-      <SettingRow label="Sign-in methods" description="Providers linked to your account. Link more or remove ones you don't use.">
-        <div className="flex flex-col gap-2">
-          {idError && <div className="text-danger text-xs font-sans">{idError}</div>}
-          {/* A password-only account has one way in. A reset by email exists when
-              the server can send email (TASK-79), but a linked provider is a second
-              way in that never depends on a mailbox. */}
-          {identities?.length === 0 && hasPassword && (
-            <p role="note" className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-warning-body text-xs font-sans leading-relaxed">
-              Only a password gets you into this account. Link Google or GitHub as a second way in.
-            </p>
-          )}
-          {providerRows === null ? (
-            // Same rows, same height, until the list arrives.
-            <div role="status" aria-label="Loading sign-in methods" className="flex flex-col gap-2">
-              {placeholderRows.map(p => (
-                <div key={p.id} aria-hidden className={PROVIDER_ROW}>
-                  {/* Bars sit in boxes the height of the text lines they stand for. */}
-                  <div className="flex flex-col gap-0.5">
-                    <span className="flex h-5 items-center"><span className="h-3.5 w-16 rounded bg-ink/[0.07] motion-safe:animate-pulse" /></span>
-                    <span className="flex h-4 items-center"><span className="h-3 w-32 rounded bg-ink/[0.05] motion-safe:animate-pulse" /></span>
-                  </div>
-                  <span className="h-8 w-16 rounded-md bg-ink/[0.05] motion-safe:animate-pulse" />
-                </div>
-              ))}
-            </div>
-          ) : providerRows.map(p => (
-            <div key={p.id} className={PROVIDER_ROW}>
-              <div className="flex flex-col gap-0.5 min-w-0">
-                <span className="text-fg text-sm font-sans capitalize">{p.label}</span>
-                <span className="text-fg-subtle text-xs font-sans truncate">
-                  {p.identity ? (p.identity.email || 'Linked') : 'Not linked'}
-                </span>
-              </div>
-              {p.identity ? (
-                <Button variant="ghost" size="sm" onClick={() => handleUnlink(p.id)} disabled={unlinking === p.id} className="!text-danger hover:!text-danger-strong">
-                  {unlinking === p.id ? 'Unlinking…' : 'Unlink'}
-                </Button>
-              ) : (
-                <Button variant="secondary" size="sm" onClick={() => handleLink(p.id)} disabled={linking === p.id} aria-label={`Link ${p.label}`}>
-                  {linking === p.id ? 'Opening…' : 'Link'}
-                </Button>
-              )}
-            </div>
-          ))}
-        </div>
-      </SettingRow>
-
-      {/* Password: one line; the form opens in a modal. */}
-      <SettingRow
-        label="Password"
-        description={hasPassword
-          ? 'You can sign in with your email and password. Changing it signs out all devices.'
-          : `Optional. Lets you sign in with ${user?.email ?? 'your email'} too; your linked providers keep working. Setting one signs out all devices.`}
+      <SettingsSection
+        title="Sign-in methods"
+        icon={LogIn}
+        subtitle="The ways you can get into your account."
+        notice={idError ? <SettingsNotice tone="warning">{idError}</SettingsNotice>
+          // A password-only account has one way in. A reset by email exists when
+          // the server can send email (TASK-79), but a linked provider is a second
+          // way in that never depends on a mailbox.
+          : identities?.length === 0 && hasPassword ? <SettingsNotice tone="warning">Only a password gets you into this account. Link Google or GitHub as a second way in.</SettingsNotice>
+          : undefined}
       >
-        <div className="flex flex-col gap-2">
-          <Button variant="secondary" size="sm" className="self-start" onClick={() => { setPwSuccess(''); setPwOpen(true); }}>
+      <SettingsList label="Sign-in methods" busyLabel={providerRows === null ? "Loading sign-in methods" : undefined}>
+      {providerRows === null ? (
+        // Same rows, same height, until the list arrives.
+        placeholderRows.map(p => (
+          <SettingsListRow
+            key={p.id}
+            placeholder
+            mark={<ProviderMark provider={p.id as OAuthProvider} />}
+            title={<span className="flex h-5 items-center"><span className="h-3.5 w-16 rounded bg-ink/[0.07] motion-safe:animate-pulse" /></span>}
+            meta={<span className="flex h-4 items-center"><span className="h-3 w-32 rounded bg-ink/[0.05] motion-safe:animate-pulse" /></span>}
+          />
+        ))
+      ) : providerRows.map(p => (
+        <SettingsListRow
+          key={p.id}
+          mark={<ProviderMark provider={p.id as OAuthProvider} />}
+          title={p.label}
+          meta={p.identity ? (p.identity.email || 'Linked') : 'Not linked'}
+          action={p.identity ? (
+            // Same quiet shape as Link: removing a way in is routine, and the
+            // server refuses to remove the last one (TASK-84 §4).
+            <Button variant="ghost" size="sm" onClick={() => handleUnlink(p.id)} disabled={unlinking === p.id} aria-label={`Unlink ${p.label}`}>
+              {unlinking === p.id ? 'Unlinking…' : 'Unlink'}
+            </Button>
+          ) : (
+            <Button variant="ghost" size="sm" onClick={() => handleLink(p.id)} disabled={linking === p.id} aria-label={`Link ${p.label}`}>
+              {linking === p.id ? 'Opening…' : 'Link'}
+            </Button>
+          )}
+        />
+      ))}
+      {/* Password: one more way in; the form opens in a modal. */}
+      <SettingsListRow
+        mark={<Icon icon={Mail} size="sm" />}
+        title="Email and password"
+        meta={<>
+          {hasPassword
+            ? 'Changing it signs out all devices.'
+            : `Not set. Lets you sign in with ${user?.email ?? 'your email'} too; setting one signs out all devices.`}
+          {pwSuccess && <span role="status" className="block text-success">{pwSuccess}</span>}
+        </>}
+        action={
+          <Button variant="ghost" size="sm" onClick={() => { setPwSuccess(''); setPwOpen(true); }}>
             {hasPassword ? 'Change password…' : 'Add a password…'}
           </Button>
-          {pwSuccess && <div role="status" className="text-success text-xs">{pwSuccess}</div>}
-        </div>
-      </SettingRow>
+        }
+      />
+      </SettingsList>
       <Modal kind="dialog" size="m" open={pwOpen} onOpenChange={o => { if (!o && !pwLoading) closePassword(); }}
         dirty={!!(currentPw || newPw || confirmPw)}>
         <ModalHeader title={hasPassword ? 'Change password' : 'Add a password'}
@@ -293,32 +314,18 @@ export function AccountTab() {
         }} />
       </Modal>
 
-      {/* Sign out is a row like the others, and neutral: it keeps this
-          device's tabs by default. Red is left to the danger zone alone. */}
-      <SettingRow label="Sign out" description="Signs this device out. Your account keeps everything that synced, and you choose what happens to the tabs here.">
-        <Button variant="secondary" size="sm" onClick={() => setSignOutOpen(true)} className="self-start">
-          Sign out…
-        </Button>
-      </SettingRow>
-
-      {/* Same danger zone as Settings › Spaces (TASK-17): last, set apart, red. */}
-      <section className="flex flex-col gap-3 border-t border-ink/10 pt-6" aria-labelledby="account-danger-heading">
-        <h3 id="account-danger-heading" className="text-fg-subtle text-[11px] font-medium font-sans uppercase tracking-wider">Danger zone</h3>
-        <div className="flex items-start justify-between gap-4 rounded-lg border border-red-400/25 p-4">
-          <div className="min-w-0">
-            <div className="text-sm font-sans font-medium text-fg">Delete account</div>
-            <p className="mt-0.5 text-xs font-sans leading-relaxed text-fg-subtle">
-              Deletes your account and its cloud data on every device. Tabs on this device can stay.
-            </p>
-          </div>
+      {/* Same danger zone as Settings › Spaces (TASK-17): last, under its own heading. */}
+      </SettingsSection>
+      <SettingsSection title="Devices" icon={MonitorSmartphone} subtitle="Where your account is signed in.">
+        <DevicesList />
+      </SettingsSection>
+      <SettingsSection title="Danger zone" icon={ShieldAlert} subtitle="Delete your account and its cloud data.">
+        <SettingRow label="Delete account" description="Deletes your account and its cloud data." info="Deletes your account and its cloud data on every device. Tabs on this device can stay.">
           <Button variant="danger" size="sm" onClick={() => setDeleteOpen(true)}>
             Delete account…
           </Button>
-        </div>
-      </section>
-    </div>
+        </SettingRow>
+      </SettingsSection>
+    </SettingsPage>
   );
 }
-
-// --- Data Tab ---
-

@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
-import { AccountTab } from "./AccountTab"
+import { fireEvent, render as rtlRender, screen, waitFor, within } from "@testing-library/react"
+import { TooltipProvider as TestTooltipProvider } from "~src/components/ui/tooltip"
+// Settings rows can carry an info tooltip; the app renders them under its root TooltipProvider.
+const render = (ui: Parameters<typeof rtlRender>[0], options?: Parameters<typeof rtlRender>[1]) => rtlRender(ui, { wrapper: TestTooltipProvider, ...options })
+
+import { ProfileTab, SecurityTab } from "./AccountTab"
 import { useAuthStore } from "~src/store/useAuthStore"
 import { apiGetAuthProviders, apiListIdentities } from "~src/services/api"
 
@@ -14,28 +18,28 @@ beforeEach(() => {
   useAuthStore.setState({ isAuthenticated: true, user: { id: "u", name: "Me", email: "me@example.com", avatar: "", provider: "email", has_password: true } })
 })
 
-describe("AccountTab sign-in methods (TASK-8)", () => {
+describe("Sign-in & security: sign-in methods (TASK-8)", () => {
   it("tells a password-only account it has one way in, and offers linking", async () => {
     vi.mocked(apiListIdentities).mockResolvedValue({ identities: [], has_password: true })
-    render(<AccountTab />)
+    render(<SecurityTab />)
     expect(await screen.findByRole("note")).toHaveTextContent("Only a password gets you into this account")
     expect(await screen.findByRole("button", { name: "Link Google" })).toBeInTheDocument()
   })
 
   it("does not warn once a provider is linked", async () => {
     vi.mocked(apiListIdentities).mockResolvedValue({ identities: [{ provider: "google", email: "me@example.com" }], has_password: true } as any)
-    render(<AccountTab />)
+    render(<SecurityTab />)
     expect(await screen.findByText("Google")).toBeInTheDocument()
     expect(screen.queryByRole("note")).not.toBeInTheDocument()
   })
 
   it("draws every provider as the same row, linked or not, so linking never reshapes the list (TASK-41)", async () => {
     vi.mocked(apiListIdentities).mockResolvedValue({ identities: [{ provider: "google", email: "me@example.com" }], has_password: false } as never)
-    render(<AccountTab />)
-    const unlink = await screen.findByRole("button", { name: "Unlink" })
+    render(<SecurityTab />)
+    const unlink = await screen.findByRole("button", { name: "Unlink Google" })
     const link = screen.getByRole("button", { name: "Link GitHub" })
     expect(link).toHaveTextContent("Link")
-    const googleRow = unlink.parentElement!, githubRow = link.parentElement!
+    const googleRow = unlink.closest("[data-slot=settings-list-row]") as HTMLElement, githubRow = link.closest("[data-slot=settings-list-row]") as HTMLElement
     expect(googleRow.className).toBe(githubRow.className)
     expect(within(googleRow).getByText("me@example.com")).toBeInTheDocument()
     expect(within(githubRow).getByText("Not linked")).toBeInTheDocument()
@@ -43,40 +47,40 @@ describe("AccountTab sign-in methods (TASK-8)", () => {
 
   it("holds one placeholder row per provider while the list loads (TASK-41)", async () => {
     vi.mocked(apiListIdentities).mockReturnValue(new Promise(() => {}))
-    render(<AccountTab />)
+    render(<SecurityTab />)
     const loading = screen.getByRole("status", { name: "Loading sign-in methods" })
-    expect(loading.children).toHaveLength(2)
-    expect(screen.queryByText("Loading…")).not.toBeInTheDocument()
+    expect(loading.querySelectorAll("[data-placeholder]")).toHaveLength(2)
+    expect(within(loading).queryByText("Loading…")).not.toBeInTheDocument()
   })
 
   it("sizes the placeholder to the providers the server offers once it said which (TASK-79)", async () => {
     vi.mocked(apiListIdentities).mockReturnValue(new Promise(() => {}))
     vi.mocked(apiGetAuthProviders).mockResolvedValueOnce(["google", "github", "gitlab", "discord"])
-    render(<AccountTab />)
+    render(<SecurityTab />)
     const loading = screen.getByRole("status", { name: "Loading sign-in methods" })
-    await waitFor(() => expect(loading.children).toHaveLength(4))
+    await waitFor(() => expect(loading.querySelectorAll("[data-placeholder]")).toHaveLength(4))
   })
 
   it("warns a password-only account from the first frame, using what /api/me sent (TASK-41)", async () => {
     useAuthStore.setState({ user: { id: "u", name: "Me", email: "me@example.com", avatar: "", provider: "email", has_password: true, identities: [] } })
     vi.mocked(apiListIdentities).mockReturnValue(new Promise(() => {}))
-    render(<AccountTab />)
+    render(<SecurityTab />)
     expect(screen.getByRole("note")).toHaveTextContent("Only a password gets you into this account")
   })
 
   it("does not flash the warning for a linked account while the list loads, and shows its rows once providers are known", async () => {
     useAuthStore.setState({ user: { id: "u", name: "Me", email: "me@example.com", avatar: "", provider: "email", has_password: true, identities: [{ provider: "google", email: "me@example.com", linked_at: "" }] } })
     vi.mocked(apiListIdentities).mockReturnValue(new Promise(() => {}))
-    render(<AccountTab />)
+    render(<SecurityTab />)
     expect(screen.queryByRole("note")).not.toBeInTheDocument()
-    expect(await screen.findByRole("button", { name: "Unlink" })).toBeInTheDocument()
+    expect(await screen.findByRole("button", { name: "Unlink Google" })).toBeInTheDocument()
   })
 
   it("keeps what /api/me sent when the list call fails", async () => {
     useAuthStore.setState({ user: { id: "u", name: "Me", email: "me@example.com", avatar: "", provider: "email", has_password: true, identities: [{ provider: "google", email: "me@example.com", linked_at: "" }] } })
     vi.mocked(apiListIdentities).mockRejectedValue(new Error("offline"))
-    render(<AccountTab />)
-    expect(await screen.findByRole("button", { name: "Unlink" })).toBeInTheDocument()
+    render(<SecurityTab />)
+    expect(await screen.findByRole("button", { name: "Unlink Google" })).toBeInTheDocument()
     expect(screen.queryByRole("note")).not.toBeInTheDocument()
   })
 
@@ -84,7 +88,7 @@ describe("AccountTab sign-in methods (TASK-8)", () => {
     const api = await import("~src/services/api")
     vi.mocked(api.apiGetAuthProviders).mockResolvedValueOnce(["google"])
     vi.mocked(apiListIdentities).mockResolvedValue({ identities: [{ provider: "apple", email: "" }], has_password: true } as never)
-    render(<AccountTab />)
+    render(<SecurityTab />)
     expect(await screen.findByText("apple")).toBeInTheDocument()
     expect(screen.getByText("Linked")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Link Google" })).toBeInTheDocument()
@@ -92,7 +96,7 @@ describe("AccountTab sign-in methods (TASK-8)", () => {
   })
 
   it("ends with a danger zone that opens account deletion (TASK-17)", async () => {
-    render(<AccountTab />)
+    render(<SecurityTab />)
     const zone = screen.getByRole("region", { name: "Danger zone" })
     // A red-tinted outline, not a red fill: it stays apart from a red accent fill (TASK-49).
     expect(within(zone).getByRole("button", { name: "Delete account…" })).toHaveClass("text-danger")
@@ -102,7 +106,7 @@ describe("AccountTab sign-in methods (TASK-8)", () => {
   })
 
   it("keeps red for the danger zone: sign out is a neutral row, password fields have labels", async () => {
-    render(<AccountTab />)
+    render(<><ProfileTab /><SecurityTab /></>)
     expect(screen.getByRole("button", { name: "Sign out…" })).not.toHaveClass("!text-danger")
     // The password form opens in a modal, with labels that stay visible.
     expect(screen.queryByLabelText("Current password")).not.toBeInTheDocument()
@@ -121,8 +125,8 @@ describe("AccountTab sign-in methods (TASK-8)", () => {
     useAuthStore.setState({ user: { id: "u", name: "Me", email: "me@example.com", avatar: "", provider: "google", has_password: false } as never })
     vi.mocked(apiListIdentities).mockResolvedValue({ identities: [{ provider: "google", email: "me@example.com" }], has_password: false } as never)
     const spy = vi.spyOn(await import("~src/services/api"), "apiChangePassword").mockResolvedValue(undefined)
-    render(<AccountTab />)
-    expect(screen.getByText(/Optional\. Lets you sign in with me@example\.com too/)).toBeInTheDocument()
+    render(<SecurityTab />)
+    expect(screen.getByText(/Not set\. Lets you sign in with me@example\.com too/)).toBeInTheDocument()
     fireEvent.click(await screen.findByRole("button", { name: "Add a password…" }))
     expect(screen.queryByLabelText("Current password")).not.toBeInTheDocument()
     fireEvent.change(screen.getByLabelText("New password"), { target: { value: "short" } })
@@ -140,7 +144,7 @@ describe("AccountTab sign-in methods (TASK-8)", () => {
   it("submits the password modal with Enter or its footer button", async () => {
     const spy = vi.spyOn(await import("~src/services/api"), "apiChangePassword").mockResolvedValue(undefined)
     vi.mocked(apiListIdentities).mockResolvedValue({ identities: [], has_password: true })
-    render(<AccountTab />)
+    render(<SecurityTab />)
     fireEvent.click(screen.getByRole("button", { name: "Change password…" }))
     fireEvent.change(await screen.findByLabelText("Current password"), { target: { value: "old-password" } })
     fireEvent.change(screen.getByLabelText("New password"), { target: { value: "new-password" } })
@@ -153,10 +157,10 @@ describe("AccountTab sign-in methods (TASK-8)", () => {
   })
 })
 
-describe("AccountTab input labels and placeholders (TASK-36)", () => {
+describe("Account topics: input labels and placeholders (TASK-36)", () => {
   it("names the display name field from its visible label, filled or empty, with an example placeholder", async () => {
     vi.mocked(apiListIdentities).mockResolvedValue({ identities: [], has_password: true })
-    render(<AccountTab />)
+    render(<ProfileTab />)
     const field = screen.getByRole("textbox", { name: "Display name" })
     expect(field).toHaveValue("Me")
     expect(field).toHaveAccessibleDescription("Shown across FlexTab. Independent of your provider.")
@@ -166,7 +170,7 @@ describe("AccountTab input labels and placeholders (TASK-36)", () => {
 
   it("gives the password fields their placeholders, with the length rule before typing", async () => {
     vi.mocked(apiListIdentities).mockResolvedValue({ identities: [], has_password: true })
-    render(<AccountTab />)
+    render(<SecurityTab />)
     fireEvent.click(screen.getByRole("button", { name: "Change password…" }))
     expect(screen.getByLabelText("Current password")).toHaveAttribute("placeholder", "Enter your current password")
     expect(screen.getByLabelText("New password")).toHaveAttribute("placeholder", "At least 8 characters")

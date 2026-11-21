@@ -12,7 +12,7 @@ const SRC = join(__dirname, "..", "..")
 /** Components whose `title` prop is visible heading text. Add one only if it never reaches the DOM as `title`. */
 const HEADING_TITLE = new Set([
   "ModalHeader", "ModalOptionCard", "MergedList", "SourceColumn",
-  "PickDestinationDialog", "ConfirmDialog", "LevelEmptyState", "StepHead",
+  "PickDestinationDialog", "ConfirmDialog", "LevelEmptyState", "StepHead", "SettingsSection", "SettingsListRow", "UsageRow",
 ])
 
 function files(dir: string): string[] {

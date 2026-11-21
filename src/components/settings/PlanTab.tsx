@@ -1,3 +1,4 @@
+import { CalendarClock, ChartNoAxesColumn, CreditCard } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useAuthStore } from "~src/store/useAuthStore";
 import {
@@ -5,12 +6,7 @@ import {
   type PlanStatus, type PlanLimits, type BillingStatus,
 } from "~src/services/api";
 import { Button } from "~src/components/ui/button";
-import { Badge } from "~src/components/ui/badge";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "~src/components/ui/card";
-import {
-  SettingRow, UsageBar, formatIDR, formatDate, formatBytes,
-  PLAN_PRICE_IDR, CONFIRM_POLL_DELAYS,
-} from "./shared";
+import { UsageMeter, formatIDR, formatDate, formatBytes, PLAN_PRICE_IDR, CONFIRM_POLL_DELAYS, SettingsList, SettingsListRow, SettingsNotice, SettingsSection } from "./shared";
 
 export function PlanTab() {
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
@@ -24,6 +20,12 @@ export function PlanTab() {
 
   const refetchBilling = () => {
     apiGetBillingStatus().then(setBilling).catch(() => { /* no billing card */ });
+    apiGetPlan().then(s => { setStatus(s); planRef.current = s.plan; setFailed(false); }).catch(() => setFailed(true));
+  };
+
+  /** Try again after the usage failed to load: only the plan, the billing card has its own quiet fallback. */
+  const retryPlan = () => {
+    setFailed(false);
     apiGetPlan().then(s => { setStatus(s); planRef.current = s.plan; setFailed(false); }).catch(() => setFailed(true));
   };
 
@@ -116,113 +118,140 @@ export function PlanTab() {
 
   if (!isAuthenticated) {
     return (
-      <div className="flex flex-col gap-7">
-        <SettingRow label="Plan & Usage" description="Your plan limits and how much you've used.">
-          <Card className="px-5 py-4 text-fg-subtle text-sm font-sans leading-relaxed shadow-none">
-            Sign in to see your plan and usage. Tabs on this device have no limit. Syncing them follows your plan's tab limit.
-          </Card>
-        </SettingRow>
-      </div>
+      <SettingsSection title="Plan" icon={CreditCard} subtitle="Your plan and what it includes." notice={<SettingsNotice>Sign in to see your plan and usage. Tabs on this device have no limit. Syncing them follows your plan's tab limit.</SettingsNotice>}>
+        {null}
+      </SettingsSection>
     );
   }
 
   const currentPlan = status?.plan ?? 'free';
 
   return (
-    <div className="flex flex-col gap-7">
-      <SettingRow label="Plan" description="FlexTab is in beta, so limits are generous while we're in preview.">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-          <PlanCard
-            name="Free" price="Free" active={currentPlan === 'free'}
-            limits={status?.limits}
-          />
-          <PlanCard
-            name="Plus" price={formatIDR(PLAN_PRICE_IDR.plus) + '/mo'} active={currentPlan === 'plus'}
-            limits={status?.plus_limits}
-            onUpgrade={currentPlan === 'free' ? () => handleUpgrade('plus') : undefined}
-            upgrading={upgradingPlan === 'plus'}
-          />
-          <PlanCard
-            name="Pro" price={formatIDR(PLAN_PRICE_IDR.pro) + '/mo'} active={currentPlan === 'pro'}
-            limits={status?.pro_limits}
-            onUpgrade={currentPlan !== 'pro' ? () => handleUpgrade('pro') : undefined}
-            upgrading={upgradingPlan === 'pro'}
-          />
-        </div>
-        {upgradeError && <div className="text-warning/80 text-xs font-sans mt-1.5">{upgradeError}</div>}
-        {confirming && <div className="text-fg-subtle text-xs font-sans mt-1.5">Confirming your payment. This can take a few seconds…</div>}
-      </SettingRow>
+    <>
+    <SettingsSection
+      title="Plan"
+      icon={CreditCard}
+      subtitle="Your plan and what it includes."
+      notice={upgradeError ? <SettingsNotice tone="warning">{upgradeError}</SettingsNotice>
+        : confirming ? <SettingsNotice>Confirming your payment. This can take a few seconds…</SettingsNotice>
+        : <SettingsNotice>FlexTab is in beta, so limits are generous while we're in preview.</SettingsNotice>}
+    >
+      {/* Plans side by side so their limits compare line by line (TASK-84 pl2, refs-plans board: 21 of 27
+          billing pages). Each card lists its own tier's limits from the server. */}
+      <div role="list" aria-label="Plans" className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+        <PlanCard name="Free" price="Rp0" who="For one browser and a few groups." active={currentPlan === 'free'} limits={status?.free_limits} />
+        <PlanCard
+          name="Plus" price={formatIDR(PLAN_PRICE_IDR.plus)} who="For people who save a lot." active={currentPlan === 'plus'}
+          limits={status?.plus_limits}
+          onUpgrade={currentPlan === 'free' ? () => handleUpgrade('plus') : undefined}
+          upgrading={upgradingPlan === 'plus'}
+        />
+        <PlanCard
+          name="Pro" price={formatIDR(PLAN_PRICE_IDR.pro)} who="No limits on tabs or storage." active={currentPlan === 'pro'}
+          limits={status?.pro_limits}
+          onUpgrade={currentPlan !== 'pro' ? () => handleUpgrade('pro') : undefined}
+          upgrading={upgradingPlan === 'pro'}
+        />
+      </div>
+    </SettingsSection>
 
-      {billing?.active && (
-        <SettingRow label="Billing" description="Your subscription, managed by our payment provider.">
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-ink/[0.08] bg-ink/[0.02] px-5 py-4">
-            <div className="flex flex-col gap-0.5">
-              <span className="text-fg-muted text-sm font-sans">
-                {billing.status === 'cancelled' && billing.ends_at
-                  ? `${currentPlan === 'plus' ? 'Plus' : 'Pro'} until ${formatDate(billing.ends_at)} (won't renew)`
-                  : billing.renews_at
-                    ? `Renews on ${formatDate(billing.renews_at)}`
-                    : 'Active subscription'}
-              </span>
-              {billing.card_brand && billing.card_last_four && (
-                <span className="text-fg-subtle text-xs font-sans capitalize">
-                  {billing.card_brand} •••• {billing.card_last_four}
-                </span>
-              )}
-            </div>
-            {billing.portal_url && (
-              <Button variant="secondary" size="sm" onClick={() => window.open(billing.portal_url, '_blank', 'noopener')}>
-                Manage billing
-              </Button>
-            )}
-          </div>
-        </SettingRow>
-      )}
+    {/* When the plan renews or ends, apart from the plan cards (TASK-84: "beda konteks"). Only when there
+        is something to say: a subscription or a granted plan; Free on its own has none. */}
+    {status && (status.granted || billing?.active) && (
+      <SettingsSection title="Subscription" icon={CalendarClock} subtitle="When your plan renews or ends.">
+        <SettingsList label="Subscription">
+          <SettingsListRow
+            title={PLAN_NAME[currentPlan] ?? currentPlan}
+            meta={subscriptionLine(status, billing)}
+            action={!status.granted && billing?.active && billing.portal_url
+              ? <Button variant="ghost" size="sm" onClick={() => window.open(billing.portal_url, '_blank', 'noopener')}>Manage billing</Button>
+              : undefined}
+          />
+        </SettingsList>
+      </SettingsSection>
+    )}
 
-      <SettingRow label="Usage" description="How much of your plan you're using across this account.">
-        {failed && <div className="text-fg-subtle text-xs font-sans">Couldn't load usage.</div>}
-        {!failed && !status && <div className="text-fg-subtle text-xs font-sans">Loading…</div>}
-        {status && (
-          <div className="flex flex-col gap-3">
-            <UsageBar label="Total tabs" used={status.usage.total_tabs} cap={status.limits.max_tabs_total} />
-            <UsageBar label="Storage" used={status.usage.tree_bytes} cap={status.limits.max_tree_bytes} format={formatBytes} />
-            <UsageBar label="Version history" used={status.usage.snapshots} cap={status.limits.max_snapshots} tone="rolling" hint="Restore points kept. The oldest drop off automatically." />
-          </div>
-        )}
-      </SettingRow>
+    <SettingsSection title="Usage" icon={ChartNoAxesColumn} subtitle="How much of your plan you use.">
+      <SettingsList
+        label="Usage"
+        failed={failed ? { title: "Couldn't load usage.", says: "Check your connection, then try again.", onRetry: retryPlan } : undefined}
+        loading={!status ? { label: "Loading usage" } : undefined}
+      >
+        {status && <>
+          <UsageRow title="Tabs" says="Saved tabs across all your spaces." used={status.usage.total_tabs} cap={status.limits.max_tabs_total} format={n => n.toLocaleString()} />
+          <UsageRow title="Storage" says="The size of your saved workspace." used={status.usage.tree_bytes} cap={status.limits.max_tree_bytes} format={formatBytes} />
+          <UsageRow title="Version history" says="Restore points. The oldest drop off on their own." used={status.usage.snapshots} cap={status.limits.max_snapshots} format={n => n.toLocaleString()} tone="rolling" />
+        </>}
+      </SettingsList>
+    </SettingsSection>
+    </>
+  );
+}
+
+/**
+ * One usage figure (TASK-84): what is counted on the left, the bar on the right with its numbers right under it.
+ * An unlimited cap says "Unlimited" in the bar's place and "412 used" under it (TASK-84 u5).
+ */
+function UsageRow({ title, says, used, cap, format, tone }: { title: string; says: string; used: number; cap: number; format: (n: number) => string; tone?: 'quota' | 'rolling' }) {
+  const unlimited = cap === 0;
+  return <SettingsListRow title={title} meta={says} action={
+    <div className="flex w-32 flex-col gap-1.5 sm:w-40">
+      {/* "Unlimited" takes the bar's 6px line so the row keeps the same height and edges as a capped one. */}
+      {unlimited
+        ? <span className="text-right text-fg font-sans text-xs font-medium leading-[0.375rem]">Unlimited</span>
+        : <UsageMeter used={used} cap={cap} tone={tone} />}
+      <span className="text-right text-fg-subtle font-sans text-xs tabular-nums">{unlimited ? `${format(used)} used` : `${format(used)} / ${format(cap)}`}</span>
+    </div>
+  } />;
+}
+
+const PLAN_NAME: Record<string, string> = { free: "Free", plus: "Plus", pro: "Pro" };
+
+/**
+ * How long the plan lasts (TASK-84): one that renews shows its date (and the card it bills); one that will end
+ * counts down; a granted plan says it was granted, with its end or "No end date".
+ */
+function subscriptionLine(status: PlanStatus, billing: BillingStatus | null) {
+  if (status.granted) return `Granted · ${status.granted_until ? endsLine(status.granted_until) : 'No end date'}`;
+  if (!billing?.active) return '';
+  if (billing.status === 'cancelled' && billing.ends_at) return endsLine(billing.ends_at);
+  return (billing.renews_at ? `Renews ${formatDate(billing.renews_at)}` : 'Active subscription')
+    + (billing.card_brand && billing.card_last_four ? ` · ${billing.card_brand} •••• ${billing.card_last_four}` : '');
+}
+
+/** "Ends in 12 days · Dec 3, 2026", "Ends tomorrow · …" or "Ends today · …" for a plan that will not continue. */
+function endsLine(iso: string) {
+  const days = Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
+  const when = days <= 0 ? 'Ends today' : days === 1 ? 'Ends tomorrow' : `Ends in ${days} days`;
+  return `${when} · ${formatDate(iso)}`;
+}
+
+/** A plan's card: name, price, who it's for, its limits as aligned lines, then one full-width action. */
+function PlanCard({ name, price, who, active, limits, onUpgrade, upgrading }: {
+  name: string; price: string; who: string; active: boolean; limits?: PlanLimits;
+  onUpgrade?: () => void; upgrading?: boolean;
+}) {
+  const lines = limits ? [
+    ["Tabs", limits.max_tabs_total === 0 ? "Unlimited" : limits.max_tabs_total.toLocaleString()],
+    ["Storage", limits.max_tree_bytes === 0 ? "Unlimited" : formatBytes(limits.max_tree_bytes)],
+    ["History", limits.max_snapshots === 0 ? "Unlimited" : `${limits.max_snapshots} versions`],
+  ] : [];
+  return (
+    <div role="listitem" aria-label={active ? `${name}, current plan` : name} className="flex flex-col gap-3 rounded-lg bg-row" style={{ padding: "calc(var(--density-py-tab) * 1.75) var(--density-px-tab)" }}>
+      <div className="flex flex-col gap-1">
+        <div className="flex h-5 items-center text-fg font-sans text-sm">{name}</div>
+        <div className="flex items-baseline gap-0.5"><span className="text-fg font-sans text-xl font-semibold tabular-nums">{price}</span><span className="text-fg-subtle font-sans text-xs">/mo</span></div>
+      </div>
+      {/* Two lines tall, so every card's limits start on the same line. */}
+      <p className="min-h-[2.4375rem] text-fg-subtle font-sans text-xs leading-relaxed">{who}</p>
+      <dl className="flex flex-1 flex-col gap-1.5 border-t border-ink/[0.08] pt-3">
+        {lines.map(([k, v]) => (
+          <div key={k} className="flex justify-between gap-2 font-sans text-xs"><dt className="text-fg-subtle">{k}</dt><dd className="text-fg tabular-nums">{v}</dd></div>
+        ))}
+      </dl>
+      {onUpgrade ? <Button variant="default" size="sm" className="w-full" onClick={onUpgrade} disabled={upgrading}>{upgrading ? "Opening…" : `Upgrade to ${name}`}</Button>
+        : active ? <Button variant="ghost" size="sm" className="w-full" disabled>Current plan</Button>
+        : null}
     </div>
   );
 }
-
-/** One tier card in the Plan row: name, price, limits, and (if upgradable) a buy button. */
-function PlanCard({ name, price, active, limits, onUpgrade, upgrading }: {
-  name: string; price: string; active: boolean; limits?: PlanLimits;
-  onUpgrade?: () => void; upgrading?: boolean;
-}) {
-  return (
-    <Card className={`flex flex-col gap-0 ${active ? "border-[var(--accent)]/40 bg-[var(--accent)]/[0.06]" : ""}`}>
-      <CardHeader className="flex-row items-center gap-1.5 space-y-0 p-3.5 pb-2">
-        <CardTitle className="text-sm font-medium">{name}</CardTitle>
-        {active && <Badge variant="accent" size="sm" className="font-normal">Current</Badge>}
-      </CardHeader>
-      <CardContent className="flex flex-col gap-2 p-3.5 pt-0">
-        <span className="text-fg-subtle text-xs font-sans">{price}</span>
-        {limits && (
-          <div className="flex flex-col gap-1 text-[11px] font-sans text-fg-subtle">
-            <span>{limits.max_tabs_total === 0 ? "Unlimited tabs" : `${limits.max_tabs_total.toLocaleString()} tabs`}</span>
-            <span>{limits.max_tree_bytes === 0 ? "Unlimited storage" : formatBytes(limits.max_tree_bytes)}</span>
-            <span>{limits.max_snapshots === 0 ? "Unlimited history" : `${limits.max_snapshots} versions of history`}</span>
-          </div>
-        )}
-      </CardContent>
-      {onUpgrade && (
-        <CardFooter className="p-3.5 pt-0">
-          <Button variant={active ? "secondary" : "default"} size="sm" onClick={onUpgrade} disabled={upgrading} className="w-full">
-            {upgrading ? "Opening…" : `Upgrade to ${name}`}
-          </Button>
-        </CardFooter>
-      )}
-    </Card>
-  );
-}
-

@@ -154,9 +154,9 @@ function collect(): Probe[] {
 
 describe("contrast guard (TASK-68)", () => {
   it("measures every Badge variant in badge.tsx and every duplicate mark tone", () => {
-    expect(VARIANTS).toEqual(["default", "secondary", "destructive", "outline", "accent", "success", "warning"]);
+    expect(VARIANTS).toEqual(["default", "secondary", "outline", "accent", "success", "warning"]);
     probes = collect();
-    // 7 variants + 3 ribbons + 3 icons on 2 surfaces + 2 row states x (plain + Unsorted + 9 colours x 2 tints) cards.
+    // 6 variants + 3 ribbons + 3 icons on 2 surfaces + 2 row states x (plain + Unsorted + 9 colours x 2 tints) cards.
     expect(probes.length).toBe((VARIANTS.length + TONES.length * 2) * (2 + 2 * (2 + GROUP_COLORS.length * 2)));
   });
 

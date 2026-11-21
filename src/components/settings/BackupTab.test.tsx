@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render as rtlRender, screen, waitFor, within } from "@testing-library/react";
+import { TooltipProvider as TestTooltipProvider } from "~src/components/ui/tooltip";
+// Settings rows can carry an info tooltip; the app renders them under its root TooltipProvider.
+const render = (ui: Parameters<typeof rtlRender>[0], options?: Parameters<typeof rtlRender>[1]) => rtlRender(ui, { wrapper: TestTooltipProvider, ...options });
+
 import { BackupTab } from "./BackupTab";
 import * as yjs from "~src/lib/yjsDoc";
 import { useAuthStore } from "~src/store/useAuthStore";
@@ -45,16 +49,16 @@ describe("version history recovery", () => {
       snapshot, // an older server sends no kind
     ]);
     render(<BackupTab />);
-    expect(await screen.findByText("v44")).toBeInTheDocument();
+    expect(await screen.findByText(/^v44 ·/)).toBeInTheDocument();
     const labels = screen.getAllByText("Before resolving a conflict");
     expect(labels).toHaveLength(1);
-    expect(labels[0].parentElement!.parentElement).toHaveTextContent("v43"); // the badge sits on the version's title line
+    expect(labels[0].closest("[data-slot=settings-list-row]")).toHaveTextContent("v43"); // the badge sits on that version's row
   });
 
   it("renders populated history and previews the selected version without changing the workspace", async () => {
     const before = yjs.encodeState();
     render(<BackupTab />);
-    expect(await screen.findByText("v42")).toBeInTheDocument();
+    expect(await screen.findByText(/^v42 ·/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Preview" }));
     const preview = await screen.findByRole("dialog", { name: "Version v42" });
     expect(await within(preview).findByText("Archived workspace")).toBeInTheDocument();
@@ -296,7 +300,8 @@ describe("workspace import (TASK-12)", () => {
     vi.mocked(apiListSnapshots).mockResolvedValue([]); // the history section loads when signed in
     usePlanStore.setState({ status: { plan: "free", limits: { max_tabs_total: 1, max_tree_bytes: 0, max_snapshots: 0 }, usage: { total_tabs: 0, tree_bytes: 0, snapshots: 0 } } as never, load: async () => {} });
     upload("https://a.example/ | A\nhttps://b.example/ | B", "onetab.txt");
-    expect(await screen.findByRole("note")).toHaveTextContent("This puts you at 2 of 1 tabs. Sync pauses until you remove 1.");
+    const warning = await screen.findByText(/This puts you at 2 of 1 tabs/);
+    expect(warning.closest("[role=note]")).toHaveTextContent("This puts you at 2 of 1 tabs. Sync pauses until you remove 1.");
     usePlanStore.setState({ status: null });
   });
 });

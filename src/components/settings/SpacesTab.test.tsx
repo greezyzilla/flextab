@@ -1,5 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { act, render, screen, waitFor, within } from "@testing-library/react"
+import { act, render as rtlRender, screen, waitFor, within } from "@testing-library/react"
+import { TooltipProvider as TestTooltipProvider } from "~src/components/ui/tooltip"
+// jsdom has no ResizeObserver; tabbing onto an info mark opens its tooltip, whose Radix popper measures with it.
+// Scoped to this file: other suites rely on it being absent.
+if (typeof globalThis.ResizeObserver === "undefined") {
+  globalThis.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} } as unknown as typeof ResizeObserver
+}
+// Settings rows can carry an info tooltip; the app renders them under its root TooltipProvider.
+const render = (ui: Parameters<typeof rtlRender>[0], options?: Parameters<typeof rtlRender>[1]) => rtlRender(ui, { wrapper: TestTooltipProvider, ...options })
+
 import userEvent from "@testing-library/user-event"
 import { SpacesTab, spaceIdFromRoute } from "./SpacesTab"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
