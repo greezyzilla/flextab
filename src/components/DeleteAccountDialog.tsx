@@ -4,23 +4,18 @@ import { apiGetBillingStatus, ApiError, type BillingStatus } from "~src/services
 import { exportWorkspace } from "~src/services/exportWorkspace";
 import { navigate } from "~src/lib/route";
 import { Input } from "~src/components/ui/input";
-import { RadioGroup } from "~src/components/ui/radio-group";
-import { Modal, ModalBody, ModalField, ModalFooter, ModalHeader, ModalLink, ModalOptionCard } from "~src/components/ui/modal";
+import { Modal, ModalBody, ModalFooter, ModalHeader, ModalLink } from "~src/components/ui/modal";
 
 type LocalData = "keep" | "remove";
-
-const CHOICES: { id: LocalData; label: string; detail: string }[] = [
-  { id: "keep", label: "Keep tabs on this device", detail: "They stay here, local only." },
-  { id: "remove", label: "Remove tabs from this device too", detail: "Nothing of FlexTab stays on this computer." },
-];
 
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
 
 /**
- * Delete account (TASK-17). It can't be undone, so the dialog says what goes,
- * what paid time is lost, offers a download first, and asks for the account's
- * email (the server checks it too). Like sign-out, the tabs on this device
- * stay unless the person asks for them to go (local-first).
+ * Delete account (TASK-17). The person opening this has already decided, so it
+ * says one thing: type the email to delete it for good (the server checks the
+ * email too). Tabs on this device stay unless they tick the one option; only
+ * then is a backup offered. Paid time that ends is said only when there is any
+ * (TASK-84: title, one line, field, one tick, two buttons).
  */
 export function DeleteAccountDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const user = useAuthStore((s) => s.user);
@@ -64,7 +59,7 @@ export function DeleteAccountDialog({ open, onOpenChange }: { open: boolean; onO
   return (
     <Modal kind="alert" size="m" open={open} onOpenChange={(v) => { if (!busy) onOpenChange(v); }}>
       <ModalHeader title="Delete your account?"
-        description={<>This deletes your account and everything FlexTab stores for it: synced spaces, version history, shared links, devices and sign-ins. It can&apos;t be undone.</>} />
+        description={<>Type <span className="text-fg">{email}</span> to delete it for good.</>} />
       <ModalBody>
         {paidUntil && (
           <p role="note" className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-warning-body/90 text-xs leading-relaxed">
@@ -72,18 +67,15 @@ export function DeleteAccountDialog({ open, onOpenChange }: { open: boolean; onO
           </p>
         )}
 
-        <RadioGroup value={localData} onValueChange={(v) => setLocalData(v as LocalData)} aria-label="Tabs on this device" disabled={busy}>
-          {CHOICES.map((choice) => (
-            <ModalOptionCard key={choice.id} id={`delete-account-${choice.id}`} value={choice.id} selected={localData === choice.id}
-              title={choice.label} hint={choice.detail} danger={choice.id === "remove"} disabled={busy} />
-          ))}
-        </RadioGroup>
-
-        <ModalField htmlFor="confirm-account-email" label={<>Type <span className="text-fg">{email}</span> to confirm</>}>
+        <div className="mb-2 flex flex-col gap-3">
           {/* Enter may confirm here: the typed email is the safeguard (modal standard §8). */}
-          <Input id="confirm-account-email" type="email" placeholder="Type your email" value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" className="w-full" disabled={busy}
+          <Input id="confirm-account-email" type="email" aria-label={`Type ${email} to confirm`} value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" className="w-full" disabled={busy}
             onKeyDown={(e) => { if (e.key === "Enter") void confirm(); }} />
-        </ModalField>
+          <label className="flex items-center gap-2 text-sm text-fg-muted">
+            <input type="checkbox" className="m-0 shrink-0 accent-[var(--accent)]" checked={localData === "remove"} disabled={busy} onChange={(e) => setLocalData(e.target.checked ? "remove" : "keep")} />
+            Also remove tabs from this device
+          </label>
+        </div>
 
         {error && (
           <p role="alert" className="text-sm text-danger">
@@ -97,7 +89,7 @@ export function DeleteAccountDialog({ open, onOpenChange }: { open: boolean; onO
         )}
       </ModalBody>
       <ModalFooter
-        start={<ModalLink disabled={busy} onClick={() => exportWorkspace()}>Download your tabs first</ModalLink>}
+        start={localData === "remove" ? <ModalLink disabled={busy} onClick={() => exportWorkspace()}>Download backup</ModalLink> : undefined}
         cancelDisabled={busy}
         primary={{ label: busy ? "Deleting…" : "Delete account", tone: "destructive", disabled: !matches || busy, onClick: () => void confirm() }} />
     </Modal>

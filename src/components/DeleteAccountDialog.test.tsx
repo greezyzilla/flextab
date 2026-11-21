@@ -17,22 +17,22 @@ beforeEach(() => {
 })
 
 describe("DeleteAccountDialog (TASK-17)", () => {
-  it("deletes only after the account email is typed, keeping this device's tabs by default", async () => {
+  it("deletes only after the account email is typed, keeping this device's tabs by default (one line, field, one tick: TASK-84)", async () => {
     const onOpenChange = vi.fn()
     deleteAccount.mockResolvedValue(undefined)
     render(<DeleteAccountDialog open onOpenChange={onOpenChange} />)
-    expect(screen.getByRole("alertdialog")).toHaveTextContent("It can't be undone.")
+    expect(screen.getByRole("alertdialog")).toHaveAccessibleDescription("Type Me@Example.com to delete it for good.")
     const button = screen.getByRole("button", { name: "Delete account" })
     expect(button).toBeDisabled()
-    expect(screen.getByRole("radio", { name: /Keep tabs on this device/ })).toBeChecked()
-    // An instruction, never the email itself: that would read as already typed (TASK-36).
-    expect(screen.getByLabelText(/to confirm/)).toHaveAttribute("placeholder", "Type your email")
+    expect(screen.getByRole("checkbox", { name: "Also remove tabs from this device" })).not.toBeChecked()
+    // Never the email as a placeholder: that would read as already typed (TASK-36).
+    expect(screen.getByLabelText(/to confirm/)).not.toHaveAttribute("placeholder")
+    // A backup is offered only once local tabs would go.
+    expect(screen.queryByRole("button", { name: "Download backup" })).toBeNull()
     fireEvent.change(screen.getByLabelText(/to confirm/), { target: { value: "someone@else.com" } })
     expect(button).toBeDisabled()
     fireEvent.change(screen.getByLabelText(/to confirm/), { target: { value: " me@example.com " } })
     expect(button).toBeEnabled()
-    fireEvent.click(screen.getByRole("button", { name: "Download your tabs first" }))
-    expect(exportWorkspace).toHaveBeenCalled()
     fireEvent.click(button)
     await waitFor(() => expect(deleteAccount).toHaveBeenCalledWith("me@example.com", { localData: "keep" }))
     await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
@@ -45,7 +45,9 @@ describe("DeleteAccountDialog (TASK-17)", () => {
     const onOpenChange = vi.fn()
     render(<DeleteAccountDialog open onOpenChange={onOpenChange} />)
     expect(await screen.findByRole("note")).toHaveTextContent(/until .* ends now\. Paid time isn't refunded\./)
-    fireEvent.click(screen.getByRole("radio", { name: /Remove tabs from this device too/ }))
+    fireEvent.click(screen.getByRole("checkbox", { name: "Also remove tabs from this device" }))
+    fireEvent.click(screen.getByRole("button", { name: "Download backup" }))
+    expect(exportWorkspace).toHaveBeenCalled()
     fireEvent.change(screen.getByLabelText(/to confirm/), { target: { value: "me@example.com" } })
     fireEvent.keyDown(screen.getByLabelText(/to confirm/), { key: "Enter" })
     expect(await screen.findByRole("alert")).toHaveTextContent("Cancel it first")

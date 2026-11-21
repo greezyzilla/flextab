@@ -294,11 +294,8 @@ export function SettingRow({ label, description, info, children }: {
     <div
       className={tile
         // 16rem input column; a row of fitted choices wider than that widens it instead of wrapping (TASK-84).
-        // A field in a tile keeps only its border (TASK-84 layers, draft A): the tile is already a surface, so a
-        // filled field would be a fourth layer between the page and what the user types. Without the fill the
-        // edge carries the field, so it is ink/25 (1.69:1 light, 2.26:1 dark; user picked it over 10 and 40):
-        // still below focus (ink/50) and the invalid red, whose selectors outrank this one.
-        ? "flex flex-col gap-3 rounded-lg bg-row [&_input]:bg-transparent [&_input]:border-ink/25 md:grid md:grid-cols-[minmax(0,1fr)_minmax(16rem,max-content)] md:items-center md:gap-x-6"
+        // A field here is the one field look (ui/input: no fill, ink/25 edge), so it adds no layer to the tile.
+        ? "flex flex-col gap-3 rounded-lg bg-row md:grid md:grid-cols-[minmax(0,1fr)_minmax(16rem,max-content)] md:items-center md:gap-x-6"
         : "flex flex-col gap-3 py-4 md:grid md:grid-cols-[minmax(0,1fr)_22rem] md:items-center md:gap-x-6"}
       // A tile: the tab row's padding, 14px top and bottom (py-tab x 1.75, spacing s2).
       style={tile ? { padding: TILE_PADDING } : undefined}>

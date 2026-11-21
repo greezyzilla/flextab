@@ -8,9 +8,9 @@ import { Button } from "~src/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~src/components/ui/tabs";
 import { Input } from "~src/components/ui/input";
 import { SpaceAvatar } from "~src/components/levelIcons";
-import { Modal, ModalBody, ModalField, ModalFooter, ModalHeader } from "~src/components/ui/modal";
+import { Modal, ModalBody, ModalFooter, ModalHeader } from "~src/components/ui/modal";
 import type { SavedSpace } from "~src/types";
-import { SettingRow, SettingsSection } from "./shared";
+import { SettingRow, SettingsPage, SettingsSection } from "./shared";
 import { SETTINGS_ROUTE } from "./types";
 
 export const SPACE_COLORS = [
@@ -114,7 +114,8 @@ function SpaceForm({ space, index, count }: { space: SavedSpace; index: number; 
   const color = space.color ?? "";
 
   return (
-    <div className="flex flex-col gap-12" aria-label={`${space.name} settings`} role="group">
+    <div aria-label={`${space.name} settings`} role="group">
+      <SettingsPage>
       <SettingsSection title="Details" icon={SlidersHorizontal} subtitle="Name, letters, colour and order of this space.">
       <SettingRow label="Name" description="Shown on the rail and across your workspace.">
         {(controlProps) => (
@@ -157,6 +158,7 @@ function SpaceForm({ space, index, count }: { space: SavedSpace; index: number; 
       )}
       </SettingsSection>
       <DangerZone space={space} />
+      </SettingsPage>
     </div>
   );
 }
@@ -172,7 +174,6 @@ function DeleteSpaceDialog({ space, open, onOpenChange }: { space: SavedSpace; o
   const { removeSavedSpace, addSavedSpace, setActiveSpace } = useSavedSpacesStore();
   const [typed, setTyped] = useState("");
   useEffect(() => { if (open) setTyped(""); }, [open]);
-  const { projects, tabs } = countOf(space);
   const matches = typed.trim() === space.name.trim();
 
   const remove = () => {
@@ -188,14 +189,14 @@ function DeleteSpaceDialog({ space, open, onOpenChange }: { space: SavedSpace; o
 
   return (
     <Modal kind="alert" size="s" open={open} onOpenChange={onOpenChange}>
+      {/* One line (TASK-84): the instruction is the description. What goes is already on the page's
+          row, and Undo stays, so the dialog does not repeat it. */}
       <ModalHeader title={`Delete “${space.name}”?`}
-        description={`This removes ${plural(projects, "project")} and ${plural(tabs, "tab")} in this space, on every synced device.`} />
+        description={<>Type <span className="text-fg">{space.name}</span> to delete it.</>} />
       <ModalBody>
-        <ModalField htmlFor="confirm-space-name" label={<>Type <span className="text-fg">{space.name}</span> to confirm</>}>
-          {/* Enter may confirm here: the typed name is the safeguard (modal standard §8). */}
-          <Input id="confirm-space-name" placeholder="Type it exactly as shown" value={typed} onChange={e => setTyped(e.target.value)} autoComplete="off" className="w-full"
-            onKeyDown={e => { if (e.key === "Enter" && matches) remove(); }} />
-        </ModalField>
+        {/* Enter may confirm here: the typed name is the safeguard (modal standard §8). */}
+        <Input id="confirm-space-name" aria-label={`Type ${space.name} to confirm`} value={typed} onChange={e => setTyped(e.target.value)} autoComplete="off" className="mb-2 w-full"
+          onKeyDown={e => { if (e.key === "Enter" && matches) remove(); }} />
       </ModalBody>
       <ModalFooter primary={{ label: "Delete space", tone: "destructive", disabled: !matches, onClick: remove }} />
     </Modal>

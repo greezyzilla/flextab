@@ -6,20 +6,22 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "~src/lib/utils"
 
 /**
- * The one field box (TASK-57), taken from the approved header search field:
- * a faint fill and a 1px ink/10 edge, 6px radius, no shadow. Its resting edge
- * stays below 3:1 on purpose: every field is identified by something else, a
+ * The one field box (TASK-57; TASK-84 made it one look everywhere): no fill and a
+ * 1px ink/25 edge, 6px radius, no shadow. Without a fill a field never adds a
+ * layer to the surface it sits on (a Settings tile, a dialog, the header), and
+ * the edge alone carries it. Its resting edge (1.69:1 light, 2.26:1 dark) stays
+ * below 3:1 on purpose: every field is identified by something else, a
  * visible label, a leading search icon (SearchField), or it only exists while
  * focused (inline create/rename), which WCAG 1.4.11 accepts. Focus firms the
  * edge to ink/50 (3.4:1 light, 5.8:1 dark): one neutral focus for every field,
  * never the accent. An invalid field (aria-invalid) takes the danger edge.
  */
-const fieldFrame = "rounded-md border border-ink/10 bg-ink/5 transition-colors"
+const fieldFrame = "rounded-md border border-ink/25 bg-transparent transition-colors"
 
 const inputVariants = cva("flex w-full font-sans outline-none disabled:cursor-not-allowed disabled:opacity-50", {
   variants: {
     variant: {
-      // Form field (TASK-57): the approved header search look for every field.
+      // Form field (TASK-57, TASK-84): the one field look for every field.
       default: `h-9 px-3 py-1 text-sm text-fg placeholder:text-fg-subtle ${fieldFrame} focus-visible:border-ink/50 aria-[invalid=true]:border-danger`,
       // The same field at the popup panel's size (44px, 15px text, like
       // SearchField "panel"), for a page's one main field (TASK-98 clean slate).

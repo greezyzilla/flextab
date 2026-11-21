@@ -106,13 +106,20 @@ There is one title size for both kinds (R1). `<Label>` is never used as option t
 
 - Right-aligned, in the order **[Cancel] [Primary]**. At most one primary (S3).
 - All footer buttons are size `default` (h36, 14px), in both kinds (R3).
-- **Cancel** is the `secondary` variant everywhere (R4).
+- **Cancel** is the `secondary` variant everywhere (R4), except in a `quiet` footer (below).
 - **Primary** is `default` (accent), or `destructive` when it deletes, removes or replaces. A
   destructive primary also leads with a warning icon (`TriangleAlert`), so a primary that changes
   tone with the choice still shows the change when the accent hue is red (TASK-49). The page
   control that opens a destructive flow ("Delete space…") is the `danger` variant (red text on a
   red tint), not a red fill.
-- Every red in a modal (destructive primary, a destructive option card, an inline error) follows
+- **Quiet footer** (`ModalFooter quiet`) for a step that leaves rather than goes ahead (Sign out,
+  TASK-84): the primary is `secondary` (neutral) instead of the accent, Cancel is `ghost` so the two
+  neutral buttons differ by shape, and the primary holds one width (`min-w-28`) so Cancel never
+  moves when the primary turns destructive.
+- A typed confirmation is one line: the description is the instruction ("Type <name> to delete
+  it.") and the field has no visible label or placeholder of its own, only an `aria-label`
+  (TASK-84 KISS: no line that only explains another line).
+- Every red in a modal (destructive primary, an inline error) follows
   `docs/danger-standard.md`.
 - The footer-start action is `link` styled, with its underline visible at rest. It must not read as
   a heading.
@@ -173,14 +180,14 @@ Gates:
 | Import | dialog | M | "Add N tabs" / "Replace workspace" (destructive) | selected radio | description is what the file holds, not its name |
 | Version preview | dialog | M | "Restore version" | Close X | the same workspace tree as the sign-in choice (`WorkspaceTree`), in its own bounded box; Cancel added |
 | Restore version? | alert | S | "Restore version" | Cancel | body at most 2 sentences; footer start "Export JSON" |
-| Sign out of FlexTab? | alert | M | "Sign out" / "Sign out and remove tabs" (destructive) | Cancel | footer becomes a row; "Download backup" moves to footer start |
-| Delete your account? | alert | M | "Delete account" (destructive) | email field | "Download your tabs first" moves to footer start |
+| Sign out of FlexTab? | alert | M | "Sign out", quiet footer; destructive (same label) when Remove is chosen | Cancel | one line + Keep / Remove; consent tick only when changes have not synced; "Download backup" at footer start only for Remove (TASK-84) |
+| Delete your account? | alert | M | "Delete account" (destructive) | email field | "Type <email> to delete it for good." + field + one tick "Also remove tabs from this device"; "Download backup" only when ticked (TASK-84) |
 | Save all tabs | dialog | M | "Save N tabs" | destination search | option text at 14px; drop the "This window (0 tabs)" choice when it is empty (TASK-42) |
 | Save window as a group (was "Save Session") | dialog | M | "Save group" | name field | drop the duplicate destination line |
 | Move tab / Move group / Save tab | dialog | M | "Move tab" / "Move group" / "Save tab" | search field | none beyond the primitive; picker keeps its own box |
 | Delete group? | alert | S | "Delete group" (destructive) | Cancel | none beyond the primitive |
 | Delete project? / Delete category? | alert | S | "Delete project" / "Delete category" (destructive) | Cancel | specific label |
-| Delete "Work"? (space) | alert | S | "Delete space" (destructive) | name field | none beyond the primitive |
+| Delete "Work"? (space) | alert | S | "Delete space" (destructive) | name field | "Type <name> to delete it." + field; what goes is on the page row and Undo stays (TASK-84) |
 | Keyboard shortcuts | dialog, passive | M | none | the dialog itself (`initialFocus="dialog"`): nothing is highlighted before use | description at 14px |
 | Your plan syncs up to N tabs | alert | S | "Got it" | primary | "See plan" moves to footer start |
 | Sign in / turn on sync (TASK-79) | dialog | L | "Continue with Google" | primary (Google, the fastest path, ahead of the email field) | two panes with no footer: the offer (title, the person's own counts, trust) on the accent side, the actions on the other; the action pane turns into waiting, tab-closed and done in place. Click outside closes unless a field was edited |

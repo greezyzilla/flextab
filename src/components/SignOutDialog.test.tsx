@@ -44,6 +44,8 @@ afterEach(() => {
 
 function open() { render(<SignOutDialog open onOpenChange={change} />); }
 const chooseRemove = () => fireEvent.click(screen.getByRole("radio", { name: /Remove tabs from this device/ }));
+const confirmButton = () => screen.getByRole("button", { name: "Sign out" });
+const unsynced = () => useSyncStore.setState({ dirty: true });
 
 describe("safe sign-out choice", () => {
   it("keeps this device's tabs by default and signs out in one step", async () => {
@@ -58,11 +60,13 @@ describe("safe sign-out choice", () => {
     useSyncStore.setState({ dirty: true, conflictPending: state === "conflict", status: state === "conflict" ? "paused" : state as any });
     const before = encodeState();
     open();
-    // Keeping is safe: unsynced work stays and syncs after the next sign-in.
-    expect(screen.getByRole("alertdialog")).toHaveTextContent("stay on this device and sync when you sign in again");
+    // Keeping is safe: unsynced work stays and syncs after the next sign-in. Removing says what it loses
+    // on its own option and asks for consent before the (now destructive) Sign out works.
+    expect(screen.getByRole("radio", { name: /Remove tabs from this device/ })).toHaveAccessibleName(/Changes not synced yet are lost too/);
     chooseRemove();
-    expect(screen.getByRole("alertdialog")).toHaveTextContent("unsynced changes or an unresolved conflict");
-    expect(screen.getByRole("button", { name: "Sign out and remove tabs" })).toBeDisabled();
+    expect(screen.getByRole("checkbox", { name: "Lose the changes not synced yet" })).not.toBeChecked();
+    expect(confirmButton()).toHaveAttribute("data-modal-tone", "destructive");
+    expect(confirmButton()).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(change).toHaveBeenCalledWith(false);
     expect(logout).not.toHaveBeenCalled();
@@ -76,7 +80,6 @@ describe("safe sign-out choice", () => {
     fireEvent.click(screen.getByRole("button", { name: "Download backup" }));
     expect(logout).not.toHaveBeenCalled();
     expect(screen.getByRole("status")).toHaveTextContent("Check that the JSON file was saved");
-    expect(screen.getByRole("button", { name: "Sign out and remove tabs" })).toBeDisabled();
     const content = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result as string);
@@ -88,6 +91,7 @@ describe("safe sign-out choice", () => {
   });
 
   it("keeps the workspace and clears destructive consent after export failure", () => {
+    unsynced();
     open();
     chooseRemove();
     fireEvent.click(screen.getByRole("checkbox"));
@@ -99,18 +103,38 @@ describe("safe sign-out choice", () => {
     expect(getSpaces()[0].name).toBe("Unsynced work");
   });
 
-  it("requires explicit consent to remove, even when the sync indicator appears clean", async () => {
+  it("removes synced tabs without a consent box: the choice and the red Sign out are the confirmation (TASK-84)", async () => {
     open();
     chooseRemove();
-    const button = screen.getByRole("button", { name: "Sign out and remove tabs" });
-    expect(button).toBeDisabled();
-    fireEvent.click(screen.getByRole("checkbox"));
-    fireEvent.click(button);
+    expect(screen.queryByRole("checkbox")).toBeNull();
+    expect(confirmButton()).toHaveAttribute("data-modal-tone", "destructive");
+    fireEvent.click(confirmButton());
     await waitFor(() => expect(change).toHaveBeenCalledWith(false));
     expect(logout).toHaveBeenCalledExactlyOnceWith({ localData: "remove" });
   });
 
+  it("requires explicit consent to remove when changes have not synced", async () => {
+    unsynced();
+    open();
+    chooseRemove();
+    expect(confirmButton()).toBeDisabled();
+    fireEvent.click(screen.getByRole("checkbox"));
+    fireEvent.click(confirmButton());
+    await waitFor(() => expect(change).toHaveBeenCalledWith(false));
+    expect(logout).toHaveBeenCalledExactlyOnceWith({ localData: "remove" });
+  });
+
+  it("keeps Sign out quiet and Cancel in one place whichever choice is made (TASK-84)", () => {
+    open();
+    expect(confirmButton()).toHaveAttribute("data-modal-tone", "primary");
+    expect(confirmButton()).toHaveClass("min-w-28");
+    expect(confirmButton().className).not.toMatch(/accent-fill/);
+    chooseRemove();
+    expect(confirmButton()).toHaveClass("min-w-28");
+  });
+
   it("goes back to keeping, with fresh consent, when the dialog is reopened", () => {
+    unsynced();
     const { rerender } = render(<SignOutDialog open onOpenChange={change} />);
     chooseRemove();
     fireEvent.click(screen.getByRole("checkbox"));
@@ -119,7 +143,7 @@ describe("safe sign-out choice", () => {
     expect(screen.getByRole("radio", { name: /Keep tabs on this device/ })).toBeChecked();
     chooseRemove();
     expect(screen.getByRole("checkbox")).not.toBeChecked();
-    expect(screen.getByRole("button", { name: "Sign out and remove tabs" })).toBeDisabled();
+    expect(confirmButton()).toBeDisabled();
   });
 
   it("keeps the dialog open and reports a failed logout", async () => {

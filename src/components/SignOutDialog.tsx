@@ -3,19 +3,21 @@ import { useAuthStore } from "~src/store/useAuthStore";
 import { useSyncStore } from "~src/store/useSyncStore";
 import { exportWorkspace } from "~src/services/exportWorkspace";
 import { RadioGroup } from "~src/components/ui/radio-group";
-import { Modal, ModalBody, ModalFooter, ModalGroup, ModalHeader, ModalLink, ModalNote, ModalOptionCard } from "~src/components/ui/modal";
+import { Modal, ModalBody, ModalFooter, ModalGroup, ModalHeader, ModalLink, ModalOptionCard } from "~src/components/ui/modal";
 
 type LocalData = "keep" | "remove";
 
 const CHOICES: { id: LocalData; label: string; detail: string }[] = [
-  { id: "keep", label: "Keep tabs on this device", detail: "They stay here, local only. Sign in again to sync them." },
-  { id: "remove", label: "Remove tabs from this device", detail: "For a shared computer. Your account keeps what already synced." },
+  { id: "keep", label: "Keep tabs on this device", detail: "They sync again when you sign in." },
+  { id: "remove", label: "Remove tabs from this device", detail: "For a shared computer." },
 ];
 
 /**
  * Sign out (TASK-7). The workspace is local-first, so signing out keeps this
  * device's tabs by default; removing them is a deliberate second choice that
- * keeps the old safeguards (backup download + explicit confirmation).
+ * keeps the backup download, and asks for explicit consent only when changes
+ * that never reached the account would be lost (TASK-84: one line, two choices,
+ * two buttons; the confirm carries the danger).
  */
 export function SignOutDialog({ open, onOpenChange }: {
   open: boolean;
@@ -35,6 +37,8 @@ export function SignOutDialog({ open, onOpenChange }: {
 
   const unsynced = dirty || conflictPending || status === "offline" || status === "error" || status === "syncing";
   const removing = localData === "remove";
+  // Consent only when something that is not on the account would be lost.
+  const needsConsent = removing && unsynced;
 
   const download = () => {
     try {
@@ -49,7 +53,7 @@ export function SignOutDialog({ open, onOpenChange }: {
   };
 
   const confirm = async () => {
-    if ((removing && !confirmed) || busy) return;
+    if ((needsConsent && !confirmed) || busy) return;
     setBusy(true);
     setError("");
     try {
@@ -63,38 +67,36 @@ export function SignOutDialog({ open, onOpenChange }: {
   return (
     <Modal kind="alert" size="m" open={open} onOpenChange={value => { if (!busy) onOpenChange(value); }}>
       <ModalHeader title="Sign out of FlexTab?"
-        description="Your account keeps everything that already synced. Choose what happens to the tabs on this device." />
+        description="Your account keeps what already synced." />
       <ModalBody>
         <RadioGroup value={localData} onValueChange={v => { setLocalData(v as LocalData); setConfirmed(false); }} disabled={busy}>
           {CHOICES.map(choice => (
             <ModalOptionCard key={choice.id} id={`signout-${choice.id}`} value={choice.id} selected={localData === choice.id}
-              title={choice.label} hint={choice.detail} danger={choice.id === "remove"} disabled={busy} />
+              title={choice.label}
+              hint={choice.id === "remove" && unsynced ? <span className="text-warning">Changes not synced yet are lost too.</span> : choice.detail} disabled={busy} />
           ))}
         </RadioGroup>
-        {removing && (
+        {removing && (notice || needsConsent) && (
           <ModalGroup>
-            {unsynced && (
-              <p className="text-sm text-warning">Your workspace may contain unsynced changes or an unresolved conflict. Download a backup first, or cancel to finish syncing.</p>
-            )}
             {notice && <p role="status" className="text-xs text-fg-muted">{notice}</p>}
-            <label className="flex items-start gap-2 text-sm text-fg-muted">
-              <input type="checkbox" checked={confirmed} disabled={busy} onChange={e => setConfirmed(e.target.checked)} />
-              I understand that unsynced local changes will be deleted.
-            </label>
+            {needsConsent && (
+              <label className="flex items-center gap-2 text-sm text-fg-muted">
+                <input type="checkbox" className="m-0 shrink-0 accent-[var(--accent)]" checked={confirmed} disabled={busy} onChange={e => setConfirmed(e.target.checked)} />
+                Lose the changes not synced yet
+              </label>
+            )}
           </ModalGroup>
-        )}
-        {!removing && unsynced && (
-          <ModalNote>Changes that have not synced stay on this device and sync when you sign in again.</ModalNote>
         )}
         {error && <p role="alert" className="text-sm text-danger">{error}</p>}
       </ModalBody>
       <ModalFooter
+        quiet
         start={removing ? <ModalLink disabled={busy} onClick={download}>Download backup</ModalLink> : undefined}
         cancelDisabled={busy}
         primary={{
-          label: busy ? "Signing out…" : removing ? "Sign out and remove tabs" : "Sign out",
+          label: busy ? "Signing out…" : "Sign out",
           tone: removing ? "destructive" : "primary",
-          disabled: (removing && !confirmed) || busy,
+          disabled: (needsConsent && !confirmed) || busy,
           onClick: () => void confirm(),
         }} />
     </Modal>

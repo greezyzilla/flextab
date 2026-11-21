@@ -74,8 +74,7 @@ export function SyncConflictModal() {
         <RadioGroup value={choice} onValueChange={(v) => setChoice(v as Choice)} aria-label="What to keep">
           {opts.map((opt) => (
             <ModalOptionCard key={opt.id} id={`sync-choice-${opt.id}`} value={opt.id} selected={choice === opt.id}
-              title={opt.label} aside={opt.effect}
-              danger={opt.id === "server" || (opt.id === "local" && !accountEmpty)} />
+              title={opt.label} aside={opt.effect} />
           ))}
         </RadioGroup>
         {overCap && (

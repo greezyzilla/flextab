@@ -63,7 +63,7 @@ export function ImportDialog({ parsed, onClose, onDone }: {
   const groups = countGroups(parsed.spaces)
   const where = parsed.spaces.length > 1 ? `in ${plural(groups, "group")} across ${plural(parsed.spaces.length, "space")}` : `in ${plural(groups, "group")}`
   const option = (value: Mode, title: string, detail: string) => (
-    <ModalOptionCard id={`import-${value}`} value={value} selected={mode === value} title={title} hint={detail} danger={value === "replace"} />
+    <ModalOptionCard id={`import-${value}`} value={value} selected={mode === value} title={title} hint={detail} />
   )
 
   // Focus opens on the chosen option, never on the primary: with Replace

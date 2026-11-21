@@ -47,8 +47,9 @@ describe("settings standard", () => {
     expect(read("shared.tsx")).toContain("md:grid-cols-[minmax(0,1fr)_minmax(16rem,max-content)]")
   })
 
-  it("gives a field in a tile only its ink/25 edge, no fill (rule 7)", () => {
-    expect(read("shared.tsx")).toMatch(/\[&_input\]:bg-transparent \[&_input\]:border-ink\/25/)
+  it("gives every field one look, no fill and an ink/25 edge, with no tile override (rule 7)", () => {
+    expect(readFileSync(join(DIR, "..", "ui", "input.tsx"), "utf8")).toContain('const fieldFrame = "rounded-md border border-ink/25 bg-transparent transition-colors"')
+    expect(read("shared.tsx")).not.toMatch(/\[&_input\]:/)
   })
 
   it("draws the dropdown trigger as the choice button (rule 5)", () => {

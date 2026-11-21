@@ -54,9 +54,9 @@ tile gap `--density-gap-group` x 5/3, tile padding `--density-py-tab` x 1.75 by
 6. Option icons: on every option of a group or on none, and only when the icon
    shows the outcome (Mode, Group layout, Mark, Duplicate colour, Ribbon corner,
    Full title and link). Never decoration.
-7. A field inside a tile has no fill and an ink/25 edge at rest; focus (ink/50)
-   and the invalid red keep their own edge. The tile is already a surface, so a
-   filled field would be a fourth layer.
+7. Every field in the app has one look (`ui/input`): no fill and an ink/25 edge
+   at rest; focus (ink/50) and the invalid red keep their own edge. A field never
+   adds a layer to the surface it sits on, so a tile needs no override.
 8. Row actions (Export, Import, Sign out, Reset, Link, Unlink, Preview, Restore,
    Manage billing, Move up/down, Try again) are ghost buttons. Exceptions with a
    reason: Save beside a text field (secondary, commits what was typed), Upgrade

@@ -161,13 +161,14 @@ describe("Modal (TASK-43)", () => {
     expect(modalFocusTarget(root, "auto", "dialog")?.textContent).toBe("r")
   })
 
-  it("option cards mark the chosen one, red when the choice destroys", () => {
+  it("option cards mark the chosen one in the accent, a destroying choice too (the destructive primary carries the red)", () => {
     render(<Harness body={<ModalGroup label="Choices"><RadioGroup value="b">
       <ModalOptionCard id="oa" value="a" selected={false} title="Add" hint="Beside yours." />
-      <ModalOptionCard id="ob" value="b" selected danger title="Replace" hint="Removes yours." aside="5 tabs" />
+      <ModalOptionCard id="ob" value="b" selected title="Replace" hint="Removes yours." aside="5 tabs" />
     </RadioGroup><ModalNote>Small print.</ModalNote></ModalGroup>} />)
-    expect(screen.getByText("Replace").closest("label")!.className).toMatch(/border-danger/)
-    expect(screen.getByText("Add").closest("label")!.className).not.toMatch(/accent-subtle|border-danger/)
+    expect(screen.getByText("Replace").closest("label")!.className).toMatch(/accent-subtle/)
+    expect(screen.getByText("Replace").closest("label")!.className).not.toMatch(/danger/)
+    expect(screen.getByText("Add").closest("label")!.className).not.toMatch(/accent-subtle/)
     expect(screen.getByRole("group", { name: "Choices" })).toBeInTheDocument()
     expect(screen.getByText("Small print.")).toBeInTheDocument()
     expect(screen.getByText("5 tabs")).toBeInTheDocument()

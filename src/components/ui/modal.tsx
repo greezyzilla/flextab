@@ -191,11 +191,17 @@ export type ModalPrimary = {
  * Footer (§7): [start] … [Cancel] [Primary]. Cancel closes; the primary never closes by itself,
  * the caller decides (it may validate or wait).
  */
-export function ModalFooter({ start, cancel = "Cancel", cancelDisabled, primary }: {
+export function ModalFooter({ start, cancel = "Cancel", cancelDisabled, primary, quiet = false }: {
   start?: React.ReactNode
   cancel?: React.ReactNode | false
   cancelDisabled?: boolean
   primary?: ModalPrimary
+  /**
+   * For a step that leaves rather than goes ahead (Sign out, TASK-84): the primary is neutral, not the
+   * accent, Cancel is ghost so the two neutral buttons differ by shape, and the primary keeps one width
+   * when it turns destructive, so Cancel never moves.
+   */
+  quiet?: boolean
 }) {
   const { kind, dismissible } = React.useContext(ModalContext)
   const CancelPrimitive = kind === "alert" ? AlertDialogPrimitive.Cancel : DialogPrimitive.Close
@@ -204,11 +210,12 @@ export function ModalFooter({ start, cancel = "Cancel", cancelDisabled, primary 
       {start && <div className="mr-auto flex min-w-0 items-center text-xs text-fg-subtle">{start}</div>}
       {cancel !== false && dismissible && (
         <CancelPrimitive asChild>
-          <Button type="button" variant="secondary" data-modal-cancel disabled={cancelDisabled}>{cancel}</Button>
+          <Button type="button" variant={quiet ? "ghost" : "secondary"} data-modal-cancel disabled={cancelDisabled}>{cancel}</Button>
         </CancelPrimitive>
       )}
       {primary && (
-        <Button type="button" variant={primary.tone === "destructive" ? "destructive" : "default"}
+        <Button type="button" variant={primary.tone === "destructive" ? "destructive" : quiet ? "secondary" : "default"}
+          className={quiet ? "min-w-28" : undefined}
           data-modal-primary data-modal-tone={primary.tone ?? "primary"} disabled={primary.disabled} onClick={primary.onClick}>
           {/* A primary that turns destructive gains an icon, so the change shows even
               when the accent is red like the destructive fill (TASK-49). */}
@@ -241,19 +248,22 @@ export function ModalRadio({ id, value, children, count, disabled }: {
   )
 }
 
-/** A radio choice with a sentence of explanation, drawn as a card (§6). A destructive choice turns red once chosen. */
-export function ModalOptionCard({ id, value, selected, title, hint, danger, aside, disabled }: {
+/**
+ * A radio choice with a sentence of explanation, drawn as a card (§6). The chosen one is always the
+ * accent, a destroying choice included: its label says what it removes and the destructive primary
+ * carries the red (danger-standard §3). A second red on the card told no one anything new (TASK-84).
+ */
+export function ModalOptionCard({ id, value, selected, title, hint, aside, disabled }: {
   id: string; value: string; selected: boolean; title: React.ReactNode; hint?: React.ReactNode
-  danger?: boolean; aside?: React.ReactNode; disabled?: boolean
+  aside?: React.ReactNode; disabled?: boolean
 }) {
   return (
     <Label htmlFor={id}
       className={cn(
         "flex cursor-pointer items-start gap-2.5 rounded-lg border px-4 py-2.5 transition-colors",
-        selected ? (danger ? "border-danger/70 bg-danger/10" : "border-[var(--accent)] bg-[var(--accent-subtle)]") : "border-ink/10 hover:bg-ink/[0.03]",
+        selected ? "border-[var(--accent)] bg-[var(--accent-subtle)]" : "border-ink/10 hover:bg-ink/[0.03]",
       )}>
-      {/* A destructive choice's radio is red too (danger-standard §3), so a chosen one never mixes the accent into the red card. */}
-      <RadioGroupItem value={value} id={id} className={cn("mt-0.5", danger && "text-danger data-[state=checked]:border-danger")} disabled={disabled} />
+      <RadioGroupItem value={value} id={id} className="mt-0.5" disabled={disabled} />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="text-sm leading-5 text-fg">{title}</span>
         {hint && <span className="text-xs leading-4 text-fg-subtle">{hint}</span>}

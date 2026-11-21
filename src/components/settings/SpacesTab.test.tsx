@@ -108,8 +108,9 @@ describe("Settings › Spaces", () => {
     await user.click(screen.getByRole("button", { name: "Delete space…" }))
     const confirm = screen.getByRole("button", { name: "Delete space" })
     expect(confirm).toBeDisabled()
-    // The match is exact, so the placeholder says so; never the name itself (TASK-36).
-    expect(screen.getByLabelText(/to confirm/)).toHaveAttribute("placeholder", "Type it exactly as shown")
+    // One line carries the instruction (TASK-84); the field never shows the name itself (TASK-36).
+    expect(screen.getByRole("alertdialog")).toHaveAccessibleDescription("Type Home to delete it.")
+    expect(screen.getByLabelText(/to confirm/)).not.toHaveAttribute("placeholder")
     await user.type(screen.getByLabelText(/to confirm/), "Hom")
     expect(confirm).toBeDisabled()
     await user.type(screen.getByLabelText(/to confirm/), "e")

@@ -6,7 +6,7 @@ describe("text field spec (TASK-57)", () => {
   it("a form field draws the approved search look with one neutral focus and an invalid edge", () => {
     render(<Input aria-label="Name" />)
     const field = screen.getByRole("textbox", { name: "Name" })
-    expect(field).toHaveClass("h-9", "rounded-md", "border-ink/10", "bg-ink/5", "focus-visible:border-ink/50", "aria-[invalid=true]:border-danger")
+    expect(field).toHaveClass("h-9", "rounded-md", "border-ink/25", "bg-transparent", "focus-visible:border-ink/50", "aria-[invalid=true]:border-danger")
     expect(field.className).not.toMatch(/accent|shadow-sm|border-input/)
   })
 
@@ -14,7 +14,7 @@ describe("text field spec (TASK-57)", () => {
     render(<SearchField aria-label="Find a space" trailing={<button type="button">Clear</button>} />)
     const input = screen.getByRole("textbox", { name: "Find a space" })
     const box = input.closest("[data-search-field]") as HTMLElement
-    expect(box).toHaveClass("h-9", "rounded-md", "border-ink/10", "bg-ink/5", "focus-within:border-ink/50", "has-[[aria-invalid=true]]:border-danger")
+    expect(box).toHaveClass("h-9", "rounded-md", "border-ink/25", "bg-transparent", "focus-within:border-ink/50", "has-[[aria-invalid=true]]:border-danger")
     expect(box.querySelector("svg[aria-hidden]")).not.toBeNull()
     expect(input).toHaveClass("border-0", "bg-transparent")
     expect(screen.getByRole("button", { name: "Clear" }).parentElement).toBe(box)
@@ -34,7 +34,7 @@ describe("text field spec (TASK-57)", () => {
     const { container } = render(<><label htmlFor="pw">Password</label><PasswordField id="pw" /></>)
     const input = container.querySelector("#pw") as HTMLInputElement
     expect(input.type).toBe("password")
-    expect(input.closest("[data-password-field]")).toHaveClass("h-9", "border-ink/10", "bg-ink/5", "focus-within:border-ink/50")
+    expect(input.closest("[data-password-field]")).toHaveClass("h-9", "border-ink/25", "bg-transparent", "focus-within:border-ink/50")
     fireEvent.click(screen.getByRole("button", { name: "Show password" }))
     expect(input.type).toBe("text")
     fireEvent.click(screen.getByRole("button", { name: "Hide password" }))
