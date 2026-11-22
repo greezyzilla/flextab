@@ -61,12 +61,11 @@ export function ShortcutsDialog() {
 
             <section aria-labelledby="shortcuts-chrome" className="flex flex-col gap-1">
               {/* "Change" sits on its section's heading, so it is clear what it changes. */}
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between text-xs">
                 <h3 id="shortcuts-chrome" className={heading}>Anywhere in Chrome</h3>
                 <Button
                   variant="link"
-                  size="sm"
-                  className="h-auto !px-0 text-xs"
+                  size="inline"
                   aria-label="Change the Chrome shortcuts"
                   onClick={() => { try { void chrome.tabs.create({ url: "chrome://extensions/shortcuts" }) } catch (_) { /* ok */ } }}
                 >
