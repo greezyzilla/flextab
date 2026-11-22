@@ -233,8 +233,7 @@ export function recordClosed(t: Omit<ClosedTab, "seq">): ClosedTab {
 }
 
 /** The left-to-right order of the tabs closed from a window: replay its closes backwards. */
-function closedOrder(windowId: number): number[] {
-  const log = closeLog.get(windowId) ?? []
+function closedOrder(log: { seq: number; index: number }[]): number[] {
   const order: number[] = []
   for (let i = log.length - 1; i >= 0; i--) order.splice(Math.min(log[i].index, order.length), 0, log[i].seq)
   return order
@@ -242,8 +241,9 @@ function closedOrder(windowId: number): number[] {
 
 /** Where a closed tab stood among the tabs closed from its window. */
 function originalRank(t: ClosedTab): number {
-  if (t.seq === undefined || !closeLog.has(t.windowId)) return t.index
-  const rank = closedOrder(t.windowId).indexOf(t.seq)
+  const log = closeLog.get(t.windowId)
+  if (t.seq === undefined || !log) return t.index
+  const rank = closedOrder(log).indexOf(t.seq)
   return rank < 0 ? t.index : rank
 }
 
@@ -254,8 +254,9 @@ function originalRank(t: ClosedTab): number {
  * have returned since. Without a log entry the recorded index stands.
  */
 function liveIndex(t: ClosedTab): number {
-  if (t.seq === undefined || !closeLog.has(t.windowId)) return t.index
-  const order = closedOrder(t.windowId)
+  const log = closeLog.get(t.windowId)
+  if (t.seq === undefined || !log) return t.index
+  const order = closedOrder(log)
   const mine = order.indexOf(t.seq)
   if (mine < 0) return t.index
   let index = t.index

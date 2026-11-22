@@ -248,6 +248,24 @@ describe("closing and reopening tabs", () => {
     expect(tabs).toEqual(["A", "B", "D"])
   })
 
+  it("keeps the recorded index for a close its window's log does not know", async () => {
+    windowsAlive([50])
+    recordClosed({ windowId: 50, index: 0, url: "https://logged.com" })
+    await reopenTabs([{ windowId: 50, index: 3, url: "https://other.com", seq: 999_999 }])
+    expect(chrome.tabs.create).toHaveBeenCalledWith({ windowId: 50, index: 3, url: "https://other.com", active: false })
+    windowsAlive([])
+    vi.mocked(chrome.windows.create).mockResolvedValueOnce({ id: 604 } as never)
+    await reopenTabs([{ windowId: 50, index: 3, url: "https://other.com", seq: 999_998 }])
+    expect(chrome.windows.create).toHaveBeenCalledWith({ url: ["https://other.com"] })
+  })
+
+  it("logs a batch of tabs that carry no index", async () => {
+    vi.mocked(chrome.tabs.query).mockResolvedValue([{ id: 1 }, { id: 2 }, { id: 3 }] as chrome.tabs.Tab[])
+    const closed = await closeSavedTabs([{ id: 1, url: "https://x.com", windowId: 51 }, { id: 2, url: "https://y.com", windowId: 51 }])
+    expect(closed.map((c) => c.index)).toEqual([0, 0])
+    expect(closed.every((c) => typeof c.seq === "number")).toBe(true)
+  })
+
   it("keeps a tab whose window still exists in that window, untouched (TASK-90)", async () => {
     windowsAlive([24])
     await reopenTabs([{ windowId: 24, index: 2, url: "https://c.com" }])
