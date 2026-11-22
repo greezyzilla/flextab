@@ -33,13 +33,6 @@ module.exports = {
       backdropBlur: {
         overlay: "2px", // behind a drawer
       },
-      // A skeleton screen waits 200ms before it shows, so a quick load never flickers (TASK-106).
-      keyframes: {
-        appear: { from: { opacity: "0" }, to: { opacity: "1" } },
-      },
-      animation: {
-        "appear-late": "appear 0s 200ms both",
-      },
       fontFamily: {
         // Routed through a CSS var so the Appearance "Font" setting can swap it
         // globally. Default (Inter stack) lives in style.css :root.

@@ -39,9 +39,9 @@ const ActionRow = React.forwardRef<HTMLButtonElement, ActionRowProps>(({ icon, e
 ActionRow.displayName = "ActionRow"
 
 /** An ActionRow still loading (TASK-106): the same 44px row, the icon and label as skeletons. */
-function ActionRowSkeleton({ late = false }: { late?: boolean }) {
+function ActionRowSkeleton() {
   return (
-    <div aria-hidden className={cn("grid min-h-11 w-full grid-cols-[20px_minmax(0,1fr)] items-center gap-x-3 px-3 py-[11px]", late && "animate-appear-late")}>
+    <div aria-hidden className="grid min-h-11 w-full grid-cols-[20px_minmax(0,1fr)] items-center gap-x-3 px-3 py-[11px]">
       <Skeleton width={20} height={20} round="md" />
       <Skeleton line={22} width="55%" height={12} />
     </div>

@@ -13,6 +13,7 @@ import { DndContext, DragOverlay } from "@dnd-kit/core"
 import { useDragAndDrop } from "~src/hooks/useDragAndDrop"
 import { useKeyboardShortcuts } from "~src/hooks/useKeyboardShortcuts"
 import { useTheme } from "~src/hooks/useTheme"
+import { useShellShapeMirror } from "~src/hooks/useShellShapeMirror"
 import { useShellLayout } from "~src/hooks/useMediaQuery"
 import { useBackgroundNotices } from "~src/hooks/useBackgroundNotices"
 import { useUIStore } from "~src/store/useUIStore"
@@ -32,6 +33,7 @@ function OpenedTabsIcon() {
  */
 export function AppShell() {
   useTheme()
+  useShellShapeMirror()
   useKeyboardShortcuts()
   useBackgroundNotices()
   const {

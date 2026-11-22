@@ -18,6 +18,8 @@ vi.mock('~src/store/useSavedSpacesStore', () => ({
 }));
 vi.mock('~src/store/useSettingsStore', () => ({
   useSettingsStore: (select: (s: { autoSync: boolean }) => unknown) => select({ autoSync: settings.autoSync }),
+  // The first-run look the page puts on <html> before rendering.
+  APPEARANCE_DEFAULTS: { hue: 214, intensity: 100, groupTint: 35, radius: 8, fontFamily: 'inter', uiScale: 1, density: 'comfortable', reduceMotion: false },
 }));
 vi.mock('~src/services/syncEngine', () => ({
   startSyncEngine: engine.start, stopSyncEngine: engine.stop, startLocalPersistence: vi.fn(), stopLocalPersistence: vi.fn(),

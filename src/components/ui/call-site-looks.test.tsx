@@ -53,14 +53,13 @@ describe("components that took over a call site's look", () => {
 })
 
 describe("Skeleton (TASK-106)", () => {
-  it("never puts the 200ms wait on the element that pulses", async () => {
-    const { Skeleton } = await import("./skeleton")
-    const { container } = render(<><Skeleton late width={40} height={40} round="full" /><Skeleton late line={20} width={80} height={10} /><Skeleton width={10} height={10} /></>)
-    for (const el of Array.from(container.querySelectorAll<HTMLElement>("span"))) {
+  it("paints in the first frame: no element waits before it shows", async () => {
+    const { Skeleton, SkeletonRegion } = await import("./skeleton")
+    const { container } = render(<SkeletonRegion label="Loading"><Skeleton width={40} height={40} round="full" /><Skeleton line={20} width={80} height={10} /><Skeleton width={10} height={10} /></SkeletonRegion>)
+    for (const el of Array.from(container.querySelectorAll<HTMLElement>("*"))) {
       const c = el.getAttribute("class") ?? ""
-      expect(c.includes("animate-appear-late") && c.includes("animate-pulse"), c).toBe(false)
+      expect(/animate-appear|delay-|opacity-0/.test(c), c).toBe(false)
     }
-    expect(container.querySelectorAll(".animate-appear-late")).toHaveLength(2)
     expect(container.querySelectorAll(".motion-safe\\:animate-pulse")).toHaveLength(3)
   })
 })

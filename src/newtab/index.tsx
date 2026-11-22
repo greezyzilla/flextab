@@ -16,13 +16,16 @@ import { navigate, useRoute } from "~src/lib/route"
 import { useAuthStore } from "~src/store/useAuthStore"
 import { startSyncEngine, stopSyncEngine, startLocalPersistence, stopLocalPersistence } from "~src/services/syncEngine"
 import { pullSettings, startSettingsSync, stopSettingsSync } from "~src/services/settingsSync"
-import { useSettingsStore } from "~src/store/useSettingsStore"
-import { applyThemeMode, readStoredThemeMode } from "~src/lib/theme"
+import { APPEARANCE_DEFAULTS, useSettingsStore } from "~src/store/useSettingsStore"
+import { applyAppearance, applyThemeMode, readStoredAppearance, readStoredThemeMode } from "~src/lib/theme"
 import { useRevealRequests } from "~src/hooks/useRevealRequests"
 import { ShellSkeleton } from "~src/components/layout/ShellSkeleton"
 
 // Before the first render: a forced Light/Dark must not flash (lib/theme.ts).
 applyThemeMode(readStoredThemeMode())
+// The same for the accent and the rest of the look, so the loading shell is already in the user's colours.
+// Before any copy exists (first run), the defaults: the density spacing the shell is drawn with needs one.
+applyAppearance(readStoredAppearance() ?? APPEARANCE_DEFAULTS)
 
 
 function NewTabPage() {

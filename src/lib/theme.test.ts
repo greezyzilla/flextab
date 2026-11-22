@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, renderHook } from "@testing-library/react";
-import { applyThemeMode, readStoredThemeMode, storeThemeMode, THEME_STORAGE_KEY } from "./theme";
+import { APPEARANCE_STORAGE_KEY, applyAppearance, applyThemeMode, readStoredAppearance, readStoredThemeMode, storeThemeMode, THEME_STORAGE_KEY } from "./theme";
 import { useTheme } from "~src/hooks/useTheme";
 import { useSettingsStore } from "~src/store/useSettingsStore";
 
@@ -68,5 +68,40 @@ describe("theme mode", () => {
     expect(css).toMatch(/@layer theme \{\s*:root \{[^}]*color-scheme: dark;/);
     expect(css).toMatch(/:root:not\(\.dark\) \{\s*color-scheme: light;/);
     expect(css).toMatch(/\n {2}:root\.light \{\s*color-scheme: light;/);
+  });
+});
+
+describe("appearance before the first render", () => {
+  const green = { hue: 145, intensity: 80, groupTint: 35, radius: 10, fontFamily: "rounded" as const, uiScale: 1.1, density: "cozy" as const, reduceMotion: true };
+
+  it("is mirrored by useTheme, so the next page reads the user's look, not the default blue", () => {
+    useSettingsStore.setState({ hue: 145, intensity: 80, radius: 10, fontFamily: "rounded", uiScale: 1.1, density: "cozy", reduceMotion: true });
+    renderHook(() => useTheme());
+    expect(readStoredAppearance()).toEqual({ ...green, groupTint: useSettingsStore.getState().groupTint });
+  });
+
+  it("puts every value on <html>", () => {
+    applyAppearance(green);
+    expect(root.style.getPropertyValue("--hue")).toBe("145");
+    expect(root.style.getPropertyValue("--radius")).toBe("10px");
+    expect(parseFloat(root.style.fontSize)).toBeCloseTo(110);
+    expect(root.classList.contains("density-cozy")).toBe(true);
+    expect(root.classList.contains("reduce-motion")).toBe(true);
+  });
+
+  it("ignores a missing, broken or partial copy", () => {
+    expect(readStoredAppearance()).toBeNull();
+    localStorage.setItem(APPEARANCE_STORAGE_KEY, "{not json");
+    expect(readStoredAppearance()).toBeNull();
+    localStorage.setItem(APPEARANCE_STORAGE_KEY, JSON.stringify({ hue: 145 }));
+    expect(readStoredAppearance()).toBeNull();
+    localStorage.setItem(APPEARANCE_STORAGE_KEY, JSON.stringify({ ...green, density: "huge" }));
+    expect(readStoredAppearance()).toBeNull();
+  });
+
+  it("is applied by the new tab before React renders", () => {
+    const src = readFileSync(resolve(__dirname, "../newtab/index.tsx"), "utf8");
+    const before = src.slice(0, src.indexOf("function NewTabPage"));
+    expect(before).toMatch(/applyAppearance\(readStoredAppearance\(\) \?\? APPEARANCE_DEFAULTS\)/);
   });
 });

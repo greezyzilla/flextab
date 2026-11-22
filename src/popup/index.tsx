@@ -425,8 +425,8 @@ function IndexPopup() {
             // (TASK-106), so the real lines take their place without moving anything.
             <div className="min-w-0">
               <span className="sr-only">Loading…</span>
-              <Skeleton late line={24} width="72%" height={14} />
-              <div className="mt-0.5"><Skeleton late line={18} width="48%" height={10} tone="faint" /></div>
+              <Skeleton line={24} width="72%" height={14} />
+              <div className="mt-0.5"><Skeleton line={18} width="48%" height={10} tone="faint" /></div>
             </div>
           ) : (
           <div className="min-w-0">
@@ -469,7 +469,7 @@ function IndexPopup() {
           </>
         )}
         {steps.length > 0 && <Steps steps={steps} disabled={busy} />}
-        {loading && <ActionList><ActionRowSkeleton late /></ActionList>}
+        {loading && <ActionList><ActionRowSkeleton /></ActionList>}
         {picking && (
           <DestinationPicker
             groupLevel
