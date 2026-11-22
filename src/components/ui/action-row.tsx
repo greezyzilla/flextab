@@ -10,7 +10,7 @@ import { cn } from "~src/lib/utils"
  * (a picker) passes `expanded`: announced, and its fill held while open. Long labels wrap.
  */
 const ActionList = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("overflow-hidden rounded-[14px] bg-ink/[0.04]", className)} {...props} />
+  <div ref={ref} className={cn("overflow-hidden rounded-popup bg-ink/[0.04]", className)} {...props} />
 ))
 ActionList.displayName = "ActionList"
 

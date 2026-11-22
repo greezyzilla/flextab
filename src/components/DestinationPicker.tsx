@@ -166,7 +166,7 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
       <div
         role="radiogroup"
         aria-label="Destination"
-        className={`${maxHeightClass} overflow-y-auto ${P ? "rounded-[14px] bg-ink/[0.04] py-1.5" : "rounded-md border border-ink/10 bg-ink/[0.02] py-1"}`}
+        className={`${maxHeightClass} overflow-y-auto ${P ? "rounded-popup bg-ink/[0.04] py-1.5" : "rounded-md border border-ink/10 bg-ink/[0.02] py-1"}`}
       >
         {visible.length === 0 && (
           <div className={`px-3 py-3 ${P ? "text-item" : "text-xs"} text-fg-subtle`}>No match.</div>
@@ -458,7 +458,7 @@ function NameRow({ indentClass, indent, icon, label, placeholder, onCommit, onCa
       // Panel size: the create slot's own box (inset, py-0.5, 10px radius,
       // min-h-9), so the field takes the slot's place and nothing moves.
       <div className="pr-3 py-0.5" style={{ paddingLeft: indent - 9 }}>
-        <div className={`flex min-h-9 items-center gap-3 border border-transparent px-[7px] text-popup text-fg ${inlineEditFrame} rounded-[10px]`}>
+        <div className={`flex min-h-9 items-center gap-3 border border-transparent px-[7px] text-popup text-fg ${inlineEditFrame} rounded-popup-item`}>
           {icon}
           {field}
         </div>

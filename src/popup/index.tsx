@@ -416,7 +416,7 @@ function IndexPopup() {
       <h1 className="sr-only">FlexTab</h1>
       <section data-card="page" role="status" aria-live="polite" className="flex flex-col gap-3.5">
         <div className="grid grid-cols-[44px_minmax(0,1fr)] items-center gap-x-3">
-          <span className="relative grid h-11 w-11 place-items-center rounded-[13px] bg-ink/[0.06]">
+          <span className="relative grid h-11 w-11 place-items-center rounded-popup-tile bg-ink/[0.06]">
             {tile}
             {ok && <span className="absolute -bottom-1 -right-1 grid h-[18px] w-[18px] place-items-center rounded-full bg-success ring-2 ring-black-900"><Icon icon={Check} size="badge-lg" className="text-black-900" /></span>}
           </span>
@@ -576,7 +576,7 @@ function Location({ place, withGroup }: { place: Place; withGroup: boolean }) {
     ...(withGroup && place.group ? [[place.group.unsorted ? <UnsortedIcon key="g" size="md" className={icon} /> : <GroupIcon key="g" size="md" className={icon} />, place.group.name] as [ReactNode, string]] : []),
   ]
   return (
-    <div aria-label={place.path ?? undefined} className="flex flex-col rounded-[14px] border border-ink/[0.09] px-[11px] py-1.5">
+    <div aria-label={place.path ?? undefined} className="flex flex-col rounded-popup border border-ink/[0.09] px-[11px] py-1.5">
       {rows.filter(([, name]) => name).map(([glyph, name]) => (
         <div key={name + String((glyph as { key?: string }).key)} className="grid min-h-[30px] grid-cols-[20px_minmax(0,1fr)] items-center gap-x-3 text-popup text-fg-muted">
           <span className="flex justify-center">{glyph}</span>

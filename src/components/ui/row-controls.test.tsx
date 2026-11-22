@@ -118,7 +118,7 @@ describe("ActionList and ActionRow", () => {
   const ROW = "grid min-h-11 w-full grid-cols-[20px_minmax(0,1fr)] items-center gap-x-3 px-3 py-[11px] text-left text-popup text-fg outline-none transition-colors [overflow-wrap:anywhere] [&+&]:border-t [&+&]:border-ink/[0.07] hover:bg-ink/[0.05] focus-visible:bg-ink/[0.07] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:opacity-50"
   it("draws the popup's Steps box and rows as the popup did", () => {
     const { container } = render(<ActionList><ActionRow icon={Plus}>Save to a group</ActionRow><ActionRow icon={Plus} expanded>Undo</ActionRow></ActionList>)
-    expect(set((container.firstElementChild as HTMLElement).className)).toEqual(set("overflow-hidden rounded-[14px] bg-ink/[0.04]"))
+    expect(set((container.firstElementChild as HTMLElement).className)).toEqual(set("overflow-hidden rounded-popup bg-ink/[0.04]"))
     const [rest, open] = screen.getAllByRole("button")
     expect(set(rest.className)).toEqual(set(ROW))
     expect(set(open.className)).toEqual(set(`${ROW} bg-ink/[0.07]`))

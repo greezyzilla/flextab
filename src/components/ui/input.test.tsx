@@ -23,7 +23,7 @@ describe("text field spec (TASK-57)", () => {
   it("the popup's panel size keeps its 44px box and 15px text", () => {
     render(<SearchField size="panel" aria-label="Find a destination" boxClassName="w-full" />)
     const input = screen.getByRole("textbox", { name: "Find a destination" })
-    expect(input.closest("[data-search-field]")).toHaveClass("h-11", "rounded-[14px]", "w-full")
+    expect(input.closest("[data-search-field]")).toHaveClass("h-11", "rounded-popup", "w-full")
     expect(input).toHaveClass("text-popup") // 15px on a 22px line (TASK-103.5 type token)
   })
 

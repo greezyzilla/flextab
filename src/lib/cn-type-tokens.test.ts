@@ -18,3 +18,11 @@ describe("cn with the type tokens", () => {
     expect(Object.keys(config.theme.extend.fontSize).sort()).toEqual([...TOKENS].sort())
   })
 })
+
+describe("cn with the popup radius tokens", () => {
+  it("merges them as radii, not as anything else", () => {
+    expect(cn("rounded-md", "rounded-popup")).toBe("rounded-popup")
+    expect(cn("rounded-popup-item", "bg-ink/10")).toBe("rounded-popup-item bg-ink/10")
+    expect(cn("rounded-popup", "rounded-popup-tile")).toBe("rounded-popup-tile")
+  })
+})

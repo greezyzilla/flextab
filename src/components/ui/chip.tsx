@@ -18,7 +18,7 @@ const chipVariants = cva("flex max-w-full items-center outline-none transition-c
   variants: {
     size: {
       dialog: "gap-1.5 rounded-md border px-2 py-1 text-xs focus-visible:ring-1 focus-visible:ring-ring",
-      panel: "h-9 gap-2 rounded-[10px] px-2.5 text-popup text-fg focus-visible:ring-2 focus-visible:ring-ring",
+      panel: "h-9 gap-2 rounded-popup-item px-2.5 text-popup text-fg focus-visible:ring-2 focus-visible:ring-ring",
       pill: "gap-2 rounded-full border border-ink/10 bg-ink/[0.04] py-1 pl-1 pr-3 font-sans text-item text-fg hover:bg-ink/[0.08] focus-visible:ring-2 focus-visible:ring-ring",
     },
     selected: { true: "", false: "" },

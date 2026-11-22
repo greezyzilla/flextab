@@ -86,7 +86,7 @@ const SearchField = React.forwardRef<HTMLInputElement, SearchFieldProps>(
         className={cn(
           "flex items-center focus-within:border-ink/50 has-[[aria-invalid=true]]:border-danger",
           fieldFrame,
-          panel ? "h-11 gap-3 rounded-[14px] px-3" : "h-9 gap-2 px-3",
+          panel ? "h-11 gap-3 rounded-popup px-3" : "h-9 gap-2 px-3",
           boxClassName,
         )}
       >

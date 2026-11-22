@@ -148,8 +148,8 @@ const DATA_COLOURS: Record<string, string> = {
 
 /** Today's findings (fe dev 4f80647), by the subtask that clears them. Only ever lower or remove an entry. */
 const DEBT: Debt = {
-  "TASK-103.5": { // 55 in 15 files
-    "components/DestinationPicker.tsx": { "B": 3 },
+  "TASK-103.5": { // 51 in 15 files
+    "components/DestinationPicker.tsx": { "B": 1 },
     "components/DuplicateMark.tsx": { "B": 10 },
     "components/MergeConflictModal.tsx": { "B": 1 },
     "components/SearchBar.tsx": { "B": 2 },
@@ -163,7 +163,7 @@ const DEBT: Debt = {
     "components/settings/AppearancePreview.tsx": { "B": 2 },
     "components/settings/BackupTab.tsx": { "B": 1 },
     "components/settings/SettingsShell.tsx": { "B": 11 },
-    "popup/index.tsx": { "B": 12 },
+    "popup/index.tsx": { "B": 10 },
   },
   "TASK-103.6": { // 65 in 14 files
     "components/MergeConflictModal.tsx": { "A Label": 15, "A RadioGroup": 4, "A RadioGroupItem": 1 },

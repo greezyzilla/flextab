@@ -30,6 +30,11 @@ module.exports = {
         // at 0, and the card-row gap (radius / 2, max 8px) never exceeds the
         // card padding (8-12px).
         card: "calc(var(--radius) * 1.5)",
+        // The popup's own fixed scale (TASK-103.5): the popup does not follow Roundness
+        // (it never sets --radius). Keep these names in src/lib/utils.ts (tailwind-merge) too.
+        popup: "14px", // its boxes: Steps, the picker, the place card, the panel field
+        "popup-tile": "13px", // the 44px page icon tile
+        "popup-item": "10px", // chips, create slots and rows inside a box
       },
       colors: {
         // shadcn semantic tokens — all derive from the live --hue / --color-black-*
