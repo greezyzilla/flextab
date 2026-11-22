@@ -73,3 +73,22 @@ export async function moveOpenTab(tabId: number, from: TabPlace, slot: TabPlace)
     }
   }
 }
+
+/**
+ * Move an open tab into a new window of its own (TASK-94, the non-drag move).
+ * Undo puts it back where it was; Chrome closes the emptied new window itself.
+ */
+export async function moveOpenTabToNewWindow(tabId: number, from: TabPlace): Promise<(() => Promise<void>) | null> {
+  try {
+    await chrome.windows.create({ tabId, focused: false })
+  } catch {
+    return null
+  }
+  return async () => {
+    try {
+      await chrome.tabs.move(tabId, { windowId: from.windowId, index: from.index })
+    } catch {
+      /* The tab or its old window is gone since: nothing to put back. */
+    }
+  }
+}

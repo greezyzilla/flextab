@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { DndContext } from "@dnd-kit/core"
 import { TooltipProvider } from "~src/components/ui/tooltip"
 import { RightPanel } from "./RightPanel"
@@ -148,5 +149,41 @@ describe("Opened Tabs rows (TASK-60)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Go to Docs" }))
     expect(chrome.tabs.update).toHaveBeenCalledWith(2, { active: true })
     expect(chrome.windows.update).toHaveBeenCalledWith(9, { focused: true })
+  })
+})
+
+describe("moving an open tab without dragging (TASK-94)", () => {
+  it("offers the other windows, then a new one, and moves the tab to the end of the one picked, with Undo", async () => {
+    vi.mocked(chrome.tabs.query).mockResolvedValue(tabs as never)
+    const user = userEvent.setup()
+    renderPanel()
+    await user.click(await screen.findByRole("button", { name: "Move Docs to another window" }))
+    const items = await screen.findAllByRole("menuitem")
+    expect(items.map((i) => i.textContent)).toEqual(["Window 2", "New window"])
+    expect(screen.getByRole("menu").querySelector("[role=separator]")).not.toBeNull()
+    await user.click(screen.getByRole("menuitem", { name: "Window 2" }))
+    await waitFor(() => expect(chrome.tabs.move).toHaveBeenCalledWith(2, { windowId: 10, index: 1 }))
+    expect(undo).toHaveBeenLastCalledWith("Moved “Docs” to Window 2", expect.any(Function))
+  })
+
+  it("moves a tab into a new window from the keyboard", async () => {
+    const user = userEvent.setup()
+    renderPanel()
+    const trigger = await screen.findByRole("button", { name: "Move News to another window" })
+    trigger.focus()
+    await user.keyboard("{Enter}")
+    await screen.findByRole("menu")
+    await user.keyboard("{ArrowDown}{ArrowDown}")
+    expect(screen.getByRole("menuitem", { name: "New window" })).toHaveFocus()
+    await user.keyboard("{Enter}")
+    await waitFor(() => expect(chrome.windows.create).toHaveBeenCalledWith({ tabId: 3, focused: false }))
+    expect(undo).toHaveBeenLastCalledWith("Moved “News” to a new window", expect.any(Function))
+  })
+
+  it("offers a window's only tab no new window of its own", async () => {
+    const user = userEvent.setup()
+    renderPanel()
+    await user.click(await screen.findByRole("button", { name: "Move Lone to another window" }))
+    expect((await screen.findAllByRole("menuitem")).map((i) => i.textContent)).toEqual(["Window 1"])
   })
 })

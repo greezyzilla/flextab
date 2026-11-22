@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi, type Mock } from "vitest"
-import { OPEN_PANEL_ZONE, finalIndex, isNoMove, isOpenTabsZone, moveOpenTab, previewWindows } from "./moveOpenTab"
+import { OPEN_PANEL_ZONE, finalIndex, isNoMove, isOpenTabsZone, moveOpenTab, moveOpenTabToNewWindow, previewWindows } from "./moveOpenTab"
 
 const tabs = chrome.tabs as unknown as { query: Mock; move: Mock }
 const windows = chrome.windows as unknown as { create: Mock }
@@ -91,5 +91,24 @@ describe("the lists while an open tab is dragged (TASK-73)", () => {
     const bare = [...windows, { id: 3 }] as typeof windows
     expect(ids(previewWindows(bare, { tabId: 2, from: { windowId: 1, index: 1 }, slot: { windowId: 3, index: 0 }, label: "Window 3" }))).toEqual([[1, 3], [4, 5], [2]])
     expect(ids(previewWindows(bare, { tabId: 2, from: { windowId: 1, index: 1 }, slot: { windowId: 2, index: 0 }, label: "Window 2" }))).toEqual([[1, 3], [2, 4, 5], []])
+  })
+})
+
+describe("moving an open tab into a new window (TASK-94)", () => {
+  it("gives the tab a window of its own, and Undo puts it back where it was", async () => {
+    vi.mocked(chrome.windows.create).mockResolvedValueOnce({ id: 77 } as never)
+    const undo = await moveOpenTabToNewWindow(5, { windowId: 9, index: 2 })
+    expect(chrome.windows.create).toHaveBeenCalledWith({ tabId: 5, focused: false })
+    await undo!()
+    expect(chrome.tabs.move).toHaveBeenCalledWith(5, { windowId: 9, index: 2 })
+  })
+
+  it("reports nothing to undo when the window cannot be made, and an Undo that finds the tab gone does nothing", async () => {
+    vi.mocked(chrome.windows.create).mockRejectedValueOnce(new Error("No tab"))
+    expect(await moveOpenTabToNewWindow(5, { windowId: 9, index: 2 })).toBeNull()
+    vi.mocked(chrome.windows.create).mockResolvedValueOnce({ id: 78 } as never)
+    const undo = await moveOpenTabToNewWindow(6, { windowId: 9, index: 0 })
+    vi.mocked(chrome.tabs.move).mockRejectedValueOnce(new Error("No tab"))
+    await expect(undo!()).resolves.toBeUndefined()
   })
 })

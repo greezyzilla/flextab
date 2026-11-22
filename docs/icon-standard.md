@@ -67,6 +67,7 @@ The weight is synced with the other appearance settings (`iconWeight`).
 | Save a page | `BookmarkPlus` |
 | Open all tabs of a group (opens pages in the browser) | `SquareArrowOutUpRight` |
 | Open in FlexTab | `AppWindow` |
+| Move an open tab to another window (TASK-94) | `ArrowRightLeft` |
 | Drag to reorder | `GripVertical` |
 | Expand or collapse | `ChevronRight`, turned down when open |
 | Open a dropdown | `ChevronDown` |

@@ -10,7 +10,8 @@ import { isSavableTabUrl } from "~src/services/saveTabsAsGroup"
 import { describeAlsoSaved } from "~src/lib/savedUrlIndex"
 import { revealInWorkspace } from "~src/services/reveal"
 import { useDraggable, useDroppable } from "@dnd-kit/core"
-import { OPEN_PANEL_ZONE, OPEN_TAB_ZONE, OPEN_WINDOW_ZONE, isNoMove, previewWindows } from "~src/services/moveOpenTab"
+import { OPEN_PANEL_ZONE, OPEN_TAB_ZONE, OPEN_WINDOW_ZONE, isNoMove, moveOpenTab, moveOpenTabToNewWindow, previewWindows } from "~src/services/moveOpenTab"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "~src/components/ui/dropdown-menu"
 import { useOpenTabPreview } from "~src/store/useOpenTabPreview"
 import type { OpenTabDragData, OpenTabZoneData } from "~src/hooks/useDragAndDrop"
 import { FaviconImg } from "../FaviconImg"
@@ -19,7 +20,7 @@ import { flexTabPageText, openTabText } from "~src/lib/openTabText"
 import { SaveSessionModal } from "../SaveSessionModal"
 import { useWindows } from "~src/hooks/useWindows"
 import { IconButton } from "~src/components/ui/button"
-import { BookmarkPlus, Check, ChevronRight, GripVertical, Loader2, LocateFixed, X } from "lucide-react"
+import { ArrowRightLeft, BookmarkPlus, Check, ChevronRight, GripVertical, Loader2, LocateFixed, X } from "lucide-react"
 import { useSavedUrlIndex } from "~src/hooks/useSavedUrlIndex"
 import { describeSaved, normalizeUrl, type SavedLocation } from "~src/lib/savedUrlIndex"
 
@@ -46,7 +47,10 @@ const SaveIcon = () => <Icon icon={BookmarkPlus} size="sm" />
  * Pages that can't be saved (browser, extension, local) can't be saved, but
  * can still be dragged to another spot or window (TASK-73).
  */
-const OpenedTab = ({ tab, windowId, windowLabel, saved, closeAfterSave }: { tab: chrome.tabs.Tab, windowId: number, windowLabel: string, saved?: SavedLocation[], closeAfterSave: boolean }) => {
+/** A window a tab can be moved to without dragging (TASK-94): its name, as its header shows it, and where its end is. */
+type MoveTarget = { id: number; label: string; end: number }
+
+const OpenedTab = ({ tab, windowId, windowLabel, saved, closeAfterSave, targets = [], ownTabs = 0 }: { tab: chrome.tabs.Tab, windowId: number, windowLabel: string, saved?: SavedLocation[], closeAfterSave: boolean, targets?: MoveTarget[], ownTabs?: number }) => {
   const savedLabel = describeSaved(saved)
   const savable = isSavableTabUrl(tab.url)
   const flexTab = isFlexTabPage(tab.url)
@@ -96,6 +100,22 @@ const OpenedTab = ({ tab, windowId, windowLabel, saved, closeAfterSave }: { tab:
   // Save and Close appear on hover/focus only, so at rest a row is just the
   // page. They take their room then (the title ellipsizes), never cover text.
   const onHover = "hidden group-hover/tab:flex group-focus-within/tab:flex"
+
+  // The non-drag move (TASK-94, WCAG 2.5.7): another window, or a new one. A
+  // window's only tab gains nothing from a new window, so it is offered only
+  // when its window has more tabs. While the menu is open the row's actions
+  // stay up, since focus has left the row for the menu.
+  const [moveOpen, setMoveOpen] = useState(false)
+  const others = targets.filter((w) => w.id !== place.windowId)
+  const canNewWindow = ownTabs > 1
+  const moveTo = async (w: MoveTarget) => {
+    const undo = await moveOpenTab(tab.id!, place, { windowId: w.id, index: w.end })
+    if (undo) showUndoToast(`Moved “${name}” to ${w.label}`, () => void undo())
+  }
+  const moveToNewWindow = async () => {
+    const undo = await moveOpenTabToNewWindow(tab.id!, place)
+    if (undo) showUndoToast(`Moved “${name}” to a new window`, () => void undo())
+  }
 
   return (
     // A plain list row, as in the sidebar tree: no box, a light fill on hover.
@@ -149,7 +169,7 @@ const OpenedTab = ({ tab, windowId, windowLabel, saved, closeAfterSave }: { tab:
         {address && <TabUrl url={address} />}
       </span>
 
-      <span className={`${onHover} relative z-10 shrink-0 items-center gap-0.5 -my-1`}>
+      <span className={`${moveOpen ? "flex" : onHover} relative z-10 shrink-0 items-center gap-0.5 -my-1`}>
         {/* Actions, on hover/focus: a saved tab can be shown where it is saved; an unsaved one saved. */}
         {savedLabel ? (
           <IconButton aria-label={`${savedLabel}. Show in workspace`} tooltip="Show in workspace" onClick={showSaved}>
@@ -159,6 +179,22 @@ const OpenedTab = ({ tab, windowId, windowLabel, saved, closeAfterSave }: { tab:
           <IconButton aria-label={`${closes ? "Save and close" : "Save"} ${name}`} tooltip={closes ? "Save and close" : "Save"} onClick={() => void save()}>
             <SaveIcon />
           </IconButton>
+        )}
+        {(others.length > 0 || canNewWindow) && (
+          <DropdownMenu open={moveOpen} onOpenChange={setMoveOpen}>
+            <DropdownMenuTrigger asChild>
+              <IconButton aria-label={`Move ${name} to another window`} tooltip="Move to window" className={moveOpen ? "bg-ink/10 text-fg" : undefined}>
+                <Icon icon={ArrowRightLeft} size="sm" />
+              </IconButton>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {others.map((w) => (
+                <DropdownMenuItem key={w.id} onSelect={() => void moveTo(w)}>{w.label}</DropdownMenuItem>
+              ))}
+              {others.length > 0 && canNewWindow && <DropdownMenuSeparator />}
+              {canNewWindow && <DropdownMenuItem onSelect={() => void moveToNewWindow()}>New window</DropdownMenuItem>}
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
         <IconButton aria-label={`Close ${name}`} tooltip="Close tab" onClick={() => void close()}>
           <Icon icon={X} size="sm" />
@@ -237,7 +273,14 @@ export function RightPanel() {
 
       {/* Tab list */}
       <div ref={(el) => { parentRef.current = el; setPanelRef(el) }} className="flex-1 overflow-y-auto">
-        {shown.map((window, index) => {
+        {(() => {
+          // Every window as a place to move a tab to (TASK-94): its name, and its real end
+          // (the hidden FlexTab tab counts there, as for a drop on its header).
+          const targets: MoveTarget[] = shown.map((w, i) => ({
+            id: w.id!, label: `Window ${i + 1}`,
+            end: windows.find((x) => x.id === w.id)?.tabs?.length ?? 0,
+          }))
+          return shown.map((window, index) => {
           const windowId = window.id!
           const isCollapsed = collapsed.has(windowId)
           const tabs = (window.tabs ?? []).filter((t) => t.id !== selfId)
@@ -271,13 +314,15 @@ export function RightPanel() {
               {!isCollapsed && (
                 <div className="flex flex-col gap-0.5 p-3">
                   {tabs.map(tab => (
-                    <OpenedTab key={tab.id} tab={tab} windowId={windowId} windowLabel={label} saved={savedIndex.get(normalizeUrl(tab.url))} closeAfterSave={closeAfterSave} />
+                    <OpenedTab key={tab.id} tab={tab} windowId={windowId} windowLabel={label} saved={savedIndex.get(normalizeUrl(tab.url))} closeAfterSave={closeAfterSave}
+                      targets={targets} ownTabs={windows.find((w) => w.id === (tab.windowId ?? windowId))?.tabs?.length ?? 0} />
                   ))}
                 </div>
               )}
             </div>
           )
-        })}
+          })
+        })()}
       </div>
 
       {saveModal && (
