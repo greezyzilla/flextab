@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { flexTabPageText, openTabText } from "./openTabText"
+import { flexTabPageText, isFlexTabPage, openTabRowText, openTabText } from "./openTabText"
 
 describe("what an Opened Tabs row prints for each tab state", () => {
   it("a titled page, offloaded or not: its title, the address under it", () => {
@@ -67,5 +67,14 @@ describe("a FlexTab page in Opened Tabs", () => {
     expect(flexTabPageText(`${ext}/options.html`).name).toBe("Settings")
     expect(flexTabPageText(`${ext}/popup.html`).name).toBe("Popup")
     expect(flexTabPageText("not a url").name).toBe("FlexTab")
+  })
+})
+
+describe("a row's text, FlexTab pages included (TASK-95)", () => {
+  it("names the new tab page as FlexTab and any other page as openTabText does", () => {
+    expect(isFlexTabPage(undefined)).toBe(false)
+    expect(isFlexTabPage("chrome://newtab/")).toBe(true)
+    expect(openTabRowText({ url: "chrome://newtab/" }).address).toBe("FlexTab")
+    expect(openTabRowText({ title: "Docs", url: "https://docs.test/a" })).toEqual(openTabText({ title: "Docs", url: "https://docs.test/a" }))
   })
 })

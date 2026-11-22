@@ -81,3 +81,17 @@ function flexTabPageName(url: string): string {
   if (route === SIGN_IN_ROUTE) return "Sign in"
   return "New tab"
 }
+
+/** A FlexTab page (the new tab, Settings, …): it is named FlexTab, never by its extension address. */
+export function isFlexTabPage(url?: string): boolean {
+  if (!url) return false
+  if (/^chrome:\/\/newtab\/?$/.test(url)) return true
+  const own = chrome.runtime?.getURL?.("") ?? ""
+  return !!own && url.startsWith(own)
+}
+
+/** What an Opened Tabs row prints for a tab, FlexTab pages included; its drag card prints the same (TASK-95). */
+export function openTabRowText(tab: Pick<chrome.tabs.Tab, "title" | "url" | "pendingUrl">): { name: string; address?: string } {
+  // isFlexTabPage is false without a url, so the url is there on that side.
+  return isFlexTabPage(tab.url) ? flexTabPageText(tab.url as string) : openTabText(tab)
+}

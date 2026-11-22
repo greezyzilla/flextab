@@ -8,6 +8,10 @@ import { useSortPreview } from "~src/store/useSortPreview";
 import { resolveOverGroupId } from "~src/services/dragDrop";
 import { groupColorFill, groupTintSurface } from "~src/lib/groupColors";
 import { FaviconImg } from "../FaviconImg";
+import { MiddleText } from "../MiddleText";
+import { TabUrl } from "../TabUrl";
+import { openTabRowText } from "~src/lib/openTabText";
+import { useSettingsStore } from "~src/store/useSettingsStore";
 import { CategoryIcon, ProjectIcon, spaceAvatarColors } from "../levelIcons";
 
 interface DragOverlayContentProps {
@@ -87,20 +91,14 @@ export function DragOverlayContent({ activeId, draggedGroup, draggedTab, dragged
         {draggedTab && (
           <>
             <FaviconImg src={draggedTab.favIconUrl} alt={draggedTab.title} />
-            <div className="flex flex-col text-fg truncate">
-              <div>{draggedTab.title}</div>
-              <div className="truncate">{draggedTab.url}</div>
-            </div>
+            <OpenTabText tab={draggedTab} />
           </>
         )}
 
         {draggedSavedTab && (
           <>
             <FaviconImg src={draggedSavedTab.favicon} alt={draggedSavedTab.title} />
-            <div className="flex flex-col text-fg truncate">
-              <div>{draggedSavedTab.title}</div>
-              <div className="truncate">{draggedSavedTab.url}</div>
-            </div>
+            <SavedTabText tab={draggedSavedTab} />
           </>
         )}
       </div>
@@ -108,4 +106,28 @@ export function DragOverlayContent({ activeId, draggedGroup, draggedTab, dragged
   }
 
   return null;
+}
+
+/** An open tab's name and address as its Opened Tabs row prints them (TASK-95). */
+function OpenTabText({ tab }: { tab: chrome.tabs.Tab }) {
+  const { name, address } = openTabRowText(tab)
+  return (
+    <div className="flex flex-col flex-1 min-w-0">
+      <span className="text-fg text-xs font-sans truncate">{name}</span>
+      {address && <TabUrl url={address} />}
+    </div>
+  )
+}
+
+/** A saved tab's title and address as its row prints them, with the user's Title and Link cut (TASK-95). */
+function SavedTabText({ tab }: { tab: SavedTab }) {
+  const titleCut = useSettingsStore((s) => s.titleCut)
+  const linkCut = useSettingsStore((s) => s.linkCut)
+  const linkCutScope = useSettingsStore((s) => s.linkCutScope)
+  return (
+    <div className="flex flex-col flex-1 min-w-0">
+      <MiddleText text={tab.title} className="text-fg text-xs font-sans" startShare={titleCut / 100} />
+      <TabUrl url={tab.url} pathShare={linkCut / 100} scope={linkCutScope} />
+    </div>
+  )
 }

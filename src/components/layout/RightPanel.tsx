@@ -16,7 +16,7 @@ import { useOpenTabPreview } from "~src/store/useOpenTabPreview"
 import type { OpenTabDragData, OpenTabZoneData } from "~src/hooks/useDragAndDrop"
 import { FaviconImg } from "../FaviconImg"
 import { TabUrl } from "../TabUrl"
-import { flexTabPageText, openTabText } from "~src/lib/openTabText"
+import { isFlexTabPage, openTabRowText } from "~src/lib/openTabText"
 import { SaveSessionModal } from "../SaveSessionModal"
 import { useWindows } from "~src/hooks/useWindows"
 import { IconButton } from "~src/components/ui/button"
@@ -24,13 +24,6 @@ import { ArrowRightLeft, BookmarkPlus, Check, ChevronRight, GripVertical, Loader
 import { useSavedUrlIndex } from "~src/hooks/useSavedUrlIndex"
 import { describeSaved, normalizeUrl, type SavedLocation } from "~src/lib/savedUrlIndex"
 
-/** A FlexTab page (the new tab, Settings, …): it is named FlexTab, never by its extension address. */
-function isFlexTabPage(url?: string): boolean {
-  if (!url) return false
-  if (/^chrome:\/\/newtab\/?$/.test(url)) return true
-  const own = chrome.runtime?.getURL?.("") ?? ""
-  return !!own && url.startsWith(own)
-}
 function flexTabIcon(): string | undefined {
   const icon = chrome.runtime?.getManifest?.().icons?.["128"]
   return icon ? chrome.runtime.getURL(icon) : undefined
@@ -57,7 +50,7 @@ const OpenedTab = ({ tab, windowId, windowLabel, saved, closeAfterSave, targets 
   // A tab Chrome has no title for is named by its site, its address under it;
   // the address line shows only when it says something the name doesn't. A
   // FlexTab page is named for which page it is, "FlexTab" under it.
-  const text = flexTab ? flexTabPageText(tab.url ?? "") : openTabText(tab)
+  const text = openTabRowText(tab)
   const name = text.name
   const address = text.address
   const loading = tab.status === "loading"
