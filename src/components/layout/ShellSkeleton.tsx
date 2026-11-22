@@ -121,7 +121,7 @@ export function ShellSkeleton() {
                 ))}
                 {section.unsorted === null && section.groups.length === 0 && (
                   <div className="px-6" style={{ paddingTop: "var(--density-p-section)" }}>
-                    <Skeleton width="100%" height={72} round="lg" tone="faint" />
+                    {shape.anyTabs === false ? <FirstRunDrop /> : <EmptyDrop />}
                   </div>
                 )}
                 {i < content.sections.length - 1 && <div aria-hidden style={{ height: "calc(var(--density-p-section) * 2)" }} />}
@@ -239,9 +239,27 @@ function GroupBlock({ tabs, unsorted = false, nameWidth = 88, layout, gridColumn
             {Array.from({ length: tabs }, (_, t) => <SavedTabRow key={t} i={t} />)}
           </div>
         ) : (
-          <div className="rounded-lg border border-dashed border-ink/[0.12]" style={{ minHeight: "calc(var(--density-py-tab) * 2 + 2rem)" }} />
+          <EmptyDrop />
         )}
       </div>
+    </div>
+  )
+}
+
+/** An empty group's or category's drop line (TabGroup's EmptyDropRow): one saved-tab row tall, dashed. */
+function EmptyDrop() {
+  return <div className="rounded-lg border border-dashed border-ink/[0.12]" style={{ minHeight: "calc(var(--density-py-tab) * 2 + 2rem)" }} />
+}
+
+/** An empty category before anything is saved (ContentPanel's EmptySectionDrop): its two lines and Save all tabs. */
+function FirstRunDrop() {
+  return (
+    <div className="flex items-center justify-between gap-6 rounded-lg border border-dashed border-ink/[0.12]" style={{ padding: "var(--density-p-group) var(--density-px-tab)" }}>
+      <div className="flex flex-col gap-1">
+        <Skeleton line={20} width={210} height={11} />
+        <Skeleton line={16} width={230} height={8} tone="faint" />
+      </div>
+      <Skeleton width={98} height={32} round="md" tone="faint" />
     </div>
   )
 }

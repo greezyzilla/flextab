@@ -26,6 +26,8 @@ export type ShellShape = {
   } | null;
   /** Opened tabs: tab count per window. */
   windows: number[];
+  /** Whether any space holds a tab: an empty category shows a one-row drop line, or the first-run box when nothing is saved yet. Missing in older copies: true. */
+  anyTabs?: boolean;
 };
 
 export const SHELL_SHAPE_STORAGE_KEY = "flextab-shell-shape";
@@ -75,7 +77,8 @@ export function workspaceShape(s: WorkspaceState, layout: "list" | "grid", gridC
       };
     }),
   } : null;
-  return { spaces: clamp(s.savedSpaces.length, CAP.spaces), projects: tree, active, content };
+  const anyTabs = s.savedSpaces.some((sp) => sp.projects.some((p) => p.categories.some((c) => c.groups.some((g) => g.tabs.length > 0))));
+  return { spaces: clamp(s.savedSpaces.length, CAP.spaces), projects: tree, active, content, anyTabs };
 }
 
 export function windowsShape(tabCounts: number[]): number[] {
@@ -136,6 +139,7 @@ function valid(x: unknown): x is ShellShape {
   const s = x as ShellShape;
   if (!s || !isCount(s.spaces) || !isCounts(s.windows) || !Array.isArray(s.projects)) return false;
   if (!s.projects.every((p) => p && typeof p.open === "boolean" && isCounts(p.categories))) return false;
+  if (s.anyTabs !== undefined && typeof s.anyTabs !== "boolean") return false;
   if (s.active !== null && !(Array.isArray(s.active) && s.active.length === 2 && isCounts(s.active))) return false;
   if (s.content === null) return true;
   const c = s.content;

@@ -30,8 +30,14 @@ describe("shell shape (TASK-106)", () => {
       projects: [{ open: true, categories: [2, 0] }, { open: false, categories: [1] }],
       active: [0, 0],
       content: { layout: "grid", gridColumns: 3, projectHasGroups: true, sections: [{ unsorted: 2, groups: [3, 0] }, { unsorted: null, groups: [] }] },
+      anyTabs: true,
     });
     expect(JSON.stringify(shape)).not.toMatch(/secret|Research|https/);
+  });
+
+  it("knows when nothing is saved yet, for the first-run box", () => {
+    const empty = spaces.map((sp) => ({ ...sp, projects: sp.projects.map((p) => ({ ...p, categories: p.categories.map((c) => ({ ...c, groups: c.groups.map((g) => ({ ...g, tabs: [] })) })) })) }));
+    expect(workspaceShape({ ...state, savedSpaces: empty }, "list", 2).anyTabs).toBe(false);
   });
 
   it("starts the content at the selected category", () => {

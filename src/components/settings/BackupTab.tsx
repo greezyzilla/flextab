@@ -313,7 +313,7 @@ function SnapshotPreviewModal({ snapshot, open, onOpenChange, onRestore, restore
         {tree === null
           ? failed
             ? <p className="rounded-lg border border-ink/10 p-3 text-xs text-fg-subtle">Couldn't load this snapshot.</p>
-            : <SourceColumnSkeleton rows={snapshot.space_count} label="Loading this version" />
+            : <SourceColumnSkeleton rows={snapshot.space_count} shape={snapshot.shape} label="Loading this version" />
           : <SourceColumn spaces={tree} includeEmpty emptyText="This snapshot is empty." />}
       </div>
       <ModalFooter primary={{ label: "Restore version", disabled: restoreDisabled, onClick: onRestore }} />

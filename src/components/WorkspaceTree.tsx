@@ -130,20 +130,53 @@ export function SourceColumn({ title, spaces, removed = false, inBoth = new Set(
 }
 
 /**
- * A SourceColumn still loading (TASK-106): the same frame with one skeleton per space row (chevron,
- * avatar, name, counts at the row's own 28px), so the spaces take their places when they arrive.
+ * A SourceColumn still loading (TASK-106): the same frame, rows and spacing as the loaded column. A
+ * large version opens as one row per space (chevron, avatar, name, counts at the row's own 28px). A
+ * small one opens fully, so with its `shape` (per space, each group's tab count) the skeleton draws
+ * every group row and up to PREVIEW_TABS tab rows with the "+N more" line, as SpaceBlock and
+ * GroupBlock will. The dialog then keeps its size when the tree arrives.
  */
-export function SourceColumnSkeleton({ rows, label }: { rows: number; label: string }) {
+export function SourceColumnSkeleton({ rows, shape, label }: { rows: number; shape?: number[][]; label: string }) {
+  // Every space, as the loaded list has (it scrolls past the dialog's height the same way).
+  const spaces = shape ?? Array.from({ length: Math.max(1, Math.min(rows, 50)) }, () => [] as number[])
+  const open = shape !== undefined && shape.flat().reduce((a, n) => a + n, 0) <= OPEN_ALL_AT
   return (
     <SkeletonRegion label={label}>
       <div className="flex min-h-0 min-w-0 flex-col gap-2 rounded-lg border border-ink/10 p-3">
       <ul className="flex flex-col">
-        {Array.from({ length: Math.max(1, Math.min(rows, 6)) }, (_, i) => (
-          <li key={i} className="flex items-center gap-2 px-1 py-1">
-            <Skeleton width={14} height={14} />
-            <Skeleton width={18} height={18} round="full" />
-            <Skeleton line={20} width={`${[58, 44, 66, 50, 60, 42][i]}%`} height={10} className="min-w-0 flex-1" />
-            <span className="ml-auto"><Skeleton line={16} width={72} height={8} tone="faint" /></span>
+        {spaces.map((groups, i) => (
+          <li key={i} className="flex flex-col">
+            <div className="flex items-center gap-2 px-1 py-1">
+              <Skeleton width={14} height={14} />
+              <Skeleton width={18} height={18} round="full" />
+              <Skeleton line={20} width={`${[58, 44, 66, 50, 60, 42][i % 6]}%`} height={10} className="min-w-0 flex-1" />
+              <span className="ml-auto"><Skeleton line={16} width={72} height={8} tone="faint" /></span>
+            </div>
+            {open && groups.length > 0 && (
+              <ul className="flex flex-col pl-4">
+                {groups.map((tabs, g) => (
+                  <li key={g} className="flex flex-col">
+                    <div className="flex items-center gap-2 px-1 py-1">
+                      <Skeleton width={14} height={14} />
+                      <Skeleton line={16} width={`${[52, 40, 60][g % 3]}%`} height={8} className="min-w-0 flex-1" />
+                      <span className="ml-auto"><Skeleton line={16} width={10} height={8} tone="faint" /></span>
+                    </div>
+                    <div className="flex flex-col gap-1 pb-1 pl-6">
+                      <ul className="flex flex-col gap-1">
+                        {Array.from({ length: Math.min(tabs, PREVIEW_TABS) }, (_, t) => (
+                          <li key={t} className="flex min-w-0 items-center gap-2 pr-1">
+                            <Skeleton width={14} height={14} round="full" tone="faint" />
+                            <Skeleton line={16} width={`${[46, 34, 40][t % 3]}%`} height={8} className="min-w-0 flex-1" />
+                            <span className="ml-auto"><Skeleton line={16} width={64} height={7} tone="faint" /></span>
+                          </li>
+                        ))}
+                      </ul>
+                      {tabs > PREVIEW_TABS && <Skeleton line={16} width={52} height={7} tone="faint" />}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </li>
         ))}
       </ul>

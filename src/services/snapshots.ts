@@ -9,6 +9,9 @@ export interface SnapshotInfo {
   // "before_resolution": the account's tabs kept when a sync conflict was resolved (TASK-67).
   // "" or missing (older servers): an ordinary synced state.
   kind?: string;
+  // A small version's shape for the preview skeleton (TASK-106): per space, the tab count of each
+  // group holding tabs. Sent only for versions the preview opens fully; missing on older servers.
+  shape?: number[][];
 }
 
 /** List the account's version history (metadata only), newest first. */
