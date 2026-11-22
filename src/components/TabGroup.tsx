@@ -1,10 +1,10 @@
 import { useFlash } from "~src/hooks/useFlash";
 import { Icon } from "~src/components/ui/icon"
 import { GripVertical, SquareArrowOutUpRight } from "lucide-react"
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useId } from "react";
 import { SortableContext, useSortable } from "@dnd-kit/sortable";
 import { useDroppable } from "@dnd-kit/core";
-import { DuplicateIcon, DuplicateRibbon } from "./DuplicateMark";
+import { DUPLICATE_TIP, DuplicateIcon, DuplicateRibbon } from "./DuplicateMark";
 import { FaviconImg } from "./FaviconImg";
 import { CSS } from "@dnd-kit/utilities";
 import type { SavedGroup, SavedTab } from "~src/types";
@@ -115,6 +115,15 @@ function SavedTabItem({ tab, groupId, location, copies = 1, unsorted }: { tab: S
     });
   };
 
+  // Every passive state the card shows sighted users is read with its link, in the
+  // tooltip's own words (TASK-93). One sentence per visible state; a mark that is
+  // switched off (Duplicate tabs: Off) shows nothing, so it says nothing.
+  const statesId = useId();
+  const states = [
+    isDuplicate && duplicateMark !== "off" && `${DUPLICATE_TIP}.`,
+    change && `Open tab is on ${change.to}.`,
+  ].filter(Boolean).join(" ");
+
   const previewContent = (
     <span className="flex max-w-80 flex-col gap-0.5 break-words">
       <span className="text-fg">{tab.title}</span>
@@ -128,6 +137,7 @@ function SavedTabItem({ tab, groupId, location, copies = 1, unsorted }: { tab: S
       target="_blank"
       rel="noopener noreferrer"
       aria-label={`Open ${tab.title}`}
+      aria-describedby={states ? statesId : undefined}
       className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer overflow-hidden rounded outline-none focus-visible:ring-1 focus-visible:ring-ring"
       onClick={onClick}
       {...(manualPreview ? {
@@ -150,6 +160,7 @@ function SavedTabItem({ tab, groupId, location, copies = 1, unsorted }: { tab: S
           </Badge>
         </IconTooltip>
       )}
+      {states && <span id={statesId} className="sr-only">{states}</span>}
     </a>
   );
 

@@ -284,6 +284,9 @@ describe("saved tab card: update to the open page (TASK-72)", () => {
       await user.unhover(badge)
     })
     expect(screen.queryByRole("button", { name: /^Update / })).not.toBeInTheDocument()
+    // Screen readers get the same state with the card link (TASK-93); the other card has none.
+    expect(screen.getByRole("link", { name: "Open Show (Episode 01)" })).toHaveAccessibleDescription("Open tab is on Episode 02.")
+    expect(screen.getByRole("link", { name: "Open Other (Episode 04)" })).not.toHaveAttribute("aria-describedby")
     // The action lives in ⋯ only.
     await user.click(screen.getByRole("button", { name: "Actions for Show (Episode 01)" }))
     await user.click(await screen.findByRole("menuitem", { name: "Update to Episode 02" }))
@@ -294,5 +297,26 @@ describe("saved tab card: update to the open page (TASK-72)", () => {
     const { showUndoToast } = await import("~src/components/ui/sonner")
     expect(showUndoToast).toHaveBeenCalledWith('Updated "Show" to Episode 02', expect.any(Function))
     expect(useUIStore.getState().flashTarget).toMatchObject({ kind: "tab", id: "t1" })
+  })
+})
+
+describe("saved tab card: duplicate state for assistive tech (TASK-93)", () => {
+  it.each([["ribbon", true], ["icon", true], ["off", false]] as const)("with the %s mark, the duplicate is %s read with the card link", async (mark, said) => {
+    yjs.setSpaces([{ id: "s", name: "Work", order: 0, projects: [{ id: "p", name: "Site", order: 0, categories: [
+      { id: "c", name: "Research", order: 0, groups: [
+        { id: "g", name: "Pricing", order: 0, tabs: [
+          { id: "d1", url: "https://acme.test/pricing", title: "Pricing page", favicon: "", order: 0 },
+          { id: "d2", url: "https://acme.test/pricing", title: "Pricing copy", favicon: "", order: 1 },
+          { id: "u1", url: "https://acme.test/about", title: "About page", favicon: "", order: 2 },
+        ] },
+      ] },
+    ] }] }])
+    useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces(), activeSpaceId: "s", activeProjectId: "p", activeCategoryId: "c", expandedProjectIds: ["p"] })
+    useSettingsStore.setState({ duplicateMark: mark })
+    setup()
+    const dupe = await screen.findByRole("link", { name: "Open Pricing page" })
+    if (said) expect(dupe).toHaveAccessibleDescription("This address is in this group more than once.")
+    else expect(dupe).not.toHaveAttribute("aria-describedby")
+    expect(screen.getByRole("link", { name: "Open About page" })).not.toHaveAttribute("aria-describedby")
   })
 })
