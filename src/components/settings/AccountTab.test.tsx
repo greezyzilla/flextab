@@ -6,12 +6,14 @@ const render = (ui: Parameters<typeof rtlRender>[0], options?: Parameters<typeof
 
 import { ProfileTab, SecurityTab } from "./AccountTab"
 import { useAuthStore } from "~src/store/useAuthStore"
-import { apiGetAuthProviders, apiListIdentities } from "~src/services/api"
+import { apiForgotPassword, apiGetAuthProviders, apiGetSignInOptions, apiListIdentities } from "~src/services/api"
 
 vi.mock("~src/services/api", async importOriginal => ({
   ...await importOriginal<typeof import("~src/services/api")>(),
   apiGetAuthProviders: vi.fn(async () => ["google", "github"]),
   apiListIdentities: vi.fn(),
+  apiGetSignInOptions: vi.fn(async () => ({ providers: ["google", "github"], emailSignup: true })),
+  apiForgotPassword: vi.fn(async () => ({ status: "sent_if_registered" })),
 }))
 
 beforeEach(() => {
@@ -175,5 +177,30 @@ describe("Account topics: input labels and placeholders (TASK-36)", () => {
     expect(screen.getByLabelText("Current password")).toHaveAttribute("placeholder", "Enter your current password")
     expect(screen.getByLabelText("New password")).toHaveAttribute("placeholder", "At least 8 characters")
     expect(screen.getByLabelText("Confirm new password")).toHaveAttribute("placeholder", "Enter the new password again")
+  })
+})
+
+describe("Change password: forgot the current one (TASK-87)", () => {
+  it("sends the account a reset link from beside the field, and says where it went", async () => {
+    vi.mocked(apiListIdentities).mockResolvedValue({ identities: [{ provider: "google", email: "me@example.com" }], has_password: true } as never)
+    render(<SecurityTab />)
+    fireEvent.click(await screen.findByRole("button", { name: "Change password…" }))
+    fireEvent.click(await screen.findByRole("button", { name: "Forgot it?" }))
+    await waitFor(() => expect(apiForgotPassword).toHaveBeenCalledWith("me@example.com"))
+    const dialog = await screen.findByRole("dialog", { name: "Check your email" })
+    expect(dialog).toHaveTextContent("A reset link is on its way to me@example.com.")
+    expect(screen.queryByLabelText("Current password")).not.toBeInTheDocument()
+    fireEvent.click(within(dialog).getByRole("button", { name: "Done" }))
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  })
+
+  it("offers it only while the server can send email", async () => {
+    vi.mocked(apiGetSignInOptions).mockResolvedValueOnce({ providers: ["google"], emailSignup: false })
+    vi.mocked(apiListIdentities).mockResolvedValue({ identities: [], has_password: true })
+    render(<SecurityTab />)
+    fireEvent.click(await screen.findByRole("button", { name: "Change password…" }))
+    expect(await screen.findByLabelText("Current password")).toBeInTheDocument()
+    await waitFor(() => expect(apiGetSignInOptions).toHaveBeenCalled())
+    expect(screen.queryByRole("button", { name: "Forgot it?" })).not.toBeInTheDocument()
   })
 })

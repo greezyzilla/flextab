@@ -3,13 +3,14 @@ import { DeleteAccountDialog } from "~src/components/DeleteAccountDialog";
 import { useState, useEffect, type FormEvent } from "react";
 import { useAuthStore } from "~src/store/useAuthStore";
 import {
-  apiChangePassword, apiUpdateProfile, apiListIdentities, apiUnbindIdentity,
+  apiChangePassword, apiForgotPassword, apiGetSignInOptions, apiUpdateProfile, apiListIdentities, apiUnbindIdentity,
   apiGetBindUrl, apiGetAuthProviders, ApiError, type LinkedIdentity,
 } from "~src/services/api";
 import { ConfirmDialog } from "~src/components/ui/confirm-dialog";
 import { Button } from "~src/components/ui/button";
 import { Input } from "~src/components/ui/input";
 import { Modal, ModalBody, ModalField, ModalFooter, ModalHeader } from "~src/components/ui/modal";
+import { Label } from "~src/components/ui/label";
 import { SettingRow, SettingsList, SettingsListRow, SettingsNotice, SettingsPage, SettingsSection } from "./shared";
 import { DevicesList } from "./SyncTab";
 import { ProviderMark } from "~src/components/OnboardingScreen";
@@ -198,7 +199,30 @@ export function SecurityTab() {
   const [pwLoading, setPwLoading] = useState(false);
   // The form opens in a modal, so opening it never pushes the rest of the page down.
   const [pwOpen, setPwOpen] = useState(false);
-  const closePassword = () => { setPwOpen(false); setPwError(''); setCurrentPw(''); setNewPw(''); setConfirmPw(''); };
+  const closePassword = () => { setPwOpen(false); setPwError(''); setCurrentPw(''); setNewPw(''); setConfirmPw(''); setResetSent(''); };
+  // Forgot the current password (TASK-87): the same reset link as the sign-in screen, sent to this
+  // account's address. Offered only while the server can send email.
+  const [resetSent, setResetSent] = useState('');
+  const [emailOn, setEmailOn] = useState(false);
+  useEffect(() => {
+    if (!pwOpen || !hasPassword) return;
+    apiGetSignInOptions().then(o => setEmailOn(o.emailSignup)).catch(() => setEmailOn(false));
+  }, [pwOpen, hasPassword]);
+  const sendReset = async () => {
+    if (!user?.email || pwLoading) return;
+    setPwError('');
+    setPwLoading(true);
+    try {
+      await apiForgotPassword(user.email);
+      setResetSent(user.email);
+    } catch (err: unknown) {
+      setPwError(err instanceof ApiError && err.code === 'email_throttled' && err.retryAfter
+        ? `A link was just sent. Ask again in ${err.retryAfter}s.`
+        : 'Could not send the link. Try again.');
+    } finally {
+      setPwLoading(false);
+    }
+  };
 
   const handleChangePassword = async (e?: FormEvent) => {
     e?.preventDefault();
@@ -285,18 +309,27 @@ export function SecurityTab() {
       </SettingsList>
       <Modal kind="dialog" size="m" open={pwOpen} onOpenChange={o => { if (!o && !pwLoading) closePassword(); }}
         dirty={!!(currentPw || newPw || confirmPw)}>
-        <ModalHeader title={hasPassword ? 'Change password' : 'Add a password'}
-          description={hasPassword
+        <ModalHeader title={resetSent ? 'Check your email' : hasPassword ? 'Change password' : 'Add a password'}
+          description={resetSent
+            ? <>A reset link is on its way to <span className="text-fg">{resetSent}</span>.</>
+            : hasPassword
             ? 'Changing it signs out all devices.'
             : `Lets you sign in with ${user?.email ?? 'your email'} too. Setting one signs out all devices.`} />
-        <ModalBody>
+        {!resetSent && <ModalBody>
           {/* Enter in any field submits, as the footer button is outside the form. */}
           <form onSubmit={handleChangePassword} onKeyDown={e => { if (e.key === 'Enter' && e.target instanceof HTMLInputElement) { e.preventDefault(); void handleChangePassword(); } }}
             className="flex flex-col gap-4">
             {hasPassword && (
-              <ModalField label="Current password" htmlFor="account-current-password">
+              // "Forgot it?" beside the label, like "Forgot password?" on the sign-in screen.
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="account-current-password">Current password</Label>
+                  {emailOn && (
+                    <button type="button" className="text-fg-subtle text-[11px] leading-4 underline hover:text-fg" disabled={pwLoading} onClick={() => void sendReset()}>Forgot it?</button>
+                  )}
+                </div>
                 <Input id="account-current-password" type="password" placeholder="Enter your current password" autoComplete="current-password" value={currentPw} onChange={e => setCurrentPw(e.target.value)} className="w-full" />
-              </ModalField>
+              </div>
             )}
             <ModalField label="New password" htmlFor="account-new-password">
               <Input id="account-new-password" type="password" placeholder="At least 8 characters" autoComplete="new-password" value={newPw} onChange={e => setNewPw(e.target.value)} className="w-full" minLength={8} required />
@@ -306,12 +339,13 @@ export function SecurityTab() {
             </ModalField>
             {pwError && <div role="alert" className="text-danger text-xs">{pwError}</div>}
           </form>
-        </ModalBody>
+        </ModalBody>}
+        {resetSent ? <ModalFooter cancel={false} primary={{ label: 'Done', onClick: closePassword }} /> :
         <ModalFooter cancelDisabled={pwLoading} primary={{
           label: pwLoading ? 'Saving…' : hasPassword ? 'Update password' : 'Set password',
           disabled: pwLoading,
           onClick: () => void handleChangePassword(),
-        }} />
+        }} />}
       </Modal>
 
       {/* Same danger zone as Settings › Spaces (TASK-17): last, under its own heading. */}
