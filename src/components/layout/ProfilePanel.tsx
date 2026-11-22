@@ -135,7 +135,6 @@ export function ProfilePanel() {
                   if (e.key === "Enter") { e.preventDefault(); finishCreateSpace(true); }
                   if (e.key === "Escape") { e.preventDefault(); finishCreateSpace(false); }
                 }}
-                className="w-full text-xs"
               />
             </div>
           </div>

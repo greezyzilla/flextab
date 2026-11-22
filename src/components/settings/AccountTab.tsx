@@ -329,14 +329,14 @@ export function SecurityTab() {
                     <button type="button" className="text-fg-subtle text-[11px] leading-4 underline hover:text-fg" disabled={pwLoading} onClick={() => void sendReset()}>Forgot it?</button>
                   )}
                 </div>
-                <Input id="account-current-password" type="password" placeholder="Enter your current password" autoComplete="current-password" value={currentPw} onChange={e => setCurrentPw(e.target.value)} className="w-full" />
+                <Input id="account-current-password" type="password" placeholder="Enter your current password" autoComplete="current-password" value={currentPw} onChange={e => setCurrentPw(e.target.value)} />
               </div>
             )}
             <ModalField label="New password" htmlFor="account-new-password">
-              <Input id="account-new-password" type="password" placeholder="At least 8 characters" autoComplete="new-password" value={newPw} onChange={e => setNewPw(e.target.value)} className="w-full" minLength={8} required />
+              <Input id="account-new-password" type="password" placeholder="At least 8 characters" autoComplete="new-password" value={newPw} onChange={e => setNewPw(e.target.value)} minLength={8} required />
             </ModalField>
             <ModalField label="Confirm new password" htmlFor="account-confirm-password">
-              <Input id="account-confirm-password" type="password" placeholder="Enter the new password again" autoComplete="new-password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} className="w-full" minLength={8} required />
+              <Input id="account-confirm-password" type="password" placeholder="Enter the new password again" autoComplete="new-password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} minLength={8} required />
             </ModalField>
             {pwError && <div role="alert" className="text-danger text-xs">{pwError}</div>}
           </form>

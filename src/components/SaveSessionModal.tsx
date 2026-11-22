@@ -114,7 +114,6 @@ export function SaveSessionModal({
             onKeyDown={(e) => {
               if (e.key === "Enter" && canSave) void handleSave()
             }}
-            className="w-full"
           />
         </ModalField>
 

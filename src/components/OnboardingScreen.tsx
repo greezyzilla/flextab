@@ -294,7 +294,7 @@ export function OnboardingScreen({ onBack }: {
               <form onSubmit={handleSubmit} className="flex flex-col gap-3">
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="signin-email">Email</Label>
-                  <Input id="signin-email" type="email" placeholder="you@example.com" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full" required
+                  <Input id="signin-email" type="email" placeholder="you@example.com" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} required
                     aria-describedby={error ? "signin-error" : undefined} />
                 </div>
                 <div className="flex flex-col gap-1.5">
@@ -530,7 +530,7 @@ function Forgot({ initialEmail, onSent, onBack }: { initialEmail: string; onSent
       <form onSubmit={submit} className="flex flex-col gap-3">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="forgot-email">Email</Label>
-          <Input id="forgot-email" type="email" placeholder="you@example.com" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full" required
+          <Input id="forgot-email" type="email" placeholder="you@example.com" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} required
             aria-describedby={error ? "forgot-error" : undefined} />
         </div>
         <Button variant="default" type="submit" disabled={sending} fullWidth>{sending ? "Sending…" : "Send reset link"}</Button>

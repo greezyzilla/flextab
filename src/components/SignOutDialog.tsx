@@ -3,7 +3,7 @@ import { useAuthStore } from "~src/store/useAuthStore";
 import { useSyncStore } from "~src/store/useSyncStore";
 import { exportWorkspace } from "~src/services/exportWorkspace";
 import { RadioGroup } from "~src/components/ui/radio-group";
-import { Modal, ModalBody, ModalFooter, ModalGroup, ModalHeader, ModalLink, ModalOptionCard } from "~src/components/ui/modal";
+import { Modal, ModalBody, ModalCheckbox, ModalFooter, ModalGroup, ModalHeader, ModalLink, ModalOptionCard } from "~src/components/ui/modal";
 
 type LocalData = "keep" | "remove";
 
@@ -80,10 +80,9 @@ export function SignOutDialog({ open, onOpenChange }: {
           <ModalGroup>
             {notice && <p role="status" className="text-xs text-fg-muted">{notice}</p>}
             {needsConsent && (
-              <label className="flex items-center gap-2 text-sm text-fg-muted">
-                <input type="checkbox" className="m-0 shrink-0 accent-[var(--accent)]" checked={confirmed} disabled={busy} onChange={e => setConfirmed(e.target.checked)} />
+              <ModalCheckbox checked={confirmed} disabled={busy} onCheckedChange={setConfirmed}>
                 Lose the changes not synced yet
-              </label>
+              </ModalCheckbox>
             )}
           </ModalGroup>
         )}

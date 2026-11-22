@@ -142,20 +142,6 @@ const DEBT: Debt = {
   "TASK-103.2": { // 3 in 1 file (was 37 in 9)
     "components/ShortcutsDialog.tsx": { "A Button": 3 },
   },
-  "TASK-103.3": { // 36 in 12 files
-    "components/DeleteAccountDialog.tsx": { "A Input": 1, "C <input>": 1 },
-    "components/DestinationPicker.tsx": { "A Input": 3 },
-    "components/OnboardingScreen.tsx": { "A Input": 2 },
-    "components/SaveSessionModal.tsx": { "A Input": 1 },
-    "components/SignOutDialog.tsx": { "C <input>": 1 },
-    "components/TabGroup.tsx": { "A Input": 3 },
-    "components/layout/ContentPanel.tsx": { "A Input": 4 },
-    "components/layout/LeftPanel.tsx": { "A Input": 10 },
-    "components/layout/ProfilePanel.tsx": { "A Input": 2 },
-    "components/settings/AccountTab.tsx": { "A Input": 3 },
-    "components/settings/SettingsShell.tsx": { "C <select>": 1 },
-    "components/settings/SpacesTab.tsx": { "A Input": 4 },
-  },
   "TASK-103.4": { // 37 in 18 files
     "components/DeleteAccountDialog.tsx": { "C <button>": 1 },
     "components/DestinationPicker.tsx": { "C <button>": 4 },
@@ -176,8 +162,8 @@ const DEBT: Debt = {
     "components/settings/shared.tsx": { "C <button>": 1 },
     "popup/index.tsx": { "C <button>": 2 },
   },
-  "TASK-103.5": { // 183 in 27 files
-    "components/DestinationPicker.tsx": { "B": 27 },
+  "TASK-103.5": { // 182 in 27 files
+    "components/DestinationPicker.tsx": { "B": 26 },
     "components/DuplicateMark.tsx": { "B": 10 },
     "components/MergeConflictModal.tsx": { "B": 3 },
     "components/MoveContainerDialog.tsx": { "B": 2 },

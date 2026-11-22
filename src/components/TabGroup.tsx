@@ -414,7 +414,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
         ) : isRenaming ? (
           // Icon kept and the frame's padding cancelled by negative margins, so
           // the name stays where it was and the header keeps its height (TASK-62).
-          <div className={`flex flex-1 min-w-0 items-center gap-2.5 -ml-1.5 pl-1.5 pr-1.5 -my-1 py-1 ${inlineEditFrame}`}>
+          <div className={`flex flex-1 min-w-0 items-center gap-2.5 -ml-1.5 pl-1.5 pr-1.5 -my-1 py-1 text-[13px] font-medium ${inlineEditFrame}`}>
             <span className="w-5 flex justify-center shrink-0"><GroupIcon size="sm" className="text-fg-subtle" /></span>
             <Input
               variant="inline"
@@ -429,7 +429,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
                 if (e.key === "Enter") { e.preventDefault(); returnRenameFocus.current = true; handleRenameSubmit(); }
                 if (e.key === "Escape") { e.preventDefault(); returnRenameFocus.current = true; setRenameValue(group.name); setIsRenaming(false); }
               }}
-              className="flex-1 font-sans text-[13px] font-medium"
+              className="flex-1"
             />
           </div>
         ) : (

@@ -10,6 +10,7 @@ import { cn } from "~src/lib/utils"
 import { Button } from "~src/components/ui/button"
 import { Label } from "~src/components/ui/label"
 import { RadioGroupItem } from "~src/components/ui/radio-group"
+import { Checkbox } from "~src/components/ui/checkbox"
 
 export type ModalKind = "dialog" | "alert"
 export type ModalSize = "s" | "m" | "l"
@@ -244,6 +245,19 @@ export function ModalRadio({ id, value, children, count, disabled }: {
     <Label htmlFor={id} className="flex min-h-6 cursor-pointer items-center gap-2.5 text-sm leading-5 text-fg">
       <RadioGroupItem value={value} id={id} disabled={disabled} />
       <span>{children}{count !== undefined && <span className="text-fg-subtle"> · {count}</span>}</span>
+    </Label>
+  )
+}
+
+/** A checkbox choice on one line (§6): 14px text, laid out like ModalRadio. */
+export function ModalCheckbox({ checked, onCheckedChange, disabled, children }: {
+  checked: boolean; onCheckedChange: (checked: boolean) => void; disabled?: boolean; children: React.ReactNode
+}) {
+  const id = React.useId()
+  return (
+    <Label htmlFor={id} className="flex min-h-6 cursor-pointer items-center gap-2.5 text-sm leading-5 text-fg">
+      <Checkbox id={id} checked={checked} disabled={disabled} onChange={(e) => onCheckedChange(e.target.checked)} />
+      <span>{children}</span>
     </Label>
   )
 }

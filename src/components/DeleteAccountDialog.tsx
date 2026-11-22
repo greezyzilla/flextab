@@ -4,7 +4,7 @@ import { apiGetBillingStatus, ApiError, type BillingStatus } from "~src/services
 import { exportWorkspace } from "~src/services/exportWorkspace";
 import { navigate } from "~src/lib/route";
 import { Input } from "~src/components/ui/input";
-import { Modal, ModalBody, ModalFooter, ModalHeader, ModalLink } from "~src/components/ui/modal";
+import { Modal, ModalBody, ModalCheckbox, ModalFooter, ModalHeader, ModalLink } from "~src/components/ui/modal";
 
 type LocalData = "keep" | "remove";
 
@@ -67,14 +67,13 @@ export function DeleteAccountDialog({ open, onOpenChange }: { open: boolean; onO
           </p>
         )}
 
-        <div className="mb-2 flex flex-col gap-3">
+        <div className="flex flex-col gap-3">
           {/* Enter may confirm here: the typed email is the safeguard (modal standard §8). */}
-          <Input id="confirm-account-email" type="email" aria-label={`Type ${email} to confirm`} value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" className="w-full" disabled={busy}
+          <Input id="confirm-account-email" type="email" aria-label={`Type ${email} to confirm`} value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" disabled={busy}
             onKeyDown={(e) => { if (e.key === "Enter") void confirm(); }} />
-          <label className="flex items-center gap-2 text-sm text-fg-muted">
-            <input type="checkbox" className="m-0 shrink-0 accent-[var(--accent)]" checked={localData === "remove"} disabled={busy} onChange={(e) => setLocalData(e.target.checked ? "remove" : "keep")} />
+          <ModalCheckbox checked={localData === "remove"} disabled={busy} onCheckedChange={(on) => setLocalData(on ? "remove" : "keep")}>
             Also remove tabs from this device
-          </label>
+          </ModalCheckbox>
         </div>
 
         {error && (

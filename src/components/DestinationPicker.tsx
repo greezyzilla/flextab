@@ -482,7 +482,7 @@ function NameRow({ indentClass, indent, icon, label, placeholder, onCommit, onCa
         if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); finish(false) }
       }}
       onBlur={commitOnBlur(() => finish(true))}
-      className={`min-w-0 flex-1 font-sans ${indent !== undefined ? "text-[15px]" : "text-xs"}`}
+      className="min-w-0 flex-1"
     />
   )
   if (indent !== undefined) {

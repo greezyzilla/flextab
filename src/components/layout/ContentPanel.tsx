@@ -135,7 +135,6 @@ function InlineCreate({ label, placeholder, inputLabel, startEditing = false, on
               if (e.key === "Escape") { e.preventDefault(); finish(false); }
             }}
             onBlur={commitOnBlur(() => finish(true))}
-            className="w-full"
           />
         ) : (
           <Button variant="default" size="sm" onClick={() => setEditing(true)}>{label}…</Button>
@@ -170,7 +169,7 @@ function NewGroupRow({ categoryName, onCommit, onCancel }: {
           padding cancelled by negative margins: the name sits where the new
           group's name will be (TASK-62). */}
       <div className="flex items-center min-h-[26px]" style={{ paddingInline: 'var(--density-px-tab)' }}>
-        <div className={`flex flex-1 min-w-0 items-center gap-2.5 -ml-1.5 pl-1.5 pr-1.5 -my-1 py-1 ${inlineEditFrame}`}>
+        <div className={`flex flex-1 min-w-0 items-center gap-2.5 -ml-1.5 pl-1.5 pr-1.5 -my-1 py-1 text-[13px] font-medium ${inlineEditFrame}`}>
           <span className="w-5 flex justify-center shrink-0"><GroupIcon size="sm" className="text-fg-subtle" /></span>
           <Input
             variant="inline"
@@ -185,7 +184,7 @@ function NewGroupRow({ categoryName, onCommit, onCancel }: {
               if (e.key === "Escape") { e.preventDefault(); finish(false); }
             }}
             onBlur={commitOnBlur(() => finish(true))}
-            className="flex-1 font-sans text-[13px] font-medium"
+            className="flex-1"
           />
         </div>
       </div>

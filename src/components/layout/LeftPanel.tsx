@@ -83,7 +83,7 @@ function CreateRow({ kind, onCommit, onCancel }: {
   // (mx-2, pl-7 py-[6px] label), the same shape as a selected category.
   return (
     <div className={project ? "mx-2 pl-1 pr-2" : `flex items-center gap-1 mx-2 pr-1 text-fg-muted ${inlineEditFrame}`}>
-      <div className={`flex-1 min-w-0 flex items-center gap-2 ${project ? `pl-6 pr-2 py-1.5 text-fg-muted ${inlineEditFrame}` : "pl-7 pr-1 py-[6px]"}`}>
+      <div className={`flex-1 min-w-0 flex items-center gap-2 text-[13px] ${project ? `pl-6 pr-2 py-1.5 font-medium text-fg-muted ${inlineEditFrame}` : "pl-7 pr-1 py-[6px]"}`}>
         {project
           ? <ProjectIcon size="sm" className="text-fg-subtle" />
           : <CategoryIcon size="xs" />}
@@ -100,7 +100,7 @@ function CreateRow({ kind, onCommit, onCancel }: {
             if (e.key === "Escape") { e.preventDefault(); finish(false); }
           }}
           onBlur={commitOnBlur(() => finish(true))}
-          className={`flex-1 font-sans text-[13px] ${project ? "font-medium" : ""}`}
+          className="flex-1"
         />
       </div>
     </div>
@@ -303,13 +303,13 @@ export function LeftPanel() {
         {currentSpace && renamingId === currentSpace.id ? (
           // The frame's padding is cancelled by an equal negative margin, so the
           // title neither moves nor changes the header's height (TASK-62).
-          <div className={`flex flex-1 min-w-0 -ml-2 pl-2 -my-1 py-1 ${inlineEditFrame}`}>
+          <div className={`flex flex-1 min-w-0 -ml-2 pl-2 -my-1 py-1 text-2xl ${inlineEditFrame}`}>
             <Input variant="inline" ref={renameRef} type="text" value={renameValue}
               aria-label="Space name"
               placeholder="Space name"
               onChange={e => setRenameValue(e.target.value)} onBlur={submitRename}
               onKeyDown={e => { if (e.key === "Enter") submitRename(); if (e.key === "Escape") setRenamingId(null); }}
-              className="flex-1 font-sans text-2xl" />
+              className="flex-1" />
           </div>
         ) : (
           <h1 className={PANEL_TITLE}>{currentSpace?.name || 'No space'}</h1>
@@ -357,14 +357,14 @@ export function LeftPanel() {
 
                       {renamingId === project.id ? (
                         // Same label box as the name button below, icon kept, so the text doesn't move (TASK-62).
-                        <div className="flex-1 min-w-0 flex items-center gap-2 py-1.5">
+                        <div className="flex-1 min-w-0 flex items-center gap-2 py-1.5 text-[13px] font-medium">
                           <ProjectIcon size="sm" className="text-fg-subtle" />
                           <Input variant="inline" ref={renameRef} type="text" value={renameValue}
                             aria-label="Project name"
                             placeholder="Project name"
                             onChange={e => setRenameValue(e.target.value)} onBlur={submitRename}
                             onKeyDown={e => { if (e.key === "Enter") submitRename(); if (e.key === "Escape") setRenamingId(null); }}
-                            className="flex-1 font-sans text-[13px] font-medium" />
+                            className="flex-1" />
                         </div>
                       ) : (
                         <button
@@ -429,14 +429,14 @@ export function LeftPanel() {
                             {renamingId === category.id ? (
                               // The category row's own box (mx-2 + pl-7 py-[6px] label), so the name stays put (TASK-62).
                               <div className={`flex items-center gap-1 mx-2 pr-1 text-fg ${inlineEditFrame}`}>
-                                <div className="flex-1 min-w-0 flex items-center gap-2 pl-7 pr-1 py-[6px]">
+                                <div className="flex-1 min-w-0 flex items-center gap-2 pl-7 pr-1 py-[6px] text-[13px]">
                                   <CategoryIcon size="xs" />
                                   <Input variant="inline" ref={renameRef} type="text" value={renameValue}
                                     aria-label="Category name"
                                     placeholder="Category name"
                                     onChange={e => setRenameValue(e.target.value)} onBlur={submitRename}
                                     onKeyDown={e => { if (e.key === "Enter") submitRename(); if (e.key === "Escape") setRenamingId(null); }}
-                                    className="flex-1 font-sans text-[13px]" />
+                                    className="flex-1" />
                                 </div>
                               </div>
                             ) : (

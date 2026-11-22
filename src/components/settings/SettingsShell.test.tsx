@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { SettingsContent, SettingsNav } from "./SettingsShell";
@@ -23,6 +23,17 @@ vi.mock("./AccountTab", () => ({ ProfileTab: () => <p>Profile content</p>, Secur
 // Signed in unless a test says otherwise: a guest's Settings has no account pages (TASK-84).
 beforeEach(() => { window.history.replaceState(null, "", "#/settings"); useAuthStore.setState({ isAuthenticated: true }); });
 
+// The narrow selector is ui/select (Radix); jsdom lacks the pointer-capture and scroll calls it makes.
+beforeAll(() => {
+  const el = Element.prototype as unknown as Record<string, unknown>;
+  el.hasPointerCapture ??= () => false;
+  el.setPointerCapture ??= () => {};
+  el.releasePointerCapture ??= () => {};
+  el.scrollIntoView ??= () => {};
+});
+
+const selector = () => screen.getByRole("combobox", { name: "Settings section" });
+
 /** Topics made of two pages show the first one's content (TASK-84). */
 const CONTENT: Partial<Record<string, string>> = { saving: "Saving content", backup: "Sync content" };
 
@@ -30,26 +41,28 @@ describe("compact settings navigation", () => {
   // jsdom has no tab groups, so Opening is not offered (its own test covers that).
   it.each(SETTINGS_TABS)("navigates to %s with the labelled section selector", async section => {
     const user = userEvent.setup();
+    // Start on another section: picking the one already open changes nothing.
+    if (section === "theme") window.history.replaceState(null, "", "#/settings/spaces");
     render(<SettingsContent />);
-    const select = screen.getByRole("combobox", { name: "Settings section" });
-    expect(screen.getByRole("option", { name: SECTION_LABEL[section] })).toHaveValue(section);
+    const select = selector();
     await user.tab();
     expect(select).toHaveFocus();
-    await user.selectOptions(select, section);
+    await user.keyboard("{Enter}");
+    await user.click(await screen.findByRole("option", { name: SECTION_LABEL[section] }));
     await waitFor(() => expect(window.location.hash).toBe(`#/settings/${section}`));
-    expect(select).toHaveValue(section);
+    expect(select).toHaveTextContent(SECTION_LABEL[section]);
     expect(screen.getByText(CONTENT[section] ?? `${SECTION_LABEL[section]} content`)).toBeInTheDocument();
-    expect(select).toHaveFocus();
+    await waitFor(() => expect(select).toHaveFocus());
   });
 
   it("reflects deep links and later hash navigation in the selector and content", async () => {
     window.history.replaceState(null, "", "#/settings/backup");
     render(<SettingsContent />);
-    const select = screen.getByRole("combobox", { name: "Settings section" });
-    expect(select).toHaveValue("backup");
+    const select = selector();
+    expect(select).toHaveTextContent(SECTION_LABEL.backup);
     expect(screen.getByText("Backup content")).toBeInTheDocument();
     window.location.hash = "/settings/security";
-    await waitFor(() => expect(select).toHaveValue("security"));
+    await waitFor(() => expect(select).toHaveTextContent(SECTION_LABEL.security));
     expect(screen.getByText("Sign-in & security content")).toBeInTheDocument();
     expect(screen.queryByText("Backup content")).not.toBeInTheDocument();
   });
@@ -70,41 +83,49 @@ describe("compact settings navigation", () => {
   it("falls back to Theme for an unknown section, and sends links from before TASK-84 to their new topic", () => {
     window.history.replaceState(null, "", "#/settings/unknown");
     const { unmount } = render(<SettingsContent />);
-    expect(screen.getByRole("combobox", { name: "Settings section" })).toHaveValue("theme");
+    expect(selector()).toHaveTextContent(SECTION_LABEL.theme);
     expect(screen.getByText("Theme content")).toBeInTheDocument();
     unmount();
     for (const [old, now, text] of [["appearance", "theme", "Theme content"], ["account", "profile", "Profile content"], ["plan", "plan", "Plan & billing content"], ["transactions", "plan", "Transactions content"], ["sync", "backup", "Backup content"], ["opening", "saving", "Saving content"]]) {
       window.history.replaceState(null, "", `#/settings/${old}`);
       const view = render(<SettingsContent />);
-      expect(screen.getByRole("combobox", { name: "Settings section" })).toHaveValue(now);
+      expect(selector()).toHaveTextContent(SECTION_LABEL[now as keyof typeof SECTION_LABEL]);
       expect(screen.getByText(text)).toBeInTheDocument();
       view.unmount();
     }
   });
 
-  it("groups the topics under the same headings in the nav and in the narrow selector (TASK-84)", () => {
+  it("groups the topics under the same headings in the nav and in the narrow selector (TASK-84)", async () => {
+    const user = userEvent.setup();
     render(<><SettingsNav /><SettingsContent /></>);
     for (const group of SETTINGS_GROUPS) {
       const list = screen.getByRole("list", { name: group.heading });
-      for (const id of group.topics) {
-        expect(list).toContainElement(screen.getByRole("link", { name: SECTION_LABEL[id] }));
-      }
-      expect(screen.getByRole("group", { name: group.heading })).toBeInTheDocument();
+      for (const id of group.topics) expect(list).toContainElement(screen.getByRole("link", { name: SECTION_LABEL[id] }));
+    }
+    // The open menu hides the rest of the page from assistive tech, so the nav is checked first.
+    selector().focus();
+    await user.keyboard("{Enter}");
+    await screen.findAllByRole("option");
+    for (const group of SETTINGS_GROUPS) {
+      const menuGroup = screen.getByRole("group", { name: group.heading });
+      for (const id of group.topics) expect(menuGroup).toContainElement(screen.getByRole("option", { name: SECTION_LABEL[id] }));
     }
     expect(screen.queryByRole("tab")).not.toBeInTheDocument();
   });
 
-  it("hides the account pages from a guest and sends a guest's link to one to Theme (TASK-84)", () => {
+  it("hides the account pages from a guest and sends a guest's link to one to Theme (TASK-84)", async () => {
+    const user = userEvent.setup();
     useAuthStore.setState({ isAuthenticated: false });
     window.history.replaceState(null, "", "#/settings/plan");
     render(<><SettingsNav /><SettingsContent /></>);
-    for (const id of ACCOUNT_ONLY) {
-      expect(screen.queryByRole("link", { name: SECTION_LABEL[id] })).not.toBeInTheDocument();
-      expect(screen.queryByRole("option", { name: SECTION_LABEL[id] })).not.toBeInTheDocument();
-    }
+    for (const id of ACCOUNT_ONLY) expect(screen.queryByRole("link", { name: SECTION_LABEL[id] })).not.toBeInTheDocument();
     expect(screen.queryByRole("list", { name: "Account" })).not.toBeInTheDocument();
-    expect(screen.getByRole("combobox", { name: "Settings section" })).toHaveValue("theme");
+    expect(selector()).toHaveTextContent(SECTION_LABEL.theme);
     expect(screen.getByText("Theme content")).toBeInTheDocument();
+    selector().focus();
+    await user.keyboard("{Enter}");
+    await screen.findAllByRole("option");
+    for (const id of ACCOUNT_ONLY) expect(screen.queryByRole("option", { name: SECTION_LABEL[id] })).not.toBeInTheDocument();
   });
 
   it("shows the app version under the settings nav (TASK-15)", () => {

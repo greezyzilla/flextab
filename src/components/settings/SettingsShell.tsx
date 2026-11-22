@@ -16,6 +16,7 @@ import { SettingsPage } from "./shared"
 import { SpacesIcon, SavingIcon, PaletteIcon, DisplayIcon, LayoutIcon, SyncIcon, PlanIcon, UserIcon, SecurityIcon } from "./icons"
 import { canGroupTabs } from "~src/services/openTab"
 import { cn } from "~src/lib/utils"
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "~src/components/ui/select"
 import { PANEL_HEADER, PANEL_TITLE, PANEL_LIST, PANEL_ROW, PANEL_ROW_LABEL, PANEL_ROW_TEXT, PanelFooter, AppVersion } from "~src/components/layout/panelChrome"
 
 const ICON: Record<SettingsTab, ReactNode> = {
@@ -103,17 +104,21 @@ export function SettingsContent() {
       <div className="min-h-16 px-4 py-3 sm:px-6 md:px-8 flex flex-col md:flex-row md:items-center md:justify-between justify-center gap-1.5 border-b border-line shrink-0">
         <h2 className="hidden md:block text-fg text-2xl font-sans truncate">{SECTION_LABEL[tab]}</h2>
         <label htmlFor={sectionSelectId} className="md:hidden text-fg-muted text-xs font-sans">Settings section</label>
-        <select
-          id={sectionSelectId}
-          value={tab}
-          onChange={(event) => navigate(`${SETTINGS_ROUTE}/${event.target.value}`)}
-          className="md:hidden w-full min-w-0 rounded-md border border-ink/15 bg-black-900 px-2 py-2 text-sm text-fg font-sans focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          {settingsGroupsFor(signedIn).map(group => {
-            const options = group.topics.map(id => <option key={id} value={id}>{SECTION_LABEL[id]}</option>)
-            return <optgroup key={group.heading} label={group.heading}>{options}</optgroup>
-          })}
-        </select>
+        <div className="md:hidden">
+          <Select value={tab} onValueChange={(value) => navigate(`${SETTINGS_ROUTE}/${value}`)}>
+            <SelectTrigger id={sectionSelectId}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {settingsGroupsFor(signedIn).map(group => (
+                <SelectGroup key={group.heading}>
+                  <SelectLabel>{group.heading}</SelectLabel>
+                  {group.topics.map(id => <SelectItem key={id} value={id}>{SECTION_LABEL[id]}</SelectItem>)}
+                </SelectGroup>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto px-4 py-5 sm:px-6 md:px-8 md:py-7">
         {APPEARANCE.includes(tab) ? (

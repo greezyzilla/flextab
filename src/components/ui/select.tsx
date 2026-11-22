@@ -12,6 +12,13 @@ const SelectGroup = SelectPrimitive.Group
 
 const SelectValue = SelectPrimitive.Value
 
+/**
+ * The one chevron of a dropdown (TASK-103.3): 14px in the colour of the text it sits with, like every
+ * other chevron in the app; no extra fade, which left it under 3:1 (2.4 dark, 2.1 light). The trigger
+ * and the menu's scroll arrows draw the same mark, so the arrows never outshine the options.
+ */
+const chevron = { size: "sm" } as const
+
 const SelectTrigger = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>
@@ -23,14 +30,16 @@ const SelectTrigger = React.forwardRef<
       // 12px medium, fg-subtle -> fg-muted on hover, ink/6 edge, ink/3 fill, 8px corners, the same focus ring);
       // the chosen look lives on the chosen option in the menu (TASK-84).
       toggleVariants({ variant: "outline", size: "sm" }),
-      "flex w-full justify-between whitespace-nowrap [&>span]:line-clamp-1",
+      // While its menu is open, focus is in the menu, so the trigger keeps its hover look instead of a
+      // focus ring: it stays visibly tied to the menu below it (as an IconButton that opens a menu does).
+      "flex w-full justify-between whitespace-nowrap [&>span]:line-clamp-1 data-[state=open]:border-ink/15 data-[state=open]:text-fg-muted",
       className
     )}
     {...props}
   >
     {children}
     <SelectPrimitive.Icon asChild>
-      <Icon icon={ChevronDown} size="md" className="opacity-50" />
+      <Icon icon={ChevronDown} {...chevron} />
     </SelectPrimitive.Icon>
   </SelectPrimitive.Trigger>
 ))
@@ -43,12 +52,12 @@ const SelectScrollUpButton = React.forwardRef<
   <SelectPrimitive.ScrollUpButton
     ref={ref}
     className={cn(
-      "flex cursor-default items-center justify-center py-1",
+      "flex cursor-default items-center justify-center py-1 text-fg-subtle",
       className
     )}
     {...props}
   >
-    <Icon icon={ChevronUp} size="md" />
+    <Icon icon={ChevronUp} {...chevron} />
   </SelectPrimitive.ScrollUpButton>
 ))
 SelectScrollUpButton.displayName = SelectPrimitive.ScrollUpButton.displayName
@@ -60,12 +69,12 @@ const SelectScrollDownButton = React.forwardRef<
   <SelectPrimitive.ScrollDownButton
     ref={ref}
     className={cn(
-      "flex cursor-default items-center justify-center py-1",
+      "flex cursor-default items-center justify-center py-1 text-fg-subtle",
       className
     )}
     {...props}
   >
-    <Icon icon={ChevronDown} size="md" />
+    <Icon icon={ChevronDown} {...chevron} />
   </SelectPrimitive.ScrollDownButton>
 ))
 SelectScrollDownButton.displayName =
@@ -118,7 +127,9 @@ const SelectLabel = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SelectPrimitive.Label
     ref={ref}
-    className={cn("px-2 py-1.5 text-sm font-semibold", className)}
+    // A group heading reads like the Settings nav's: an 11px caption above its options, quieter than
+    // they are, on the options' text edge (TASK-103.3).
+    className={cn("px-2 pb-1 pt-2 font-sans text-[11px] font-medium uppercase tracking-wider text-fg-subtle", className)}
     {...props}
   />
 ))

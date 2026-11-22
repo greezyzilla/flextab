@@ -29,8 +29,9 @@ const inputVariants = cva("flex w-full font-sans outline-none disabled:cursor-no
       lg: `h-11 px-3.5 py-1 text-[15px] text-fg placeholder:text-fg-subtle ${fieldFrame} focus-visible:border-ink/50 aria-[invalid=true]:border-danger`,
       // Inline create / rename (TASK-62): bare text that sits exactly where the
       // row's label sits. The row around it draws the field (`inlineEditFrame`),
-      // so the field adds no padding, height or accent of its own. Font size and
-      // weight come from the call site, matching the label it replaces.
+      // so the field adds no padding, height or accent of its own. Its size, weight
+      // and line height are inherited from that row (the label's type, set on the
+      // row), so a call site passes no type classes (TASK-103.3, docs/ui-layering.md).
       inline:
         "h-auto min-w-0 border-0 bg-transparent p-0 text-fg shadow-none placeholder:text-fg-subtle",
     },

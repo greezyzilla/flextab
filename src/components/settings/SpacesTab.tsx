@@ -120,14 +120,14 @@ function SpaceForm({ space, index, count }: { space: SavedSpace; index: number; 
       <SettingRow label="Name" description="Shown on the rail and across your workspace.">
         {(controlProps) => (
           <Input {...controlProps} id="space-name" placeholder="e.g. Work" value={name} onChange={e => setName(e.target.value)}
-            onBlur={commitName} onKeyDown={onEnter(commitName)} className="w-full" />
+            onBlur={commitName} onKeyDown={onEnter(commitName)} />
         )}
       </SettingRow>
       <SettingRow label="Abbreviation" description="Up to 2 letters on the rail. Empty uses the name's first letters.">
         {(controlProps) => (
           <Input {...controlProps} id="space-abbreviation" value={abbreviation} onChange={e => setAbbreviation(e.target.value.slice(0, 2))}
             placeholder={space.name.slice(0, 2).toUpperCase()}
-            onBlur={commitAbbreviation} onKeyDown={onEnter(commitAbbreviation)} className="w-full" />
+            onBlur={commitAbbreviation} onKeyDown={onEnter(commitAbbreviation)} />
         )}
       </SettingRow>
       <SettingRow label="Color" description="The space's colour on the rail.">
@@ -195,7 +195,7 @@ function DeleteSpaceDialog({ space, open, onOpenChange }: { space: SavedSpace; o
         description={<>Type <span className="text-fg">{space.name}</span> to delete it.</>} />
       <ModalBody>
         {/* Enter may confirm here: the typed name is the safeguard (modal standard §8). */}
-        <Input id="confirm-space-name" aria-label={`Type ${space.name} to confirm`} value={typed} onChange={e => setTyped(e.target.value)} autoComplete="off" className="mb-2 w-full"
+        <Input id="confirm-space-name" aria-label={`Type ${space.name} to confirm`} value={typed} onChange={e => setTyped(e.target.value)} autoComplete="off"
           onKeyDown={e => { if (e.key === "Enter" && matches) remove(); }} />
       </ModalBody>
       <ModalFooter primary={{ label: "Delete space", tone: "destructive", disabled: !matches, onClick: remove }} />
