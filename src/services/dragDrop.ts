@@ -182,6 +182,11 @@ export function containerReorderTarget(drag: ContainerDrag, overId: string): str
     zone.projectId === drag.projectId && zone.categoryId !== drag.categoryId ? zone.categoryId : null
 }
 
+/** The drop zone of a project or category row next to the dragged one, in its parent (TASK-92). */
+export function containerZone(drag: Extract<ContainerDrag, { kind: "project" | "category" }>, id: string): string {
+  return drag.kind === "project" ? `proj-drop:${drag.spaceId}:${id}` : `cat-drop:${drag.spaceId}:${drag.projectId}:${id}`
+}
+
 /** Before or after a row, by which half of it the pointer is over. */
 export function edgeAt(rect: { top: number; height: number }, pointerY: number): Edge {
   return pointerY < rect.top + rect.height / 2 ? "before" : "after"

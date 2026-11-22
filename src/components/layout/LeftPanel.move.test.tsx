@@ -9,7 +9,7 @@ import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import { useUIStore } from "~src/store/useUIStore"
 import { showUndoToast } from "~src/components/ui/sonner"
 import * as yjs from "~src/lib/yjsDoc"
-import { useDropIndicator } from "~src/store/useDropIndicator"
+import { useContainerPreview } from "~src/store/useContainerPreview"
 import { act } from "@testing-library/react"
 
 // Tooltips open in these tests; their arrow needs a ResizeObserver (TASK-69).
@@ -113,16 +113,16 @@ describe("Move to… for projects and categories (TASK-59)", () => {
     expect(showUndoToast).not.toHaveBeenCalled()
   })
 
-  it("draws the insertion line where a reorder would land, instead of the row highlight (TASK-64)", () => {
+  it("shows the new order while a project is dragged within its space, with no insertion line (TASK-92)", () => {
     setup()
+    const shown = () => [...document.querySelectorAll("nav [data-drag-handle]")].map((h) => h.getAttribute("data-drag-handle"))
+    expect(shown()).toEqual(["Test", "Music", "Games"])
+    act(() => useContainerPreview.getState().show({ kind: "project", id: "p1", next: "p2", edge: "after" }))
+    expect(shown()).toEqual(["Games", "Test", "Music"])
     expect(document.querySelector("[data-insert-line]")).toBeNull()
-    act(() => useDropIndicator.getState().show("proj-drop:h:p2", "after"))
-    expect(document.querySelectorAll("[data-insert-line]")).toHaveLength(1)
-    expect(document.querySelector("[data-insert-line]")).toHaveAttribute("data-insert-line", "after")
-    act(() => useDropIndicator.getState().show("cat-drop:h:p1:c1", "before"))
-    expect(document.querySelector("[data-insert-line]")).toHaveAttribute("data-insert-line", "before")
-    act(() => useDropIndicator.getState().show(null, null))
-    expect(document.querySelector("[data-insert-line]")).toBeNull()
+    expect(projectsIn("h")).toEqual(["Test", "Games"]) // nothing moves until the drop
+    act(() => useContainerPreview.getState().show(null))
+    expect(shown()).toEqual(["Test", "Music", "Games"])
   })
 
   it("closes without moving anything", async () => {

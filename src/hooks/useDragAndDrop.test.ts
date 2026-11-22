@@ -6,6 +6,7 @@ import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import { showUndoToast } from "~src/components/ui/sonner"
 import * as yjs from "~src/lib/yjsDoc"
 import { useDropIndicator } from "~src/store/useDropIndicator"
+import { useContainerPreview } from "~src/store/useContainerPreview"
 import { useSortPreview } from "~src/store/useSortPreview"
 import { useOpenTabPreview } from "~src/store/useOpenTabPreview"
 
@@ -102,10 +103,11 @@ describe("the insertion line while reordering (TASK-64)", () => {
     ] }])
     useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces(), activeSpaceId: "h" })
     useDropIndicator.getState().show(null, null)
+    useContainerPreview.getState().show(null)
   })
   const at = (id: string, overId: string | null, y: number) => ({
     active: { id }, over: overId ? { id: overId, rect: { top: 100, height: 20 } } : null,
-    activatorEvent: { clientY: 50 }, delta: { x: 0, y },
+    activatorEvent: { clientX: 10, clientY: 50 }, delta: { x: 0, y },
   }) as any
 
   it("follows the pointer within a row and clears off it", () => {
@@ -129,6 +131,44 @@ describe("the insertion line while reordering (TASK-64)", () => {
     expect(yjs.getSpaces()[0].projects[0].categories.map((c) => c.id)).toEqual(["c2", "c1"])
     expect(showUndoToast).toHaveBeenCalledWith("Moved “Films” above “Music”", expect.any(Function))
     expect(useDropIndicator.getState().zone).toBeNull()
+  })
+
+  it("shows the new order while dragging, keeps it over its own row, and drops there (TASK-92)", async () => {
+    const { result } = renderHook(() => useDragAndDrop())
+    const id = categoryDragId("h", "p1", "c1")
+    act(() => result.current.handleDragOver(at(id, "cat-drop:h:p1:c2", 66))) // bottom half of Films
+    expect(useContainerPreview.getState().preview).toEqual({ kind: "category", id: "c1", next: "c2", edge: "after" })
+    // The list moved: the pointer is now over Music itself; the shown order stays.
+    act(() => result.current.handleDragMove(at(id, "cat-drop:h:p1:c1", 66 + PREVIEW_SETTLE_PX)))
+    expect(useContainerPreview.getState().preview?.next).toBe("c2")
+    await act(() => result.current.handleDragEnd(at(id, "cat-drop:h:p1:c1", 66 + PREVIEW_SETTLE_PX)))
+    expect(yjs.getSpaces()[0].projects[0].categories.map((c) => c.id)).toEqual(["c2", "c1"])
+    expect(showUndoToast).toHaveBeenCalledWith("Moved “Music” below “Films”", expect.any(Function))
+    expect(useContainerPreview.getState().preview).toBeNull()
+  })
+
+  it("drops where the list showed it even when the pointer left every row", async () => {
+    const { result } = renderHook(() => useDragAndDrop())
+    const id = projectDragId("h", "p2")
+    act(() => result.current.handleDragOver(at(id, "proj-drop:h:p1", 52)))
+    expect(useContainerPreview.getState().preview).toEqual({ kind: "project", id: "p2", next: "p1", edge: "before" })
+    await act(() => result.current.handleDragEnd(at(id, null, 52)))
+    expect(yjs.getSpaces()[0].projects.map((p) => p.id)).toEqual(["p2", "p1"])
+  })
+
+  it("waits for the pointer to move before the shown order changes, and clears off the list", () => {
+    const { result } = renderHook(() => useDragAndDrop())
+    const id = projectDragId("h", "p2")
+    act(() => result.current.handleDragOver(at(id, "proj-drop:h:p1", 52)))
+    act(() => result.current.handleDragMove(at(id, "proj-drop:h:p1", 56))) // 106: still the top half
+    expect(useContainerPreview.getState().preview?.edge).toBe("before")
+    act(() => result.current.handleDragMove(at(id, "space-drop:e", 52 + 2))) // still pointer: kept
+    expect(useContainerPreview.getState().preview).not.toBeNull()
+    act(() => result.current.handleDragMove(at(id, "space-drop:e", 52 + 40))) // moved: a move elsewhere, no order shown
+    expect(useContainerPreview.getState().preview).toBeNull()
+    act(() => result.current.handleDragOver(at(id, "proj-drop:h:p1", 52)))
+    act(() => result.current.handleDragCancel())
+    expect(useContainerPreview.getState().preview).toBeNull()
   })
 
   it("falls back to below the row without a pointer position", async () => {

@@ -9,6 +9,7 @@ import {
   applyDragEnd,
   containerMeets,
   containerReorderTarget,
+  containerZone,
   edgeAt,
   findGroupLocation,
   findSavedDragItem,
@@ -20,6 +21,7 @@ import {
 import { toast } from "sonner"
 import { showUndoToast } from "~src/components/ui/sonner"
 import { useDropIndicator } from "~src/store/useDropIndicator"
+import { useContainerPreview, type ContainerPreview } from "~src/store/useContainerPreview"
 import { useSortPreview } from "~src/store/useSortPreview"
 import { commitPreview, groupPreview, tabPreview } from "~src/services/sortPreview"
 import type { Edge } from "~src/services/moveTo"
@@ -235,7 +237,7 @@ export function useDragAndDrop() {
 
   // Spring-loaded spaces: a category dragged onto a rail space waits there a
   // moment, then that space opens so one of its projects can take the drop.
-  // The insertion line follows the pointer within a row, so it updates on move too.
+  // The reorder spot follows the pointer within a row, so it updates on move too.
   // Where the pointer was when the preview last changed. Moving an item into
   // another list moves the lists around a still pointer, which would point at
   // something else and flip the preview back, and so on (React stopped it with
@@ -244,6 +246,22 @@ export function useDragAndDrop() {
   const showReorderSpot = (event: PointerDragEvent) => {
     const spot = reorderSpot(event)
     useDropIndicator.getState().show(spot?.zone ?? null, spot?.edge ?? null)
+    // A project or category within its own parent: the list shows the new order (TASK-92).
+    const container = parseContainerDrag(event.active.id)
+    if (container && container.kind !== "space") {
+      // Over its own (moved) row the shown order stays, or the list would flip back under a still pointer.
+      if (event.over?.id.toString() === containerZone(container, container.kind === "project" ? container.projectId : container.categoryId!)) return
+      const next = spot ? containerReorderTarget(container, spot.zone) : null
+      const shown: ContainerPreview | null = next && spot ? { kind: container.kind, id: container.kind === "project" ? container.projectId : container.categoryId!, next, edge: spot.edge } : null
+      const current = useContainerPreview.getState().preview
+      if (shown?.next === current?.next && shown?.edge === current?.edge && shown?.id === current?.id) return
+      const now = pointerAt(event)
+      const last = settledAt.current
+      if (now && last && Math.hypot(now.x - last.x, now.y - last.y) < PREVIEW_SETTLE_PX) return
+      settledAt.current = now
+      useContainerPreview.getState().show(shown)
+      return
+    }
     // An open tab in Opened Tabs: shown where it would land, the rows make room (TASK-73).
     const open = openTabPreviewAt(event)
     const shown = useOpenTabPreview.getState().preview
@@ -286,6 +304,7 @@ export function useDragAndDrop() {
   const handleDragCancel = () => {
     stopSpring()
     useDropIndicator.getState().show(null, null)
+    useContainerPreview.getState().show(null)
     useSortPreview.getState().show(null)
     useOpenTabPreview.getState().show(null)
     settledAt.current = null
@@ -298,6 +317,8 @@ export function useDragAndDrop() {
 
     stopSpring()
     useDropIndicator.getState().show(null, null)
+    const shownOrder = useContainerPreview.getState().preview
+    useContainerPreview.getState().show(null)
     const preview = useSortPreview.getState().preview
     useSortPreview.getState().show(null)
     const openPreview = useOpenTabPreview.getState().preview
@@ -309,7 +330,7 @@ export function useDragAndDrop() {
     setDraggedGroup(null)
     setDraggedContainer(null)
 
-    if (!over) return
+    if (!over && !(shownOrder && parseContainerDrag(active.id))) return
 
     // An open tab dropped in Opened Tabs moves in the browser, with Undo (TASK-73):
     // to where it was shown, or, if nothing was shown yet, beside the row under it.
@@ -330,7 +351,10 @@ export function useDragAndDrop() {
 
     const container = parseContainerDrag(active.id)
     if (container) {
-      const moved = applyContainerDrop(container, over.id.toString(), reorderSpot(event)?.edge)
+      // Within its parent the drop lands where the list showed it (TASK-92); elsewhere as before.
+      const moved = shownOrder && container.kind !== "space"
+        ? applyContainerDrop(container, containerZone(container, shownOrder.next), shownOrder.edge)
+        : over ? applyContainerDrop(container, over.id.toString(), reorderSpot(event)?.edge) : null
       if (moved) showUndoToast(moved.message, moved.undo)
       return
     }

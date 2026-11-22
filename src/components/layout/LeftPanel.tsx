@@ -4,8 +4,9 @@ import { ChevronRight, GripVertical } from "lucide-react"
 import { Icon } from "~src/components/ui/icon"
 import { cn } from "~src/lib/utils"
 import { commitOnBlur } from "~src/lib/inlineEdit";
-import { useDraggable, useDroppable } from "@dnd-kit/core";
-import { categoryDragId, projectDragId } from "~src/services/dragDrop";
+import { useDndContext, useDraggable, useDroppable } from "@dnd-kit/core";
+import { categoryDragId, parseContainerDrag, projectDragId } from "~src/services/dragDrop";
+import { inPreviewOrder, useContainerPreview } from "~src/store/useContainerPreview";
 import { useDropIndicator } from "~src/store/useDropIndicator";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { v7 as uuidv7 } from "uuid";
@@ -107,6 +108,11 @@ function CreateRow({ kind, onCommit, onCancel }: {
 }
 
 export function LeftPanel() {
+  // A project or category dragged within its parent: the list shows the new order,
+  // the dragged row dimmed in its slot (TASK-92, as Opened Tabs does since TASK-73).
+  const containerPreview = useContainerPreview((s) => s.preview);
+  const activeDrag = useDndContext().active;
+  const dragging = typeof activeDrag?.id === "string" ? parseContainerDrag(activeDrag.id) : null;
   const {
     savedSpaces, activeSpaceId, activeProjectId, activeCategoryId,
     expandedProjectIds, toggleExpandedProject,
@@ -324,13 +330,12 @@ export function LeftPanel() {
       <nav aria-label="Projects and categories" className={PANEL_LIST} onKeyDown={handleTreeKeys}>
         {currentSpace ? (
           <>
-            {currentSpace.projects.map((project, projectIndex) => {
+            {inPreviewOrder(currentSpace.projects, "project", containerPreview).map((project, projectIndex) => {
               const isExpanded = expandedProjectIds.includes(project.id);
+              const projectDragged = dragging?.kind === "project" && dragging.projectId === project.id;
 
               return (
-                <div key={project.id} className="relative mb-1">
-                  {/* A project's insertion line spans its whole block, categories included (TASK-64). */}
-                  <InsertLine zone={`proj-drop:${currentSpace.id}:${project.id}`} />
+                <div key={project.id} className="relative mb-1" style={projectDragged ? { opacity: 0.5 } : undefined}>
                   {/* Project — tree node: chevron toggles, name selects the project page */}
                   <DroppableProjectItem
                     spaceId={currentSpace.id}
@@ -410,14 +415,16 @@ export function LeftPanel() {
                   {/* Categories */}
                   {isExpanded && (
                     <div className="mt-0.5">
-                      {project.categories.map((category, categoryIndex) => {
+                      {inPreviewOrder(project.categories, "category", containerPreview).map((category, categoryIndex) => {
                         const isActive = activeProjectId === project.id && activeCategoryId === category.id;
+                        const categoryDragged = dragging?.kind === "category" && dragging.categoryId === category.id;
                         return (
                           <DroppableCategoryItem
                             key={category.id}
                             spaceId={currentSpace.id}
                             projectId={project.id}
                             categoryId={category.id}
+                            dimmed={categoryDragged}
                           >
                             {renamingId === category.id ? (
                               // The category row's own box (mx-2 + pl-7 py-[6px] label), so the name stays put (TASK-62).
@@ -545,25 +552,7 @@ function IconDragHandle({ id, label, reveal, conceal, children }: {
   );
 }
 
-/**
- * "Put it here, in this order" (TASK-64): a line on the side of the row a
- * dragged project or category would be inserted, where a highlight would
- * mean "put it inside". Drawn in the gap between rows, inset like the rows.
- */
-function InsertLine({ zone }: { zone: string }) {
-  const edge = useDropIndicator((s) => (s.zone === zone ? s.edge : null));
-  if (!edge) return null;
-  return (
-    <span
-      aria-hidden
-      data-insert-line={edge}
-      className={`pointer-events-none absolute left-2 right-2 z-10 h-0.5 rounded-full ${edge === "before" ? "-top-[3px]" : "-bottom-[3px]"}`}
-      style={{ backgroundColor: 'var(--accent)' }}
-    />
-  );
-}
-
-/** A drop zone's highlight, unless the drop there reorders (then the line shows instead). */
+/** A drop zone's highlight, unless the drop there reorders (then the list shows the new order instead, TASK-92). */
 function useZoneHighlight(id: string) {
   const { setNodeRef, isOver } = useDroppable({ id });
   const reorders = useDropIndicator((s) => s.zone === id);
@@ -584,17 +573,16 @@ function DroppableProjectItem({ spaceId, projectId, children }: {
   );
 }
 
-function DroppableCategoryItem({ spaceId, projectId, categoryId, children }: {
-  spaceId: string; projectId: string; categoryId: string; children: React.ReactNode;
+function DroppableCategoryItem({ spaceId, projectId, categoryId, dimmed = false, children }: {
+  spaceId: string; projectId: string; categoryId: string; dimmed?: boolean; children: React.ReactNode;
 }) {
   const zone = `cat-drop:${spaceId}:${projectId}:${categoryId}`;
   const { setNodeRef, highlight } = useZoneHighlight(zone);
 
   return (
     <div ref={setNodeRef} className={`relative transition-colors rounded-md ${highlight ? 'ring-1' : ''}`}
-      style={highlight ? { backgroundColor: 'var(--accent-subtle)' } : undefined}
+      style={{ ...(highlight ? { backgroundColor: 'var(--accent-subtle)' } : {}), ...(dimmed ? { opacity: 0.5 } : {}) }}
     >
-      <InsertLine zone={zone} />
       {children}
     </div>
   );
