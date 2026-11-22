@@ -1,14 +1,15 @@
 # UI layering
 
-Status: **guarded** (2026-11-22, TASK-103.1). `src/components/ui/ui-layering.test.ts` fails when a
-look bypasses the chain below. The cleanup that follows is TASK-103.2 to 103.6.
+Status: **clean and guarded** (2026-11-23, TASK-103). `src/components/ui/ui-layering.test.ts` fails
+when a look bypasses the chain below. Its `DEBT` table is empty: no call site styles a shared
+component, writes a raw value or renders a native control.
 
 ## The rule
 
 Every look flows one way:
 
 1. **Token.** Colours, type sizes, radii, spacing and breakpoints are named in `style.css`
-   (`@theme` and the `--sc-` layer). No other file writes a raw value.
+   (`@theme` and the `--sc-` layer) and `tailwind.config.js`. No other file writes a raw value.
 2. **Shared component.** `src/components/ui/*` (the shadcn/Radix layer) turns tokens into
    components. It is the only place that styles a native control.
 3. **Variant.** A different look is a variant or prop of that component (`variant="link"`,
@@ -28,6 +29,7 @@ parent.
 | Grid position | `col-span-*`, `col-start-*`, `row-span-*`, ... |
 | Positioning | `relative`, `absolute`, `sticky`, `inset-*`, `top-*`, `left-*`, `z-*` |
 | Hooks for children | `group`, `peer` |
+| A cap in % of the parent | `max-w-[40%]`: how much of its row it may take (a fixed cap such as `max-w-[12rem]` is a look) |
 
 Everything else is a look and belongs in the component. That includes three cases that are easy to
 mistake for placement:
@@ -47,6 +49,29 @@ A `.tsx` outside `components/ui` writes no raw value: no hex, `rgb()`, `hsl()` o
 and no arbitrary px, type size or radius (`py-[11px]`, `text-[15px]`, `rounded-[10px]`,
 `min-[1440px]:`). Name the value as a token, or use the component that owns it. Token references
 (`bg-ink/[0.06]`, `text-[var(--accent)]`, `oklch(from var(--fg) ...)`) are fine.
+
+## Named tokens
+
+`tailwind.config.js` names the values that are not on Tailwind's scale (TASK-103.5):
+
+| Kind | Tokens |
+|---|---|
+| Type (size with its own line height) | `text-count` 10/15, `text-caption` 11/16, `text-item` 13/20, `text-popup-meta` 13/18, `text-popup` 15/22, `text-popup-title` 19/24, `text-display` 3.25rem/1.02 |
+| Radius (the popup's own scale; it does not follow Roundness) | `rounded-popup` 14, `rounded-popup-tile` 13, `rounded-popup-item` 10 |
+| One-off geometry | `preview:` (1440px breakpoint), `min-h-group-head`, `max-h-popup-list`, `shadow-float`, `backdrop-blur-overlay` |
+
+A type token carries its line height, so no text inherits one by accident. Name a token by role,
+and check it does not collide with a colour name (`row` is a colour, so `text-row` would also
+paint the text). When you add a token, add its name to `extendTailwindMerge` in
+`src/lib/utils.ts`, or `cn()` reads `text-caption` as a colour and drops `text-fg-*`
+(`src/lib/cn-type-tokens.test.ts` checks the type list).
+
+## Data colours
+
+Some colours are data, not style, and stay literal on purpose: the provider brand colours on
+sign-in, the space colours (a space stores and syncs the hex), the accent hue picker's spectrum.
+They live only in `src/lib/data-colours.ts`, each with its reason, and the guard lists that file in
+`DATA_COLOURS`. A theme or accent change must never alter them.
 
 ## Native controls
 
@@ -68,3 +93,7 @@ with an exact count per file. The table only shrinks:
   again.
 
 When a subtask cleans a file, lower or remove its entry in the same change.
+
+Known gap: the guard reads `.tsx` only. Raw colours in `.ts` files are not checked:
+`store/useSyncStore.ts` (sync status colours, style) and `services/toolbarMarks.ts` (the toolbar
+icon drawn on a canvas, data).
