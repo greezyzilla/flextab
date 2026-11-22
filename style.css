@@ -320,3 +320,26 @@
 .ft-drift { transform: rotate(var(--r)); animation: ft-drift 7s ease-in-out infinite; }
 :root.reduce-motion .ft-drift { animation: none !important; }
 @media (prefers-reduced-motion: reduce) { .ft-drift { animation: none; } }
+/* A finished moment's mark (TASK-96): the check pops in with a slight
+   overshoot and writes itself from the left, once, about 520 ms (B). A step's
+   big tile also sends one ring out that fades, about 1.1 s in all (C); a small
+   check (a settings row, a toast) has no ring. Transform/opacity/clip-path
+   only, so nothing around it moves and every button is live from the first
+   frame. Reduced motion (the app setting or the OS) shows the final frame. */
+@keyframes ft-done-tile {
+  from { opacity: 0; transform: scale(0.4); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes ft-done-check {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+.ft-done-tile { animation: ft-done-tile 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+@keyframes ft-done-ring {
+  from { opacity: 0.6; transform: scale(1); }
+  to { opacity: 0; transform: scale(1.8); }
+}
+.ft-done-tile::after { content: ""; position: absolute; inset: 0; border-radius: 9999px; border: 2px solid currentColor; opacity: 0; pointer-events: none; animation: ft-done-ring 600ms ease-out 480ms forwards; }
+.ft-done-check { animation: ft-done-check 300ms cubic-bezier(0.65, 0, 0.35, 1) 220ms both; }
+:root.reduce-motion .ft-done-tile, :root.reduce-motion .ft-done-tile::after, :root.reduce-motion .ft-done-check { animation: none !important; }
+@media (prefers-reduced-motion: reduce) { .ft-done-tile, .ft-done-tile::after, .ft-done-check { animation: none; } }

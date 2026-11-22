@@ -3,6 +3,9 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { PlanTab } from "./PlanTab";
 import { useAuthStore } from "~src/store/useAuthStore";
 import { apiGetPlan, apiGetBillingStatus, apiGetCheckoutUrl, ApiError } from "~src/services/api";
+import { toast } from "sonner";
+
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 
 vi.mock("~src/services/api", async importOriginal => ({
   ...await importOriginal<typeof import("~src/services/api")>(),
@@ -44,4 +47,27 @@ describe("checkout availability feedback", () => {
       } finally { open.mockRestore(); }
     },
   );
+});
+
+describe("a paid checkout coming back (TASK-96)", () => {
+  const LIMITS = { max_tabs_total: 150, max_tree_bytes: 524288, max_snapshots: 10 };
+  const result = (outcome: string) => vi.mocked(chrome.storage.local.get).mockImplementationOnce(((_k: unknown, cb?: (r: object) => void) => {
+    const r = { flextab_billing_result: { outcome } }; if (cb) cb(r); return Promise.resolve(r);
+  }) as never);
+
+  it("replaces the payment toast with the plan the user now has", async () => {
+    vi.mocked(apiGetPlan)
+      .mockResolvedValueOnce({ plan: "free", limits: LIMITS, usage: { total_tabs: 0, tree_bytes: 0, snapshots: 0 } })
+      .mockResolvedValue({ plan: "plus", limits: { ...LIMITS, max_tabs_total: 2000 }, usage: { total_tabs: 0, tree_bytes: 0, snapshots: 0 } });
+    result("success");
+    render(<PlanTab />);
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("You're on Plus", { id: "billing-result", description: "Up to 2,000 tabs." }));
+  });
+
+  it("never says the user is on Free", async () => {
+    result("success");
+    render(<PlanTab />);
+    await waitFor(() => expect(apiGetPlan).toHaveBeenCalledTimes(2));
+    expect(toast.success).not.toHaveBeenCalled();
+  });
 });

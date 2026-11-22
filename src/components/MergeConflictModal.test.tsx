@@ -3,6 +3,9 @@ import { fireEvent, render, screen, within } from "@testing-library/react"
 import { MergeConflictModal } from "./MergeConflictModal"
 import { useMergeConflict } from "~src/store/useMergeConflict"
 import { merge3 } from "~src/services/spacesMerge3"
+import { toast } from "sonner"
+
+vi.mock("sonner", () => ({ toast: { success: vi.fn() } }))
 import type { SavedSpace, SavedTab } from "~src/types"
 
 const { dismiss, resolve } = vi.hoisted(() => ({ dismiss: vi.fn(), resolve: vi.fn() }))
@@ -144,5 +147,7 @@ describe("MergeConflictModal (TASK-29)", () => {
     expect(screen.getByText("4 tabs after apply")).toBeInTheDocument() // a twice, b, x
     fireEvent.click(screen.getByRole("button", { name: "Resolve conflicts" }))
     expect(resolve).toHaveBeenCalledWith({ [conflicts[0].key]: "local" }, [conflicts[0].key])
+    // The modal is gone, so the finished moment is a toast (TASK-96).
+    expect(toast.success).toHaveBeenCalledWith("Conflicts resolved", { description: "1 choice kept. Syncing to your account." })
   })
 })

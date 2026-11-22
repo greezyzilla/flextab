@@ -6,6 +6,8 @@ import {
   type PlanStatus, type PlanLimits, type BillingStatus,
 } from "~src/services/api";
 import { Button } from "~src/components/ui/button";
+import { toast } from "sonner";
+import { BILLING_TOAST_ID } from "~src/hooks/useBackgroundNotices";
 import { UsageMeter, formatIDR, formatDate, formatBytes, PLAN_PRICE_IDR, CONFIRM_POLL_DELAYS, SettingsList, SettingsListRow, SettingsNotice, SettingsSection } from "./shared";
 
 export function PlanTab() {
@@ -86,6 +88,11 @@ export function PlanTab() {
           setFailed(false);
           if (s.plan !== baselinePlan) {
             setConfirming(false);
+            // The finished moment: the plan the user now has and what it adds (TASK-96).
+            // Only a paid plan: a payment never ends on Free, and a baseline read
+            // before the first load can make Free look like a change.
+            const cap = s.limits?.max_tabs_total ?? 0;
+            if (s.plan !== 'free') toast.success(`You're on ${PLAN_NAME[s.plan] ?? s.plan}`, { id: BILLING_TOAST_ID, description: cap > 0 ? `Up to ${cap.toLocaleString('en-US')} tabs.` : 'No limit on tabs.' });
             apiGetBillingStatus().then(b => { if (!cancelled) setBilling(b); }).catch(() => { /* ok */ });
             return;
           }

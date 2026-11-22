@@ -138,7 +138,7 @@ describe("Sign-in & security: sign-in methods (TASK-8)", () => {
     fireEvent.change(screen.getByLabelText("New password"), { target: { value: "long-enough" } })
     fireEvent.change(screen.getByLabelText("Confirm new password"), { target: { value: "long-enough" } })
     fireEvent.submit(screen.getByLabelText("New password").closest("form")!)
-    expect(await screen.findByText(/Password updated/)).toHaveAttribute("role", "status")
+    expect((await screen.findByText(/Password updated/)).closest("[role=status]")).not.toBeNull()
     expect(spy).toHaveBeenCalledWith("", "long-enough")
     await waitFor(() => expect(screen.queryByLabelText("New password")).not.toBeInTheDocument())
   })

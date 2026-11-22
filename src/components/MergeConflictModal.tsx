@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react"
+import { toast } from "sonner"
 import { Icon } from "~src/components/ui/icon"
 import { ChevronRight } from "lucide-react"
 import { useMergeConflict } from "~src/store/useMergeConflict"
@@ -217,6 +218,8 @@ export function MergeConflictModal() {
             const { resolutions, keepBoth } = split(choices, conflicts)
             resolveMergeConflicts(resolutions, keepBoth.map((c) => c.key))
             reset()
+            // The modal is gone, so the result goes to a toast (TASK-96).
+            toast.success("Conflicts resolved", { description: `${plural(conflicts.length, "choice")} kept. Syncing to your account.` })
           },
         }} />
     </Modal>

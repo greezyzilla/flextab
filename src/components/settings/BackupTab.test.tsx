@@ -100,9 +100,10 @@ describe("version history recovery", () => {
     await act(async () => { finishRestore(43); });
     expect(pullAndOverwrite).toHaveBeenCalledTimes(1);
     expect(apiListSnapshots).toHaveBeenCalledTimes(1);
-    expect(screen.queryByText("Restored.")).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Restored/)).not.toBeInTheDocument();
     await act(async () => { finishPull(true); });
-    expect(await screen.findByText("Restored.")).toBeInTheDocument();
+    // Says what came back (TASK-96).
+    expect(await screen.findByText(/^Restored v42\. \d+ tabs? in \d+ spaces?\.$/)).toBeInTheDocument();
     expect(apiListSnapshots).toHaveBeenCalledTimes(2);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
@@ -204,18 +205,18 @@ describe("version history recovery", () => {
     await act(async () => { useAuthStore.setState({ user: { ...user, id: "account-b" } }); });
     await act(async () => { finishRestore(43); });
     expect(pullAndOverwrite).not.toHaveBeenCalled();
-    expect(screen.queryByText("Restored.")).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Restored/)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Restore" })).toBeEnabled();
   });
 
   it("clears an earlier success when the next restore fails", async () => {
     render(<BackupTab />);
     await confirmRestore();
-    expect(await screen.findByText("Restored.")).toBeInTheDocument();
+    expect(await screen.findByText(/^Restored/)).toBeInTheDocument();
     vi.mocked(apiRestoreSnapshot).mockRejectedValueOnce(new Error("network disconnected"));
     await confirmRestore();
     expect(await screen.findByRole("alert")).toHaveTextContent("Could not confirm the restore");
-    expect(screen.queryByText("Restored.")).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Restored/)).not.toBeInTheDocument();
     expect(pullAndOverwrite).toHaveBeenCalledTimes(1);
   });
 });

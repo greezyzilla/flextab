@@ -98,7 +98,9 @@ describe("sign-in screen (TASK-7)", () => {
     await user.type(screen.getByLabelText("Password"), "password1")
     await user.click(screen.getByRole("button", { name: "Create account" }))
     expect(apiRegister).toHaveBeenCalledWith("me@own-domain.test", "password1")
-    expect(await screen.findByText("Check your email")).toBeInTheDocument()
+    // Just created: a finished moment (TASK-96), and what is left to do.
+    expect(await screen.findByText("Account created")).toBeInTheDocument()
+    expect(screen.queryByText("Check your email")).not.toBeInTheDocument()
     expect(screen.getByText("me@own-domain.test")).toBeInTheDocument()
     // One email a minute: the resend waits, and says how long.
     expect(screen.getByRole("button", { name: /Resend email in \d+s/ })).toBeDisabled()

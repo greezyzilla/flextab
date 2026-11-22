@@ -10,6 +10,7 @@ import { syncNow } from "~src/services/syncEngine";
 import { Switch } from "~src/components/ui/switch";
 import { Button } from "~src/components/ui/button";
 import { Badge } from "~src/components/ui/badge";
+import { DoneLine } from "~src/components/ui/done-check";
 import { SettingRow, SettingsList, SettingsListRow, SettingsNotice, SettingsSection } from "./shared";
 
 export function SyncTab() {
@@ -18,6 +19,7 @@ export function SyncTab() {
   const status = useSyncStore(s => s.status);
   const lastSyncedAt = useSyncStore(s => s.lastSyncedAt);
   const [syncing, setSyncing] = useState(false);
+  const [synced, setSynced] = useState(false);
 
   // No account → local-only workspace (not "offline"). The live sync state
   // lives in the header's sync indicator; Settings holds what you set.
@@ -31,10 +33,11 @@ export function SyncTab() {
 
   const handleSyncNow = async () => {
     setSyncing(true);
+    setSynced(false);
     try {
       const result = await syncNow();
       switch (result.status) {
-        case "ok": toast.success("Sync completed"); break;
+        case "ok": setSynced(true); break; // said in the row, where Sync now was pressed (TASK-96)
         case "offline": toast.error("Could not reach the server. Your changes are saved locally."); break;
         case "conflict": toast.info("Resolve the sync conflict, then use Sync now again."); break;
         case "limit": toast.error(result.message); break;
@@ -62,6 +65,7 @@ export function SyncTab() {
         <Button variant="ghost" size="sm" onClick={handleSyncNow} disabled={syncing || status === "syncing"}>
           {syncing || status === "syncing" ? "Syncing…" : "Sync now"}
         </Button>
+        {synced && <DoneLine>Synced.</DoneLine>}
       </SettingRow>
     </SettingsSection>
   );

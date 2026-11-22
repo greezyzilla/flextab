@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react"
-import { Check, Copy, Mail, ShieldCheck } from "lucide-react"
+import { Copy, Mail, ShieldCheck } from "lucide-react"
 import { toast } from "sonner"
 import { Button, IconTooltip } from "~src/components/ui/button"
 import { Icon } from "~src/components/ui/icon"
+import { DoneCheck } from "~src/components/ui/done-check"
 import { Input, PasswordField } from "~src/components/ui/input"
 import { Label } from "~src/components/ui/label"
 import { Modal, ModalHeader } from "~src/components/ui/modal"
@@ -101,7 +102,9 @@ type Step =
   | { kind: "offer" }
   | { kind: "waiting"; provider: Provider; tabId: number }
   | { kind: "closed"; provider: Provider }
-  | { kind: "check"; reason: "verify" | "reset"; email: string }
+  // created: the account was just made here (TASK-96: that is a finished moment, the
+  // link only turns sync on); a sign-in that is not verified yet comes back without it.
+  | { kind: "check"; reason: "verify" | "reset"; email: string; created?: boolean }
   | { kind: "forgot" }
   | { kind: "done" }
 
@@ -202,7 +205,7 @@ export function OnboardingScreen({ onBack }: {
     try {
       if (mode === "create") {
         await apiRegister(email.trim(), password)
-        setStep({ kind: "check", reason: "verify", email: email.trim() })
+        setStep({ kind: "check", reason: "verify", email: email.trim(), created: true })
       } else {
         await loginWithEmail(email.trim(), password)
       }
@@ -355,7 +358,7 @@ export function OnboardingScreen({ onBack }: {
           )}
 
           {step.kind === "check" && (
-            <CheckEmail reason={step.reason} email={step.email}
+            <CheckEmail reason={step.reason} email={step.email} created={step.created === true}
               // A verified sign-up signs in by itself once the person is back here.
               trySignIn={step.reason === "verify" ? () => loginWithEmail(step.email, password) : undefined}
               onChangeEmail={() => { setMode("create"); setStep({ kind: "offer" }) }}
@@ -403,7 +406,8 @@ function StepHead({ tile, title, children }: { tile?: React.ReactNode; title: st
 }
 
 function Tile({ tone, children, spinning = false }: { tone: "accent" | "success" | "neutral"; children: React.ReactNode; spinning?: boolean }) {
-  const look = tone === "success" ? "bg-success/15 text-success" : tone === "neutral" ? "bg-ink/10 text-fg-muted" : "text-[var(--accent-text)]"
+  // A success tile marks a finished moment: it settles in once (TASK-96, style.css ft-done-tile).
+  const look = tone === "success" ? "ft-done-tile bg-success/15 text-success" : tone === "neutral" ? "bg-ink/10 text-fg-muted" : "text-[var(--accent-text)]"
   return (
     <span className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${look}`} style={tone === "accent" ? { backgroundColor: "var(--accent-subtle)" } : undefined}>
       {spinning && <span aria-hidden className="absolute inset-0 rounded-full border-2 border-[var(--accent)] border-t-transparent motion-safe:animate-spin" />}
@@ -449,9 +453,10 @@ function sendProblem(err: unknown, cooldown: (s: number) => void): string {
 }
 
 /** An email link is on its way: say where, how long it may take, and offer a resend. */
-function CheckEmail({ reason, email, trySignIn, onChangeEmail, onBack }: {
+function CheckEmail({ reason, email, created = false, trySignIn, onChangeEmail, onBack }: {
   reason: "verify" | "reset"
   email: string
+  created?: boolean
   trySignIn?: () => Promise<void>
   onChangeEmail: () => void
   onBack: () => void
@@ -501,9 +506,13 @@ function CheckEmail({ reason, email, trySignIn, onChangeEmail, onBack }: {
         </button>
       </p>
     }>
-      <StepHead tile={<Tile tone="accent"><Icon icon={Mail} size="md" /></Tile>} title="Check your email">
+      {/* Just created: a finished moment (check + what is left to do). Otherwise still waiting on the mail. */}
+      <StepHead tile={created ? <Tile tone="success"><DoneCheck /></Tile> : <Tile tone="accent"><Icon icon={Mail} size="md" /></Tile>}
+        title={created ? "Account created" : "Check your email"}>
         <p>
-          {reason === "verify"
+          {created
+            ? <>Open the link sent to <span className="text-fg break-all">{email}</span> to turn on sync.</>
+            : reason === "verify"
             ? <>Link sent to <span className="text-fg break-all">{email}</span>.</>
             : <>If <span className="text-fg break-all">{email}</span> has an account, a reset link is on its way.</>}
         </p>
@@ -598,7 +607,7 @@ function Done({ spaces, tabs, provider, onBack }: { spaces: number; tabs: number
   }
   return (
     <Frame status>
-      <StepHead tile={<Tile tone="success"><Icon icon={Check} size="md" /></Tile>} title={autoSync ? "Sync is on" : "You're signed in"}>
+      <StepHead tile={<Tile tone="success"><DoneCheck /></Tile>} title={autoSync ? "Sync is on" : "You're signed in"}>
         {detail}
       </StepHead>
       {/* The step that makes sync worth it, as a plain list under a rule: no box in a box. */}

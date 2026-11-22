@@ -8,6 +8,7 @@ import { usePlanStore } from "~src/store/usePlanStore"
 import { LIMIT_NOTICE_KEY, limitSummary, parseLimitNotice } from "~src/services/syncLimit"
 import { navigate } from "~src/lib/route"
 const BILLING_RESULT_KEY = "flextab_billing_result"
+export const BILLING_TOAST_ID = "billing-result"
 const PUSH_PENDING_KEY = "flextab_push_pending"
 
 const WATCHED_KEYS = [
@@ -37,7 +38,8 @@ function showBillingResult(result: unknown) {
   if (result && typeof result === "object" && "outcome" in result) {
     const outcome = (result as { outcome: unknown }).outcome
     if (outcome === "success") {
-      toast.success("Payment received", { description: "Confirming your plan…" })
+      // One id: the plan tab replaces it with the plan once confirmed (TASK-96).
+      toast.success("Payment received", { id: BILLING_TOAST_ID, description: "Confirming your plan…" })
     } else if (outcome === "cancel") {
       toast("Checkout cancelled")
     }

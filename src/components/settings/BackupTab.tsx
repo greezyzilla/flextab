@@ -15,6 +15,7 @@ import { ImportDialog } from "./ImportDialog";
 import { SourceColumn } from "~src/components/WorkspaceTree";
 import { Button } from "~src/components/ui/button";
 import { Badge } from "~src/components/ui/badge";
+import { DoneLine } from "~src/components/ui/done-check";
 import { SettingRow, SettingsList, SettingsListRow, SettingsNotice, SettingsPage, SettingsSection, formatDate, formatBytes } from "./shared";
 
 // Backup groups the two "save & restore your workspace" surfaces: automatic
@@ -100,11 +101,9 @@ function DataTab() {
       <SettingRow label="Import" description="Add tabs from a backup or another app." info="From a FlexTab backup (.json), a bookmarks export from any browser (.html), or a OneTab export (.txt). You see what's inside before anything changes.">
         <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()}>Import…</Button>
         <input ref={fileInputRef} type="file" accept=".json,.html,.htm,.txt" onChange={handleImport} className="hidden" />
-        {importStatus && (
-          <div role="status" className={`text-xs font-sans ${importStatus.type === 'success' ? 'text-success' : 'text-danger'}`}>
-            {importStatus.message}
-          </div>
-        )}
+        {importStatus && (importStatus.type === 'success'
+          ? <DoneLine>{importStatus.message}</DoneLine>
+          : <div role="status" className="text-xs font-sans text-danger">{importStatus.message}</div>)}
       </SettingRow>
     </SettingsSection>
   );
@@ -119,7 +118,8 @@ function HistoryTab() {
   const [previewing, setPreviewing] = useState<number | null>(null);
   const [confirming, setConfirming] = useState<number | null>(null);
   const [restoring, setRestoring] = useState(false);
-  const [done, setDone] = useState(false);
+  // What the restore brought back, said once it landed (TASK-96); stays until the next restore.
+  const [done, setDone] = useState<string | null>(null);
   const [restoreError, setRestoreError] = useState<string | null>(null);
   const [pendingPull, setPendingPull] = useState(false);
   const inFlight = useRef(false);
@@ -129,12 +129,6 @@ function HistoryTab() {
     active.current = true;
     return () => { active.current = false; };
   }, []);
-
-  useEffect(() => {
-    if (!done) return;
-    const timer = setTimeout(() => setDone(false), 2500);
-    return () => clearTimeout(timer);
-  }, [done]);
 
   const load = () => {
     setSnapshots(null);
@@ -161,10 +155,11 @@ function HistoryTab() {
     if (revision === undefined && !pendingPull) return;
     inFlight.current = true;
     setRestoring(true);
-    setDone(false);
+    setDone(null);
     setRestoreError(null);
     setConfirming(null);
     setPreviewing(null);
+    const snap = snapshots?.find(s => s.revision === revision);
     let serverRestored = revision === undefined;
     const pullFailure = "The version was restored on the server, but is not fully loaded on this device. Retry loading the current server workspace before making more changes.";
     try {
@@ -179,7 +174,9 @@ function HistoryTab() {
         return;
       }
       setPendingPull(false);
-      setDone(true);
+      setDone(snap
+        ? `Restored v${snap.revision}. ${snap.tab_count} tab${snap.tab_count === 1 ? '' : 's'} in ${snap.space_count} space${snap.space_count === 1 ? '' : 's'}.`
+        : 'Restored.');
       load();
     } catch (_) {
       if (active.current) {
@@ -207,7 +204,7 @@ function HistoryTab() {
             {pendingPull && <Button variant="link" size="sm" className="!h-auto !p-0 align-baseline" disabled={restoring} onClick={() => { void handleRestore(); }}>Retry loading workspace</Button>}
           </SettingsNotice>
         ) : restoring ? <SettingsNotice>Restoring…</SettingsNotice>
-        : done ? <SettingsNotice>Restored.</SettingsNotice>
+        : done ? <DoneLine>{done}</DoneLine>
         : undefined}
     >
       <SettingsList

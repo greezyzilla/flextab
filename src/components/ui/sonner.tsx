@@ -1,5 +1,6 @@
 import { Toaster as SonnerToaster, toast } from "sonner";
 import { useSettingsStore } from "~src/store/useSettingsStore";
+import { DoneCheck } from "~src/components/ui/done-check";
 
 /** Fire a toast with an Undo action. */
 export function showUndoToast(message: string, onUndo: () => void, timeout = 5000, description?: string) {
@@ -24,6 +25,8 @@ export function Toaster() {
       theme={theme}
       position="bottom-center"
       gap={8}
+      // A success toast is a finished moment: the same self-drawing check as everywhere else (TASK-96).
+      icons={{ success: <DoneCheck className="text-success" /> }}
       toastOptions={{
         classNames: {
           toast:

@@ -16,6 +16,7 @@ import { DevicesList } from "./SyncTab";
 import { ProviderMark } from "~src/components/OnboardingScreen";
 import type { OAuthProvider } from "~src/services/oauthLogin";
 import { Icon } from "~src/components/ui/icon";
+import { DoneLine } from "~src/components/ui/done-check";
 import { Mail, AtSign, Laptop, LogIn, MonitorSmartphone, ShieldAlert, TextCursorInput } from "lucide-react";
 
 // --- Account Tab ---
@@ -298,7 +299,7 @@ export function SecurityTab() {
           {hasPassword
             ? 'Changing it signs out all devices.'
             : `Not set. Lets you sign in with ${user?.email ?? 'your email'} too; setting one signs out all devices.`}
-          {pwSuccess && <span role="status" className="block text-success">{pwSuccess}</span>}
+          {pwSuccess && <DoneLine className="mt-0.5">{pwSuccess}</DoneLine>}
         </>}
         action={
           <Button variant="ghost" size="sm" onClick={() => { setPwSuccess(''); setPwOpen(true); }}>

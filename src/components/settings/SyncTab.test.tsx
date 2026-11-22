@@ -35,7 +35,6 @@ describe("manual sync feedback", () => {
     expect(useSettingsStore.getState().autoSync).toBe(true);
   });
   it.each([
-    [{ status: "ok" }, "success", "Sync completed"],
     [{ status: "offline" }, "error", "Could not reach the server. Your changes are saved locally."],
     [{ status: "conflict" }, "info", "Resolve the sync conflict, then use Sync now again."],
     [{ status: "limit", message: "Size limit reached" }, "error", "Size limit reached"],
@@ -47,7 +46,17 @@ describe("manual sync feedback", () => {
     await waitFor(() => expect(toast[kind]).toHaveBeenCalledWith(message));
     expect(useSettingsStore.getState().autoSync).toBe(false);
     expect(screen.getByRole("button", { name: "Sync now" })).not.toBeDisabled();
-    if (result.status !== "ok") expect(toast.success).not.toHaveBeenCalled();
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(screen.queryByText("Synced.")).not.toBeInTheDocument();
+  });
+  it("says a finished sync in the row, not in a toast (TASK-96)", async () => {
+    vi.mocked(syncNow).mockResolvedValue({ status: "ok" });
+    render(<SyncTab />);
+    fireEvent.click(screen.getByRole("button", { name: "Sync now" }));
+    expect((await screen.findByText("Synced.")).closest("[role=status]")).not.toBeNull();
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(useSettingsStore.getState().autoSync).toBe(false);
+    expect(screen.getByRole("button", { name: "Sync now" })).not.toBeDisabled();
   });
   it("restores the button after an unexpected rejection", async () => {
     vi.mocked(syncNow).mockRejectedValue(new Error("storage unavailable"));
