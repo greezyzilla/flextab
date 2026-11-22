@@ -12,7 +12,7 @@ import { ConfirmDialog } from "~src/components/ui/confirm-dialog";
 import { Modal, ModalFooter, ModalHeader, ModalLink } from "~src/components/ui/modal";
 import { exportWorkspace } from "~src/services/exportWorkspace";
 import { ImportDialog } from "./ImportDialog";
-import { SourceColumn } from "~src/components/WorkspaceTree";
+import { SourceColumn, SourceColumnSkeleton } from "~src/components/WorkspaceTree";
 import { Button } from "~src/components/ui/button";
 import { Badge } from "~src/components/ui/badge";
 import { DoneLine } from "~src/components/ui/done-check";
@@ -311,7 +311,9 @@ function SnapshotPreviewModal({ snapshot, open, onOpenChange, onRestore, restore
         description={`${formatRelativeTime(new Date(snapshot.created_at).getTime())} · ${snapshot.space_count} space${snapshot.space_count !== 1 ? 's' : ''} · ${snapshot.tab_count} tab${snapshot.tab_count !== 1 ? 's' : ''}`} />
       <div className="flex min-h-40 flex-1 flex-col">
         {tree === null
-          ? <p className="rounded-lg border border-ink/10 p-3 text-xs text-fg-subtle">{failed ? "Couldn't load this snapshot." : "Loading…"}</p>
+          ? failed
+            ? <p className="rounded-lg border border-ink/10 p-3 text-xs text-fg-subtle">Couldn't load this snapshot.</p>
+            : <SourceColumnSkeleton rows={snapshot.space_count} label="Loading this version" />
           : <SourceColumn spaces={tree} includeEmpty emptyText="This snapshot is empty." />}
       </div>
       <ModalFooter primary={{ label: "Restore version", disabled: restoreDisabled, onClick: onRestore }} />

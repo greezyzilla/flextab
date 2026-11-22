@@ -1,6 +1,7 @@
 import { createContext, useContext, useId, type AriaAttributes, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { Icon } from "~src/components/ui/icon";
+import { Skeleton } from "~src/components/ui/skeleton";
 import { Info, TriangleAlert } from "lucide-react";
 import { Button, IconButton } from "~src/components/ui/button";
 import { Progress } from "~src/components/ui/progress";
@@ -112,8 +113,8 @@ export function SettingsList({ label, busyLabel, loading, failed, empty, childre
 function SkeletonRow() {
   return (
     <SettingsListRow placeholder
-      title={<span className="flex h-5 items-center"><span className="h-3.5 w-28 rounded bg-ink/[0.07] motion-safe:animate-pulse" /></span>}
-      meta={<span className="flex h-[1.21875rem] items-center"><span className="h-3 w-40 rounded bg-ink/[0.05] motion-safe:animate-pulse" /></span>} />
+      title={<Skeleton line={20} width={112} height={14} />}
+      meta={<Skeleton line="1.21875rem" width={160} height={12} tone="faint" />} />
   );
 }
 

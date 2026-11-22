@@ -51,3 +51,16 @@ describe("components that took over a call site's look", () => {
     expect(set(screen.getByRole("radiogroup").className)).toEqual(set("flex items-center flex-wrap justify-start gap-1.5"))
   })
 })
+
+describe("Skeleton (TASK-106)", () => {
+  it("never puts the 200ms wait on the element that pulses", async () => {
+    const { Skeleton } = await import("./skeleton")
+    const { container } = render(<><Skeleton late width={40} height={40} round="full" /><Skeleton late line={20} width={80} height={10} /><Skeleton width={10} height={10} /></>)
+    for (const el of Array.from(container.querySelectorAll<HTMLElement>("span"))) {
+      const c = el.getAttribute("class") ?? ""
+      expect(c.includes("animate-appear-late") && c.includes("animate-pulse"), c).toBe(false)
+    }
+    expect(container.querySelectorAll(".animate-appear-late")).toHaveLength(2)
+    expect(container.querySelectorAll(".motion-safe\\:animate-pulse")).toHaveLength(3)
+  })
+})

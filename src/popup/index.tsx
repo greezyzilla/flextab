@@ -23,7 +23,8 @@ import { describeChange, type Change } from "~src/lib/describeChange"
 import { openInFlexTab } from "~src/services/reveal"
 import type { SavedSpace, SavedTab } from "~src/types"
 import { Chip } from "~src/components/ui/chip"
-import { ActionList, ActionRow } from "~src/components/ui/action-row"
+import { ActionList, ActionRow, ActionRowSkeleton } from "~src/components/ui/action-row"
+import { Skeleton } from "~src/components/ui/skeleton"
 import { PageTile } from "~src/components/ui/page-tile"
 import { PlaceCard, PlaceCardRow } from "~src/components/ui/place-card"
 import {
@@ -419,6 +420,15 @@ function IndexPopup() {
       <section data-card="page" role="status" aria-live="polite" className="flex flex-col gap-3.5">
         <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3">
           <PageTile done={ok}>{tile}</PageTile>
+          {loading ? (
+            // Still reading the page: its sentence and detail as skeleton lines of their own type
+            // (TASK-106), so the real lines take their place without moving anything.
+            <div className="min-w-0">
+              <span className="sr-only">Loading…</span>
+              <Skeleton late line={24} width="72%" height={14} />
+              <div className="mt-0.5"><Skeleton late line={18} width="48%" height={10} tone="faint" /></div>
+            </div>
+          ) : (
           <div className="min-w-0">
             {(() => {
               const sentence = <p ref={headingRef} data-slot="page-sentence" className="line-clamp-2 text-popup-title font-semibold text-fg [overflow-wrap:anywhere] data-[lines=2]:text-popup data-[lines=2]:leading-5">{heading}</p>
@@ -430,6 +440,7 @@ function IndexPopup() {
             })()}
             {sub && <p data-slot="page-detail" className="mt-0.5 line-clamp-2 text-popup-meta text-fg-subtle [overflow-wrap:anywhere]">{sub}</p>}
           </div>
+          )}
         </div>
         {/* Two or more saved episodes this page may continue: pick which one
             Update acts on. A chip only selects; the Update row does it. */}
@@ -458,6 +469,7 @@ function IndexPopup() {
           </>
         )}
         {steps.length > 0 && <Steps steps={steps} disabled={busy} />}
+        {loading && <ActionList><ActionRowSkeleton late /></ActionList>}
         {picking && (
           <DestinationPicker
             groupLevel

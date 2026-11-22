@@ -9,6 +9,7 @@ import { SpaceAvatar } from "~src/components/levelIcons"
 import { cn } from "~src/lib/utils"
 import { Disclosure as DisclosureButton } from "~src/components/ui/disclosure"
 import { TextLink } from "~src/components/ui/text-link"
+import { Skeleton, SkeletonRegion } from "~src/components/ui/skeleton"
 
 /** How many tabs a group shows before "+N more" (chunking keeps long lists scannable). */
 const PREVIEW_TABS = 5
@@ -125,5 +126,28 @@ export function SourceColumn({ title, spaces, removed = false, inBoth = new Set(
           </ul>
         )}
     </section>
+  )
+}
+
+/**
+ * A SourceColumn still loading (TASK-106): the same frame with one skeleton per space row (chevron,
+ * avatar, name, counts at the row's own 28px), so the spaces take their places when they arrive.
+ */
+export function SourceColumnSkeleton({ rows, label }: { rows: number; label: string }) {
+  return (
+    <SkeletonRegion label={label}>
+      <div className="flex min-h-0 min-w-0 flex-col gap-2 rounded-lg border border-ink/10 p-3">
+      <ul className="flex flex-col">
+        {Array.from({ length: Math.max(1, Math.min(rows, 6)) }, (_, i) => (
+          <li key={i} className="flex items-center gap-2 px-1 py-1">
+            <Skeleton width={14} height={14} />
+            <Skeleton width={18} height={18} round="full" />
+            <Skeleton line={20} width={`${[58, 44, 66, 50, 60, 42][i]}%`} height={10} className="min-w-0 flex-1" />
+            <span className="ml-auto"><Skeleton line={16} width={72} height={8} tone="faint" /></span>
+          </li>
+        ))}
+      </ul>
+      </div>
+    </SkeletonRegion>
   )
 }

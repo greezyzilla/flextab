@@ -19,17 +19,11 @@ import { pullSettings, startSettingsSync, stopSettingsSync } from "~src/services
 import { useSettingsStore } from "~src/store/useSettingsStore"
 import { applyThemeMode, readStoredThemeMode } from "~src/lib/theme"
 import { useRevealRequests } from "~src/hooks/useRevealRequests"
+import { ShellSkeleton } from "~src/components/layout/ShellSkeleton"
 
 // Before the first render: a forced Light/Dark must not flash (lib/theme.ts).
 applyThemeMode(readStoredThemeMode())
 
-function LoadingScreen() {
-  return (
-    <div className="flex items-center justify-center h-screen w-screen bg-black-900">
-      <div className="text-fg-subtle font-sans text-sm">Loading...</div>
-    </div>
-  )
-}
 
 function NewTabPage() {
   const { hydrated, error: hydrationError } = useHydrated()
@@ -71,8 +65,7 @@ function NewTabPage() {
   }, [isAuthenticated, user?.id])
 
   if (hydrationError) return <WorkspaceLoadError />
-  if (authLoading) return <LoadingScreen />
-  if (!hydrated) return <LoadingScreen />
+  if (authLoading || !hydrated) return <ShellSkeleton />
   // The workspace is always local and usable, signed in or not (TASK-7).
   // Sign-in is a place you go to (rail, popup, getting-started card): it opens
   // over the workspace (TASK-79), never as a wall in front of it.
