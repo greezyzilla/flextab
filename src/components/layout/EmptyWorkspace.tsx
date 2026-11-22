@@ -12,13 +12,14 @@ import { SpaceAvatar } from "~src/components/levelIcons"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import { createSpace } from "~src/lib/defaultPath"
 import { Chip } from "~src/components/ui/chip"
+import { spaceColour } from "~src/lib/data-colours"
 
 /** Starters, each with a colour from the space palette (Settings › Spaces). */
 export const STARTERS: { name: string; color: string }[] = [
-  { name: "Work", color: "#2274F0" },
-  { name: "Personal", color: "#8b5cf6" },
-  { name: "Study", color: "#22c55e" },
-  { name: "Side project", color: "#f97316" },
+  { name: "Work", color: spaceColour("Blue") },
+  { name: "Personal", color: spaceColour("Violet") },
+  { name: "Study", color: spaceColour("Green") },
+  { name: "Side project", color: spaceColour("Orange") },
 ]
 
 /** Creates the space with its default path and opens it on that category. */

@@ -21,10 +21,10 @@ const RAW_CLASS = /\b(?:[a-z-]+:)*(?:text|bg|border|ring|outline|fill|stroke|fro
 const RAW_HEX = /#(?:fca5a5|f87171|ef4444|dc2626|b91c1c|991b1b|7f1d1d|fda4af|fb7185|f43f5e|e11d48|be123c|ff0000|f00)\b/gi
 /**
  * Files allowed a literal red hex, each for a reason the tokens cannot cover:
- * - a colour a user picks for their own content (a space's colour) is data, not a danger signal;
+ * - a colour a user picks for their own content (a space's colour, in lib/data-colours.ts) is data, not a danger signal;
  * - the browser toolbar icon's badge is drawn on a canvas outside any page, where CSS tokens don't exist.
  */
-const USER_COLOURS = new Set(["components/settings/SpacesTab.tsx", "services/toolbarMarks.ts"])
+const USER_COLOURS = new Set(["lib/data-colours.ts", "services/toolbarMarks.ts"])
 
 describe("danger standard gate", () => {
   it("uses no raw red palette class or red hex outside the danger tokens", () => {

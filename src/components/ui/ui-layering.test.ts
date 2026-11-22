@@ -137,26 +137,32 @@ function clearedBy(key: string) {
 
 type Debt = Record<string, Record<string, Record<string, number>>>
 
+/**
+ * Colours that are data, not style (TASK-103.5): literal on purpose, so no theme or accent change
+ * alters them. They live only in these files (.ts, which rule B does not read), each with its reason.
+ */
+const DATA_COLOURS: Record<string, string> = {
+  "lib/data-colours.ts":
+    "provider brand colours (their guidelines fix them); the space colours (a space stores and syncs the hex, so a value can never change); the accent hue picker's spectrum (the hue is the setting's value)",
+}
+
 /** Today's findings (fe dev 4f80647), by the subtask that clears them. Only ever lower or remove an entry. */
 const DEBT: Debt = {
-  "TASK-103.5": { // 89 in 18 files
+  "TASK-103.5": { // 55 in 15 files
     "components/DestinationPicker.tsx": { "B": 3 },
     "components/DuplicateMark.tsx": { "B": 10 },
     "components/MergeConflictModal.tsx": { "B": 1 },
-    "components/OnboardingScreen.tsx": { "B": 6 },
     "components/SearchBar.tsx": { "B": 2 },
     "components/SyncConflictModal.tsx": { "B": 1 },
     "components/SyncStatusIndicator.tsx": { "B": 5 },
     "components/TabGroup.tsx": { "B": 1 },
     "components/layout/ContentPanel.tsx": { "B": 1 },
     "components/layout/Drawer.tsx": { "B": 1 },
-    "components/layout/EmptyWorkspace.tsx": { "B": 6 },
+    "components/layout/EmptyWorkspace.tsx": { "B": 2 },
     "components/layout/LeftPanel.tsx": { "B": 2 },
     "components/settings/AppearancePreview.tsx": { "B": 2 },
-    "components/settings/AppearanceTab.tsx": { "B": 8 },
     "components/settings/BackupTab.tsx": { "B": 1 },
     "components/settings/SettingsShell.tsx": { "B": 11 },
-    "components/settings/SpacesTab.tsx": { "B": 16 },
     "popup/index.tsx": { "B": 12 },
   },
   "TASK-103.6": { // 65 in 14 files
@@ -217,6 +223,13 @@ describe("ui layering (docs/ui-layering.md)", () => {
       }
     }
     expect(problems, GUIDE).toEqual([])
+  })
+
+  it("keeps data colours in the files it lists, each with a reason", () => {
+    for (const [file, reason] of Object.entries(DATA_COLOURS)) {
+      expect(statSync(join(SRC, file)).isFile(), file).toBe(true)
+      expect(reason.length, file).toBeGreaterThan(20)
+    }
   })
 })
 

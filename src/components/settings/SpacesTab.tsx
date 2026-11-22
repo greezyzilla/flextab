@@ -13,14 +13,12 @@ import type { SavedSpace } from "~src/types";
 import { SettingRow, SettingsPage, SettingsSection } from "./shared";
 import { SETTINGS_ROUTE } from "./types";
 import { Swatch } from "~src/components/ui/swatch";
+import { SPACE_COLOURS } from "~src/lib/data-colours";
 
-export const SPACE_COLORS = [
-  "", "#2274F0", "#8b5cf6", "#ec4899", "#ef4444",
-  "#f97316", "#eab308", "#22c55e", "#06b6d4",
-];
+/** "" is the default (no colour); the rest are the stored space colours. */
+export const SPACE_COLORS: string[] = ["", ...SPACE_COLOURS.map((c) => c.value)];
 export const SPACE_COLOR_NAMES: Record<string, string> = {
-  "": "Default", "#2274F0": "Blue", "#8b5cf6": "Violet", "#ec4899": "Pink", "#ef4444": "Red",
-  "#f97316": "Orange", "#eab308": "Yellow", "#22c55e": "Green", "#06b6d4": "Cyan",
+  "": "Default", ...Object.fromEntries(SPACE_COLOURS.map((c) => [c.value, c.name])),
 };
 
 export const SPACES_ROUTE = `${SETTINGS_ROUTE}/spaces`;

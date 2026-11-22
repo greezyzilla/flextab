@@ -31,9 +31,9 @@ const TAB_PREVIEW_NOTE: Record<TabPreview, string> = {
 import { ListIcon, GridIcon } from "./icons";
 import { releaseTabGroups, requestTabGroups } from "~src/services/openTab";
 import { Swatch } from "~src/components/ui/swatch";
+import { HUE_SPECTRUM, hueColour } from "~src/lib/data-colours";
 
-const HUE_GRADIENT =
-  "linear-gradient(to right, hsl(0 85% 56%), hsl(60 85% 56%), hsl(120 85% 56%), hsl(180 85% 56%), hsl(240 85% 56%), hsl(300 85% 56%), hsl(360 85% 56%))";
+const HUE_GRADIENT = HUE_SPECTRUM;
 
 export function HueSlider({ value, onChange, ...controlProps }: { value: number; onChange: (h: number) => void } & SettingControlProps) {
   return (
@@ -106,7 +106,7 @@ export function ThemeTab() {
               <div className="flex items-center justify-between gap-1">
                 {HUE_PRESETS.map(p => (
                   <IconTooltip key={p.hue} content={p.label}>
-                    <Swatch color={`hsl(${p.hue} 85% 56%)`} label={p.label} selected={hue === p.hue} onClick={() => setHue(p.hue)} />
+                    <Swatch color={hueColour(p.hue)} label={p.label} selected={hue === p.hue} onClick={() => setHue(p.hue)} />
                   </IconTooltip>
                 ))}
               </div>
