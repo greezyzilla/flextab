@@ -30,6 +30,7 @@ const TAB_PREVIEW_NOTE: Record<TabPreview, string> = {
 };
 import { ListIcon, GridIcon } from "./icons";
 import { releaseTabGroups, requestTabGroups } from "~src/services/openTab";
+import { Swatch } from "~src/components/ui/swatch";
 
 const HUE_GRADIENT =
   "linear-gradient(to right, hsl(0 85% 56%), hsl(60 85% 56%), hsl(120 85% 56%), hsl(180 85% 56%), hsl(240 85% 56%), hsl(300 85% 56%), hsl(360 85% 56%))";
@@ -105,12 +106,7 @@ export function ThemeTab() {
               <div className="flex items-center justify-between gap-1">
                 {HUE_PRESETS.map(p => (
                   <IconTooltip key={p.hue} content={p.label}>
-                    <button
-                      onClick={() => setHue(p.hue)}
-                      aria-label={p.label}
-                      className={`h-4 w-4 rounded-full border transition-all ${hue === p.hue ? 'border-ink/70 scale-110' : 'border-transparent hover:border-ink/40'}`}
-                      style={{ backgroundColor: `hsl(${p.hue} 85% 56%)` }}
-                    />
+                    <Swatch color={`hsl(${p.hue} 85% 56%)`} label={p.label} selected={hue === p.hue} onClick={() => setHue(p.hue)} />
                   </IconTooltip>
                 ))}
               </div>

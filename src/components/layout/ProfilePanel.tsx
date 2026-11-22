@@ -22,6 +22,7 @@ import { spaceAvatarColors } from "~src/components/levelIcons";
 import { SIGN_IN_ROUTE } from "~src/lib/workspaceAccess";
 import { parseContainerDrag, spaceDragId } from "~src/services/dragDrop";
 import { SPRING_LOAD_MS } from "~src/hooks/useDragAndDrop";
+import { RailButton } from "~src/components/ui/rail-button";
 
 export function ProfilePanel() {
   const { savedSpaces, activeSpaceId, setActiveSpace } = useSavedSpacesStore();
@@ -88,23 +89,21 @@ export function ProfilePanel() {
               {(drag) => (
               <Tooltip>
               <TooltipTrigger asChild>
-              <button
+              <RailButton
                 ref={drag.ref}
                 onPointerDown={drag.onPointerDown}
-                type="button"
+                look="avatar"
+                active={!inSettings && activeSpaceId === space.id}
                 aria-label={`Switch to ${space.name}`}
                 aria-pressed={!inSettings && activeSpaceId === space.id}
                 onClick={() => { if (drag.dragged()) return; setActiveSpace(space.id); navigate("/"); }}
-                className={`w-10 h-10 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-black-900 cursor-pointer transition-all flex items-center justify-center text-xs font-normal font-sans ${
-                  !inSettings && activeSpaceId === space.id ? "ring-2 ring-ink/50" : "hover:brightness-125"
-                }`}
                 style={{
                   ...spaceAvatarColors(space, !inSettings && activeSpaceId === space.id),
                   ...(space.color && !inSettings && activeSpaceId === space.id ? { borderColor: space.color, ringColor: space.color } : {}),
                 }}
               >
                 {(space.abbreviation || space.name.slice(0, 2)).toUpperCase()}
-              </button>
+              </RailButton>
               </TooltipTrigger>
               <TooltipContent side="right">{space.name}</TooltipContent>
               </Tooltip>
@@ -140,38 +139,25 @@ export function ProfilePanel() {
           </div>
         )}
         <ShortcutTooltip label="Add space" shortcut="Alt+N" side="right">
-          <button
-            type="button"
-            aria-label="Add space"
-            onClick={handleAddSpace}
-            className="w-10 h-10 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring border border-ink/30 border-dashed text-fg-subtle flex items-center justify-center cursor-pointer hover:border-ink/50 hover:text-fg-muted transition-colors"
-          >
+          <RailButton look="dashed" aria-label="Add space" onClick={handleAddSpace}>
             <Icon icon={Plus} size="xl" />
-          </button>
+          </RailButton>
         </ShortcutTooltip>
         </div>
       </div>
       <div className="flex flex-col gap-2 py-4 items-center">
         <Tooltip>
         <TooltipTrigger asChild>
-        <button
-          type="button"
-          aria-label="Settings"
-          aria-pressed={inSettings}
-          onClick={() => navigate(SETTINGS_ROUTE)}
-          className={`w-10 h-10 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-black-900 cursor-pointer flex items-center justify-center transition-colors ${
-            inSettings ? "bg-black-700 ring-2 ring-ink/50" : "bg-black-800 hover:bg-black-700"
-          }`}
-        >
+        <RailButton look="solid" active={inSettings} aria-label="Settings" aria-pressed={inSettings} onClick={() => navigate(SETTINGS_ROUTE)}>
           <Icon icon={Settings} size="lg" className={inSettings ? "text-fg" : "text-fg-subtle"} />
-        </button>
+        </RailButton>
         </TooltipTrigger>
         <TooltipContent side="right">Settings</TooltipContent>
         </Tooltip>
         {isAuthenticated && user ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button type="button" className="cursor-pointer rounded-full outline-none focus-visible:ring-1 focus-visible:ring-ring" aria-label={user.name}>
+              <RailButton look="bare" aria-label={user.name}>
                 <Avatar className="h-10 w-10">
                   {user.avatar ? (
                     <AvatarImage src={user.avatar} alt={user.name} referrerPolicy="no-referrer" />
@@ -180,7 +166,7 @@ export function ProfilePanel() {
                     {(user.name || "?").slice(0, 1).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-              </button>
+              </RailButton>
             </DropdownMenuTrigger>
             <DropdownMenuContent side="top" align="start">
               <DropdownMenuLabel>
@@ -194,14 +180,9 @@ export function ProfilePanel() {
         ) : (
           <Tooltip>
           <TooltipTrigger asChild>
-          <button
-            type="button"
-            aria-label="Sign in"
-            onClick={() => navigate(SIGN_IN_ROUTE)}
-            className="w-10 h-10 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring bg-black-800 hover:bg-black-700 cursor-pointer flex items-center justify-center transition-colors"
-          >
+          <RailButton look="solid" aria-label="Sign in" onClick={() => navigate(SIGN_IN_ROUTE)}>
             <Icon icon={User} size="lg" className="text-fg-subtle" />
-          </button>
+          </RailButton>
           </TooltipTrigger>
           <TooltipContent side="right">Sign in</TooltipContent>
           </Tooltip>

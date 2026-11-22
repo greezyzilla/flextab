@@ -5,6 +5,7 @@ import { exportWorkspace } from "~src/services/exportWorkspace";
 import { navigate } from "~src/lib/route";
 import { Input } from "~src/components/ui/input";
 import { Modal, ModalBody, ModalCheckbox, ModalFooter, ModalHeader, ModalLink } from "~src/components/ui/modal";
+import { TextLink } from "~src/components/ui/text-link";
 
 type LocalData = "keep" | "remove";
 
@@ -80,9 +81,9 @@ export function DeleteAccountDialog({ open, onOpenChange }: { open: boolean; onO
           <p role="alert" className="text-sm text-danger">
             {error.text}{" "}
             {error.toPlan && (
-              <button type="button" className="underline underline-offset-2 hover:text-danger-strong" onClick={() => { onOpenChange(false); navigate("/settings/plan"); }}>
+              <TextLink tone="danger" onClick={() => { onOpenChange(false); navigate("/settings/plan"); }}>
                 Open Plan &amp; Usage
-              </button>
+              </TextLink>
             )}
           </p>
         )}

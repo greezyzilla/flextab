@@ -9,7 +9,6 @@ import { useAuthStore } from "~src/store/useAuthStore"
 import { applyThemeMode, readStoredThemeMode } from "~src/lib/theme"
 import { installExternalPersistBridge } from "~src/lib/yjsDoc"
 import { FaviconImg } from "~src/components/FaviconImg"
-import { cn } from "~src/lib/utils"
 import { ClippedTooltip, IconTooltip } from "~src/components/ui/button"
 import { TooltipProvider } from "~src/components/ui/tooltip"
 import { AppWindow, Ban, BookmarkPlus, Check, CopyPlus, FolderInput, ListX, Replace, RotateCw, Undo2, type LucideIcon } from "lucide-react"
@@ -23,6 +22,8 @@ import { bestSameHostMatch, findLinkedTab, getOpenLink, noteJustUpdated, restore
 import { describeChange, type Change } from "~src/lib/describeChange"
 import { openInFlexTab } from "~src/services/reveal"
 import type { SavedSpace, SavedTab } from "~src/types"
+import { Chip } from "~src/components/ui/chip"
+import { ActionList, ActionRow } from "~src/components/ui/action-row"
 import {
   captureTabs, moveCapture, undoCapture, persistCapture, isCaptureFailure, closeSavedTabs,
   loadSuggestedDestination, loadCloseAfter, POPUP_CLOSE_PORT, POPUP_SUBJECT_KEY, POPUP_SUBJECT_TTL_MS,
@@ -440,11 +441,9 @@ function IndexPopup() {
               {status.offers.map((o, i) => (
                 <li key={o.tab.id} className="min-w-0">
                   <IconTooltip content={o.tab.title}>
-                    <button type="button" disabled={busy} onClick={() => selectOffer(i)}
-                      aria-pressed={i === status.selected} aria-label={o.label}
-                      className="h-9 w-full truncate rounded-[10px] bg-ink/[0.06] px-2 text-[15px] text-fg outline-none transition-colors hover:bg-ink/[0.1] focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 aria-pressed:bg-ink/[0.14] aria-pressed:font-medium aria-pressed:ring-1 aria-pressed:ring-inset aria-pressed:ring-ink/[0.24]">
-                      {o.chip}
-                    </button>
+                    <Chip size="panel" fullWidth selected={i === status.selected} disabled={busy} onClick={() => selectOffer(i)} aria-label={o.label}>
+                      <span className="truncate">{o.chip}</span>
+                    </Chip>
                   </IconTooltip>
                 </li>
               ))}
@@ -529,16 +528,13 @@ type Step = { icon: LucideIcon; label: string; onClick: () => void; expanded?: b
 function Steps({ steps, disabled }: { steps: Step[]; disabled: boolean }) {
   if (steps.length === 0) return null
   return (
-    <div className="overflow-hidden rounded-[14px] bg-ink/[0.04]">
-      {steps.map(({ icon: glyph, label, onClick, expanded, name }) => (
-        <button key={label} type="button" onClick={onClick} disabled={disabled} aria-expanded={expanded} aria-label={name}
-          className={cn("grid min-h-11 w-full grid-cols-[20px_minmax(0,1fr)] items-center gap-x-3 px-3 py-[11px] text-left text-[15px] leading-[22px] text-fg outline-none transition-colors [overflow-wrap:anywhere] [&+&]:border-t [&+&]:border-ink/[0.07] hover:bg-ink/[0.05] focus-visible:bg-ink/[0.07] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:opacity-50",
-            expanded && "bg-ink/[0.07]")}>
-          <Icon icon={glyph} size="lg" className="text-fg-muted" />
-          <span className="[text-wrap:pretty]">{label}</span>
-        </button>
+    <ActionList>
+      {steps.map(({ icon, label, onClick, expanded, name }) => (
+        <ActionRow key={label} icon={icon} onClick={onClick} disabled={disabled} expanded={expanded} aria-label={name}>
+          {label}
+        </ActionRow>
       ))}
-    </div>
+    </ActionList>
   )
 }
 

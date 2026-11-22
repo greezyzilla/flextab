@@ -35,6 +35,9 @@ const buttonVariants = cva(
           "border border-ink/10 text-fg-muted hover:border-ink/25 hover:bg-ink/[0.04] hover:text-ink",
         // An action set in text: accent text so it reads as something to press, at rest too (TASK-103.2).
         link: "text-fg-accent underline-offset-4 hover:underline",
+        // App chrome (the header's "Sign in to sync", the sync status, the panel footer's Shortcuts):
+        // regular weight, no edge, a faint fill and fg text on hover (TASK-103.4).
+        quiet: "font-normal text-fg-muted hover:bg-ink/[0.06] hover:text-fg",
       },
       size: {
         default: "h-9 px-3.5 py-2",
@@ -45,6 +48,11 @@ const buttonVariants = cva(
         // Beside a 44px field (Input variant "lg").
         xl: "h-11 rounded-md px-5 text-[15px]",
         icon: "h-9 w-9",
+        // The app header's 36px row: a labelled action, or an icon-led status (tight).
+        bar: "h-9 px-2.5 text-xs",
+        "bar-tight": "h-9 gap-1.5 px-1.5 text-xs",
+        // A panel footer's 11px row.
+        footer: "gap-1.5 px-1.5 py-1 text-[11px]",
         // Inside a sentence (a notice's "Check again"): no box, the text's own size and line height.
         inline: "h-auto p-0 align-baseline text-[length:inherit] leading-[inherit]",
       },
@@ -52,7 +60,11 @@ const buttonVariants = cva(
       fullWidth: { true: "w-full", false: "" },
     },
     // Text set as an action lines up with the text around it, so a link never carries side padding.
-    compoundVariants: [{ variant: "link", class: "px-0" }],
+    compoundVariants: [
+      { variant: "link", class: "px-0" },
+      // A footer is the quietest tier: its actions rest one step dimmer than the header's.
+      { variant: "quiet", size: "footer", class: "text-fg-subtle" },
+    ],
     defaultVariants: {
       variant: "default",
       size: "default",
@@ -80,7 +92,7 @@ Button.displayName = "Button"
 /**
  * Square icon button — project helper (shadcn has no IconButton; canonical uses
  * <Button size="icon">, but we want hover-only "subtle" + danger tones too).
- *   default — hover background; subtle — hover color only, no background.
+ *   default — hover background; subtle — hover colour only (to fg), no background.
  * A default icon button that opens a menu keeps the hover look while the menu is open: Radix sets
  * data-state="open" on the trigger, so no call site tracks it.
  */
@@ -90,12 +102,14 @@ const iconButtonVariants = cva(
     variants: {
       variant: {
         default: "text-fg-subtle hover:bg-ink/10 hover:text-fg data-[state=open]:bg-ink/10 data-[state=open]:text-fg",
-        subtle: "text-fg-subtle hover:text-fg-muted",
+        // Hover firms to fg, not fg-muted: one step up from fg-subtle read as no change (TASK-103.4).
+        subtle: "text-fg-subtle hover:text-fg",
       },
       danger: { true: "", false: "" },
       // sm: the 24px square inside a field (the search field's clear). lg: the 36px square of the
       // app header, beside the 36px search field.
-      size: { default: "", sm: "h-6 w-6 p-1", lg: "h-9 w-9" },
+      // xs: a 16px circle beside a label (a setting's info). disclosure: the sidebar's chevron column.
+      size: { default: "", xs: "h-4 w-4 rounded-full p-0", sm: "h-6 w-6 p-1", disclosure: "h-6 w-5 rounded p-0", lg: "h-9 w-9" },
     },
     compoundVariants: [
       { variant: "default", danger: true, class: "text-fg-subtle hover:bg-danger/10 hover:text-danger" },

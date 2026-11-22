@@ -2,7 +2,7 @@ import { createContext, useContext, useId, type AriaAttributes, type ReactNode }
 import type { LucideIcon } from "lucide-react";
 import { Icon } from "~src/components/ui/icon";
 import { Info, TriangleAlert } from "lucide-react";
-import { Button, IconTooltip } from "~src/components/ui/button";
+import { Button, IconButton } from "~src/components/ui/button";
 import { Progress } from "~src/components/ui/progress";
 import { ToggleGroup as ShadcnToggleGroup, ToggleGroupItem } from "~src/components/ui/toggle-group";
 
@@ -303,11 +303,9 @@ export function SettingRow({ label, description, info, children }: {
         <div className="flex items-center gap-1.5">
           <div id={controlProps['aria-labelledby']} className="text-fg font-sans text-sm font-medium">{label}</div>
           {info && (
-            <IconTooltip content={info}>
-              <button type="button" aria-label={`About ${label}`} className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-fg-subtle outline-none hover:text-fg focus-visible:ring-2 focus-visible:ring-ring">
-                <Icon icon={Info} size="sm" />
-              </button>
-            </IconTooltip>
+            <IconButton variant="subtle" size="xs" className="shrink-0" aria-label={`About ${label}`} tooltip={info}>
+              <Icon icon={Info} size="sm" />
+            </IconButton>
           )}
         </div>
         <div id={controlProps['aria-describedby']} className="text-fg-subtle font-sans text-xs mt-0.5 leading-relaxed">

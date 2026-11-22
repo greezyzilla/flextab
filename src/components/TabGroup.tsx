@@ -1,6 +1,6 @@
 import { useFlash } from "~src/hooks/useFlash";
 import { Icon } from "~src/components/ui/icon"
-import { GripVertical, SquareArrowOutUpRight } from "lucide-react"
+import { SquareArrowOutUpRight } from "lucide-react"
 import { useState, useRef, useEffect, useId } from "react";
 import { SortableContext, useSortable } from "@dnd-kit/sortable";
 import { useDroppable } from "@dnd-kit/core";
@@ -38,6 +38,8 @@ import { useSettingsStore, type GroupLayout } from "~src/store/useSettingsStore"
 import { GroupColorMenuItems } from "./GroupColorMenu";
 import { GROUP_COLORS, groupColorFill, groupTintEdge, groupTintSurface } from "~src/lib/groupColors";
 import type { GroupColor } from "~src/types";
+import { DragHandle } from "~src/components/ui/drag-handle";
+import { TextLink } from "~src/components/ui/text-link";
 
 /** `copies`: how many tabs in this group share this address (2+ marks a duplicate). */
 function SavedTabItem({ tab, groupId, location, copies = 1, unsorted }: { tab: SavedTab; groupId: string; location: GroupLocation; copies?: number; unsorted?: boolean }) {
@@ -183,15 +185,7 @@ function SavedTabItem({ tab, groupId, location, copies = 1, unsorted }: { tab: S
         <span className="relative w-5 h-5 shrink-0">
           <FaviconImg src={tab.favicon} alt="" />
           <IconTooltip content="Drag to reorder">
-            <button
-              type="button"
-              {...attributes}
-              {...listeners}
-              aria-label={`Reorder ${tab.title}`}
-              className="absolute -inset-0.5 flex items-center justify-center rounded bg-black-800 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-1 focus-visible:ring-ring outline-none cursor-grab active:cursor-grabbing transition-opacity"
-            >
-              <Icon icon={GripVertical} size="sm" className="text-fg-muted" />
-            </button>
+            <DragHandle cover reveal="group-hover:opacity-100" {...attributes} {...listeners} aria-label={`Reorder ${tab.title}`} />
           </IconTooltip>
           {isDuplicate && duplicateMark === "icon" && <DuplicateIcon tone={duplicateTone} />}
         </span>
@@ -437,15 +431,15 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
             <span className="w-5 flex justify-center shrink-0"><GroupIcon size="sm" className="text-fg-subtle" /></span>
             <h3 className="min-w-0 text-fg-muted font-sans text-[13px] font-medium">
               <IconTooltip content="Rename group">
-                <button
+                <TextLink
                   ref={renameButtonRef}
-                  type="button"
-                  className="block max-w-full text-left truncate rounded outline-none focus-visible:ring-1 focus-visible:ring-ring hover:text-fg transition-colors"
+                  underline={false}
+                  truncate
                   onClick={() => { setRenameValue(group.name); setIsRenaming(true); }}
                   aria-label={`Rename ${group.name}${colorLabel ? ` (${colorLabel})` : ''}`}
                 >
                   {group.name}
-                </button>
+                </TextLink>
               </IconTooltip>
             </h3>
             <span className="text-fg-subtle text-xs font-sans shrink-0">{sortedTabs.length} tab{sortedTabs.length !== 1 ? 's' : ''}</span>

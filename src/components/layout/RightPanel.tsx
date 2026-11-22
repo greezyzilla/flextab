@@ -20,9 +20,11 @@ import { isFlexTabPage, openTabRowText } from "~src/lib/openTabText"
 import { SaveSessionModal } from "../SaveSessionModal"
 import { useWindows } from "~src/hooks/useWindows"
 import { IconButton } from "~src/components/ui/button"
-import { ArrowRightLeft, BookmarkPlus, Check, ChevronRight, GripVertical, Loader2, LocateFixed, X } from "lucide-react"
+import { ArrowRightLeft, BookmarkPlus, Check, ChevronRight, Loader2, LocateFixed, X } from "lucide-react"
 import { useSavedUrlIndex } from "~src/hooks/useSavedUrlIndex"
 import { describeSaved, normalizeUrl, type SavedLocation } from "~src/lib/savedUrlIndex"
+import { DragHandle } from "~src/components/ui/drag-handle"
+import { RowOverlay } from "~src/components/ui/row-overlay"
 
 function flexTabIcon(): string | undefined {
   const icon = chrome.runtime?.getManifest?.().icons?.["128"]
@@ -122,25 +124,12 @@ const OpenedTab = ({ tab, windowId, windowLabel, saved, closeAfterSave, targets 
       // blank slot, which read as a place to drop (TASK-73).
       style={{ opacity: isDragging ? 0.5 : 1 }}
     >
-      <button
-        type="button"
-        aria-label={`Go to ${name}`}
-        className="absolute inset-0 rounded-md cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring"
-        onClick={onTabClick}
-      />
+      <RowOverlay aria-label={`Go to ${name}`} onClick={onTabClick} />
 
       {/* Favicon slot doubles as the drag handle on hover/focus, as on saved
           tabs, so no empty gutter sits in front of the favicon (TASK-5). */}
       <span className="relative w-5 h-5 shrink-0 pointer-events-none">
-        <button
-          type="button"
-          {...attributes}
-          {...listeners}
-          aria-label={`Drag ${name}`}
-          className="peer pointer-events-auto absolute -inset-0.5 z-10 flex items-center justify-center rounded opacity-0 group-hover/tab:opacity-100 focus-visible:opacity-100 focus-visible:ring-1 focus-visible:ring-ring outline-none cursor-grab active:cursor-grabbing transition-opacity"
-        >
-          <Icon icon={GripVertical} size="sm" className="text-fg-muted" />
-        </button>
+        <DragHandle reveal="group-hover/tab:opacity-100" {...attributes} {...listeners} aria-label={`Drag ${name}`} />
         <span className="relative block transition-opacity group-hover/tab:opacity-0 peer-focus-visible:opacity-0">
           {loading ? <Icon icon={Loader2} size="md" className="m-0.5 animate-spin motion-reduce:animate-none text-fg-subtle" label="Loading" />
             : flexTab ? <img src={flexTabIcon()} alt="" className="w-5 h-5" />

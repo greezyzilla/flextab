@@ -18,6 +18,7 @@ import type { OAuthProvider } from "~src/services/oauthLogin";
 import { Icon } from "~src/components/ui/icon";
 import { DoneLine } from "~src/components/ui/done-check";
 import { Mail, AtSign, Laptop, LogIn, MonitorSmartphone, ShieldAlert, TextCursorInput } from "lucide-react";
+import { TextLink } from "~src/components/ui/text-link";
 
 // --- Account Tab ---
 
@@ -326,7 +327,7 @@ export function SecurityTab() {
                 <div className="flex items-center justify-between">
                   <Label htmlFor="account-current-password">Current password</Label>
                   {emailOn && (
-                    <button type="button" className="text-fg-subtle text-[11px] leading-4 underline hover:text-fg" disabled={pwLoading} onClick={() => void sendReset()}>Forgot it?</button>
+                    <TextLink tone="subtle" size="caption" disabled={pwLoading} onClick={() => void sendReset()}>Forgot it?</TextLink>
                   )}
                 </div>
                 <Input id="account-current-password" type="password" placeholder="Enter your current password" autoComplete="current-password" value={currentPw} onChange={e => setCurrentPw(e.target.value)} />

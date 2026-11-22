@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { PANEL_HEADER, PANEL_TITLE, PANEL_LIST, PANEL_ROW, PANEL_ROW_LABEL, PANEL_ROW_TEXT, PanelFooter } from "./panelChrome";
+import { PANEL_HEADER, PANEL_TITLE, PANEL_LIST, PANEL_ROW, PanelFooter } from "./panelChrome";
+import { TreeRowButton } from "../ui/tree-row-button";
 import { ChevronRight, GripVertical } from "lucide-react"
 import { Icon } from "~src/components/ui/icon"
 import { cn } from "~src/lib/utils"
@@ -25,6 +26,7 @@ import { Kbd, ShortcutTooltip } from "~src/components/ui/kbd";
 import { isUnsortedGroup } from "~src/lib/defaultPath";
 import { MoveContainerDialog } from "~src/components/MoveContainerDialog";
 import { describeContainerTarget, moveCategoryTo, moveProjectTo, shiftCategory, shiftProject, type ContainerTarget } from "~src/services/moveTo";
+import { CreateSlot } from "~src/components/ui/create-slot";
 
 /**
  * "New project…" slot at the end of the project list. It creates rather than
@@ -43,14 +45,7 @@ function NewProjectSlot({ onClick }: { onClick: () => void }) {
     // creates all sit at the same y (TASK-62; mt-3 made the field jump 8px).
     <div className="mx-2 pl-1 pr-2">
       <ShortcutTooltip label="New project" shortcut="Shift+N">
-      <button
-        type="button"
-        onClick={onClick}
-        className="w-full flex items-center gap-2 rounded-md border border-dashed border-ink/15 pl-[23px] pr-[7px] py-[5px] text-left text-[13px] font-sans text-fg-subtle hover:border-ink/35 hover:bg-ink/[0.03] hover:text-fg transition-colors outline-none focus-visible:ring-1 focus-visible:ring-ring"
-      >
-        <Icon icon={Plus} size="sm" />
-        <span className="truncate">New project…</span>
-      </button>
+      <CreateSlot size="sidebar" onClick={onClick}>New project</CreateSlot>
       </ShortcutTooltip>
     </div>
   );
@@ -345,15 +340,16 @@ export function LeftPanel() {
                       renamingId === project.id ? `text-fg ${inlineEditFrame}` :
                       activeProjectId === project.id ? 'text-fg' : 'text-fg-muted hover:bg-ink/[0.04]'
                     }`}>
-                      <button
-                        type="button"
+                      <IconButton
+                        variant="subtle"
+                        size="disclosure"
+                        className="shrink-0"
                         onClick={() => toggleExpandedProject(project.id)}
                         aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${project.name}`}
                         aria-expanded={isExpanded}
-                        className="h-6 w-5 shrink-0 flex items-center justify-center rounded text-fg-subtle hover:text-fg outline-none focus-visible:ring-1 focus-visible:ring-ring"
                       >
                         <Icon icon={ChevronRight} size="xs" className={cn("transition-transform", isExpanded && "rotate-90")} />
-                      </button>
+                      </IconButton>
 
                       {renamingId === project.id ? (
                         // Same label box as the name button below, icon kept, so the text doesn't move (TASK-62).
@@ -367,21 +363,23 @@ export function LeftPanel() {
                             className="flex-1" />
                         </div>
                       ) : (
-                        <button
-                          type="button"
+                        <TreeRowButton
+                          level="project"
                           data-tree-row="project"
                           data-project-id={project.id}
                           onClick={() => toggleProject(project.id)}
                           aria-expanded={isExpanded}
                           aria-current={activeProjectId === project.id ? "page" : undefined}
-                          className={`flex-1 min-w-0 ${PANEL_ROW_LABEL}`}
+                          className="flex-1 min-w-0"
+                          icon={
+                            <IconDragHandle id={projectDragId(currentSpace.id, project.id)} label={project.name}
+                              reveal="group-hover/proj:opacity-100" conceal="group-hover/proj:opacity-0">
+                              <ProjectIcon size="sm" className="text-fg-subtle" />
+                            </IconDragHandle>
+                          }
                         >
-                          <IconDragHandle id={projectDragId(currentSpace.id, project.id)} label={project.name}
-                            reveal="group-hover/proj:opacity-100" conceal="group-hover/proj:opacity-0">
-                            <ProjectIcon size="sm" className="text-fg-subtle" />
-                          </IconDragHandle>
-                          <span className={`flex-1 ${PANEL_ROW_TEXT}`}>{project.name}</span>
-                        </button>
+                          {project.name}
+                        </TreeRowButton>
                       )}
 
                       {/* A project is a header row (TASK-5): its primary action
@@ -446,20 +444,22 @@ export function LeftPanel() {
                                 }`}
                                 style={isActive ? { backgroundColor: 'var(--accent-subtle)' } : undefined}
                               >
-                              <button
-                                type="button"
+                              <TreeRowButton
+                                level="category"
                                 data-tree-row="category"
                                 data-project-id={project.id}
                                 aria-current={isActive ? "location" : undefined}
-                                className="flex-1 min-w-0 flex items-center gap-2 pl-7 pr-1 py-[6px] rounded-md text-left outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                className="flex-1 min-w-0"
                                 onClick={() => selectCategory(project.id, category.id)}
+                                icon={
+                                  <IconDragHandle id={categoryDragId(currentSpace.id, project.id, category.id)} label={category.name}
+                                    reveal="group-hover/cat:opacity-100" conceal="group-hover/cat:opacity-0">
+                                    <CategoryIcon size="xs" />
+                                  </IconDragHandle>
+                                }
                               >
-                                <IconDragHandle id={categoryDragId(currentSpace.id, project.id, category.id)} label={category.name}
-                                  reveal="group-hover/cat:opacity-100" conceal="group-hover/cat:opacity-0">
-                                  <CategoryIcon size="xs" />
-                                </IconDragHandle>
-                                <span className="flex-1 font-sans text-[13px] truncate">{category.name}</span>
-                              </button>
+                                {category.name}
+                              </TreeRowButton>
                               <RowActions
                                 label={`Actions for ${category.name}`}
                                 tooltipSide="right"

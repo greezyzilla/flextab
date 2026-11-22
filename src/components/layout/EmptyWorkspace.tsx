@@ -11,6 +11,7 @@ import { Input, INLINE_CREATE_HINT } from "~src/components/ui/input"
 import { SpaceAvatar } from "~src/components/levelIcons"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import { createSpace } from "~src/lib/defaultPath"
+import { Chip } from "~src/components/ui/chip"
 
 /** Starters, each with a colour from the space palette (Settings › Spaces). */
 export const STARTERS: { name: string; color: string }[] = [
@@ -129,10 +130,9 @@ export function EmptyWorkspace({ request }: { request: number }) {
             <CreateRow key={request} autoFocus={request > 0} />
             <div role="group" aria-label="Starters" className="flex flex-wrap justify-center gap-2">
               {STARTERS.map(s => (
-                <button key={s.name} type="button" onClick={() => start(s.name, s.color)}
-                  className="flex items-center gap-2 rounded-full border border-ink/10 bg-ink/[0.04] py-1 pl-1 pr-3 text-fg font-sans text-[13px] outline-none transition-colors hover:bg-ink/[0.08] focus-visible:ring-2 focus-visible:ring-ring">
+                <Chip key={s.name} size="pill" onClick={() => start(s.name, s.color)}>
                   <SpaceAvatar space={{ name: s.name, color: s.color }} size={22} />{s.name}
-                </button>
+                </Chip>
               ))}
             </div>
           </div>

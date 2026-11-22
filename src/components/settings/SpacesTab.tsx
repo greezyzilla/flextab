@@ -12,6 +12,7 @@ import { Modal, ModalBody, ModalFooter, ModalHeader } from "~src/components/ui/m
 import type { SavedSpace } from "~src/types";
 import { SettingRow, SettingsPage, SettingsSection } from "./shared";
 import { SETTINGS_ROUTE } from "./types";
+import { Swatch } from "~src/components/ui/swatch";
 
 export const SPACE_COLORS = [
   "", "#2274F0", "#8b5cf6", "#ec4899", "#ef4444",
@@ -134,10 +135,8 @@ function SpaceForm({ space, index, count }: { space: SavedSpace; index: number; 
         {(controlProps) => (
           <div className="flex items-center justify-between gap-1" role="group" {...controlProps}>
             {SPACE_COLORS.map(c => (
-              <button key={c || "default"} type="button" onClick={() => { if (c !== color) updateSavedSpace({ ...space, color: c || undefined }); }}
-                aria-label={`${SPACE_COLOR_NAMES[c] ?? c} color`} aria-pressed={color === c}
-                className={`h-4 w-4 shrink-0 rounded-full border-2 outline-none transition-all focus-visible:ring-1 focus-visible:ring-ring ${color === c ? "border-ink/70 scale-110" : "border-transparent hover:border-ink/30"}`}
-                style={{ backgroundColor: c || "hsl(var(--ink) / 0.15)" }} />
+              <Swatch key={c || "default"} color={c || "hsl(var(--ink) / 0.15)"} label={`${SPACE_COLOR_NAMES[c] ?? c} color`} selected={color === c}
+                onClick={() => { if (c !== color) updateSavedSpace({ ...space, color: c || undefined }); }} />
             ))}
           </div>
         )}

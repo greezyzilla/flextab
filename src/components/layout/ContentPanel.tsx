@@ -26,6 +26,7 @@ import { spacesHaveTabs } from "~src/services/spacesTree";
 import { ArrowRight } from "lucide-react";
 import { useWatchMovedTabs } from "~src/hooks/useMovedTabs";
 import { EmptyWorkspace } from "./EmptyWorkspace";
+import { BreadcrumbItem } from "~src/components/ui/breadcrumb-item";
 
 /**
  * The project page. A project is one page; its categories are sections on it
@@ -352,21 +353,19 @@ function Breadcrumb({ space, project, category, onProject, onCategory }: {
       {project && (
         <>
           {sep}
-          <button type="button" onClick={onProject}
-            className="flex items-center gap-1.5 min-w-0 rounded px-1 -mx-1 text-fg hover:text-ink outline-none focus-visible:ring-1 focus-visible:ring-ring">
+          <BreadcrumbItem onClick={onProject}>
             <ProjectIcon size="sm" />
             <span className="truncate max-w-[14rem] font-medium">{project.name}</span>
-          </button>
+          </BreadcrumbItem>
         </>
       )}
       {project && category && (
         <>
           {sep}
-          <button type="button" onClick={onCategory} aria-current="location"
-            className="flex items-center gap-1.5 min-w-0 rounded px-1 -mx-1 text-fg-muted hover:text-fg outline-none focus-visible:ring-1 focus-visible:ring-ring">
+          <BreadcrumbItem current onClick={onCategory}>
             <CategoryIcon size="sm" />
             <span className="truncate max-w-[12rem]">{category.name}</span>
-          </button>
+          </BreadcrumbItem>
         </>
       )}
     </nav>

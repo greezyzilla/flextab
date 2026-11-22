@@ -1,10 +1,9 @@
 import { Fragment, useEffect, useId, useMemo, useRef, useState } from "react"
 import { Icon, type IconSize } from "~src/components/ui/icon"
-import { cn } from "~src/lib/utils"
 import type React from "react"
 import { commitOnBlur } from "~src/lib/inlineEdit";
 import { v7 as uuidv7 } from "uuid"
-import { Check, ChevronRight, Plus } from "lucide-react"
+import { Check } from "lucide-react"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import type { SavedSpace } from "~src/types"
 import type { SaveTabsTarget } from "~src/services/saveTabsAsGroup"
@@ -15,6 +14,9 @@ import { GroupColorSwatch } from "~src/components/GroupColorMenu"
 import { IconTooltip } from "~src/components/ui/button"
 import { groupColorFill } from "~src/lib/groupColors"
 import { DEFAULT_SPACE_NAME, ensureCategoryPath, findUnsorted, isUnsortedGroup, orderedGroups, UNSORTED_NAME } from "~src/lib/defaultPath"
+import { CreateSlot } from "~src/components/ui/create-slot"
+import { Chip } from "~src/components/ui/chip"
+import { Disclosure } from "~src/components/ui/disclosure"
 
 /** A picked destination. With `groupLevel`, it names a group, or a new group to create. */
 export type PickerValue = SaveTabsTarget & { groupId?: string; newGroupName?: string }
@@ -113,21 +115,12 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
   // A panel branch header: chevron, level icon, name. Its guide line marks
   // the level: heavier the higher the level, so a row far down still shows
   // which space / project / category it sits in.
-  const branchHeader = (level: 0 | 1 | 2, id: string, icon: React.ReactNode, label: string, labelClass: string) => (
-    <button
-      type="button"
-      aria-expanded={isOpen(id)}
-      onClick={() => toggle(id)}
-      className={`flex min-h-[38px] w-full min-w-0 items-center pr-3 text-left outline-none transition-colors hover:bg-ink/[0.04] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${labelClass}`}
-      style={{ paddingLeft: panelIndent(level) }}
-    >
-      {/* The sidebar tree's own chevron (LeftPanel), at panel size. */}
-      <span className="mr-1 flex w-5 shrink-0 justify-center text-fg-subtle" aria-hidden>
-        <Icon icon={ChevronRight} size="md" className={cn("transition-transform", isOpen(id) && "rotate-90")} />
-      </span>
+  const LEVEL = ["space", "project", "category"] as const
+  const branchHeader = (level: 0 | 1 | 2, id: string, icon: React.ReactNode, label: string) => (
+    <Disclosure size="panel" level={LEVEL[level]} open={isOpen(id)} onClick={() => toggle(id)} style={{ paddingLeft: panelIndent(level) }}>
       <span className="mr-3 flex shrink-0">{icon}</span>
       <span className="truncate">{label}</span>
-    </button>
+    </Disclosure>
   )
   const guide = (level: 0 | 1 | 2, id: string) => panel && isOpen(id) && (
     <span aria-hidden data-guide={level} className="pointer-events-none absolute bottom-1.5 top-8 w-px"
@@ -156,20 +149,12 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
                 (!groupLevel || value.groupId === target.groupId)
               const path = describeDestination(savedSpaces, target)
               const chip = (
-                <button
-                  type="button"
-                  aria-pressed={selected}
-                  onClick={() => onChange(target)}
-                  className={P ? `${P.chip} ${selected ? "bg-ink/[0.12]" : "bg-ink/[0.06] hover:bg-ink/[0.09]"}` : `flex max-w-full items-center gap-1.5 rounded-md border px-2 py-1 text-xs outline-none transition-colors focus-visible:ring-1 focus-visible:ring-ring ${
-                    selected ? "border-[var(--accent)] text-fg" : "border-ink/10 text-fg-muted hover:bg-ink/[0.05]"
-                  }`}
-                  style={selected && !P ? { backgroundColor: "var(--accent-subtle)" } : undefined}
-                >
+                <Chip size={P ? "panel" : "dialog"} selected={selected} onClick={() => onChange(target)}>
                   {group ? (isUnsortedGroup(group) ? <UnsortedIcon size={ic} className={P ? P.chipIcon : undefined} /> : <GroupIcon size={ic} className={P ? P.chipIcon : undefined} />) : <CategoryIcon size={ic} className={P ? P.chipIcon : undefined} />}
                   <span className="truncate">{group ? group.name : parts.category.name}</span>
                   {group?.color && <GroupColorSwatch fill={groupColorFill(group.color)} className="h-2 w-2" />}
                   <span className={`truncate text-fg-subtle${P ? " text-[13px]" : ""}`}>{group ? parts.category.name : parts.project.name}</span>
-                </button>
+                </Chip>
               )
               const key = `${target.spaceId}:${target.projectId}:${target.categoryId}`
               // The path names the space and project the chip leaves out, so it shows on every hover, not only when cut.
@@ -188,7 +173,7 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
         )}
         {visible.map((space) => (
           <div key={space.id} className={P ? "relative py-0.5" : "py-0.5"}>
-            {P ? branchHeader(0, space.id, <SpaceAvatar space={space} size={18} active={space.id === activeSpaceId} />, space.name, "text-[13px] leading-[18px] text-fg-subtle") : (
+            {P ? branchHeader(0, space.id, <SpaceAvatar space={space} size={18} active={space.id === activeSpaceId} />, space.name) : (
               <div className="flex items-center gap-2 px-3 py-1 text-[11px] font-medium text-fg-muted">
                 <SpaceAvatar space={space} size={14} active={space.id === activeSpaceId} />
                 <span className="truncate">{space.name}</span>
@@ -197,7 +182,7 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
             {guide(0, space.id)}
             {isOpen(space.id) && space.projects.map((project) => (
               <div key={project.id} className={P ? "relative" : undefined}>
-                {P ? branchHeader(1, project.id, <ProjectIcon size={ic} />, project.name, "text-[15px] font-medium leading-[22px] text-fg-muted") : (
+                {P ? branchHeader(1, project.id, <ProjectIcon size={ic} />, project.name) : (
                   <div className="flex items-center gap-2 pl-5 pr-3 py-1 text-xs text-fg-muted">
                     <ProjectIcon size="sm" className="text-fg-subtle" />
                     <span className="truncate font-medium">{project.name}</span>
@@ -232,7 +217,7 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
                   const leaf = P ? panelIndent(3) + 24 : undefined
                   return (
                     <div key={category.id} className={P ? "relative" : undefined}>
-                      {P ? branchHeader(2, category.id, <CategoryIcon size={ic} />, category.name, "text-[15px] leading-[22px] text-fg-muted") : (
+                      {P ? branchHeader(2, category.id, <CategoryIcon size={ic} />, category.name) : (
                         <div className="flex items-center gap-2 pl-10 pr-3 py-1 text-xs text-fg-muted">
                           <CategoryIcon size="xs" />
                           <span className="truncate">{category.name}</span>
@@ -360,7 +345,6 @@ const panelIndent = (level: number) => 12 + 16 * level
 const GUIDE_WEIGHT = [0.38, 0.24, 0.14] as const
 const PANEL = {
   caption: "text-[13px] leading-[18px] text-fg-subtle",
-  chip: "flex h-9 max-w-full items-center gap-2 rounded-[10px] px-2.5 text-[15px] text-fg outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
   chipIcon: "text-fg-subtle",
 }
 
@@ -428,29 +412,13 @@ function CreateChoice({ indentClass, indent, iconSize, label, ariaLabel, onClick
     // (slot inset + 1px border + 7px padding, plus the 16px + centred in 18px).
     return (
       <div className="pr-3 py-0.5" style={{ paddingLeft: indent - 9 }}>
-        <button
-          type="button"
-          aria-label={ariaLabel}
-          onClick={onClick}
-          className="flex min-h-9 w-full items-center gap-3 rounded-[10px] border border-dashed border-ink/15 px-[7px] text-left text-[15px] text-fg-subtle transition-colors hover:border-ink/35 hover:bg-ink/[0.03] hover:text-fg outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <Icon icon={Plus} size="md" />
-          <span className="truncate">{label}…</span>
-        </button>
+        <CreateSlot size="panel" aria-label={ariaLabel} onClick={onClick}>{label}</CreateSlot>
       </div>
     )
   }
   return (
     <div className={`${indentClass} pr-3 py-0.5`}>
-      <button
-        type="button"
-        aria-label={ariaLabel}
-        onClick={onClick}
-        className="flex w-full items-center gap-2 rounded-md border border-dashed border-ink/15 px-[7px] py-[3px] text-left text-xs text-fg-subtle transition-colors hover:border-ink/35 hover:bg-ink/[0.03] hover:text-fg outline-none focus-visible:ring-1 focus-visible:ring-ring"
-      >
-        <Icon icon={Plus} size={iconSize} />
-        <span className="truncate">{label}…</span>
-      </button>
+      <CreateSlot size="dialog" iconSize={iconSize} aria-label={ariaLabel} onClick={onClick}>{label}</CreateSlot>
     </div>
   )
 }

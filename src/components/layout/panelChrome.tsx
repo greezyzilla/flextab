@@ -2,6 +2,8 @@ import config from "../../../package.json"
 import type { ReactNode } from "react"
 import { Kbd } from "~src/components/ui/kbd"
 import { useUIStore } from "~src/store/useUIStore"
+import { Button } from "~src/components/ui/button"
+import { TREE_ROW_LABEL, TREE_ROW_TEXT } from "~src/components/ui/tree-row-button"
 
 /**
  * The left panel's frame (TASK-84): the workspace tree (LeftPanel) and the
@@ -21,11 +23,11 @@ export const PANEL_LIST = "flex-1 overflow-y-auto py-4"
 /** A top-level row's box: inset from the panel edge, rounded like every row. */
 export const PANEL_ROW = "mx-2 pl-1 pr-1 rounded-md transition-colors"
 
-/** The clickable label inside a row: icon, then the name. */
-export const PANEL_ROW_LABEL = "flex items-center gap-2 py-1.5 text-left rounded outline-none focus-visible:ring-1 focus-visible:ring-ring"
+/** The clickable label inside a row: icon, then the name. The tree's TreeRowButton draws its own. */
+export const PANEL_ROW_LABEL = TREE_ROW_LABEL
 
 /** A row's name: 13px, medium for a top-level row. */
-export const PANEL_ROW_TEXT = "font-sans text-[13px] font-medium truncate"
+export const PANEL_ROW_TEXT = TREE_ROW_TEXT
 
 /**
  * The panel's footer, one component for both panels: Shortcuts always in the
@@ -36,14 +38,10 @@ export function PanelFooter({ start }: { start?: ReactNode }) {
     <div className="flex items-center justify-between gap-2 px-4 py-2 border-t border-line">
       <div className="min-w-0 text-[11px] font-sans text-fg-subtle">{start}</div>
       {/* The one visible way in to every shortcut (TASK-13). */}
-      <button
-        type="button"
-        onClick={() => useUIStore.getState().setShortcutsOpen(true)}
-        className="flex shrink-0 items-center gap-1.5 rounded-md px-1.5 py-1 text-[11px] font-sans text-fg-subtle outline-none transition-colors hover:bg-ink/[0.06] hover:text-fg focus-visible:ring-1 focus-visible:ring-ring"
-      >
+      <Button variant="quiet" size="footer" className="shrink-0" onClick={() => useUIStore.getState().setShortcutsOpen(true)}>
         Shortcuts
         <Kbd shortcut="?" />
-      </button>
+      </Button>
     </div>
   )
 }

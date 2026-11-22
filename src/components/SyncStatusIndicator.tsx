@@ -117,14 +117,10 @@ export function SyncStatusIndicator() {
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-          <button
-            type="button"
-            onClick={() => navigate(SIGN_IN_ROUTE)}
-            className="flex h-9 shrink-0 items-center gap-2 rounded-md px-2.5 text-fg-muted text-xs font-sans outline-none transition-colors hover:bg-ink/[0.06] hover:text-fg focus-visible:ring-1 focus-visible:ring-ring"
-          >
+          <Button variant="quiet" size="bar" className="shrink-0" onClick={() => navigate(SIGN_IN_ROUTE)}>
             <Icon className="h-4 w-4" strokeWidth={1.75} aria-hidden />
             Sign in to sync
-          </button>
+          </Button>
         </TooltipTrigger>
         <TooltipContent side="bottom" align="end">
           <div className="font-medium">{label}</div>
@@ -143,10 +139,11 @@ export function SyncStatusIndicator() {
   return (
     <Popover open={open} onOpenChange={(next) => { setOpen(next); if (next) void usePlanStore.getState().load() }}>
       <PopoverTrigger asChild>
-        <button
-          type="button"
+        <Button
+          variant="quiet"
+          size="bar-tight"
+          className="relative shrink-0"
           aria-label={`Sync status: ${label}${usage ? `, ${tabs} of ${cap} tabs` : ""}`}
-          className="relative flex h-9 shrink-0 items-center gap-1.5 rounded-md px-1.5 text-xs font-sans outline-none transition-colors hover:bg-ink/[0.06] focus-visible:ring-1 focus-visible:ring-ring"
         >
           <Icon
             className={`h-[18px] w-[18px] ${cls} ${spin ? "animate-spin" : ""}`}
@@ -162,7 +159,7 @@ export function SyncStatusIndicator() {
               aria-hidden
             />
           )}
-        </button>
+        </Button>
       </PopoverTrigger>
       <PopoverContent side="bottom" align="end" className="flex w-72 flex-col gap-3 font-sans">
         <div className="flex flex-col gap-1">

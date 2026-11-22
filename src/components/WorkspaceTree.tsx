@@ -1,14 +1,14 @@
 // A workspace tree inside a modal: spaces, then their groups as one path line, then tabs.
-import { Icon } from "~src/components/ui/icon"
 // Shared by the sign-in choice (both sides) and the version preview, so the same data looks the
 // same in both places (modal standard §11).
 import { useState, type ReactNode } from "react"
-import { ChevronRight } from "lucide-react"
 import { spaceTabCount } from "~src/services/spacesTree"
 import type { SavedSpace, SavedTab } from "~src/types"
 import { FaviconImg } from "~src/components/FaviconImg"
 import { SpaceAvatar } from "~src/components/levelIcons"
 import { cn } from "~src/lib/utils"
+import { Disclosure as DisclosureButton } from "~src/components/ui/disclosure"
+import { TextLink } from "~src/components/ui/text-link"
 
 /** How many tabs a group shows before "+N more" (chunking keeps long lists scannable). */
 const PREVIEW_TABS = 5
@@ -33,13 +33,7 @@ function hostOf(url: string) {
 
 /** A disclosure row: one button that says what it opens and how much is inside. */
 function Disclosure({ open, onToggle, label, children }: { open: boolean; onToggle: () => void; label: string; children: ReactNode }) {
-  return (
-    <button type="button" aria-expanded={open} aria-label={label} onClick={onToggle}
-      className="flex w-full min-w-0 items-center gap-2 rounded-md px-1 py-1 text-left outline-none hover:bg-ink/[0.04] focus-visible:ring-1 focus-visible:ring-ring">
-      <Icon icon={ChevronRight} size="sm" className={cn("text-fg-subtle transition-transform", open && "rotate-90")} />
-      {children}
-    </button>
-  )
+  return <DisclosureButton size="row" open={open} aria-label={label} onClick={onToggle}>{children}</DisclosureButton>
 }
 
 function GroupBlock({ group, removed, defaultOpen }: { group: ReturnType<typeof groupsOf>[number]; removed: boolean; defaultOpen: boolean }) {
@@ -66,10 +60,9 @@ function GroupBlock({ group, removed, defaultOpen }: { group: ReturnType<typeof 
             ))}
           </ul>
           {group.tabs.length > PREVIEW_TABS && (
-            <button type="button" onClick={() => setAll(v => !v)}
-              className="text-fg-muted hover:text-fg self-start rounded text-[11px] outline-none focus-visible:ring-1 focus-visible:ring-ring">
+            <TextLink tone="muted" size="2xs" underline={false} className="self-start" onClick={() => setAll(v => !v)}>
               {all ? "Show fewer" : `+${group.tabs.length - PREVIEW_TABS} more`}
-            </button>
+            </TextLink>
           )}
         </div>
       )}

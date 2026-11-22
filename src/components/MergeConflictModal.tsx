@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
 import { Icon } from "~src/components/ui/icon"
-import { ChevronRight } from "lucide-react"
 import { useMergeConflict } from "~src/store/useMergeConflict"
 import { resolveMergeConflicts, dismissMergeConflicts } from "~src/services/syncEngine"
 import { merge3, type Conflict, type Resolutions } from "~src/services/spacesMerge3"
@@ -14,6 +13,7 @@ import { Button } from "~src/components/ui/button"
 import { Label } from "~src/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "~src/components/ui/radio-group"
 import { Modal, ModalBody, ModalFooter, ModalHeader, ModalLink } from "~src/components/ui/modal"
+import { Disclosure } from "~src/components/ui/disclosure"
 
 type Side = "server" | "local"
 /** A choice: one side, or both versions of a tab's address (TASK-29). */
@@ -133,15 +133,9 @@ export function MergeConflictModal() {
 
       {mergedCount > 0 && (
         <div className="shrink-0">
-          <button
-            type="button"
-            aria-expanded={showMerged}
-            onClick={() => setShowMerged((v) => !v)}
-            className="flex items-center gap-1.5 rounded text-fg-muted text-xs outline-none hover:text-fg focus-visible:ring-1 focus-visible:ring-ring"
-          >
-            <Icon icon={ChevronRight} size="sm" className={cn("transition-transform", showMerged && "rotate-90")} />
+          <Disclosure size="inline" open={showMerged} onClick={() => setShowMerged((v) => !v)}>
             {plural(mergedCount, "other change")} merged automatically
-          </button>
+          </Disclosure>
           {showMerged && (
             <div className="mt-2 flex max-h-40 flex-col gap-3 overflow-y-auto rounded-lg border border-ink/10 bg-ink/[0.02] px-3 py-2.5">
               <MergedList title="From your account, arriving on this device" changes={merged.fromAccount} />

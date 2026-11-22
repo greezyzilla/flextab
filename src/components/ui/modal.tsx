@@ -11,6 +11,7 @@ import { Button } from "~src/components/ui/button"
 import { Label } from "~src/components/ui/label"
 import { RadioGroupItem } from "~src/components/ui/radio-group"
 import { Checkbox } from "~src/components/ui/checkbox"
+import { TextLink } from "~src/components/ui/text-link"
 
 export type ModalKind = "dialog" | "alert"
 export type ModalSize = "s" | "m" | "l"
@@ -230,11 +231,7 @@ export function ModalFooter({ start, cancel = "Cancel", cancelDisabled, primary,
 
 /** A footer-start action (§7): reads as an action, underline visible at rest. */
 export const ModalLink = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement>>(
-  ({ className, ...props }, ref) => (
-    <button ref={ref} type="button"
-      className={cn("rounded text-sm text-fg-muted underline underline-offset-4 outline-none hover:text-fg focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50", className)}
-      {...props} />
-  ))
+  ({ className, ...props }, ref) => <TextLink ref={ref} tone="muted" size="sm" className={className} {...props} />)
 ModalLink.displayName = "ModalLink"
 
 /** A radio choice on one line (§6): 14px text, an optional count after a middle dot. */

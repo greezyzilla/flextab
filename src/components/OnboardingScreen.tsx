@@ -18,6 +18,7 @@ import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import { useSettingsStore } from "~src/store/useSettingsStore"
 import { useSyncConflict } from "~src/store/useSyncConflict"
 import { useSyncStore } from "~src/store/useSyncStore"
+import { TextLink } from "~src/components/ui/text-link"
 
 // Where the legal pages are hosted (flextab-landing's /terms.html and
 // /privacy.html). The site is also where FlexTab is installed from.
@@ -249,9 +250,9 @@ export function OnboardingScreen({ onBack }: {
               {emailSignup && (
                 <p className="text-fg-subtle text-xs">
                   {creating ? "Already have an account? " : "New to FlexTab? "}
-                  <button type="button" className="underline hover:text-fg" onClick={() => { setError(''); setMode(creating ? "signin" : "create") }}>
+                  <TextLink onClick={() => { setError(''); setMode(creating ? "signin" : "create") }}>
                     {creating ? "Sign in" : "Create an account"}
-                  </button>
+                  </TextLink>
                 </p>
               )}
               <p className="text-fg-subtle text-[11px] leading-relaxed">
@@ -303,7 +304,7 @@ export function OnboardingScreen({ onBack }: {
                   <div className="flex h-4 items-center justify-between">
                     <Label htmlFor="signin-password">Password</Label>
                     {!creating && emailSignup && (
-                      <button type="button" className="text-fg-subtle text-[11px] leading-4 underline hover:text-fg" onClick={() => { setError(''); setStep({ kind: "forgot" }) }}>Forgot password?</button>
+                      <TextLink tone="subtle" size="caption" onClick={() => { setError(''); setStep({ kind: "forgot" }) }}>Forgot password?</TextLink>
                     )}
                   </div>
                   <PasswordField id="signin-password" placeholder={creating ? "At least 8 characters" : "Enter your password"} autoComplete={creating ? "new-password" : "current-password"}
@@ -476,9 +477,9 @@ function CheckEmail({ reason, email, created = false, trySignIn, onChangeEmail, 
   return (
     <Frame footer={
       <p className="text-fg-subtle text-xs">
-        <button type="button" className="underline hover:text-fg" onClick={reason === "verify" ? onChangeEmail : onBack}>
+        <TextLink onClick={reason === "verify" ? onChangeEmail : onBack}>
           {reason === "verify" ? "Use a different email" : "Try another email"}
-        </button>
+        </TextLink>
       </p>
     }>
       {/* Just created: a finished moment (check + what is left to do). Otherwise still waiting on the mail. */}
@@ -525,7 +526,7 @@ function Forgot({ initialEmail, onSent, onBack }: { initialEmail: string; onSent
     }
   }
   return (
-    <Frame footer={<button type="button" className="text-fg-subtle text-xs underline hover:text-fg" onClick={onBack}>Back to sign in</button>}>
+    <Frame footer={<TextLink tone="subtle" size="xs" onClick={onBack}>Back to sign in</TextLink>}>
       <StepHead title="Reset your password" />
       <form onSubmit={submit} className="flex flex-col gap-3">
         <div className="flex flex-col gap-1.5">
