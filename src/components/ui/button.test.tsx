@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { Button, ClippedTooltip, IconButton, IconTooltip } from "./button";
 import { TooltipProvider } from "./tooltip";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./dropdown-menu";
 import { stubResizeObserver } from "~src/test/stubResizeObserver";
 
 // Tooltips open in these tests; their arrow needs a ResizeObserver (TASK-69).
@@ -160,5 +161,42 @@ describe("link variant and inline size (TASK-103.2)", () => {
     const cls = screen.getByRole("button", { name: "Check again" }).className;
     for (const c of ["h-auto", "p-0", "align-baseline", "text-[length:inherit]", "leading-[inherit]"]) expect(cls).toContain(c);
     expect(cls).not.toMatch(/(^|\s)text-(sm|xs)(\s|$)/);
+  });
+});
+
+describe("looks that used to be call-site classes (TASK-103.2)", () => {
+  it("a link carries no side padding at any size, so it lines up with the text around it", () => {
+    render(<Button variant="link" size="sm">Sync settings</Button>);
+    const cls = screen.getByRole("button", { name: "Sync settings" }).className;
+    expect(cls).toMatch(/(^|\s)px-0(\s|$)/);
+    expect(cls).not.toMatch(/(^|\s)px-3(\s|$)/);
+  });
+  it("fullWidth fills the container; without it the button keeps its own width", () => {
+    render(<><Button fullWidth>Wide</Button><Button>Own</Button></>);
+    expect(screen.getByRole("button", { name: "Wide" }).className).toMatch(/(^|\s)w-full(\s|$)/);
+    expect(screen.getByRole("button", { name: "Own" }).className).not.toContain("w-full");
+    expect(screen.getByRole("button", { name: "Wide" }).hasAttribute("fullwidth")).toBe(false);
+  });
+  it("xs is the 28px compact size and lg is the header's 36px icon square", () => {
+    render(<><Button size="xs">All</Button><IconButton size="lg" aria-label="Menu">x</IconButton></>);
+    expect(screen.getByRole("button", { name: "All" }).className).toMatch(/(^|\s)h-7(\s|$)/);
+    expect(screen.getByRole("button", { name: "Menu" }).className).toMatch(/h-9 w-9/);
+  });
+  it("an icon button that opens a menu shows its open state from Radix, through its tooltip", async () => {
+    render(
+      <TooltipProvider>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <IconButton aria-label="Open all" tooltip="Open all">x</IconButton>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent><DropdownMenuItem>Here</DropdownMenuItem></DropdownMenuContent>
+        </DropdownMenu>
+      </TooltipProvider>,
+    );
+    const trigger = screen.getByRole("button", { name: "Open all" });
+    expect(trigger.getAttribute("data-state")).not.toBe("open");
+    await act(async () => { fireEvent.pointerDown(trigger, { button: 0, ctrlKey: false, pointerType: "mouse" }); });
+    expect(trigger.getAttribute("data-state")).toBe("open");
+    expect(trigger.className).toContain("data-[state=open]:bg-ink/10");
   });
 });

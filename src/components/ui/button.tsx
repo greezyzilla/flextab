@@ -40,16 +40,23 @@ const buttonVariants = cva(
         default: "h-9 px-3.5 py-2",
         sm: "h-8 rounded-md px-3 text-xs",
         lg: "h-10 rounded-md px-8",
+        // A compact action inside a text-xs row (the conflict list's "Choose for all").
+        xs: "h-7 rounded-md px-2.5 text-xs",
         // Beside a 44px field (Input variant "lg").
         xl: "h-11 rounded-md px-5 text-[15px]",
         icon: "h-9 w-9",
         // Inside a sentence (a notice's "Check again"): no box, the text's own size and line height.
         inline: "h-auto p-0 align-baseline text-[length:inherit] leading-[inherit]",
       },
+      // Fills its container (a stacked column of actions). A prop, not a call-site class (docs/ui-layering.md).
+      fullWidth: { true: "w-full", false: "" },
     },
+    // Text set as an action lines up with the text around it, so a link never carries side padding.
+    compoundVariants: [{ variant: "link", class: "px-0" }],
     defaultVariants: {
       variant: "default",
       size: "default",
+      fullWidth: false,
     },
   },
 )
@@ -61,10 +68,10 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant, size, fullWidth, asChild = false, ...props }, ref) => {
     const Comp = asChild ? Slot : "button"
     return (
-      <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />
+      <Comp className={cn(buttonVariants({ variant, size, fullWidth, className }))} ref={ref} {...props} />
     )
   },
 )
@@ -74,22 +81,27 @@ Button.displayName = "Button"
  * Square icon button — project helper (shadcn has no IconButton; canonical uses
  * <Button size="icon">, but we want hover-only "subtle" + danger tones too).
  *   default — hover background; subtle — hover color only, no background.
+ * A default icon button that opens a menu keeps the hover look while the menu is open: Radix sets
+ * data-state="open" on the trigger, so no call site tracks it.
  */
 const iconButtonVariants = cva(
   "inline-flex items-center justify-center rounded-md p-1.5 outline-none transition-colors focus-visible:ring-1 focus-visible:ring-ring",
   {
     variants: {
       variant: {
-        default: "text-fg-subtle hover:bg-ink/10 hover:text-fg",
+        default: "text-fg-subtle hover:bg-ink/10 hover:text-fg data-[state=open]:bg-ink/10 data-[state=open]:text-fg",
         subtle: "text-fg-subtle hover:text-fg-muted",
       },
       danger: { true: "", false: "" },
+      // sm: the 24px square inside a field (the search field's clear). lg: the 36px square of the
+      // app header, beside the 36px search field.
+      size: { default: "", sm: "h-6 w-6 p-1", lg: "h-9 w-9" },
     },
     compoundVariants: [
       { variant: "default", danger: true, class: "text-fg-subtle hover:bg-danger/10 hover:text-danger" },
       { variant: "subtle", danger: true, class: "text-fg-subtle hover:text-danger" },
     ],
-    defaultVariants: { variant: "default", danger: false },
+    defaultVariants: { variant: "default", danger: false, size: "default" },
   },
 )
 
@@ -107,9 +119,9 @@ export interface IconButtonProps
 }
 
 const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
-  ({ className, variant, danger, asChild = false, tooltip, tooltipSide, ...props }, ref) => {
+  ({ className, variant, danger, size, asChild = false, tooltip, tooltipSide, ...props }, ref) => {
     const Comp = asChild ? Slot : "button"
-    const button = <Comp className={cn(iconButtonVariants({ variant, danger }), className)} ref={ref} {...props} />
+    const button = <Comp className={cn(iconButtonVariants({ variant, danger, size }), className)} ref={ref} {...props} />
     if (tooltip == null) return button
     return <IconTooltip content={tooltip} side={tooltipSide}>{button}</IconTooltip>
   },

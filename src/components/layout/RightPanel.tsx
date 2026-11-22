@@ -176,7 +176,7 @@ const OpenedTab = ({ tab, windowId, windowLabel, saved, closeAfterSave, targets 
         {(others.length > 0 || canNewWindow) && (
           <DropdownMenu open={moveOpen} onOpenChange={setMoveOpen}>
             <DropdownMenuTrigger asChild>
-              <IconButton aria-label={`Move ${name} to another window`} tooltip="Move to window" className={moveOpen ? "bg-ink/10 text-fg" : undefined}>
+              <IconButton aria-label={`Move ${name} to another window`} tooltip="Move to window">
                 <Icon icon={ArrowRightLeft} size="sm" />
               </IconButton>
             </DropdownMenuTrigger>

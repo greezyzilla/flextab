@@ -155,8 +155,8 @@ export function MergeConflictModal() {
         {conflicts.length > 1 && (
           <>
             <span>Choose for all:</span>
-            <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs" onClick={() => chooseAll("local")}>This device</Button>
-            <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs" onClick={() => chooseAll("server")}>Your account</Button>
+            <Button variant="outline" size="xs" onClick={() => chooseAll("local")}>This device</Button>
+            <Button variant="outline" size="xs" onClick={() => chooseAll("server")}>Your account</Button>
           </>
         )}
         <span className="ml-auto" aria-live="polite">

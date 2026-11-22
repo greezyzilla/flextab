@@ -171,7 +171,7 @@ export function SyncStatusIndicator() {
         </div>
         {cap !== undefined && cap > 0 && <UsageBar label="Tabs" used={tabs} cap={cap} />}
         <div className="flex items-center justify-between gap-2">
-          <Button variant="link" size="sm" className="!px-0" onClick={() => { setOpen(false); navigate("/settings/sync") }}>
+          <Button variant="link" size="sm" onClick={() => { setOpen(false); navigate("/settings/sync") }}>
             Sync settings
           </Button>
           {paused ? (

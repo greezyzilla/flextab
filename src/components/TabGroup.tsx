@@ -465,7 +465,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
               // One "open all" control, two destinations (TASK-4).
               <DropdownMenu open={openAllMenu} onOpenChange={setOpenAllMenu}>
                 <DropdownMenuTrigger asChild>
-                  <IconButton aria-label={`Open all tabs in ${group.name}`} tooltip="Open all" className={openAllMenu ? 'bg-ink/10 text-fg' : ''}>
+                  <IconButton aria-label={`Open all tabs in ${group.name}`} tooltip="Open all">
                     <Icon icon={SquareArrowOutUpRight} size="sm" />
                   </IconButton>
                 </DropdownMenuTrigger>

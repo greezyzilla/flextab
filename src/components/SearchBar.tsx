@@ -6,10 +6,10 @@ import { revealInWorkspace } from "~src/services/reveal";
 import { searchAll, type OpenTabHit, type OpenTabInput, type PlaceHit, type SavedTabHit } from "~src/services/searchIndex";
 import { searchActions, type ActionHit } from "~src/services/paletteActions";
 import { useSettingsStore } from "~src/store/useSettingsStore";
-import { Monitor, Moon, Sun } from "lucide-react";
+import { Monitor, Moon, Sun, X } from "lucide-react";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { SearchField } from "~src/components/ui/input";
-import { Button } from "~src/components/ui/button";
+import { IconButton } from "~src/components/ui/button";
 import { Kbd } from "~src/components/ui/kbd";
 import { CategoryIcon, GroupIcon, ProjectIcon, SpaceAvatar } from "~src/components/levelIcons";
 import { cn } from "~src/lib/utils";
@@ -239,16 +239,9 @@ export function SearchBar() {
         data-search-input
         placeholder={searchPlaceholder()}
         trailing={query && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => setQuery("")}
-            className="h-6 w-6 shrink-0 p-0 text-fg-subtle hover:text-fg-muted"
-            aria-label="Clear search"
-          >
-            ✕
-          </Button>
+          <IconButton type="button" variant="subtle" size="sm" className="shrink-0" onClick={() => setQuery("")} aria-label="Clear search">
+            <Icon icon={X} size="sm" />
+          </IconButton>
         )}
       />
 

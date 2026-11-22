@@ -269,8 +269,8 @@ function PlanCard({ name, price, who, active, limits, onUpgrade, upgrading }: {
           <div key={k} className="flex justify-between gap-2 font-sans text-xs"><dt className="text-fg-subtle">{k}</dt><dd className="text-fg tabular-nums">{v}</dd></div>
         ))}
       </dl>
-      {onUpgrade ? <Button variant="default" size="sm" className="w-full" onClick={onUpgrade} disabled={upgrading}>{upgrading ? "Opening…" : `Upgrade to ${name}`}</Button>
-        : active ? <Button variant="ghost" size="sm" className="w-full" disabled>Current plan</Button>
+      {onUpgrade ? <Button variant="default" size="sm" fullWidth onClick={onUpgrade} disabled={upgrading}>{upgrading ? "Opening…" : `Upgrade to ${name}`}</Button>
+        : active ? <Button variant="ghost" size="sm" fullWidth disabled>Current plan</Button>
         : null}
     </div>
   );

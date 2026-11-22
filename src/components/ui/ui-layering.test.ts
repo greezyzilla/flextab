@@ -139,16 +139,8 @@ type Debt = Record<string, Record<string, Record<string, number>>>
 
 /** Today's findings (fe dev 4f80647), by the subtask that clears them. Only ever lower or remove an entry. */
 const DEBT: Debt = {
-  "TASK-103.2": { // 37 in 9 files
-    "components/MergeConflictModal.tsx": { "A Button": 6 },
-    "components/OnboardingScreen.tsx": { "A Button": 12 },
-    "components/SearchBar.tsx": { "A Button": 5 },
+  "TASK-103.2": { // 3 in 1 file (was 37 in 9)
     "components/ShortcutsDialog.tsx": { "A Button": 3 },
-    "components/SyncStatusIndicator.tsx": { "A Button": 1 },
-    "components/TabGroup.tsx": { "A IconButton": 2 },
-    "components/layout/AppShell.tsx": { "A IconButton": 4 },
-    "components/layout/RightPanel.tsx": { "A IconButton": 2 },
-    "components/settings/PlanTab.tsx": { "A Button": 2 },
   },
   "TASK-103.3": { // 36 in 12 files
     "components/DeleteAccountDialog.tsx": { "A Input": 1, "C <input>": 1 },

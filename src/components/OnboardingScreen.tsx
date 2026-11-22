@@ -270,13 +270,13 @@ export function OnboardingScreen({ onBack }: {
                   // More than two: one row of marks, each named by its tooltip and label
                   // (Clerk's "auto" rule), so the card keeps its height.
                   <IconTooltip key={p} content={`Continue with ${PROVIDER_NAME[p]}`} when={() => interacted.current}>
-                    <Button variant="secondary" onClick={() => void startOAuth(p)} className="w-full" aria-label={`Continue with ${PROVIDER_NAME[p]}`}
+                    <Button variant="secondary" onClick={() => void startOAuth(p)} fullWidth aria-label={`Continue with ${PROVIDER_NAME[p]}`}
                       data-modal-primary={p === "google" ? "" : undefined}>
                       <ProviderMark provider={p} />
                     </Button>
                   </IconTooltip>
                 ) : (
-                  <Button key={p} variant="secondary" onClick={() => void startOAuth(p)} className="w-full" data-modal-primary={p === "google" ? "" : undefined}>
+                  <Button key={p} variant="secondary" onClick={() => void startOAuth(p)} fullWidth data-modal-primary={p === "google" ? "" : undefined}>
                     <ProviderMark provider={p} />
                     Continue with {PROVIDER_NAME[p]}
                   </Button>
@@ -311,7 +311,7 @@ export function OnboardingScreen({ onBack }: {
                     value={password} onChange={e => setPassword(e.target.value)} required
                     aria-describedby={error ? "signin-error" : undefined} />
                 </div>
-                <Button variant="default" type="submit" disabled={loading} className="w-full">
+                <Button variant="default" type="submit" disabled={loading} fullWidth>
                   {loading ? 'Please wait…' : creating ? 'Create account' : 'Sign in'}
                 </Button>
                 <p id="signin-error" role="alert" className="h-4 truncate text-danger text-xs leading-4">{error}</p>
@@ -326,8 +326,8 @@ export function OnboardingScreen({ onBack }: {
               <StepHead tile={<Tile tone="neutral"><ProviderMark provider={step.provider} /></Tile>}
                 title={`The ${PROVIDER_NAME[step.provider]} tab was closed`} />
               <div className="flex flex-col gap-2">
-                <Button variant="default" className="w-full" onClick={() => void startOAuth(step.provider)}>Try again</Button>
-                <Button variant="secondary" className="w-full" onClick={() => setStep({ kind: "offer" })}>Other ways to sign in</Button>
+                <Button variant="default" fullWidth onClick={() => void startOAuth(step.provider)}>Try again</Button>
+                <Button variant="secondary" fullWidth onClick={() => setStep({ kind: "offer" })}>Other ways to sign in</Button>
               </div>
             </Frame>
           )}
@@ -495,9 +495,9 @@ function CheckEmail({ reason, email, created = false, trySignIn, onChangeEmail, 
       </StepHead>
       <div className="flex flex-col gap-2">
         {trySignIn
-          ? <Button variant="default" className="w-full" onClick={() => void checkNow()}>I've opened the link</Button>
-          : <Button variant="default" className="w-full" onClick={onBack}>Back to sign in</Button>}
-        <Button variant="secondary" className="w-full" disabled={left > 0 || sending} onClick={() => void resend()}>
+          ? <Button variant="default" fullWidth onClick={() => void checkNow()}>I've opened the link</Button>
+          : <Button variant="default" fullWidth onClick={onBack}>Back to sign in</Button>}
+        <Button variant="secondary" fullWidth disabled={left > 0 || sending} onClick={() => void resend()}>
           {sending ? "Sending…" : left > 0 ? `Resend email in ${left}s` : "Resend email"}
         </Button>
         <p role="status" className="h-4 truncate text-center text-fg-muted text-xs leading-4">{note}</p>
@@ -533,7 +533,7 @@ function Forgot({ initialEmail, onSent, onBack }: { initialEmail: string; onSent
           <Input id="forgot-email" type="email" placeholder="you@example.com" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full" required
             aria-describedby={error ? "forgot-error" : undefined} />
         </div>
-        <Button variant="default" type="submit" disabled={sending} className="w-full">{sending ? "Sending…" : "Send reset link"}</Button>
+        <Button variant="default" type="submit" disabled={sending} fullWidth>{sending ? "Sending…" : "Send reset link"}</Button>
         <p id="forgot-error" role="alert" className="h-4 truncate text-danger text-xs leading-4">{error}</p>
       </form>
     </Frame>
@@ -558,8 +558,8 @@ function Waiting({ provider, tabId, onCancel }: { provider: Provider; tabId: num
       <StepHead tile={<Tile tone="accent" spinning><ProviderMark provider={provider} /></Tile>}
         title={`Finish in the ${name} tab`} />
       <div className="flex flex-col gap-2">
-        <Button variant="secondary" className="w-full" onClick={openTab}>Open the {name} tab</Button>
-        <Button variant="ghost" className="w-full" onClick={cancel}>Cancel</Button>
+        <Button variant="secondary" fullWidth onClick={openTab}>Open the {name} tab</Button>
+        <Button variant="ghost" fullWidth onClick={cancel}>Cancel</Button>
       </div>
     </Frame>
   )
@@ -596,7 +596,7 @@ function Done({ spaces, tabs, provider, onBack }: { spaces: number; tabs: number
           <li className="flex items-center gap-2.5 text-fg-muted"><Num n={2} />Sign in with {account}</li>
         </ol>
       </div>
-      <Button variant="default" className="w-full" onClick={onBack}>Go to my tabs</Button>
+      <Button variant="default" fullWidth onClick={onBack}>Go to my tabs</Button>
     </Frame>
   )
 }
