@@ -33,7 +33,8 @@ const buttonVariants = cva(
         secondary: `bg-ink/[0.08] text-fg hover:bg-ink/[0.13] ${FORCED_EDGE}`,
         ghost:
           "border border-ink/10 text-fg-muted hover:border-ink/25 hover:bg-ink/[0.04] hover:text-ink",
-        link: "text-fg-subtle underline-offset-4 hover:text-ink hover:underline",
+        // An action set in text: accent text so it reads as something to press, at rest too (TASK-103.2).
+        link: "text-fg-accent underline-offset-4 hover:underline",
       },
       size: {
         default: "h-9 px-3.5 py-2",
@@ -42,6 +43,8 @@ const buttonVariants = cva(
         // Beside a 44px field (Input variant "lg").
         xl: "h-11 rounded-md px-5 text-[15px]",
         icon: "h-9 w-9",
+        // Inside a sentence (a notice's "Check again"): no box, the text's own size and line height.
+        inline: "h-auto p-0 align-baseline text-[length:inherit] leading-[inherit]",
       },
     },
     defaultVariants: {

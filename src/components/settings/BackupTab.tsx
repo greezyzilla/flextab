@@ -201,7 +201,7 @@ function HistoryTab() {
       notice={restoreError || pendingPull ? (
           <SettingsNotice tone="warning">
             {restoreError && <span role="alert">{restoreError} </span>}
-            {pendingPull && <Button variant="link" size="sm" className="!h-auto !p-0 align-baseline" disabled={restoring} onClick={() => { void handleRestore(); }}>Retry loading workspace</Button>}
+            {pendingPull && <Button variant="link" size="inline" disabled={restoring} onClick={() => { void handleRestore(); }}>Retry loading workspace</Button>}
           </SettingsNotice>
         ) : restoring ? <SettingsNotice>Restoring…</SettingsNotice>
         : done ? <DoneLine>{done}</DoneLine>

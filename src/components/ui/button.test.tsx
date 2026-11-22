@@ -148,3 +148,17 @@ describe("forced colours edge (TASK-100)", () => {
     expect(screen.getByRole("button", { name: "Go" }).className).not.toContain("forced-colors:[outline");
   });
 });
+
+describe("link variant and inline size (TASK-103.2)", () => {
+  // Looks live in the variant, so every link button reads as an action without call-site classes.
+  it("a link reads as an action at rest: accent text from the variant", () => {
+    render(<Button variant="link">Sync settings</Button>);
+    expect(screen.getByRole("button", { name: "Sync settings" }).className).toContain("text-fg-accent");
+  });
+  it("an inline link takes the sentence's own size and line height, with no box", () => {
+    render(<p className="text-xs">Still confirming. <Button variant="link" size="inline">Check again</Button></p>);
+    const cls = screen.getByRole("button", { name: "Check again" }).className;
+    for (const c of ["h-auto", "p-0", "align-baseline", "text-[length:inherit]", "leading-[inherit]"]) expect(cls).toContain(c);
+    expect(cls).not.toMatch(/(^|\s)text-(sm|xs)(\s|$)/);
+  });
+});
