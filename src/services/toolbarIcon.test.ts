@@ -178,15 +178,30 @@ describe("installToolbarIcon", () => {
     listener<(i: { tabId: number }) => void>(chrome.tabs.onActivated)({ tabId: 6 })
   })
 
-  it("repaints when the front tab navigates, not for loading or background tabs", async () => {
+  it("repaints a tab whenever it navigates, a reload included, in front or behind; not for other changes (TASK-107)", async () => {
     const onUpdated = listener<(id: number, c: chrome.tabs.TabChangeInfo, t: chrome.tabs.Tab) => void>(chrome.tabs.onUpdated)
     await vi.waitFor(() => expect(iconOf(1)).toBe("saved"))
     vi.mocked(chrome.action.setIcon).mockClear()
-    onUpdated(1, { status: "loading" }, tab(1, "https://height.app/"))
+    // Chrome cleared the tab's own icon on the reload: it is painted again, still saved.
+    onUpdated(1, { status: "loading" }, tab(1, "https://linear.app/features"))
+    await vi.waitFor(() => expect(iconOf(1)).toBe("saved"))
     onUpdated(2, { url: "https://height.app/" }, tab(2, "https://height.app/", { active: false }))
+    await vi.waitFor(() => expect(iconOf(2)).toBe("plain"))
+    vi.mocked(chrome.action.setIcon).mockClear()
+    onUpdated(1, { status: "complete" }, tab(1, "https://linear.app/features"))
+    onUpdated(1, { title: "Linear" }, tab(1, "https://linear.app/features"))
+    await new Promise((r) => setTimeout(r, 20))
     expect(chrome.action.setIcon).not.toHaveBeenCalled()
-    onUpdated(1, { url: "https://height.app/" }, tab(1, "https://height.app/"))
-    await vi.waitFor(() => expect(iconOf(1)).toBe("plain"))
+  })
+
+  it("keeps the default icon, the one a cleared tab falls back to, in the app icon's look (TASK-107)", async () => {
+    const defaults = () => (vi.mocked(chrome.action.setIcon).mock.calls as unknown as [Record<string, unknown>][]).filter(([d]) => d.tabId === undefined).map(([d]) => d)
+    await vi.waitFor(() => expect(defaults().at(-1)).toEqual({ path: PLAIN }))
+    const onChanged = listener<(c: Record<string, { newValue?: unknown }>, area: string) => void>(chrome.storage.onChanged)
+    onChanged({ "flextab-app-icon": { newValue: { hue: 145, intensity: 100, appIcon: "accent" } } }, "local")
+    await vi.waitFor(() => expect(defaults().at(-1)).toEqual({ imageData: { mark: null } }))
+    onChanged({ "flextab-app-icon": { newValue: { hue: 214, intensity: 100, appIcon: "accent" } } }, "local")
+    await vi.waitFor(() => expect(defaults().at(-1)).toEqual({ path: PLAIN }))
   })
 
   it("repaints once a workspace change settles, from any page or device", async () => {

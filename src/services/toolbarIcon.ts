@@ -41,6 +41,17 @@ function appIconLook(): Promise<AppIconLook> {
   return look
 }
 
+/**
+ * The icon every tab falls back to when Chrome clears its own (a navigation does, before the tab is
+ * painted again): the accent icon, so that moment never shows the blue file (TASK-107).
+ */
+async function paintDefault(): Promise<void> {
+  try {
+    const current = await appIconLook()
+    await chrome.action.setIcon(isTinted(current) ? { imageData: await markedIconImages(null, current) } : { path: defaultIconPaths() })
+  } catch (_) { /* the next change repaints */ }
+}
+
 async function rest(tabId: number, state: ToolbarState): Promise<void> {
   try {
     const current = await appIconLook()
@@ -100,13 +111,17 @@ export function installToolbarIcon(): void {
     void chrome.tabs.get(tabId).then((tab) => refreshToolbar([tab])).catch(() => { /* closed */ })
   })
   chrome.tabs.onUpdated.addListener((_tabId, change, tab) => {
-    if (change.url !== undefined && tab.active) void refreshToolbar([tab])
+    // Chrome clears a tab's own icon and title whenever it navigates, a reload included (which
+    // reports "loading" with no url): paint it again right then, in any tab, so a reload never
+    // leaves the plain icon until the user switches tabs (TASK-107).
+    if (change.url !== undefined || change.status === "loading") void refreshToolbar([tab])
   })
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== "local") return
     if (APP_ICON_STORAGE_KEY in changes) {
-      // The accent or the App icon choice changed: repaint every front tab in the new look.
+      // The accent or the App icon choice changed: the default and every front tab in the new look.
       look = Promise.resolve(readAppIconLook(changes[APP_ICON_STORAGE_KEY].newValue))
+      void paintDefault()
       void refreshToolbar()
     }
     if (!(yjs.PERSIST_KEY in changes)) return
@@ -114,5 +129,6 @@ export function installToolbarIcon(): void {
     settle = setTimeout(() => { settle = null; void refreshToolbar() }, SETTLE_MS)
   })
   // The worker just started (install, browser start, or waking from sleep).
+  void paintDefault()
   void refreshToolbar()
 }

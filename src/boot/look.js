@@ -22,8 +22,9 @@
   root.classList.toggle("dark", mode === "dark")
 
   var a = DEFAULT
+  var s = null
   try {
-    var s = JSON.parse(read("flextab-appearance") || "null")
+    s = JSON.parse(read("flextab-appearance") || "null")
     if (s && num(s.hue) && num(s.intensity) && num(s.groupTint) && num(s.radius) && num(s.uiScale) &&
         typeof s.fontFamily === "string" && Object.prototype.hasOwnProperty.call(FONTS, s.fontFamily) &&
         DENSITIES.indexOf(s.density) >= 0 && typeof s.reduceMotion === "boolean") a = s
@@ -39,4 +40,16 @@
   root.classList.remove("density-compact", "density-cozy", "density-comfortable")
   root.classList.add("density-" + a.density)
   root.classList.toggle("reduce-motion", a.reduceMotion)
+
+  // The tab icon in the accent from the start (TASK-107): the copy lib/appIcon.ts keeps of the last
+  // drawn icon, when it was drawn for this look. The <link> sits above this script in <head>.
+  var accent = s && s.appIcon !== "blue" && a === s && (a.hue !== DEFAULT.hue || a.intensity !== DEFAULT.intensity)
+  var link = document.querySelector('link[rel~="icon"]')
+  if (link && !link.getAttribute("data-default-href")) link.setAttribute("data-default-href", link.getAttribute("href") || "")
+  if (accent && link) {
+    try {
+      var icon = JSON.parse(read("flextab-favicon") || "null")
+      if (icon && icon.key === a.hue + "," + a.intensity && typeof icon.url === "string" && icon.url.indexOf("data:image/png") === 0) link.setAttribute("href", icon.url)
+    } catch (e) { /* drawn by the page */ }
+  }
 })()

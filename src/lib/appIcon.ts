@@ -70,12 +70,27 @@ export async function loadManifestIcon(size: number): Promise<ImageBitmap> {
   return createImageBitmap(await res.blob())
 }
 
-let faviconUrl: string | null = null
+/**
+ * localStorage copy of the last drawn tab icon, as a data URL keyed by the look it was drawn for:
+ * boot/look.js puts it on the page's icon link in <head>, so a new tab or a reload shows the accent
+ * icon from the start instead of the blue file first.
+ */
+export const FAVICON_STORAGE_KEY = "flextab-favicon"
+
+export const faviconKey = (look: AppIconLook) => `${look.hue},${look.intensity}`
+
 let faviconCall = 0
+
+function cachedFavicon(look: AppIconLook): string | null {
+  try {
+    const c = JSON.parse(localStorage.getItem(FAVICON_STORAGE_KEY) ?? "null") as { key?: string; url?: string } | null
+    return c && c.key === faviconKey(look) && typeof c.url === "string" && c.url.startsWith("data:image/png") ? c.url : null
+  } catch { return null }
+}
 
 /**
  * The new tab's tab icon in the accent; the manifest blue (the page's own favicon) otherwise. Safe
- * to call on every look change: the last call wins.
+ * to call on every look change: the last call wins. A look drawn before comes from the copy.
  */
 export async function applyAppIconFavicon(look: AppIconLook, doc: Document = document): Promise<void> {
   const call = ++faviconCall
@@ -83,7 +98,12 @@ export async function applyAppIconFavicon(look: AppIconLook, doc: Document = doc
   if (!link) return
   if (!link.dataset.defaultHref) link.dataset.defaultHref = link.getAttribute("href") ?? ""
   if (!isTinted(look)) {
-    link.href = link.dataset.defaultHref
+    if (link.getAttribute("href") !== link.dataset.defaultHref) link.href = link.dataset.defaultHref
+    return
+  }
+  const cached = cachedFavicon(look)
+  if (cached) {
+    if (link.getAttribute("href") !== cached) link.href = cached
     return
   }
   const bitmap = await loadManifestIcon(64)
@@ -93,10 +113,14 @@ export async function applyAppIconFavicon(look: AppIconLook, doc: Document = doc
     const canvas = new OffscreenCanvas(64, 64)
     canvas.getContext("2d")!.putImageData(image, 0, 0)
     const blob = await canvas.convertToBlob({ type: "image/png" })
+    const url = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(String(reader.result))
+      reader.onerror = () => reject(reader.error)
+      reader.readAsDataURL(blob)
+    })
     if (call !== faviconCall) return
-    const url = URL.createObjectURL(blob)
-    if (faviconUrl) URL.revokeObjectURL(faviconUrl)
-    faviconUrl = url
+    try { localStorage.setItem(FAVICON_STORAGE_KEY, JSON.stringify({ key: faviconKey(look), url })) } catch { /* drawn again next time */ }
     link.href = url
   } finally {
     bitmap.close()

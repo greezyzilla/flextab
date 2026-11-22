@@ -40,3 +40,24 @@ describe("app icon (TASK-107)", () => {
     expect(readAppIconLook({ hue: "x", intensity: 900, appIcon: "pink" })).toEqual({ hue: 214, intensity: 100, appIcon: "accent" })
   })
 })
+
+describe("tab icon copy (TASK-107)", () => {
+  it("is shown by boot/look.js from the start when it was drawn for this look, and the blue file kept for later", async () => {
+    const { readFileSync } = await import("node:fs")
+    const { resolve } = await import("node:path")
+    const boot = readFileSync(resolve(__dirname, "../boot/look.js"), "utf8")
+    const look = { hue: 145, intensity: 100, groupTint: 35, radius: 8, fontFamily: "inter", uiScale: 1, density: "comfortable", reduceMotion: false, appIcon: "accent" }
+    const run = () => { document.head.innerHTML = '<link rel="icon" href="/assets/favicon.ico">'; new Function(boot)(); return document.head.querySelector("link")! }
+    localStorage.setItem("flextab-appearance", JSON.stringify(look))
+    localStorage.setItem("flextab-favicon", JSON.stringify({ key: "145,100", url: "data:image/png;base64,AAA" }))
+    let link = run()
+    expect(link.getAttribute("href")).toBe("data:image/png;base64,AAA")
+    expect(link.dataset.defaultHref).toBe("/assets/favicon.ico")
+    localStorage.setItem("flextab-favicon", JSON.stringify({ key: "262,100", url: "data:image/png;base64,BBB" }))
+    expect(run().getAttribute("href")).toBe("/assets/favicon.ico")
+    localStorage.setItem("flextab-appearance", JSON.stringify({ ...look, appIcon: "blue" }))
+    localStorage.setItem("flextab-favicon", JSON.stringify({ key: "145,100", url: "data:image/png;base64,AAA" }))
+    expect(run().getAttribute("href")).toBe("/assets/favicon.ico")
+    localStorage.clear(); document.head.innerHTML = ""
+  })
+})
