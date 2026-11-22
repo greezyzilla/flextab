@@ -17,7 +17,8 @@ beforeEach(() => {
 const preview = () => screen.getByRole("region", { name: "Preview" })
 // jsdom drops the grid's computed template; the column count is checked in real
 // Chrome (tools/ui-shots/tk30d.cjs). Here: the layout switches live.
-const grid = () => preview().querySelector<HTMLElement>(".grid")
+// A group's tabs laid out as a grid (TabGroup sets its columns inline), not any element using CSS grid.
+const grid = () => preview().querySelector<HTMLElement>('.grid[style*="grid-template-columns"]')
 
 describe("AppearancePreview (TASK-30)", () => {
   it("shows the fixed sample to an empty account: the workspace in miniature", () => {

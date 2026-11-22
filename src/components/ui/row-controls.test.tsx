@@ -49,10 +49,10 @@ describe("DragHandle", () => {
     render(<DragHandle reveal="group-hover/tab:opacity-100" aria-label="Drag a" />)
     expect(set(button().className)).toEqual(set(OPENED_TABS))
   })
-  it("adds the panel fill under the grip when the favicon stays drawn (a group's tab)", () => {
-    render(<DragHandle cover reveal="group-hover:opacity-100" aria-label="Reorder a" />)
-    // The group's grip had no peer/z-10/pointer-events-auto; they change nothing there (no later sibling, no pointer-events-none parent).
-    expect(set(button().className)).toEqual(set(OPENED_TABS.replace("group-hover/tab:opacity-100", "group-hover:opacity-100") + " bg-black-800"))
+  it("is the same grip on a group's tab, with no fill of its own: the favicon after it steps aside", () => {
+    render(<DragHandle reveal="group-hover:opacity-100" aria-label="Reorder a" />)
+    expect(set(button().className)).toEqual(set(OPENED_TABS.replace("group-hover/tab:opacity-100", "group-hover:opacity-100")))
+    expect(button().className).not.toMatch(/\bbg-/)
   })
 })
 

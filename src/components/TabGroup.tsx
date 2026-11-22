@@ -183,10 +183,13 @@ function SavedTabItem({ tab, groupId, location, copies = 1, unsorted }: { tab: S
         {/* Favicon slot doubles as the drag handle on hover/focus, so no empty
             gutter pushes the favicon in: favicons line up with the group icon. */}
         <span className="relative w-5 h-5 shrink-0">
-          <FaviconImg src={tab.favicon} alt="" />
           <IconTooltip content="Drag to reorder">
-            <DragHandle cover reveal="group-hover:opacity-100" {...attributes} {...listeners} aria-label={`Reorder ${tab.title}`} />
+            <DragHandle reveal="group-hover:opacity-100" {...attributes} {...listeners} aria-label={`Reorder ${tab.title}`} />
           </IconTooltip>
+          {/* Steps aside while the grip shows, as in Opened tabs: the grip sits on the row itself. */}
+          <span className="grid h-5 w-5 place-items-center transition-opacity group-hover:opacity-0 peer-focus-visible:opacity-0">
+            <FaviconImg src={tab.favicon} alt="" />
+          </span>
           {isDuplicate && duplicateMark === "icon" && <DuplicateIcon tone={duplicateTone} />}
         </span>
 
