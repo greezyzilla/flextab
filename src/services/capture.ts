@@ -158,11 +158,15 @@ function detach(receipt: CaptureReceipt): SavedTab[] {
   return taken
 }
 
-/** Undo: remove what was saved and reopen any tabs that were closed. */
+/**
+ * Undo: remove what was saved and reopen any tabs that were closed. The tabs come
+ * back first (TASK-91): a storage write that fails or stalls must never leave a
+ * closed tab closed. The removal is already in the doc, so a later write keeps it.
+ */
 export async function undoCapture(receipt: CaptureReceipt): Promise<void> {
   detach(receipt)
-  await yjs.persistState()
   await reopenTabs(receipt.closed)
+  await yjs.persistState()
 }
 
 /** Change: move this capture's tabs to another destination. */
@@ -218,6 +222,8 @@ export async function closeSavedTabs(tabs: ChromeTabLike[]): Promise<ClosedTab[]
 
 let closeSeq = 0
 const closeLog = new Map<number, { seq: number; index: number }[]>()
+/** Closes that an Undo has already brought back. */
+const reopenedSeqs = new Set<number>()
 
 /** Log a close so a later Undo can put the tab back in order. Call once per tab, in the order they closed. */
 export function recordClosed(t: Omit<ClosedTab, "seq">): ClosedTab {
@@ -226,14 +232,38 @@ export function recordClosed(t: Omit<ClosedTab, "seq">): ClosedTab {
   return closed
 }
 
-/** Where a closed tab stood among the tabs closed from its window: replay the closes backwards. */
-function originalRank(t: ClosedTab): number {
-  const log = closeLog.get(t.windowId)
-  if (t.seq === undefined || !log) return t.index
+/** The left-to-right order of the tabs closed from a window: replay its closes backwards. */
+function closedOrder(windowId: number): number[] {
+  const log = closeLog.get(windowId) ?? []
   const order: number[] = []
   for (let i = log.length - 1; i >= 0; i--) order.splice(Math.min(log[i].index, order.length), 0, log[i].seq)
-  const rank = order.indexOf(t.seq)
+  return order
+}
+
+/** Where a closed tab stood among the tabs closed from its window. */
+function originalRank(t: ClosedTab): number {
+  if (t.seq === undefined || !closeLog.has(t.windowId)) return t.index
+  const rank = closedOrder(t.windowId).indexOf(t.seq)
   return rank < 0 ? t.index : rank
+}
+
+/**
+ * Where a tab goes back into its window when that window still exists. Its index is
+ * from the moment it closed: tabs on its left that closed after it and are still
+ * closed have left since, tabs on its left that closed before it and are back again
+ * have returned since. Without a log entry the recorded index stands.
+ */
+function liveIndex(t: ClosedTab): number {
+  if (t.seq === undefined || !closeLog.has(t.windowId)) return t.index
+  const order = closedOrder(t.windowId)
+  const mine = order.indexOf(t.seq)
+  if (mine < 0) return t.index
+  let index = t.index
+  for (const seq of order.slice(0, mine)) {
+    if (seq > t.seq && !reopenedSeqs.has(seq)) index--
+    else if (seq < t.seq && reopenedSeqs.has(seq)) index++
+  }
+  return Math.max(0, index)
 }
 
 /** A gone window and the window Undo opened in its place, with the ranks of the tabs it holds back. */
@@ -252,15 +282,18 @@ async function createTab(windowId: number, index: number, url: string): Promise<
 export async function reopenTabs(closed: ClosedTab[]): Promise<void> {
   if (!closed.length) return
   const lost = new Map<number, { rank: number; url: string }[]>()
-  for (const t of [...closed].sort((a, b) => a.index - b.index)) {
-    if (await createTab(t.windowId, t.index, t.url)) continue
+  const back = (t: ClosedTab) => { if (t.seq !== undefined) reopenedSeqs.add(t.seq) }
+  for (const t of [...closed].sort((a, b) => originalRank(a) - originalRank(b))) {
+    if (await createTab(t.windowId, liveIndex(t), t.url)) { back(t); continue }
     const rank = originalRank(t)
     const instead = reopenedWindows.get(t.windowId)
     if (instead && await createTab(instead.id, instead.ranks.filter((r) => r < rank).length, t.url)) {
       instead.ranks.push(rank)
+      back(t)
       continue
     }
     lost.set(t.windowId, [...(lost.get(t.windowId) ?? []), { rank, url: t.url }])
+    back(t)
   }
   // One new window per window that is gone, so tabs that shared a window share one again, in order.
   for (const [windowId, tabs] of lost) {

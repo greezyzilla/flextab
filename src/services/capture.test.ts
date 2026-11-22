@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import * as yjs from "~src/lib/yjsDoc"
+import type { ClosedTab } from "./capture"
 import type { SavedSpace } from "~src/types"
 import {
   captureTabs, undoCapture, moveCapture, closeSavedTabs, recordClosed, reopenTabs, defaultDestination, suggestDestination,
@@ -124,6 +125,20 @@ describe("undo and change", () => {
     expect(chrome.tabs.create).toHaveBeenCalledWith({ windowId: 1, index: 2, url: "https://b.com", active: false })
   })
 
+  it("undo reopens the closed tab even when saving the removal fails (TASK-91)", async () => {
+    const r = await captureTabs([{ url: "https://q.com", title: "Q" }], { spaceId: "s", projectId: "p", categoryId: "c" })
+    if (isCaptureFailure(r)) throw new Error("capture failed")
+    // Only the workspace write fails; other writes (the store's own) go through.
+    const set = vi.mocked(chrome.storage.local.set).getMockImplementation() as unknown as (items: Record<string, unknown>) => Promise<void>
+    vi.mocked(chrome.storage.local.set).mockImplementation((async (items: Record<string, unknown>) => {
+      if (yjs.PERSIST_KEY in items) throw new Error("QUOTA_BYTES quota exceeded")
+      return set(items)
+    }) as never)
+    await expect(undoCapture({ ...r, closed: [{ windowId: 1, index: 4, url: "https://q.com" }] })).rejects.toThrow(/quota/)
+    // The tab is back although the write failed, and the failure still surfaces.
+    expect(chrome.tabs.create).toHaveBeenCalledWith({ windowId: 1, index: 4, url: "https://q.com", active: false })
+  })
+
   it("undo also removes a group the capture created", async () => {
     const r = receipt(await captureTabs([{ url: "https://b.com" }], { spaceId: "s", projectId: "p", categoryId: "c2" }))
     await undoCapture(r)
@@ -212,6 +227,25 @@ describe("closing and reopening tabs", () => {
     ])
     await reopenTabs(closed)
     expect(chrome.windows.create).toHaveBeenCalledWith({ url: ["https://a.com", "https://b.com"] })
+  })
+
+  // TASK-91 side finding: [A, B, D] stays open; A and B close in some order and come back in some order.
+  it.each([
+    ["A then B", "A then B"], ["A then B", "B then A"], ["B then A", "A then B"], ["B then A", "B then A"],
+  ])("puts tabs back in their places in a window that still exists (closed %s, undone %s)", async (closeOrder, undoOrder) => {
+    const win = 40 + ["A then B", "B then A"].indexOf(closeOrder) * 2 + ["A then B", "B then A"].indexOf(undoOrder)
+    windowsAlive([win])
+    const tabs = ["A", "B", "D"]
+    const close = (name: string) => { const i = tabs.indexOf(name); tabs.splice(i, 1); return recordClosed({ windowId: win, index: i, url: `https://${name}.com` }) }
+    const closed: Record<string, ClosedTab> = {}
+    for (const n of closeOrder.split(" then ")) closed[n] = close(n)
+    for (const n of undoOrder.split(" then ")) {
+      vi.mocked(chrome.tabs.create).mockClear()
+      await reopenTabs([closed[n]])
+      const index = vi.mocked(chrome.tabs.create).mock.calls[0][0].index!
+      tabs.splice(index, 0, n)
+    }
+    expect(tabs).toEqual(["A", "B", "D"])
   })
 
   it("keeps a tab whose window still exists in that window, untouched (TASK-90)", async () => {
