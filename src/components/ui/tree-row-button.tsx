@@ -16,7 +16,7 @@ import { cn } from "~src/lib/utils"
 export const TREE_ROW_LABEL = "flex items-center gap-2 py-1.5 text-left rounded outline-none focus-visible:ring-1 focus-visible:ring-ring"
 
 /** The top-level row's name, shared with the Settings nav's links. */
-export const TREE_ROW_TEXT = "font-sans text-[13px] font-medium truncate"
+export const TREE_ROW_TEXT = "font-sans text-item font-medium truncate"
 
 const treeRowVariants = cva("", {
   variants: {
@@ -29,7 +29,7 @@ const treeRowVariants = cva("", {
 
 const NAME = {
   project: `flex-1 ${TREE_ROW_TEXT}`,
-  category: "flex-1 font-sans text-[13px] truncate",
+  category: "flex-1 font-sans text-item truncate",
 } as const
 
 export interface TreeRowButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {

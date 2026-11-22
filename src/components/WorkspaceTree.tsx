@@ -45,7 +45,7 @@ function GroupBlock({ group, removed, defaultOpen }: { group: ReturnType<typeof 
     <li className="flex flex-col">
       <Disclosure open={open} onToggle={() => setOpen(o => !o)} label={`${group.path}, ${tabsLabel(group.tabs.length)}`}>
         <span className={cn("truncate text-xs", strike || "text-fg-muted")}>{group.path}</span>
-        <span className="text-fg-subtle ml-auto shrink-0 text-[11px]">{group.tabs.length}</span>
+        <span className="text-fg-subtle ml-auto shrink-0 text-caption">{group.tabs.length}</span>
       </Disclosure>
       {open && (
         <div className="flex flex-col gap-1 pb-1 pl-6">
@@ -55,7 +55,7 @@ function GroupBlock({ group, removed, defaultOpen }: { group: ReturnType<typeof 
               <li key={t.id} className="flex min-w-0 items-center gap-2 pr-1">
                 <FaviconImg src={t.favicon} className={cn("h-3.5 w-3.5 shrink-0", removed && "grayscale opacity-60")} />
                 <span className={cn("truncate text-xs", strike || "text-fg")}>{t.title || t.url}</span>
-                <span className="text-fg-subtle ml-auto shrink-0 text-[11px]">{hostOf(t.url)}</span>
+                <span className="text-fg-subtle ml-auto shrink-0 text-caption">{hostOf(t.url)}</span>
               </li>
             ))}
           </ul>
@@ -79,8 +79,8 @@ function SpaceBlock({ space, removed, inBoth, openAll }: { space: SavedSpace; re
       <Disclosure open={open} onToggle={() => setOpen(o => !o)} label={`${space.name}, ${groupsLabel(groups.length)}, ${tabsLabel(tabs)}${inBoth ? ", in both" : ""}`}>
         <SpaceAvatar space={space} size={18} active={!removed} />
         <span className={cn("truncate text-sm", removed ? "text-fg-subtle line-through" : "text-fg")}>{space.name}</span>
-        {inBoth && <span className="shrink-0 rounded bg-ink/[0.08] px-1.5 py-0.5 text-[10px] font-medium text-fg-muted">In both</span>}
-        <span className="text-fg-subtle ml-auto shrink-0 text-[11px]">{groupsLabel(groups.length)} · {tabsLabel(tabs)}</span>
+        {inBoth && <span className="shrink-0 rounded bg-ink/[0.08] px-1.5 py-0.5 text-count font-medium text-fg-muted">In both</span>}
+        <span className="text-fg-subtle ml-auto shrink-0 text-caption">{groupsLabel(groups.length)} · {tabsLabel(tabs)}</span>
       </Disclosure>
       {open && (
         <ul className="flex flex-col pl-4">
@@ -113,8 +113,8 @@ export function SourceColumn({ title, spaces, removed = false, inBoth = new Set(
         <div className="flex shrink-0 items-center justify-between gap-2 px-1">
           <h3 className="text-fg text-xs font-medium">{title}</h3>
           {removed
-            ? <span className="rounded bg-danger/10 px-1.5 py-0.5 text-[11px] font-medium text-danger">Removed</span>
-            : <span className="text-fg-subtle text-[11px]">{tabsLabel(tabCount(spaces))}</span>}
+            ? <span className="rounded bg-danger/10 px-1.5 py-0.5 text-caption font-medium text-danger">Removed</span>
+            : <span className="text-fg-subtle text-caption">{tabsLabel(tabCount(spaces))}</span>}
         </div>
       )}
       {withTabs.length === 0

@@ -26,7 +26,7 @@ const inputVariants = cva("flex w-full font-sans outline-none disabled:cursor-no
       // The same field at the popup panel's size (44px, 15px text, like
       // SearchField "panel"), for a page's one main field (TASK-98 clean slate).
       // Pairs with Button size "xl".
-      lg: `h-11 px-3.5 py-1 text-[15px] text-fg placeholder:text-fg-subtle ${fieldFrame} focus-visible:border-ink/50 aria-[invalid=true]:border-danger`,
+      lg: `h-11 px-3.5 py-1 text-popup text-fg placeholder:text-fg-subtle ${fieldFrame} focus-visible:border-ink/50 aria-[invalid=true]:border-danger`,
       // Inline create / rename (TASK-62): bare text that sits exactly where the
       // row's label sits. The row around it draws the field (`inlineEditFrame`),
       // so the field adds no padding, height or accent of its own. Its size, weight
@@ -92,7 +92,7 @@ const SearchField = React.forwardRef<HTMLInputElement, SearchFieldProps>(
       >
         <Icon icon={Search} size="md" className="text-fg-subtle" />
         {/* A long placeholder ends in "…" when the box is narrow, not mid-word. */}
-        <Input ref={ref} variant="inline" className={cn("flex-1 text-ellipsis font-sans", panel ? "text-[15px]" : "text-sm", className)} {...props} />
+        <Input ref={ref} variant="inline" className={cn("flex-1 text-ellipsis font-sans", panel ? "text-popup" : "text-sm", className)} {...props} />
         {trailing}
       </div>
     )

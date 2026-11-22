@@ -8,7 +8,7 @@ export function Kbd({ shortcut, className }: { shortcut: string; className?: str
   return (
     <span className={cn("inline-flex items-center gap-0.5", className)}>
       {shortcutKeys(shortcut).map((k, i) => (
-        <kbd key={i} className="min-w-[18px] rounded border border-ink/15 bg-ink/[0.06] px-1 text-center font-sans text-[11px] leading-[18px] text-fg-muted">{k}</kbd>
+        <kbd key={i} className="min-w-[18px] rounded border border-ink/15 bg-ink/[0.06] px-1 text-center font-sans text-caption leading-[18px] text-fg-muted">{k}</kbd>
       ))}
     </span>
   )

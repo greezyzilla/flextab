@@ -33,7 +33,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   )
 }
 
-const heading = "text-fg-subtle text-[11px] font-medium uppercase tracking-wider"
+const heading = "text-fg-subtle text-caption font-medium uppercase tracking-wider"
 
 /** Every keyboard shortcut in one place, opened with "?" or the panel footer. */
 export function ShortcutsDialog() {

@@ -46,7 +46,7 @@ export function SettingsNav() {
           const headingId = `settings-nav-${group.heading.replace(/\W+/g, "-").toLowerCase()}`
           return (
             <div key={group.heading} className="flex flex-col">
-              <div id={headingId} className="px-4 pb-1.5 text-fg-subtle text-[11px] font-medium font-sans uppercase tracking-wider">{group.heading}</div>
+              <div id={headingId} className="px-4 pb-1.5 text-fg-subtle text-caption font-medium font-sans uppercase tracking-wider">{group.heading}</div>
               <ul aria-labelledby={headingId} className="flex flex-col">
                 {topics.map((id) => (
                   <li key={id} className={cn(PANEL_ROW, active === id ? "text-fg" : "text-fg-muted hover:text-fg hover:bg-ink/[0.04]")}

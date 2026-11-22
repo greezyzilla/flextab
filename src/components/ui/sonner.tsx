@@ -30,7 +30,7 @@ export function Toaster() {
       toastOptions={{
         classNames: {
           toast:
-            "!bg-black-800 !border !border-ink/10 !rounded-lg !text-fg !text-[13px] !font-sans !shadow-[0_12px_40px_-12px_rgba(0,0,0,0.6)]",
+            "!bg-black-800 !border !border-ink/10 !rounded-lg !text-fg !text-item !font-sans !shadow-[0_12px_40px_-12px_rgba(0,0,0,0.6)]",
           description: "!text-fg-muted",
           actionButton:
             "!bg-transparent !text-fg-accent hover:!bg-ink/[0.06] !rounded-md !px-2 !py-1 !text-xs !font-semibold",

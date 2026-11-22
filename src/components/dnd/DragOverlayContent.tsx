@@ -69,7 +69,7 @@ export function DragOverlayContent({ activeId, draggedGroup, draggedTab, dragged
     return (
       <div className="flex w-56 translate-x-9 translate-y-3.5 items-center gap-2 rounded-md border border-[var(--accent)] bg-black-800 px-3 py-2 text-fg shadow-lg cursor-grabbing">
         <Icon className="h-3.5 w-3.5 shrink-0 text-fg-subtle" />
-        <span className={`truncate font-sans text-[13px] ${draggedContainer.kind === "project" ? "font-medium" : ""}`}>{draggedContainer.name}</span>
+        <span className={`truncate font-sans text-item ${draggedContainer.kind === "project" ? "font-medium" : ""}`}>{draggedContainer.name}</span>
       </div>
     );
   }

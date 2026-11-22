@@ -255,7 +255,7 @@ export function OnboardingScreen({ onBack }: {
                   </TextLink>
                 </p>
               )}
-              <p className="text-fg-subtle text-[11px] leading-relaxed">
+              <p className="text-fg-subtle text-caption leading-relaxed">
                 By continuing, you accept the{' '}
                 <a href={`${LEGAL_BASE_URL}/terms.html`} target="_blank" rel="noreferrer" className="underline hover:text-fg">Terms</a>
                 {' '}and{' '}
@@ -603,5 +603,5 @@ function Done({ spaces, tabs, provider, onBack }: { spaces: number; tabs: number
 }
 
 function Num({ n }: { n: number }) {
-  return <span aria-hidden className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-ink/10 text-[11px] text-fg">{n}</span>
+  return <span aria-hidden className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-ink/10 text-caption text-fg">{n}</span>
 }

@@ -36,7 +36,7 @@ export const PANEL_ROW_TEXT = TREE_ROW_TEXT
 export function PanelFooter({ start }: { start?: ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-2 px-4 py-2 border-t border-line">
-      <div className="min-w-0 text-[11px] font-sans text-fg-subtle">{start}</div>
+      <div className="min-w-0 text-caption font-sans text-fg-subtle">{start}</div>
       {/* The one visible way in to every shortcut (TASK-13). */}
       <Button variant="quiet" size="footer" className="shrink-0" onClick={() => useUIStore.getState().setShortcutsOpen(true)}>
         Shortcuts

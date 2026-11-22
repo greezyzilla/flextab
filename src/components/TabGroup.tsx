@@ -400,7 +400,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
         {unsorted ? (
           <div className="flex items-center gap-2.5 min-w-0">
             <span className="w-5 flex justify-center shrink-0"><UnsortedIcon size="sm" className="text-fg-subtle" /></span>
-            <h3 className="text-fg-muted font-sans text-[11px] font-medium uppercase tracking-wider">Unsorted</h3>
+            <h3 className="text-fg-muted font-sans text-caption font-medium uppercase tracking-wider">Unsorted</h3>
             <span className="min-w-0 truncate text-fg-subtle text-xs font-sans">
               {sortedTabs.length} tab{sortedTabs.length !== 1 ? 's' : ''} · drag into a group to file them
             </span>
@@ -408,7 +408,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
         ) : isRenaming ? (
           // Icon kept and the frame's padding cancelled by negative margins, so
           // the name stays where it was and the header keeps its height (TASK-62).
-          <div className={`flex flex-1 min-w-0 items-center gap-2.5 -ml-1.5 pl-1.5 pr-1.5 -my-1 py-1 text-[13px] font-medium ${inlineEditFrame}`}>
+          <div className={`flex flex-1 min-w-0 items-center gap-2.5 -ml-1.5 pl-1.5 pr-1.5 -my-1 py-1 text-item font-medium ${inlineEditFrame}`}>
             <span className="w-5 flex justify-center shrink-0"><GroupIcon size="sm" className="text-fg-subtle" /></span>
             <Input
               variant="inline"
@@ -429,7 +429,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
         ) : (
           <div className="flex items-center gap-2.5 min-w-0">
             <span className="w-5 flex justify-center shrink-0"><GroupIcon size="sm" className="text-fg-subtle" /></span>
-            <h3 className="min-w-0 text-fg-muted font-sans text-[13px] font-medium">
+            <h3 className="min-w-0 text-fg-muted font-sans text-item font-medium">
               <IconTooltip content="Rename group">
                 <TextLink
                   ref={renameButtonRef}

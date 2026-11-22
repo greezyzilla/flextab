@@ -189,16 +189,16 @@ export function SearchBar() {
     if (hit.kind === "open") {
       icon = <FaviconImg src={hit.favicon} alt="" className="w-4 h-4 shrink-0" />;
       title = hit.title; detail = host(hit.url);
-      aside = hit.windowLabel && <span className="text-fg-subtle text-[11px]">{hit.windowLabel}</span>;
+      aside = hit.windowLabel && <span className="text-fg-subtle text-caption">{hit.windowLabel}</span>;
     } else if (hit.kind === "saved") {
       icon = <FaviconImg src={hit.tab.favicon} alt="" className="w-4 h-4 shrink-0" />;
       title = hit.tab.title || hit.tab.url; detail = `${host(hit.tab.url)} · ${hit.path.join(" › ")}`;
-      aside = hit.isOpen && <span className="rounded border border-ink/10 px-1.5 text-fg-muted text-[11px] leading-[18px]">Open</span>;
+      aside = hit.isOpen && <span className="rounded border border-ink/10 px-1.5 text-fg-muted text-caption leading-[18px]">Open</span>;
     } else if (hit.kind === "action") {
       const Icon = THEME_ICON[hit.theme];
       icon = <Icon className="h-4 w-4 shrink-0 text-fg-subtle" aria-hidden />;
       title = hit.title; detail = "";
-      aside = hit.current && <span className="rounded border border-ink/10 px-1.5 text-fg-muted text-[11px] leading-[18px]">Current</span>;
+      aside = hit.current && <span className="rounded border border-ink/10 px-1.5 text-fg-muted text-caption leading-[18px]">Current</span>;
     } else {
       const space = savedSpaces.find((s) => s.id === hit.spaceId);
       icon = hit.level === "space" ? <SpaceAvatar space={space} size={16} />
@@ -206,7 +206,7 @@ export function SearchBar() {
         : hit.level === "category" ? <CategoryIcon size="md" className="text-fg-subtle" />
         : <GroupIcon size="md" className="text-fg-subtle" />;
       title = hit.name; detail = hit.path.join(" › ");
-      aside = <span className="text-fg-subtle text-[11px]">{LEVEL[hit.level]}</span>;
+      aside = <span className="text-fg-subtle text-caption">{LEVEL[hit.level]}</span>;
     }
     return (
       <div key={item.key} {...common}>
@@ -252,8 +252,8 @@ export function SearchBar() {
             {sections.map(({ section, items }) => (
               <div key={section} role="group" aria-labelledby={`search-group-${section}`}>
                 <div className="flex items-baseline justify-between px-3 pt-2 pb-1">
-                  <span id={`search-group-${section}`} className="text-fg-subtle text-[11px] font-medium uppercase tracking-wider">{TITLE[section]}</span>
-                  <span className="text-fg-subtle text-[11px] tabular-nums">{results[section].length}</span>
+                  <span id={`search-group-${section}`} className="text-fg-subtle text-caption font-medium uppercase tracking-wider">{TITLE[section]}</span>
+                  <span className="text-fg-subtle text-caption tabular-nums">{results[section].length}</span>
                 </div>
                 {items.map(row)}
               </div>
@@ -261,7 +261,7 @@ export function SearchBar() {
             {total === 0 && <div className="px-3 py-4 text-center text-fg-subtle text-xs">No results for “{query.trim()}”</div>}
           </div>
           {total > 0 && (
-            <div className="flex shrink-0 items-center gap-1 border-t border-ink/10 px-3 py-1.5 text-fg-subtle text-[11px]" aria-hidden>
+            <div className="flex shrink-0 items-center gap-1 border-t border-ink/10 px-3 py-1.5 text-fg-subtle text-caption" aria-hidden>
               {hintFor(active)}
             </div>
           )}

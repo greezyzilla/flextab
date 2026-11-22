@@ -171,7 +171,7 @@ export function ProfilePanel() {
             <DropdownMenuContent side="top" align="start">
               <DropdownMenuLabel>
                 <div className="text-fg text-xs font-medium truncate max-w-[10rem]">{user.name}</div>
-                <div className="text-fg-subtle text-[11px] truncate max-w-[10rem]">{user.email}</div>
+                <div className="text-fg-subtle text-caption truncate max-w-[10rem]">{user.email}</div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={() => setSignOutOpen(true)}>Sign out</DropdownMenuItem>

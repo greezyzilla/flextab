@@ -15,7 +15,7 @@ const button = () => screen.getByRole("button")
 
 describe("Disclosure", () => {
   const PANEL = "flex min-h-[38px] w-full min-w-0 items-center pr-3 text-left outline-none transition-colors hover:bg-ink/[0.04] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-  const LEVEL = { space: "text-[13px] leading-[18px] text-fg-subtle", project: "text-[15px] font-medium leading-[22px] text-fg-muted", category: "text-[15px] leading-[22px] text-fg-muted" } as const
+  const LEVEL = { space: "text-popup-meta text-fg-subtle", project: "text-popup font-medium text-fg-muted", category: "text-popup text-fg-muted" } as const
   for (const level of ["space", "project", "category"] as const) {
     it(`draws a ${level} branch of the panel tree as DestinationPicker did`, () => {
       render(<Disclosure size="panel" level={level} open={false}>x</Disclosure>)
@@ -76,7 +76,7 @@ describe("TextLink without an underline", () => {
   })
   it("is a list's '+3 more' as WorkspaceTree drew it (plus the shared colour fade and disabled look)", () => {
     render(<TextLink tone="muted" size="2xs" underline={false}>+3 more</TextLink>)
-    expect(set(button().className)).toEqual(set("text-fg-muted hover:text-fg rounded text-[11px] outline-none focus-visible:ring-1 focus-visible:ring-ring transition-colors disabled:opacity-50"))
+    expect(set(button().className)).toEqual(set("text-fg-muted hover:text-fg rounded text-caption outline-none focus-visible:ring-1 focus-visible:ring-ring transition-colors disabled:opacity-50"))
   })
   it("keeps the underline by default", () => {
     render(<TextLink>Forgot password?</TextLink>)
@@ -89,12 +89,12 @@ describe("TreeRowButton", () => {
     render(<TreeRowButton level="project" className="flex-1 min-w-0" icon={<i data-testid="icon" />}>Launch</TreeRowButton>)
     expect(set(button().className)).toEqual(set("flex-1 min-w-0 flex items-center gap-2 py-1.5 text-left rounded outline-none focus-visible:ring-1 focus-visible:ring-ring"))
     expect(button().firstElementChild).toBe(screen.getByTestId("icon"))
-    expect(screen.getByText("Launch").getAttribute("class")).toBe("flex-1 font-sans text-[13px] font-medium truncate")
+    expect(screen.getByText("Launch").getAttribute("class")).toBe("flex-1 font-sans text-item font-medium truncate")
   })
   it("draws a category label as LeftPanel did", () => {
     render(<TreeRowButton level="category" className="flex-1 min-w-0" icon={null}>Research</TreeRowButton>)
     expect(set(button().className)).toEqual(set("flex-1 min-w-0 flex items-center gap-2 pl-7 pr-1 py-[6px] rounded-md text-left outline-none focus-visible:ring-1 focus-visible:ring-ring"))
-    expect(screen.getByText("Research").getAttribute("class")).toBe("flex-1 font-sans text-[13px] truncate")
+    expect(screen.getByText("Research").getAttribute("class")).toBe("flex-1 font-sans text-item truncate")
   })
   it("is a plain button that passes its state and data through", () => {
     render(<TreeRowButton level="project" icon={null} aria-expanded aria-current="page" data-tree-row="project">Launch</TreeRowButton>)
@@ -115,7 +115,7 @@ describe("RowOverlay", () => {
 })
 
 describe("ActionList and ActionRow", () => {
-  const ROW = "grid min-h-11 w-full grid-cols-[20px_minmax(0,1fr)] items-center gap-x-3 px-3 py-[11px] text-left text-[15px] leading-[22px] text-fg outline-none transition-colors [overflow-wrap:anywhere] [&+&]:border-t [&+&]:border-ink/[0.07] hover:bg-ink/[0.05] focus-visible:bg-ink/[0.07] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:opacity-50"
+  const ROW = "grid min-h-11 w-full grid-cols-[20px_minmax(0,1fr)] items-center gap-x-3 px-3 py-[11px] text-left text-popup text-fg outline-none transition-colors [overflow-wrap:anywhere] [&+&]:border-t [&+&]:border-ink/[0.07] hover:bg-ink/[0.05] focus-visible:bg-ink/[0.07] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:opacity-50"
   it("draws the popup's Steps box and rows as the popup did", () => {
     const { container } = render(<ActionList><ActionRow icon={Plus}>Save to a group</ActionRow><ActionRow icon={Plus} expanded>Undo</ActionRow></ActionList>)
     expect(set((container.firstElementChild as HTMLElement).className)).toEqual(set("overflow-hidden rounded-[14px] bg-ink/[0.04]"))

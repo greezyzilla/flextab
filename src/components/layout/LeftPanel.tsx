@@ -78,7 +78,7 @@ function CreateRow({ kind, onCommit, onCancel }: {
   // (mx-2, pl-7 py-[6px] label), the same shape as a selected category.
   return (
     <div className={project ? "mx-2 pl-1 pr-2" : `flex items-center gap-1 mx-2 pr-1 text-fg-muted ${inlineEditFrame}`}>
-      <div className={`flex-1 min-w-0 flex items-center gap-2 text-[13px] ${project ? `pl-6 pr-2 py-1.5 font-medium text-fg-muted ${inlineEditFrame}` : "pl-7 pr-1 py-[6px]"}`}>
+      <div className={`flex-1 min-w-0 flex items-center gap-2 text-item ${project ? `pl-6 pr-2 py-1.5 font-medium text-fg-muted ${inlineEditFrame}` : "pl-7 pr-1 py-[6px]"}`}>
         {project
           ? <ProjectIcon size="sm" className="text-fg-subtle" />
           : <CategoryIcon size="xs" />}
@@ -353,7 +353,7 @@ export function LeftPanel() {
 
                       {renamingId === project.id ? (
                         // Same label box as the name button below, icon kept, so the text doesn't move (TASK-62).
-                        <div className="flex-1 min-w-0 flex items-center gap-2 py-1.5 text-[13px] font-medium">
+                        <div className="flex-1 min-w-0 flex items-center gap-2 py-1.5 text-item font-medium">
                           <ProjectIcon size="sm" className="text-fg-subtle" />
                           <Input variant="inline" ref={renameRef} type="text" value={renameValue}
                             aria-label="Project name"
@@ -427,7 +427,7 @@ export function LeftPanel() {
                             {renamingId === category.id ? (
                               // The category row's own box (mx-2 + pl-7 py-[6px] label), so the name stays put (TASK-62).
                               <div className={`flex items-center gap-1 mx-2 pr-1 text-fg ${inlineEditFrame}`}>
-                                <div className="flex-1 min-w-0 flex items-center gap-2 pl-7 pr-1 py-[6px] text-[13px]">
+                                <div className="flex-1 min-w-0 flex items-center gap-2 pl-7 pr-1 py-[6px] text-item">
                                   <CategoryIcon size="xs" />
                                   <Input variant="inline" ref={renameRef} type="text" value={renameValue}
                                     aria-label="Category name"
@@ -466,7 +466,7 @@ export function LeftPanel() {
                                 reveal="opacity-0 group-hover/cat:opacity-100 group-focus-within/cat:opacity-100"
                                 conceal="group-hover/cat:opacity-0 group-focus-within/cat:opacity-0"
                                 rest={category.groups.some(g => !isUnsortedGroup(g)) ? (
-                                  <span className={`text-[10px] font-sans ${isActive ? 'text-fg-muted' : 'text-fg-subtle'}`}>
+                                  <span className={`text-count font-sans ${isActive ? 'text-fg-muted' : 'text-fg-subtle'}`}>
                                     {category.groups.filter(g => !isUnsortedGroup(g)).length}
                                   </span>
                                 ) : undefined}

@@ -71,9 +71,9 @@ const GLOW = "radial-gradient(45% 45% at 50% 45%, color-mix(in srgb, var(--accen
 function LooseTab({ tab, style }: { tab: typeof LOOSE_TABS[number]; style: React.CSSProperties }) {
   return (
     <div style={style} className="ft-drift absolute flex h-9 items-center gap-2 rounded-t-xl rounded-b-md bg-black-900 pl-2 pr-3 shadow-[0_14px_30px_-16px_rgba(0,0,0,0.55)] ring-1 ring-ink/10">
-      <span className="flex h-5 w-5 items-center justify-center rounded-md text-[11px] font-semibold text-white" style={{ backgroundColor: tab.color }}>{tab.letter}</span>
+      <span className="flex h-5 w-5 items-center justify-center rounded-md text-caption font-semibold text-white" style={{ backgroundColor: tab.color }}>{tab.letter}</span>
       <span className="whitespace-nowrap text-fg font-sans text-xs">{tab.title}</span>
-      <span className="ml-1 text-fg-subtle text-[11px]">×</span>
+      <span className="ml-1 text-fg-subtle text-caption">×</span>
     </div>
   )
 }

@@ -7,9 +7,9 @@ const set = (s: string) => s.split(/\s+/).filter(Boolean).sort()
 describe("CreateSlot (TASK-103.4)", () => {
   // The exact classes each slot carried at its call site before it moved here, so moving it changed nothing.
   const BEFORE = {
-    sidebar: "w-full flex items-center gap-2 rounded-md border border-dashed border-ink/15 pl-[23px] pr-[7px] py-[5px] text-left text-[13px] font-sans text-fg-subtle hover:border-ink/35 hover:bg-ink/[0.03] hover:text-fg transition-colors outline-none focus-visible:ring-1 focus-visible:ring-ring",
+    sidebar: "w-full flex items-center gap-2 rounded-md border border-dashed border-ink/15 pl-[23px] pr-[7px] py-[5px] text-left text-item font-sans text-fg-subtle hover:border-ink/35 hover:bg-ink/[0.03] hover:text-fg transition-colors outline-none focus-visible:ring-1 focus-visible:ring-ring",
     dialog: "flex w-full items-center gap-2 rounded-md border border-dashed border-ink/15 px-[7px] py-[3px] text-left text-xs text-fg-subtle transition-colors hover:border-ink/35 hover:bg-ink/[0.03] hover:text-fg outline-none focus-visible:ring-1 focus-visible:ring-ring",
-    panel: "flex min-h-9 w-full items-center gap-3 rounded-[10px] border border-dashed border-ink/15 px-[7px] text-left text-[15px] text-fg-subtle transition-colors hover:border-ink/35 hover:bg-ink/[0.03] hover:text-fg outline-none focus-visible:ring-2 focus-visible:ring-ring",
+    panel: "flex min-h-9 w-full items-center gap-3 rounded-[10px] border border-dashed border-ink/15 px-[7px] text-left text-popup text-fg-subtle transition-colors hover:border-ink/35 hover:bg-ink/[0.03] hover:text-fg outline-none focus-visible:ring-2 focus-visible:ring-ring",
   } as const
 
   for (const size of ["sidebar", "dialog", "panel"] as const) {

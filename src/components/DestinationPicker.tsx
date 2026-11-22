@@ -139,7 +139,7 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
       />
       {!q && recent.length > 0 && (
         <div className={`flex flex-col ${P ? "gap-2" : "gap-1"}`}>
-          <span className={P ? P.caption : "text-[11px] font-medium text-fg-subtle"}>Recent</span>
+          <span className={P ? P.caption : "text-caption font-medium text-fg-subtle"}>Recent</span>
           <div className="flex flex-wrap gap-1.5">
             {recent.map(({ target, parts, group }) => {
               const selected =
@@ -153,7 +153,7 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
                   {group ? (isUnsortedGroup(group) ? <UnsortedIcon size={ic} className={P ? P.chipIcon : undefined} /> : <GroupIcon size={ic} className={P ? P.chipIcon : undefined} />) : <CategoryIcon size={ic} className={P ? P.chipIcon : undefined} />}
                   <span className="truncate">{group ? group.name : parts.category.name}</span>
                   {group?.color && <GroupColorSwatch fill={groupColorFill(group.color)} className="h-2 w-2" />}
-                  <span className={`truncate text-fg-subtle${P ? " text-[13px]" : ""}`}>{group ? parts.category.name : parts.project.name}</span>
+                  <span className={`truncate text-fg-subtle${P ? " text-item" : ""}`}>{group ? parts.category.name : parts.project.name}</span>
                 </Chip>
               )
               const key = `${target.spaceId}:${target.projectId}:${target.categoryId}`
@@ -169,12 +169,12 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
         className={`${maxHeightClass} overflow-y-auto ${P ? "rounded-[14px] bg-ink/[0.04] py-1.5" : "rounded-md border border-ink/10 bg-ink/[0.02] py-1"}`}
       >
         {visible.length === 0 && (
-          <div className={`px-3 py-3 ${P ? "text-[13px]" : "text-xs"} text-fg-subtle`}>No match.</div>
+          <div className={`px-3 py-3 ${P ? "text-item" : "text-xs"} text-fg-subtle`}>No match.</div>
         )}
         {visible.map((space) => (
           <div key={space.id} className={P ? "relative py-0.5" : "py-0.5"}>
             {P ? branchHeader(0, space.id, <SpaceAvatar space={space} size={18} active={space.id === activeSpaceId} />, space.name) : (
-              <div className="flex items-center gap-2 px-3 py-1 text-[11px] font-medium text-fg-muted">
+              <div className="flex items-center gap-2 px-3 py-1 text-caption font-medium text-fg-muted">
                 <SpaceAvatar space={space} size={14} active={space.id === activeSpaceId} />
                 <span className="truncate">{space.name}</span>
               </div>
@@ -344,7 +344,7 @@ const panelIndent = (level: number) => 12 + 16 * level
 /** Guide line weight per level (space, project, category): the higher the level, the heavier, so each line names its level. */
 const GUIDE_WEIGHT = [0.38, 0.24, 0.14] as const
 const PANEL = {
-  caption: "text-[13px] leading-[18px] text-fg-subtle",
+  caption: "text-popup-meta text-fg-subtle",
   chipIcon: "text-fg-subtle",
 }
 
@@ -360,7 +360,7 @@ export function Choice({ name, indentClass, indent, selected, icon, label, trail
   if (indent !== undefined) {
     return (
       <label
-        className={`flex min-h-10 cursor-pointer items-center gap-3 pr-3 text-[15px] leading-[22px] transition-colors focus-within:ring-2 focus-within:ring-inset focus-within:ring-ring ${
+        className={`flex min-h-10 cursor-pointer items-center gap-3 pr-3 text-popup transition-colors focus-within:ring-2 focus-within:ring-inset focus-within:ring-ring ${
           selected ? "bg-ink/[0.08] text-fg" : "text-fg-muted hover:bg-ink/[0.05]"
         }`}
         style={{ paddingLeft: indent }}
@@ -458,7 +458,7 @@ function NameRow({ indentClass, indent, icon, label, placeholder, onCommit, onCa
       // Panel size: the create slot's own box (inset, py-0.5, 10px radius,
       // min-h-9), so the field takes the slot's place and nothing moves.
       <div className="pr-3 py-0.5" style={{ paddingLeft: indent - 9 }}>
-        <div className={`flex min-h-9 items-center gap-3 border border-transparent px-[7px] text-[15px] text-fg ${inlineEditFrame} rounded-[10px]`}>
+        <div className={`flex min-h-9 items-center gap-3 border border-transparent px-[7px] text-popup text-fg ${inlineEditFrame} rounded-[10px]`}>
           {icon}
           {field}
         </div>

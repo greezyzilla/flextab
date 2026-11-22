@@ -129,7 +129,7 @@ const SelectLabel = React.forwardRef<
     ref={ref}
     // A group heading reads like the Settings nav's: an 11px caption above its options, quieter than
     // they are, on the options' text edge (TASK-103.3).
-    className={cn("px-2 pb-1 pt-2 font-sans text-[11px] font-medium uppercase tracking-wider text-fg-subtle", className)}
+    className={cn("px-2 pb-1 pt-2 font-sans text-caption font-medium uppercase tracking-wider text-fg-subtle", className)}
     {...props}
   />
 ))

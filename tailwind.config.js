@@ -5,6 +5,17 @@ module.exports = {
   ],
   theme: {
     extend: {
+      // Type tokens (TASK-103.5): a size with its own line height, named by role, so no text
+      // inherits a line height by accident. Line heights are the whole pixel nearest what each
+      // role rendered before. Keep these names in src/lib/utils.ts (tailwind-merge) too.
+      fontSize: {
+        count: ["10px", "15px"], // counts and the tiny URL line
+        caption: ["11px", "16px"], // captions, labels, hints, tooltips
+        item: ["13px", "20px"], // a list item's name (sidebar tree, toasts, new-tab rows)
+        "popup-meta": ["13px", "18px"], // the popup's secondary lines
+        popup: ["15px", "22px"], // the popup's body: rows, fields, chips
+        "popup-title": ["19px", "24px"], // the popup's page sentence
+      },
       fontFamily: {
         // Routed through a CSS var so the Appearance "Font" setting can swap it
         // globally. Default (Inter stack) lives in style.css :root.

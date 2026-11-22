@@ -241,7 +241,7 @@ export function UsageBar({ label, used, cap, format, tone = 'quota', hint }: {
       ) : (
         <Progress value={0} className="h-1.5" />
       )}
-      {hint && <span className="text-fg-subtle text-[11px] font-sans">{hint}</span>}
+      {hint && <span className="text-fg-subtle text-caption font-sans">{hint}</span>}
     </div>
   );
 }

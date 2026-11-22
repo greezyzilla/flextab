@@ -7,7 +7,7 @@ describe("Badge", () => {
     render(<><Badge size="sm">small</Badge><Badge>regular</Badge></>);
     // The label is the badge's own span (TASK-68); the badge is its parent.
     const small = screen.getByText("small").parentElement!, regular = screen.getByText("regular").parentElement!;
-    expect(small).toHaveClass("text-[10px]", "px-1.5");
+    expect(small).toHaveClass("text-count", "px-1.5");
     expect(small).not.toHaveClass("text-xs");
     expect(small).not.toHaveAttribute("size");
     expect(regular).toHaveClass("text-xs", "px-2.5");

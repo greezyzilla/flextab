@@ -23,9 +23,9 @@ const textLinkVariants = cva(
       size: {
         inherit: "",
         // Beside a field label (the 11px caption).
-        caption: "text-[11px] leading-4",
+        caption: "text-caption",
         // 11px in the line height around it (a list's "+3 more").
-        "2xs": "text-[11px]",
+        "2xs": "text-caption",
         xs: "text-xs",
         sm: "text-sm",
       },

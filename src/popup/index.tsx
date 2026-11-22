@@ -422,21 +422,21 @@ function IndexPopup() {
           </span>
           <div className="min-w-0">
             {(() => {
-              const sentence = <p ref={headingRef} data-slot="page-sentence" className="line-clamp-2 text-[19px] font-semibold leading-6 text-fg [overflow-wrap:anywhere] data-[lines=2]:text-[15px] data-[lines=2]:leading-5">{heading}</p>
+              const sentence = <p ref={headingRef} data-slot="page-sentence" className="line-clamp-2 text-popup-title font-semibold text-fg [overflow-wrap:anywhere] data-[lines=2]:text-popup data-[lines=2]:leading-5">{heading}</p>
               // A sentence naming the group shows its full path. The tooltip hangs off the
               // sentence's visible two lines: the group name alone would count a line the
               // clamp hides, and the arrow would point at nothing (TASK-69).
               const namesGroup = !loading && (status.kind === "known" || status.kind === "saved" || status.kind === "already")
               return namesGroup && place.path ? <IconTooltip content={place.path}>{sentence}</IconTooltip> : sentence
             })()}
-            {sub && <p data-slot="page-detail" className="mt-0.5 line-clamp-2 text-[13px] leading-[18px] text-fg-subtle [overflow-wrap:anywhere]">{sub}</p>}
+            {sub && <p data-slot="page-detail" className="mt-0.5 line-clamp-2 text-popup-meta text-fg-subtle [overflow-wrap:anywhere]">{sub}</p>}
           </div>
         </div>
         {/* Two or more saved episodes this page may continue: pick which one
             Update acts on. A chip only selects; the Update row does it. */}
         {status.kind === "offer" && status.offers.length > 1 && !picking && (
           <>
-            <p className="-mb-1.5 text-[13px] leading-[18px] text-fg-subtle">Which saved {offer!.word}?</p>
+            <p className="-mb-1.5 text-popup-meta text-fg-subtle">Which saved {offer!.word}?</p>
             <ul aria-label={`Which saved ${offer!.word} to update`} className="grid grid-cols-[repeat(auto-fill,minmax(4rem,1fr))] gap-1.5">
               {status.offers.map((o, i) => (
                 <li key={o.tab.id} className="min-w-0">
@@ -454,7 +454,7 @@ function IndexPopup() {
             part step aside so it sits under its row. */}
         {where && place.space && !picking && (
           <>
-            {where.caption && <p className="-mb-1.5 text-[13px] leading-[18px] text-fg-subtle">{where.caption}</p>}
+            {where.caption && <p className="-mb-1.5 text-popup-meta text-fg-subtle">{where.caption}</p>}
             <Location place={place} withGroup={where.withGroup} />
           </>
         )}
@@ -469,11 +469,11 @@ function IndexPopup() {
             maxHeightClass="max-h-[216px]"
           />
         )}
-        {alsoSaved && !picking && <p className="-mt-1.5 text-[13px] leading-[18px] text-fg-subtle [overflow-wrap:anywhere]">{alsoSaved}</p>}
+        {alsoSaved && !picking && <p className="-mt-1.5 text-popup-meta text-fg-subtle [overflow-wrap:anywhere]">{alsoSaved}</p>}
       </section>
       {n > 0 && !loading && !picking && (
         <section aria-label="This window" className="flex flex-col gap-3.5 border-t border-ink/[0.08] pt-3.5">
-          <p className="-mb-1.5 text-[13px] leading-[18px] text-fg-subtle [overflow-wrap:anywhere]">
+          <p className="-mb-1.5 text-popup-meta text-fg-subtle [overflow-wrap:anywhere]">
             {!windowReceipt ? <>This window · {n} other tab{n === 1 ? "" : "s"}</>
               : saved ? <>Saved {saved} tab{saved === 1 ? "" : "s"} to <bdi>{windowGroup}</bdi>{closed ? ` · ${closed} closed` : ""}</>
               : <>Already in <bdi>{windowGroup}</bdi>{closed ? ` · ${closed} closed` : ""}</>}
@@ -578,7 +578,7 @@ function Location({ place, withGroup }: { place: Place; withGroup: boolean }) {
   return (
     <div aria-label={place.path ?? undefined} className="flex flex-col rounded-[14px] border border-ink/[0.09] px-[11px] py-1.5">
       {rows.filter(([, name]) => name).map(([glyph, name]) => (
-        <div key={name + String((glyph as { key?: string }).key)} className="grid min-h-[30px] grid-cols-[20px_minmax(0,1fr)] items-center gap-x-3 text-[15px] leading-[22px] text-fg-muted">
+        <div key={name + String((glyph as { key?: string }).key)} className="grid min-h-[30px] grid-cols-[20px_minmax(0,1fr)] items-center gap-x-3 text-popup text-fg-muted">
           <span className="flex justify-center">{glyph}</span>
           <ClippedTooltip content={name}><bdi data-clip className="truncate">{name}</bdi></ClippedTooltip>
         </div>

@@ -170,7 +170,7 @@ function NewGroupRow({ categoryName, onCommit, onCancel }: {
           padding cancelled by negative margins: the name sits where the new
           group's name will be (TASK-62). */}
       <div className="flex items-center min-h-[26px]" style={{ paddingInline: 'var(--density-px-tab)' }}>
-        <div className={`flex flex-1 min-w-0 items-center gap-2.5 -ml-1.5 pl-1.5 pr-1.5 -my-1 py-1 text-[13px] font-medium ${inlineEditFrame}`}>
+        <div className={`flex flex-1 min-w-0 items-center gap-2.5 -ml-1.5 pl-1.5 pr-1.5 -my-1 py-1 text-item font-medium ${inlineEditFrame}`}>
           <span className="w-5 flex justify-center shrink-0"><GroupIcon size="sm" className="text-fg-subtle" /></span>
           <Input
             variant="inline"

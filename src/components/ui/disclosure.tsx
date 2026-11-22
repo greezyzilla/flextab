@@ -23,9 +23,9 @@ const disclosureVariants = cva("outline-none", {
     },
     level: {
       none: "",
-      space: "text-[13px] leading-[18px] text-fg-subtle",
-      project: "text-[15px] font-medium leading-[22px] text-fg-muted",
-      category: "text-[15px] leading-[22px] text-fg-muted",
+      space: "text-popup-meta text-fg-subtle",
+      project: "text-popup font-medium text-fg-muted",
+      category: "text-popup text-fg-muted",
     },
   },
   defaultVariants: { size: "row", level: "none" },

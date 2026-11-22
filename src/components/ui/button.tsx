@@ -46,13 +46,13 @@ const buttonVariants = cva(
         // A compact action inside a text-xs row (the conflict list's "Choose for all").
         xs: "h-7 rounded-md px-2.5 text-xs",
         // Beside a 44px field (Input variant "lg").
-        xl: "h-11 rounded-md px-5 text-[15px]",
+        xl: "h-11 rounded-md px-5 text-popup",
         icon: "h-9 w-9",
         // The app header's 36px row: a labelled action, or an icon-led status (tight).
         bar: "h-9 px-2.5 text-xs",
         "bar-tight": "h-9 gap-1.5 px-1.5 text-xs",
         // A panel footer's 11px row.
-        footer: "gap-1.5 px-1.5 py-1 text-[11px]",
+        footer: "gap-1.5 px-1.5 py-1 text-caption",
         // Inside a sentence (a notice's "Check again"): no box, the text's own size and line height.
         inline: "h-auto p-0 align-baseline text-[length:inherit] leading-[inherit]",
       },

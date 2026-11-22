@@ -68,7 +68,7 @@ export function ProfileTab() {
           <SettingsListRow
             mark={user.avatar
               ? <img src={user.avatar} alt="" className="w-5 h-5 rounded-full" referrerPolicy="no-referrer" />
-              : <span className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-medium" style={{ backgroundColor: 'var(--accent-fill)', color: 'var(--on-accent-fill)' }}>{(user.name || user.email).slice(0, 1).toUpperCase()}</span>}
+              : <span className="w-5 h-5 rounded-full flex items-center justify-center text-caption font-medium" style={{ backgroundColor: 'var(--accent-fill)', color: 'var(--on-accent-fill)' }}>{(user.name || user.email).slice(0, 1).toUpperCase()}</span>}
             title={<span className="truncate">{user.name}</span>}
             meta={<span className="break-all">{user.email}</span>}
           />

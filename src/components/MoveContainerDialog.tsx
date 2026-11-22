@@ -37,7 +37,7 @@ export function MoveContainerDialog({ kind, name, current, onConfirm, onClose }:
 
   const isCurrent = (t: ContainerTarget) => t.spaceId === current.spaceId && t.projectId === current.projectId
   const isPicked = (t: ContainerTarget) => t.spaceId === target.spaceId && t.projectId === target.projectId
-  const here = <span className="text-[11px] text-fg-subtle">Current</span>
+  const here = <span className="text-caption text-fg-subtle">Current</span>
   const where = kind === "project" ? "space" : "project"
 
   return (
@@ -67,7 +67,7 @@ export function MoveContainerDialog({ kind, name, current, onConfirm, onClose }:
               />
             ) : (
               <div key={space.id} className="py-0.5">
-                <div className="flex items-center gap-2 px-3 py-1 text-[11px] font-medium text-fg-muted">
+                <div className="flex items-center gap-2 px-3 py-1 text-caption font-medium text-fg-muted">
                   <SpaceAvatar space={space} size={14} active={space.id === activeSpaceId} />
                   <span className="truncate">{space.name}</span>
                 </div>

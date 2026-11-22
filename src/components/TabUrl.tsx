@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState } from "react"
 import { fitLink, fitTail, splitDisplayUrl, type LinkCutScope } from "~src/lib/displayUrl"
 
-const BASE = "text-fg-subtle text-[10px] font-sans"
+const BASE = "text-fg-subtle text-count font-sans"
 
 /**
  * A saved tab's address line (TASK-54). The host stays first; when the line

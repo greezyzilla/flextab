@@ -165,10 +165,10 @@ export function MergeConflictModal() {
             <section key={c.key} aria-label={`${LEVEL_LABEL[level]} ${name}`} className="flex flex-col gap-2 rounded-lg border border-ink/10 p-3">
               <div className="flex min-w-0 flex-col gap-0.5">
                 <div className="flex min-w-0 items-baseline gap-2">
-                  <span className="shrink-0 text-fg-subtle text-[11px] uppercase tracking-wide">{LEVEL_LABEL[level]}</span>
+                  <span className="shrink-0 text-fg-subtle text-caption uppercase tracking-wide">{LEVEL_LABEL[level]}</span>
                   <span className="truncate text-fg text-sm">{name}</span>
                 </div>
-                {path.length > 0 && <span className="truncate text-fg-subtle text-[11px]">in {path.join(" › ")}</span>}
+                {path.length > 0 && <span className="truncate text-fg-subtle text-caption">in {path.join(" › ")}</span>}
               </div>
               <p className="text-fg-muted text-xs leading-relaxed">{lead}</p>
               <RadioGroup

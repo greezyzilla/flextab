@@ -24,7 +24,7 @@ describe("text field spec (TASK-57)", () => {
     render(<SearchField size="panel" aria-label="Find a destination" boxClassName="w-full" />)
     const input = screen.getByRole("textbox", { name: "Find a destination" })
     expect(input.closest("[data-search-field]")).toHaveClass("h-11", "rounded-[14px]", "w-full")
-    expect(input).toHaveClass("text-[15px]")
+    expect(input).toHaveClass("text-popup") // 15px on a 22px line (TASK-103.5 type token)
   })
 
   it("an inline create/rename frame firms to the same focus edge", () => {
