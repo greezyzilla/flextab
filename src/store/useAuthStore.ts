@@ -34,6 +34,32 @@ export interface User {
 // adds sync. The old flag is removed once so it does not linger in storage.
 const LEGACY_GUEST_MODE_KEY = "flextab_guest_mode";
 
+/**
+ * The signed-in account's profile, kept on this device (TASK-105) so the new tab and the popup open
+ * from it at once instead of waiting for /api/me. Written on every /api/me, removed on sign-out,
+ * account delete and a new login, so it always belongs to the stored tokens.
+ */
+export const STORED_USER_KEY = "flextab_user";
+
+async function loadStoredUser(): Promise<User | null> {
+  try {
+    const got = await chrome.storage.local.get(STORED_USER_KEY);
+    const u = got?.[STORED_USER_KEY];
+    return u && typeof u.id === "string" ? (u as User) : null;
+  } catch (_) { return null; }
+}
+
+async function storeUser(user: User): Promise<void> {
+  try { await chrome.storage.local.set({ [STORED_USER_KEY]: user }); } catch (_) { /* ok */ }
+}
+
+/** Bumped whenever the session changes hands (login, sign-out, delete), so an older /me answer is dropped. */
+let session = 0;
+
+async function forgetStoredUser(): Promise<void> {
+  try { await chrome.storage.local.remove(STORED_USER_KEY); } catch (_) { /* ok */ }
+}
+
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
@@ -73,7 +99,9 @@ async function requestOAuthLogin(provider: OAuthProvider): Promise<void> {
  * no per-account sync state, and the tabs kept or removed as chosen.
  */
 async function forgetAccountHere(localData: "keep" | "remove"): Promise<void> {
+  session++;
   await clearTokens();
+  await forgetStoredUser();
   if (localData === "remove") {
     await clearState();
     resetYjsHydration();
@@ -104,17 +132,19 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   initialize: async () => {
     const tokens = await loadTokens();
     if (tokens) {
-      set({ isAuthenticated: true });
-      try {
-        await get().fetchUser();
-      } catch (err) {
-        // Local-first: only sign out on a real auth rejection (401 — the BE
-        // explicitly rejected the token, which clears it). A network error /
-        // BE being down keeps the cached session so the app still works offline.
+      // Local-first (TASK-105): with the profile stored on this device, open from it at once and
+      // refresh it from /api/me in the background. Only the first open after a sign-in waits.
+      const stored = await loadStoredUser();
+      set(stored ? { isAuthenticated: true, user: stored, isLoading: false } : { isAuthenticated: true });
+      const refresh = get().fetchUser().catch(async (err) => {
+        // Only a real auth rejection signs out (401: the BE rejected the token, which clears it).
+        // A network error or the BE being down keeps the session, so the app works offline.
         if (err instanceof ApiError && err.status === 401) {
+          await forgetStoredUser();
           set({ isAuthenticated: false, user: null });
         }
-      }
+      });
+      if (!stored) await refresh;
     }
     try { void chrome.storage.local.remove(LEGACY_GUEST_MODE_KEY); } catch (_) { /* ok */ }
     set({ isLoading: false });
@@ -150,6 +180,8 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       try { await chrome.storage.local.remove([SYNC_HYDRATED_KEY, LIMIT_NOTICE_KEY]); } catch (_) { /* ok */ }
       // Invalidate the previous identity before releasing the login lock.
       // Account-bound work must wait for /me for the newly accepted tokens.
+      session++;
+      await forgetStoredUser();
       set({ isAuthenticated: true, user: null });
       return true;
     });
@@ -185,8 +217,12 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   },
 
   fetchUser: async () => {
+    const asked = session;
     const user = await apiFetch<User>("/api/me");
+    // A sign-out or a new login while /me was in flight must not get this profile back.
+    if (asked !== session || !get().isAuthenticated) return;
     set({ user });
+    await storeUser(user);
   },
 }));
 
@@ -199,6 +235,7 @@ if (chrome.storage?.onChanged) {
       if (changes.auth_tokens.newValue && !isAuthenticated) {
         useAuthStore.getState().handleAuthCallback(changes.auth_tokens.newValue, true).catch(() => {});
       } else if (!changes.auth_tokens.newValue && isAuthenticated) {
+        session++;
         useAuthStore.setState({ user: null, isAuthenticated: false });
       }
     }

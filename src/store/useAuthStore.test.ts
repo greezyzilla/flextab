@@ -222,3 +222,76 @@ describe('delete account (TASK-17)', () => {
     await expect(useAuthStore.getState().deleteAccount('x', {} as never)).rejects.toThrow('Choose what happens');
   });
 });
+
+describe('optimistic start from the stored profile (TASK-105)', () => {
+  const me = { id: 'u', email: 'e@x.test', name: 'Ayu', avatar: '', provider: 'google', has_password: false };
+  let store: Record<string, any>;
+  beforeEach(async () => {
+    await saveTokens(tokens());
+    store = { auth_tokens: tokens(), flextab_user: { ...me, name: 'Ayu (stored)' } };
+    (chrome.storage.local.get as any).mockImplementation(async (k: any) => (typeof k === 'string' ? (k in store ? { [k]: store[k] } : {}) : {}));
+    (chrome.storage.local.set as any).mockImplementation(async (o: any) => { Object.assign(store, o); });
+    (chrome.storage.local.remove as any).mockImplementation(async (k: any) => { for (const x of [k].flat()) delete store[x]; });
+  });
+
+  it('opens from the stored profile without waiting for /api/me, then refreshes it', async () => {
+    let answer!: (r: Response) => void;
+    (global.fetch as any).mockReturnValue(new Promise<Response>((r) => { answer = r; }));
+    await useAuthStore.getState().initialize();
+    expect(useAuthStore.getState()).toMatchObject({ isLoading: false, isAuthenticated: true });
+    expect(useAuthStore.getState().user?.name).toBe('Ayu (stored)');
+    answer(jsonRes(me));
+    await vi.waitFor(() => expect(useAuthStore.getState().user?.name).toBe('Ayu'));
+    expect(store.flextab_user.name).toBe('Ayu');
+  });
+
+  it('signs out when /api/me rejects the token in the background, and forgets the profile', async () => {
+    (global.fetch as any).mockResolvedValue(jsonRes({ error: 'unauthorized' }, false, 401));
+    await useAuthStore.getState().initialize();
+    await vi.waitFor(() => expect(useAuthStore.getState().isAuthenticated).toBe(false));
+    expect(useAuthStore.getState().user).toBeNull();
+    expect(store.flextab_user).toBeUndefined();
+  });
+
+  it('keeps the stored account when the server is unreachable', async () => {
+    (global.fetch as any).mockRejectedValue(new TypeError('Failed to fetch'));
+    await useAuthStore.getState().initialize();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(useAuthStore.getState()).toMatchObject({ isAuthenticated: true, isLoading: false });
+    expect(useAuthStore.getState().user?.name).toBe('Ayu (stored)');
+  });
+
+  it('waits for /api/me when no profile is stored yet', async () => {
+    delete store.flextab_user;
+    let answer!: (r: Response) => void;
+    (global.fetch as any).mockReturnValue(new Promise<Response>((r) => { answer = r; }));
+    const started = useAuthStore.getState().initialize();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(useAuthStore.getState().isLoading).toBe(true);
+    answer(jsonRes(me));
+    await started;
+    expect(useAuthStore.getState()).toMatchObject({ isLoading: false, user: me });
+    expect(store.flextab_user).toEqual(me);
+  });
+
+  it('a sign-out forgets the stored profile', async () => {
+    useAuthStore.setState({ isAuthenticated: true, user: me });
+    (global.fetch as any).mockResolvedValue(jsonRes({}));
+    await useAuthStore.getState().logout({ localData: 'keep' });
+    expect(store.flextab_user).toBeUndefined();
+  });
+
+  it('a new login forgets the old profile, and a late /api/me for the old session is dropped', async () => {
+    let answerOld!: (r: Response) => void;
+    (global.fetch as any).mockReturnValueOnce(new Promise<Response>((r) => { answerOld = r; }))
+    useAuthStore.setState({ isAuthenticated: true, user: me });
+    const old = useAuthStore.getState().fetchUser().catch(() => {});
+    (global.fetch as any).mockResolvedValue(jsonRes({ ...me, id: 'v', name: 'Budi' }));
+    await useAuthStore.getState().handleAuthCallback({ ...tokens(), access_token: 't2', refresh_token: 'r2' });
+    expect(useAuthStore.getState().user?.name).toBe('Budi');
+    answerOld(jsonRes(me));
+    await old;
+    expect(useAuthStore.getState().user?.name).toBe('Budi');
+    expect(store.flextab_user.name).toBe('Budi');
+  });
+});
