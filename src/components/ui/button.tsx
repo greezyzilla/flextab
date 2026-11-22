@@ -6,16 +6,22 @@ import { cn } from "~src/lib/utils"
 import { hasClippedText } from "~src/lib/displayUrl"
 import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip"
 
+// Forced colours (Windows contrast themes) drop backgrounds and shadows, so a filled variant with no
+// border would be a bare label (TASK-100). It gets a 1px edge in a system colour there, drawn as an
+// inset outline so the button keeps its size; normal colours never see it.
+// Arbitrary properties: tailwind-merge (cn) drops `outline` next to `outline-1`, which left no edge.
+const FORCED_EDGE = "forced-colors:[outline:1px_solid_ButtonText] forced-colors:[outline-offset:-1px] forced-colors:disabled:[outline-color:GrayText]"
+
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0",
   {
     variants: {
       variant: {
         // brand primary — gradient derived from --accent (see .accent-fill)
-        default: "accent-fill",
+        default: `accent-fill ${FORCED_EDGE}`,
         // The final confirm of a destructive action (in a modal footer): solid red, flat.
         destructive:
-          "bg-destructive text-destructive-foreground shadow-sm hover:brightness-90",
+          `bg-destructive text-destructive-foreground shadow-sm hover:brightness-90 ${FORCED_EDGE}`,
         // A page control that opens a destructive flow ("Delete space…"). Its shape, not
         // only its hue, sets it apart from the accent fill, so it still reads as danger
         // when the accent itself is red (TASK-49).
@@ -24,7 +30,7 @@ const buttonVariants = cva(
         outline:
           // Own text colour: dialogs render in a portal, where inherited colour is the browser's black.
           "border border-input bg-background text-fg-muted shadow-sm hover:bg-accent hover:text-accent-foreground",
-        secondary: "bg-ink/[0.08] text-fg hover:bg-ink/[0.13]",
+        secondary: `bg-ink/[0.08] text-fg hover:bg-ink/[0.13] ${FORCED_EDGE}`,
         ghost:
           "border border-ink/10 text-fg-muted hover:border-ink/25 hover:bg-ink/[0.04] hover:text-ink",
         link: "text-fg-subtle underline-offset-4 hover:text-ink hover:underline",

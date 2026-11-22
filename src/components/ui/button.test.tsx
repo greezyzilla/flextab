@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { ClippedTooltip, IconButton, IconTooltip } from "./button";
+import { Button, ClippedTooltip, IconButton, IconTooltip } from "./button";
 import { TooltipProvider } from "./tooltip";
 import { stubResizeObserver } from "~src/test/stubResizeObserver";
 
@@ -129,5 +129,22 @@ describe("ClippedTooltip (TASK-69)", () => {
     widths(trigger, 200, 50);
     await act(async () => { trigger.focus(); });
     expect(tooltipShown()).toBe(false);
+  });
+});
+
+describe("forced colours edge (TASK-100)", () => {
+  // Forced colours drop backgrounds; a filled variant keeps its shape only through this outline.
+  // tailwind-merge once dropped `outline` next to `outline-1`, leaving outline-style none: lock the
+  // classes as they reach the DOM, after cn().
+  it.each(["default", "destructive", "secondary"] as const)("%s keeps an edge in forced colours", (variant) => {
+    render(<Button variant={variant}>Go</Button>);
+    const cls = screen.getByRole("button", { name: "Go" }).className;
+    expect(cls).toContain("forced-colors:[outline:1px_solid_ButtonText]");
+    expect(cls).toContain("forced-colors:[outline-offset:-1px]");
+    expect(cls).toContain("forced-colors:disabled:[outline-color:GrayText]");
+  });
+  it.each(["outline", "ghost", "danger", "link"] as const)("%s needs no extra edge (it has a border, or is text)", (variant) => {
+    render(<Button variant={variant}>Go</Button>);
+    expect(screen.getByRole("button", { name: "Go" }).className).not.toContain("forced-colors:[outline");
   });
 });
