@@ -6,10 +6,16 @@ import { cn } from "~src/lib/utils"
 
 const RadioGroup = React.forwardRef<
   React.ElementRef<typeof RadioGroupPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof RadioGroupPrimitive.Root>
->(({ className, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof RadioGroupPrimitive.Root> & {
+    /** "stack": one choice per row (a dialog's list). "grid": cards, two columns from sm. */
+    layout?: "default" | "stack" | "grid"
+  }
+>(({ className, layout = "default", ...props }, ref) => (
   <RadioGroupPrimitive.Root
-    className={cn("grid gap-2", className)}
+    className={cn(
+      layout === "stack" ? "flex flex-col gap-2" : layout === "grid" ? "grid grid-cols-1 gap-2 sm:grid-cols-2" : "grid gap-2",
+      className,
+    )}
     {...props}
     ref={ref}
   />

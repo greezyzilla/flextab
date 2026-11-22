@@ -196,8 +196,7 @@ export function SearchBar() {
       title = hit.tab.title || hit.tab.url; detail = `${host(hit.tab.url)} · ${hit.path.join(" › ")}`;
       aside = hit.isOpen && <Tag>Open</Tag>;
     } else if (hit.kind === "action") {
-      const Icon = THEME_ICON[hit.theme];
-      icon = <Icon className="h-4 w-4 shrink-0 text-fg-subtle" aria-hidden />;
+      icon = <Icon icon={THEME_ICON[hit.theme]} size="md" className="text-fg-subtle" />;
       title = hit.title; detail = "";
       aside = hit.current && <Tag>Current</Tag>;
     } else {

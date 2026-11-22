@@ -18,11 +18,12 @@ const GUIDE = "Looks live in components/ui variants; a call site only places a c
 
 /**
  * Classes that place a component inside its parent: its behaviour as a flex or grid item, and
- * positioning. Width filling (w-full) and margins are not here: filling is the component's own
- * prop or default, and spacing between siblings is the parent's gap.
+ * positioning, and a width cap in % of the parent (how much of its row it may take, TASK-103.6).
+ * Width filling (w-full) and margins are not here: filling is the component's own prop or default,
+ * and spacing between siblings is the parent's gap.
  */
 const PLACEMENT =
-  /^(?:flex-(?:1|auto|initial|none)|grow(?:-\d+)?|shrink(?:-\d+)?|basis-.+|min-[wh]-0|self-.+|justify-self-.+|place-self-.+|order-.+|col-(?:auto|span-.+|start-.+|end-.+)|row-(?:auto|span-.+|start-.+|end-.+)|static|relative|absolute|fixed|sticky|inset(?:-[xy])?-.+|top-.+|right-.+|bottom-.+|left-.+|z-.+|group(?:\/.+)?|peer(?:\/.+)?)$/
+  /^(?:max-w-\[\d+(?:\.\d+)?%\]|flex-(?:1|auto|initial|none)|grow(?:-\d+)?|shrink(?:-\d+)?|basis-.+|min-[wh]-0|self-.+|justify-self-.+|place-self-.+|order-.+|col-(?:auto|span-.+|start-.+|end-.+)|row-(?:auto|span-.+|start-.+|end-.+)|static|relative|absolute|fixed|sticky|inset(?:-[xy])?-.+|top-.+|right-.+|bottom-.+|left-.+|z-.+|group(?:\/.+)?|peer(?:\/.+)?)$/
 
 /** docs/icon-standard.md: an icon takes its colour and rotation from the call site, never its size or stroke. */
 const ICON_EXTRA = /^(?:text-(?!(?:xs|sm|base|lg|\d?xl)$|\[).+|rotate-.+|transition(?:-transform)?|duration-.+|ease-.+|animate-(?:spin|none))$/
@@ -148,22 +149,6 @@ const DATA_COLOURS: Record<string, string> = {
 
 /** Today's findings (fe dev 4f80647), by the subtask that clears them. Only ever lower or remove an entry. */
 const DEBT: Debt = {
-  "TASK-103.6": { // 65 in 14 files
-    "components/MergeConflictModal.tsx": { "A Label": 15, "A RadioGroup": 4, "A RadioGroupItem": 1 },
-    "components/OnboardingScreen.tsx": { "A Icon": 1 },
-    "components/SaveAllDialog.tsx": { "A RadioGroup": 3 },
-    "components/SearchBar.tsx": { "A Icon": 2 },
-    "components/SyncStatusIndicator.tsx": { "A PopoverContent": 5 },
-    "components/TabGroup.tsx": { "A Badge": 3 },
-    "components/dnd/DragOverlayContent.tsx": { "A Icon": 2 },
-    "components/layout/ProfilePanel.tsx": { "A Avatar": 2 },
-    "components/layout/RightPanel.tsx": { "A Icon": 1 },
-    "components/settings/AccountTab.tsx": { "A DoneLine": 1 },
-    "components/settings/BackupTab.tsx": { "A Badge": 1 },
-    "components/settings/SpacesTab.tsx": { "A Tabs": 3, "A TabsContent": 1, "A TabsList": 6, "A TabsTrigger": 1 },
-    "components/settings/SyncTab.tsx": { "A Badge": 1 },
-    "components/settings/shared.tsx": { "A Progress": 4, "A ShadcnToggleGroup": 8 },
-  },
 }
 
 function sources(dir: string): string[] {
@@ -237,6 +222,11 @@ describe("ui layering scanner", () => {
 
   it("lets placement through: flex and grid item behaviour, self alignment, order, position", () => {
     expect(keys(`const a = <Button className="flex-1 min-w-0 shrink-0 self-end md:order-2 col-span-2 absolute right-2 z-10" />`)).toEqual([])
+  })
+
+  it("lets a width cap in % of the parent through, but not a fixed cap", () => {
+    expect(keys(`const a = <Button className="shrink-0 max-w-[40%]" />`)).toEqual([])
+    expect(keys(`const a = <Button className="max-w-[12rem]" />`)).toEqual(["A Button max-w-[12rem] :3"])
   })
 
   it("does not count width filling or margins as placement", () => {

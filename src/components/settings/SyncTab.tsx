@@ -112,7 +112,7 @@ export function DevicesList() {
           key={d.id}
           title={<>
             <span className="truncate">{d.label}</span>
-            {d.id === thisDeviceId && <Badge variant="accent" size="sm" className="shrink-0 font-normal">This device</Badge>}
+            {d.id === thisDeviceId && <Badge variant="accent" size="sm" className="shrink-0">This device</Badge>}
           </>}
           meta={<>
             Last seen {formatRelativeTime(new Date(d.last_seen_at).getTime())}

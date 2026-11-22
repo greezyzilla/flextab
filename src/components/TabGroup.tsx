@@ -157,7 +157,7 @@ function SavedTabItem({ tab, groupId, location, copies = 1, unsorted }: { tab: S
           episode). A passive signal like "dup"; the action lives in ⋯. */}
       {change && (
         <IconTooltip content={`Open tab is on ${change.to}`}>
-          <Badge variant="accent" size="sm" className="shrink-0 max-w-[40%] truncate font-normal">
+          <Badge variant="accent" size="sm" className="shrink-0 max-w-[40%]">
             <span aria-hidden>→{"\u00a0"}</span>{change.to}
           </Badge>
         </IconTooltip>

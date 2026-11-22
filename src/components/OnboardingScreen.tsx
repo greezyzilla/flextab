@@ -3,6 +3,7 @@ import { Copy, Mail, ShieldCheck } from "lucide-react"
 import { toast } from "sonner"
 import { Button, IconTooltip } from "~src/components/ui/button"
 import { Icon } from "~src/components/ui/icon"
+import { IconText } from "~src/components/ui/icon-text"
 import { DoneCheck } from "~src/components/ui/done-check"
 import { BrandMark } from "~src/components/ui/brand-mark"
 import { Input, PasswordField } from "~src/components/ui/input"
@@ -232,10 +233,7 @@ export function OnboardingScreen({ onBack }: {
             )}
           </div>
           {/* Trust, in the privacy policy's own promises (flextab-landing Privacy.tsx). */}
-          <p className="flex items-start gap-2 text-fg-subtle text-xs leading-relaxed">
-            <Icon icon={ShieldCheck} size="sm" className="mt-px shrink-0 text-fg-subtle" />
-            We never read or sell your browsing.
-          </p>
+          <IconText icon={ShieldCheck}>We never read or sell your browsing.</IconText>
         </section>
 
         {/* Every step shares one frame: content from the same top line, left

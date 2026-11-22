@@ -158,7 +158,7 @@ export function ProfilePanel() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <RailButton look="bare" aria-label={user.name}>
-                <Avatar className="h-10 w-10">
+                <Avatar>
                   {user.avatar ? (
                     <AvatarImage src={user.avatar} alt={user.name} referrerPolicy="no-referrer" />
                   ) : null}

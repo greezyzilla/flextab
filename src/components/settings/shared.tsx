@@ -186,7 +186,7 @@ export function UsageMeter({ used, cap, tone = 'quota' }: { used: number; cap: n
   const unlimited = cap === 0;
   const pct = unlimited ? 0 : Math.min(100, Math.round((used / cap) * 100));
   const barColor = tone === 'rolling' ? 'var(--accent)' : used >= cap && !unlimited ? 'rgb(var(--danger))' : pct >= 80 ? 'rgb(var(--warning))' : 'var(--accent)';
-  return <Progress value={pct} aria-hidden className="h-1.5 w-full" indicatorClassName="bg-transparent" indicatorStyle={{ backgroundColor: barColor }} />;
+  return <Progress value={pct} aria-hidden size="sm" indicatorClassName="bg-transparent" indicatorStyle={{ backgroundColor: barColor }} />;
 }
 
 export function formatDate(iso: string): string {
@@ -234,12 +234,12 @@ export function UsageBar({ label, used, cap, format, tone = 'quota', hint }: {
       {!unlimited ? (
         <Progress
           value={pct}
-          className="h-1.5"
+          size="sm"
           indicatorClassName="bg-transparent"
           indicatorStyle={{ backgroundColor: barColor }}
         />
       ) : (
-        <Progress value={0} className="h-1.5" />
+        <Progress value={0} size="sm" />
       )}
       {hint && <span className="text-fg-subtle text-caption font-sans">{hint}</span>}
     </div>
@@ -343,7 +343,7 @@ export function ToggleGroup<T extends string>({ value, onChange, options, ...con
       }}
       // In a card each option is as wide as its own content and the group sits on the column's right edge
       // (TASK-84: "fit rata kanan"); forcing equal shares made every row's buttons a different forced size.
-      className={tile ? "flex flex-nowrap justify-end gap-1.5" : "flex flex-wrap justify-start gap-1.5"}
+      arrange={tile ? "end" : "wrap"}
     >
       {options.map((opt) => (
         <ToggleGroupItem key={opt.value} value={opt.value} aria-label={opt.label}>

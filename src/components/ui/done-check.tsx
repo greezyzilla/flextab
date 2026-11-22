@@ -15,9 +15,9 @@ export function DoneCheck({ size = "md", className }: { size?: IconSize; classNa
 }
 
 /** A settings row's result, right where the action was: the check, then what is now true. */
-export function DoneLine({ children, className }: { children: ReactNode; className?: string }) {
+export function DoneLine({ children, className, below = false }: { children: ReactNode; className?: string; /** Under a line of text: 2px from it. */ below?: boolean }) {
   return (
-    <span role="status" className={cn("flex items-center gap-1.5 font-sans text-xs text-success", className)}>
+    <span role="status" className={cn("flex items-center gap-1.5 font-sans text-xs text-success", below && "mt-0.5", className)}>
       <DoneCheck size="sm" />
       <span>{children}</span>
     </span>

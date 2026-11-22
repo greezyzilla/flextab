@@ -6,14 +6,17 @@ import { cn } from "~src/lib/utils"
 const Progress = React.forwardRef<
   React.ElementRef<typeof ProgressPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root> & {
+    /** default 8px; sm 6px, the usage meters in Settings. */
+    size?: "default" | "sm"
     indicatorClassName?: string
     indicatorStyle?: React.CSSProperties
   }
->(({ className, value, indicatorClassName, indicatorStyle, ...props }, ref) => (
+>(({ className, value, size = "default", indicatorClassName, indicatorStyle, ...props }, ref) => (
   <ProgressPrimitive.Root
     ref={ref}
     className={cn(
-      "relative h-2 w-full overflow-hidden rounded-full bg-ink/[0.06]",
+      "relative w-full overflow-hidden rounded-full bg-ink/[0.06]",
+      size === "sm" ? "h-1.5" : "h-2",
       className
     )}
     {...props}

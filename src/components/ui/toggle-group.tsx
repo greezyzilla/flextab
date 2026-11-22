@@ -16,8 +16,12 @@ const ToggleGroupContext = React.createContext<
 const ToggleGroup = React.forwardRef<
   React.ElementRef<typeof ToggleGroupPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof ToggleGroupPrimitive.Root> &
-    VariantProps<typeof toggleVariants>
->(({ className, variant, size, children, ...props }, ref) => (
+    VariantProps<typeof toggleVariants> & {
+      /** How the options sit (Settings rows): "end" one row on the right edge, each as wide as its
+       *  own content (in a card); "wrap" from the left, wrapping when the column is narrow. */
+      arrange?: "end" | "wrap"
+    }
+>(({ className, variant, size, arrange, children, ...props }, ref) => (
   <ToggleGroupPrimitive.Root
     ref={ref}
     className={cn(
@@ -25,6 +29,8 @@ const ToggleGroup = React.forwardRef<
       // The segmented tray shares the toolbar's edge logic with Button ghost sm
       // (TASK-61): 32px tall, 6px radius, ink/10 border, no fill.
       variant === "segmented" && "h-8 gap-0.5 rounded-md border border-ink/10 p-0.5",
+      arrange === "end" && "flex-nowrap justify-end gap-1.5",
+      arrange === "wrap" && "flex-wrap justify-start gap-1.5",
       className,
     )}
     {...props}

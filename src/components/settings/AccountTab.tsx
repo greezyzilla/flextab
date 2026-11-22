@@ -300,7 +300,7 @@ export function SecurityTab() {
           {hasPassword
             ? 'Changing it signs out all devices.'
             : `Not set. Lets you sign in with ${user?.email ?? 'your email'} too; setting one signs out all devices.`}
-          {pwSuccess && <DoneLine className="mt-0.5">{pwSuccess}</DoneLine>}
+          {pwSuccess && <DoneLine below>{pwSuccess}</DoneLine>}
         </>}
         action={
           <Button variant="ghost" size="sm" onClick={() => { setPwSuccess(''); setPwOpen(true); }}>

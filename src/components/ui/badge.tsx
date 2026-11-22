@@ -23,7 +23,8 @@ const badgeVariants = cva(
       },
       size: {
         default: "px-2.5 py-0.5 text-xs",
-        sm: "px-1.5 py-0.5 text-count",
+        // A small label beside a title: regular weight, so it never outweighs the title.
+        sm: "px-1.5 py-0.5 text-count font-normal",
       },
     },
     defaultVariants: {

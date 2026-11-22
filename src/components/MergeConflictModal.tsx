@@ -7,11 +7,10 @@ import { merge3, type Conflict, type Resolutions } from "~src/services/spacesMer
 import { spaceTabCount } from "~src/services/spacesTree"
 import { autoMerged, changeText, editSummary, LEVEL_LABEL, locate, locatedName, type Change, type Level } from "~src/services/syncChanges"
 import { addAccountCopies, canKeepBoth } from "~src/services/keepBoth"
-import { cn } from "~src/lib/utils"
 import { GROUP_COLORS } from "~src/lib/groupColors"
 import { Button } from "~src/components/ui/button"
-import { Label } from "~src/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "~src/components/ui/radio-group"
+import { RadioGroup } from "~src/components/ui/radio-group"
+import { RadioCard } from "~src/components/ui/radio-card"
 import { Modal, ModalBody, ModalFooter, ModalHeader, ModalLink } from "~src/components/ui/modal"
 import { Disclosure } from "~src/components/ui/disclosure"
 
@@ -175,26 +174,17 @@ export function MergeConflictModal() {
                 value={choices[c.key] ?? ""}
                 onValueChange={(v) => choose(c.key, v as Choice)}
                 aria-label={`${LEVEL_LABEL[level]} ${name}: which version to keep`}
-                className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+                layout="grid"
               >
                 {options.map((opt) => {
                   const id = `merge-${c.key}-${opt.side}`
                   return (
-                    <Label
-                      key={opt.side}
-                      htmlFor={id}
-                      className={cn(
-                        "flex cursor-pointer items-start gap-2.5 rounded-md border px-3 py-2 font-normal transition-colors",
-                        opt.side === "both" && "sm:col-span-2",
-                        choices[c.key] === opt.side ? "border-[var(--accent)] bg-[var(--accent-subtle)]" : "border-ink/10 bg-ink/[0.02] hover:bg-ink/[0.05]",
-                      )}
-                    >
-                      <RadioGroupItem value={opt.side} id={id} className="mt-0.5" />
+                    <RadioCard key={opt.side} id={id} value={opt.side} selected={choices[c.key] === opt.side} wide={opt.side === "both"}>
                       <span className="flex min-w-0 flex-col gap-0.5">
                         <span className="text-fg text-xs font-medium">{opt.label}</span>
                         <span className="break-all text-fg-subtle text-xs">{opt.detail}</span>
                       </span>
-                    </Label>
+                    </RadioCard>
                   )
                 })}
               </RadioGroup>

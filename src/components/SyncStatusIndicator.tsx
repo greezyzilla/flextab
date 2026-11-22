@@ -155,27 +155,29 @@ export function SyncStatusIndicator() {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent side="bottom" align="end" className="flex w-72 flex-col gap-3 font-sans">
-        <div className="flex flex-col gap-1">
-          <p className="text-fg text-sm font-medium">{label}</p>
-          <p className="text-fg-subtle text-xs leading-relaxed">{detail}</p>
-        </div>
-        {cap !== undefined && cap > 0 && <UsageBar label="Tabs" used={tabs} cap={cap} />}
-        <div className="flex items-center justify-between gap-2">
-          <Button variant="link" size="sm" onClick={() => { setOpen(false); navigate("/settings/sync") }}>
-            Sync settings
-          </Button>
-          {paused ? (
-            <Button variant="default" size="sm" onClick={() => { setOpen(false); navigate("/settings/plan") }}>
-              See plan
+      <PopoverContent side="bottom" align="end">
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1">
+            <p className="text-fg text-sm font-medium">{label}</p>
+            <p className="text-fg-subtle text-xs leading-relaxed">{detail}</p>
+          </div>
+          {cap !== undefined && cap > 0 && <UsageBar label="Tabs" used={tabs} cap={cap} />}
+          <div className="flex items-center justify-between gap-2">
+            <Button variant="link" size="sm" onClick={() => { setOpen(false); navigate("/settings/sync") }}>
+              Sync settings
             </Button>
-          ) : showConflict && (
-            // A one-shot Sync now reopens the resolver (the stored conflict, or a
-            // fresh detection); it never turns auto-sync back on by itself.
-            <Button variant="default" size="sm" onClick={() => { setOpen(false); void syncNow() }}>
-              Resolve conflict
-            </Button>
-          )}
+            {paused ? (
+              <Button variant="default" size="sm" onClick={() => { setOpen(false); navigate("/settings/plan") }}>
+                See plan
+              </Button>
+            ) : showConflict && (
+              // A one-shot Sync now reopens the resolver (the stored conflict, or a
+              // fresh detection); it never turns auto-sync back on by itself.
+              <Button variant="default" size="sm" onClick={() => { setOpen(false); void syncNow() }}>
+                Resolve conflict
+              </Button>
+            )}
+          </div>
         </div>
       </PopoverContent>
     </Popover>

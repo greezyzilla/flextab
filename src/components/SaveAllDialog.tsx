@@ -98,7 +98,7 @@ export function SaveAllDialog() {
           ? "No savable tabs are open. Browser, extension and local file pages are skipped."
           : `${total} tab${total === 1 ? "" : "s"} open in ${withTabs.length} window${withTabs.length === 1 ? "" : "s"}.`} />
       <ModalBody>
-        <RadioGroup value={scope} onValueChange={(v) => setScope(v as Scope)} className="flex flex-col gap-2" aria-label="What to save">
+        <RadioGroup value={scope} onValueChange={(v) => setScope(v as Scope)} layout="stack" aria-label="What to save">
           {/* A window with nothing savable is not a choice (TASK-42). */}
           {currentCount > 0 && (
             <ModalRadio id="save-all-window" value="window" count={`${currentCount} tab${currentCount === 1 ? "" : "s"}`}>This window</ModalRadio>

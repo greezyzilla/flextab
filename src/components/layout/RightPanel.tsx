@@ -130,8 +130,8 @@ const OpenedTab = ({ tab, windowId, windowLabel, saved, closeAfterSave, targets 
           tabs, so no empty gutter sits in front of the favicon (TASK-5). */}
       <span className="relative w-5 h-5 shrink-0 pointer-events-none">
         <DragHandle reveal="group-hover/tab:opacity-100" {...attributes} {...listeners} aria-label={`Drag ${name}`} />
-        <span className="relative block transition-opacity group-hover/tab:opacity-0 peer-focus-visible:opacity-0">
-          {loading ? <Icon icon={Loader2} size="md" className="m-0.5 animate-spin motion-reduce:animate-none text-fg-subtle" label="Loading" />
+        <span className="relative grid h-5 w-5 place-items-center transition-opacity group-hover/tab:opacity-0 peer-focus-visible:opacity-0">
+          {loading ? <Icon icon={Loader2} size="md" className="animate-spin motion-reduce:animate-none text-fg-subtle" label="Loading" />
             : flexTab ? <img src={flexTabIcon()} alt="" className="w-5 h-5" />
             : <FaviconImg src={tab.favIconUrl} alt="" />}
           {/* Saved: the popup's flag, a green check on the page's icon. */}

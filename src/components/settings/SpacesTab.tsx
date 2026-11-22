@@ -69,17 +69,17 @@ export function SpacesTab() {
 
   return (
     // Switching tabs replaces the route: Back and Escape leave Settings, not step through tabs.
-    <Tabs value={selected.id} onValueChange={(id) => replaceRoute(`${SPACES_ROUTE}/${encodeURIComponent(id)}`)} className="flex flex-col gap-7">
-      <TabsList aria-label="Spaces" className="flex-wrap justify-start rounded-none border-b border-ink/10 pb-3">
+    <Tabs value={selected.id} onValueChange={(id) => replaceRoute(`${SPACES_ROUTE}/${encodeURIComponent(id)}`)} >
+      <TabsList aria-label="Spaces">
         {sorted.map((space) => (
-          <TabsTrigger key={space.id} value={space.id} className="max-w-[12rem]">
+          <TabsTrigger key={space.id} value={space.id}>
             <SpaceAvatar space={space} size={20} active={space.id === selected.id || space.id === activeSpaceId} />
             <span className="truncate">{space.name}</span>
           </TabsTrigger>
         ))}
       </TabsList>
       {sorted.map((space, i) => (
-        <TabsContent key={space.id} value={space.id} className="focus-visible:ring-0">
+        <TabsContent key={space.id} value={space.id}>
           <SpaceForm space={space} index={i} count={sorted.length} />
         </TabsContent>
       ))}
