@@ -4,6 +4,7 @@ import { toast } from "sonner"
 import { Button, IconTooltip } from "~src/components/ui/button"
 import { Icon } from "~src/components/ui/icon"
 import { DoneCheck } from "~src/components/ui/done-check"
+import { BrandMark } from "~src/components/ui/brand-mark"
 import { Input, PasswordField } from "~src/components/ui/input"
 import { Label } from "~src/components/ui/label"
 import { Modal, ModalHeader } from "~src/components/ui/modal"
@@ -24,32 +25,6 @@ const LEGAL_BASE_URL = "https://flextabmanager.com"
 
 // The offer side carries the accent, so it reads as FlexTab in any theme.
 const GLOW = "radial-gradient(90% 70% at 100% 0%, color-mix(in srgb, var(--accent) 26%, transparent), transparent 70%), radial-gradient(80% 60% at 0% 100%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%), var(--color-black-950)"
-
-/** The same mark as the space rail's (manifest icon tinted with the accent), so this reads as the same app. */
-function AppMark() {
-  const icon = typeof chrome !== "undefined" && chrome.runtime?.getManifest ? chrome.runtime.getManifest().icons?.["128"] : undefined
-  const src = icon && chrome.runtime?.getURL ? chrome.runtime.getURL(icon) : undefined
-  return (
-    <div
-      className="w-10 h-10 rounded-2xl border flex items-center justify-center"
-      style={{
-        backgroundColor: "var(--accent-subtle)",
-        borderColor: "color-mix(in srgb, var(--accent) 34%, transparent)",
-        boxShadow: "0 10px 24px -18px var(--accent), inset 0 1px 0 rgba(255,255,255,0.08)",
-      }}
-    >
-      {src ? (
-        <span aria-hidden className="h-7 w-7" style={{
-          background: "linear-gradient(135deg, color-mix(in srgb, var(--accent) 70%, #ffffff), var(--accent))",
-          WebkitMask: `url(${src}) center / contain no-repeat`,
-          mask: `url(${src}) center / contain no-repeat`,
-        }} />
-      ) : (
-        <span aria-hidden className="text-sm font-semibold" style={{ color: "var(--accent)" }}>F</span>
-      )}
-    </div>
-  )
-}
 
 function GoogleMark() {
   return (
@@ -242,7 +217,7 @@ export function OnboardingScreen({ onBack }: {
             is shared out, not left in one hole. */}
         <section className="flex flex-col justify-between gap-8 p-8 pt-12" style={{ background: GLOW }}>
           <div className="flex items-center gap-3">
-            <AppMark />
+            <BrandMark />
             <span className="text-fg text-base font-semibold">FlexTab</span>
           </div>
           <div className="flex flex-col gap-3">

@@ -1,3 +1,4 @@
+import { BrandMark } from "~src/components/ui/brand-mark";
 import { SignOutDialog } from "~src/components/SignOutDialog";
 import { Icon } from "~src/components/ui/icon"
 import { Plus, Settings, User } from "lucide-react"
@@ -25,12 +26,6 @@ import { SPRING_LOAD_MS } from "~src/hooks/useDragAndDrop";
 export function ProfilePanel() {
   const { savedSpaces, activeSpaceId, setActiveSpace } = useSavedSpacesStore();
   const { user, isAuthenticated } = useAuthStore();
-  const manifestIcon = typeof chrome !== "undefined" && chrome.runtime?.getManifest
-    ? chrome.runtime.getManifest().icons?.["128"]
-    : undefined;
-  const logoSrc = manifestIcon && chrome.runtime?.getURL
-    ? chrome.runtime.getURL(manifestIcon)
-    : undefined;
   const [signOutOpen, setSignOutOpen] = useState(false);
   const inSettings = isSettingsRoute(useRoute());
 
@@ -75,29 +70,7 @@ export function ProfilePanel() {
         {/* Header — h-16 to line up with the brand header in LeftPanel / the
             search-bar row in the middle column / "Opened Tabs" in RightPanel. */}
         <div className="h-16 w-full flex items-center justify-center border-b border-line shrink-0">
-          <div
-            className="w-10 h-10 rounded-2xl border flex items-center justify-center"
-            style={{
-              backgroundColor: "var(--accent-subtle)",
-              borderColor: "color-mix(in srgb, var(--accent) 34%, transparent)",
-              boxShadow: "0 10px 24px -18px var(--accent), inset 0 1px 0 rgba(255,255,255,0.08)",
-            }}
-          >
-            {logoSrc ? (
-              <span
-                aria-label="FlexTab"
-                role="img"
-                className="h-7 w-7"
-                style={{
-                  background: "linear-gradient(135deg, color-mix(in srgb, var(--accent) 70%, #ffffff), var(--accent))",
-                  WebkitMask: `url(${logoSrc}) center / contain no-repeat`,
-                  mask: `url(${logoSrc}) center / contain no-repeat`,
-                }}
-              />
-            ) : (
-              <span className="text-sm font-semibold" style={{ color: "var(--accent)" }}>F</span>
-            )}
-          </div>
+          <BrandMark label="FlexTab" />
         </div>
         {/* pt-2 centers the first 40px avatar within the same 56px band as the
             "Personal" row in LeftPanel / category row in ContentPanel / window
