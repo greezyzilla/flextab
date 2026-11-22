@@ -12,6 +12,10 @@
   html,
   body {
     font-family: var(--font-sans);
+    /* The page itself is the app's surface (TASK-107): while a page's script loads, the canvas the
+       browser paints is already the user's tinted surface, not plain black or white, so nothing
+       changes colour when the shell or the popup draws over it. */
+    background-color: var(--color-black-900);
   }
 }
 

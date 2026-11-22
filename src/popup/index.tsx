@@ -6,7 +6,8 @@ import "@fontsource-variable/inter"
 import "../../style.css"
 import { useSavedSpacesStore, useHydrated } from "~src/store/useSavedSpacesStore"
 import { useAuthStore } from "~src/store/useAuthStore"
-import { applyThemeMode, readStoredThemeMode } from "~src/lib/theme"
+import { useTheme } from "~src/hooks/useTheme"
+import { BOOT_SKELETON_ID } from "~src/components/PopupSkeleton"
 import { installExternalPersistBridge } from "~src/lib/yjsDoc"
 import { FaviconImg } from "~src/components/FaviconImg"
 import { ClippedTooltip, IconTooltip } from "~src/components/ui/button"
@@ -33,8 +34,7 @@ import {
   type CaptureReceipt, type DestinationSource, type CaptureFailure, type CaptureDestination,
 } from "~src/services/capture"
 
-// Before the first render: a forced Light/Dark must not flash (lib/theme.ts).
-applyThemeMode(readStoredThemeMode())
+// The mode and look are on <html> before the first paint: popup.html's boot script (TASK-107).
 
 /**
  * The popup is a widget for the tab it was opened on (TASK-2, TASK-72,
@@ -620,6 +620,11 @@ function rankContinuations(hits: Array<{ link: OpenLink; tab: SavedTab }>, page:
 
 /** The popup's root: its tooltips need a provider, with the new tab page's delay (TASK-69). */
 function PopupRoot() {
+  // The user's look while the popup is open (and kept for the next one).
+  useTheme()
+  // popup.html's static skeleton held the place while the script loaded; this first commit draws the
+  // same skeleton in React, so it goes before that frame paints.
+  useLayoutEffect(() => { document.getElementById(BOOT_SKELETON_ID)?.remove() }, [])
   return (
     <TooltipProvider delayDuration={300}>
       <IndexPopup />

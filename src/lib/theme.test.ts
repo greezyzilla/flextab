@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, renderHook } from "@testing-library/react";
-import { APPEARANCE_STORAGE_KEY, applyAppearance, applyThemeMode, readStoredAppearance, readStoredThemeMode, storeThemeMode, THEME_STORAGE_KEY } from "./theme";
+import { APPEARANCE_STORAGE_KEY, applyAppearance, applyStoredLook, applyThemeMode, readStoredAppearance, readStoredThemeMode, storeThemeMode, THEME_STORAGE_KEY } from "./theme";
 import { useTheme } from "~src/hooks/useTheme";
 import { useSettingsStore } from "~src/store/useSettingsStore";
 
@@ -72,7 +72,7 @@ describe("theme mode", () => {
 });
 
 describe("appearance before the first render", () => {
-  const green = { hue: 145, intensity: 80, groupTint: 35, radius: 10, fontFamily: "rounded" as const, uiScale: 1.1, density: "cozy" as const, reduceMotion: true };
+  const green = { hue: 145, intensity: 80, groupTint: 35, radius: 10, fontFamily: "rounded" as const, uiScale: 1.1, density: "cozy" as const, reduceMotion: true, appIcon: "accent" as const };
 
   it("is mirrored by useTheme, so the next page reads the user's look, not the default blue", () => {
     useSettingsStore.setState({ hue: 145, intensity: 80, radius: 10, fontFamily: "rounded", uiScale: 1.1, density: "cozy", reduceMotion: true });
@@ -99,9 +99,20 @@ describe("appearance before the first render", () => {
     expect(readStoredAppearance()).toBeNull();
   });
 
-  it("is applied by the new tab before React renders", () => {
-    const src = readFileSync(resolve(__dirname, "../newtab/index.tsx"), "utf8");
-    const before = src.slice(0, src.indexOf("function NewTabPage"));
-    expect(before).toMatch(/applyAppearance\(readStoredAppearance\(\) \?\? APPEARANCE_DEFAULTS\)/);
+  it("reads a copy written before the app icon choice as Follow accent", () => {
+    const { appIcon: _drop, ...old } = green;
+    localStorage.setItem(APPEARANCE_STORAGE_KEY, JSON.stringify(old));
+    expect(readStoredAppearance()?.appIcon).toBe("accent");
+  });
+
+  it("puts the stored look on <html> in one call, or the defaults on first run (the boot script)", () => {
+    applyStoredLook();
+    expect(root.style.getPropertyValue("--hue")).toBe("214");
+    expect(root.classList.contains("density-comfortable")).toBe(true);
+    localStorage.setItem(APPEARANCE_STORAGE_KEY, JSON.stringify(green));
+    localStorage.setItem(THEME_STORAGE_KEY, "dark");
+    applyStoredLook();
+    expect(root.style.getPropertyValue("--hue")).toBe("145");
+    expect(root.classList.contains("dark")).toBe(true);
   });
 });

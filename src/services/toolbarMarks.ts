@@ -11,6 +11,8 @@
 // The service worker has no DOM, so marks are drawn with OffscreenCanvas from
 // the manifest's own icon files and handed to chrome.action.setIcon as pixels.
 
+import { drawTintedIcon, isTinted, type AppIconLook } from "~src/lib/appIcon"
+
 export type ToolbarMark = "saved" | "failed" | "unsavable"
 
 /** Disc and glyph colours; each pair reads at 4.5:1 or more. */
@@ -86,21 +88,38 @@ export function defaultIconPaths(): Record<string, string> {
   return Object.fromEntries(Object.entries(icons).map(([size, file]) => [size, `/${file.replace(/^\//, "")}`]))
 }
 
-const drawn = new Map<ToolbarMark, Promise<Record<number, ImageData>>>()
+const drawn = new Map<string, Promise<Record<number, ImageData>>>()
 
-/** The icon with `mark` at every toolbar size; drawn once per worker, retried after a failure. */
-export function markedIconImages(mark: ToolbarMark): Promise<Record<number, ImageData>> {
-  const cached = drawn.get(mark)
+/**
+ * The icon at every toolbar size, in the accent when the look asks for it (TASK-107), with `mark`
+ * on it or none (the resting icon). Drawn once per worker per mark and look, retried after a failure.
+ */
+export function markedIconImages(mark: ToolbarMark | null, look?: AppIconLook): Promise<Record<number, ImageData>> {
+  const tinted = look && isTinted(look) ? look : null
+  const key = `${mark ?? "rest"}|${tinted ? `${tinted.hue},${tinted.intensity}` : "blue"}`
+  const cached = drawn.get(key)
   if (cached) return cached
   const drawing = (async () => {
     const paths = defaultIconPaths()
     return Object.fromEntries(await Promise.all(ICON_SIZES.map(async (size) => {
-      const bitmap = await createImageBitmap(await (await fetch(chrome.runtime.getURL(paths[size]))).blob())
-      try { return [size, drawMarkedIcon(bitmap, size, mark)] as const } finally { bitmap.close() }
+      let bitmap = await createImageBitmap(await (await fetch(chrome.runtime.getURL(paths[size]))).blob())
+      try {
+        if (tinted) {
+          const recoloured = await createImageBitmap(drawTintedIcon(bitmap, size, tinted))
+          bitmap.close()
+          bitmap = recoloured
+        }
+        if (!mark) {
+          const ctx = new OffscreenCanvas(size, size).getContext("2d")!
+          ctx.drawImage(bitmap, 0, 0, size, size)
+          return [size, ctx.getImageData(0, 0, size, size)] as const
+        }
+        return [size, drawMarkedIcon(bitmap, size, mark)] as const
+      } finally { bitmap.close() }
     })))
   })()
-  drawn.set(mark, drawing)
-  drawing.catch(() => { if (drawn.get(mark) === drawing) drawn.delete(mark) })
+  drawn.set(key, drawing)
+  drawing.catch(() => { if (drawn.get(key) === drawing) drawn.delete(key) })
   return drawing
 }
 

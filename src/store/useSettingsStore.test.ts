@@ -45,6 +45,21 @@ describe('useSettingsStore', () => {
     } finally { vi.mocked(chrome.storage.local.get).mockImplementation(read); }
   });
 
+  it("adopts an accent picked on another page, so open pages repaint and never write the old one back (TASK-107)", async () => {
+    const read = vi.mocked(chrome.storage.local.get).getMockImplementation()!;
+    const value = JSON.stringify({ state: { ...useSettingsStore.getState(), hue: 145, appIcon: 'blue', lastModified: 1 }, version: 2 });
+    vi.mocked(chrome.storage.local.get).mockImplementation(async () => ({ 'flextab-settings': value }));
+    vi.mocked(chrome.storage.local.set).mockClear();
+    try {
+      for (const [listener] of vi.mocked(chrome.storage.onChanged.addListener).mock.calls) {
+        listener({ 'flextab-settings': { newValue: value } }, 'local');
+      }
+      await vi.waitFor(() => expect(useSettingsStore.getState().hue).toBe(145));
+      expect(useSettingsStore.getState().appIcon).toBe('blue');
+      expect(chrome.storage.local.set).not.toHaveBeenCalled();
+    } finally { vi.mocked(chrome.storage.local.get).mockImplementation(read); }
+  });
+
   it('persists changes through the storage adapter', async () => {
     (chrome.storage.local.set as any).mockClear();
     useSettingsStore.getState().setGroupLayout('grid');

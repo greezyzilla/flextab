@@ -52,6 +52,23 @@ export type Appearance = {
   uiScale: number;
   density: Density;
   reduceMotion: boolean;
+  /** The app icon (new tab's tab icon, toolbar button): drawn in the accent, or the manifest blue (TASK-107). */
+  appIcon: AppIcon;
+};
+
+export type AppIcon = "accent" | "blue";
+
+/** FlexTab's look before the user changes anything; the settings store's defaults start from it. */
+export const DEFAULT_APPEARANCE: Appearance = {
+  hue: 214,
+  intensity: 100,
+  groupTint: 35,
+  radius: 8,
+  fontFamily: "inter",
+  uiScale: 1,
+  density: "comfortable",
+  reduceMotion: false,
+  appIcon: "accent",
 };
 
 export const APPEARANCE_STORAGE_KEY = "flextab-appearance";
@@ -92,7 +109,9 @@ export function readStoredAppearance(): Appearance | null {
     if (!num(a.hue) || !num(a.intensity) || !num(a.groupTint) || !num(a.radius) || !num(a.uiScale)) return null;
     if (typeof a.fontFamily !== "string" || !(a.fontFamily in FONT_STACKS)) return null;
     if (!DENSITY_CLASSES.includes(`density-${a.density}`) || typeof a.reduceMotion !== "boolean") return null;
-    return a as Appearance;
+    // A copy written before TASK-107 has no app icon choice: the default.
+    const appIcon: AppIcon = a.appIcon === "blue" ? "blue" : "accent";
+    return { ...(a as Appearance), appIcon };
   } catch {
     return null;
   }
@@ -104,4 +123,13 @@ export function storeAppearance(a: Appearance) {
   } catch {
     // Storage blocked: the look still applies for this page from the store.
   }
+}
+
+/**
+ * Puts the stored mode and look on <html> (TASK-107): the boot script runs it in <head>, before the
+ * first paint, so a page opens in the user's colours, spacing and font, or the defaults.
+ */
+export function applyStoredLook(root: HTMLElement = document.documentElement) {
+  applyThemeMode(readStoredThemeMode(), root);
+  applyAppearance(readStoredAppearance() ?? DEFAULT_APPEARANCE, root);
 }

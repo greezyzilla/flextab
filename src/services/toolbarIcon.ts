@@ -16,6 +16,7 @@ import * as yjs from "~src/lib/yjsDoc"
 import { syncDocFromStorage } from "~src/services/capture"
 import { isSavableTabUrl } from "~src/services/saveTabsAsGroup"
 import { defaultIconPaths, markedIconImages, type ToolbarMark } from "~src/services/toolbarMarks"
+import { APP_ICON_STORAGE_KEY, isTinted, readAppIconLook, type AppIconLook } from "~src/lib/appIcon"
 
 export const IDLE_TITLE = "FlexTab"
 
@@ -33,12 +34,20 @@ export function toolbarStateFor(url: string | undefined, index: Map<string, Save
   return saved ? { saved: true, title: `${IDLE_TITLE}: ${saved}` } : { saved: false, title: IDLE_TITLE }
 }
 
+/** The app icon's look (TASK-107), as the pages last wrote it; read once per worker, then kept by onChanged. */
+let look: Promise<AppIconLook> | null = null
+function appIconLook(): Promise<AppIconLook> {
+  look ??= chrome.storage.local.get(APP_ICON_STORAGE_KEY).then((v) => readAppIconLook(v[APP_ICON_STORAGE_KEY])).catch(() => readAppIconLook(undefined))
+  return look
+}
+
 async function rest(tabId: number, state: ToolbarState): Promise<void> {
   try {
+    const current = await appIconLook()
     await chrome.action.setTitle({ tabId, title: state.title })
     await chrome.action.setIcon(state.saved
-      ? { tabId, imageData: await markedIconImages("saved") }
-      : { tabId, path: defaultIconPaths() })
+      ? { tabId, imageData: await markedIconImages("saved", current) }
+      : isTinted(current) ? { tabId, imageData: await markedIconImages(null, current) } : { tabId, path: defaultIconPaths() })
   } catch (_) { /* the tab closed meanwhile, or the mark could not be drawn; the next event repaints */ }
 }
 
@@ -79,7 +88,7 @@ export async function flashMark(tabId: number, mark: ToolbarMark, title: string,
   }, ms))
   try {
     await chrome.action.setTitle({ tabId, title })
-    await chrome.action.setIcon({ tabId, imageData: await markedIconImages(mark) })
+    await chrome.action.setIcon({ tabId, imageData: await markedIconImages(mark, await appIconLook()) })
   } catch (_) { /* the tab closed meanwhile; nothing to show */ }
 }
 
@@ -94,7 +103,13 @@ export function installToolbarIcon(): void {
     if (change.url !== undefined && tab.active) void refreshToolbar([tab])
   })
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area !== "local" || !(yjs.PERSIST_KEY in changes)) return
+    if (area !== "local") return
+    if (APP_ICON_STORAGE_KEY in changes) {
+      // The accent or the App icon choice changed: repaint every front tab in the new look.
+      look = Promise.resolve(readAppIconLook(changes[APP_ICON_STORAGE_KEY].newValue))
+      void refreshToolbar()
+    }
+    if (!(yjs.PERSIST_KEY in changes)) return
     if (settle) clearTimeout(settle)
     settle = setTimeout(() => { settle = null; void refreshToolbar() }, SETTLE_MS)
   })

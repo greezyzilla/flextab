@@ -3,7 +3,7 @@ import type { IconWeight } from "~src/components/ui/icon";
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { storage } from './syncStorage';
-import { readStoredThemeMode, type ThemeMode } from '~src/lib/theme';
+import { DEFAULT_APPEARANCE, readStoredThemeMode, type AppIcon, type ThemeMode } from '~src/lib/theme';
 
 export type GroupLayout = 'list' | 'grid';
 export type Density = 'compact' | 'cozy' | 'comfortable';
@@ -62,14 +62,10 @@ export const APPEARANCE_DEFAULTS = {
   theme: 'system' as ThemeMode, // follow the OS; Light/Dark force one (device-only, not synced)
   groupLayout: 'list' as GroupLayout,
   gridColumns: 2,
-  density: 'comfortable' as Density,
-  hue: 214,
-  intensity: 100,
-  groupTint: 35,       // 0-100, how strongly a coloured group tints its card (TASK-18)
-  radius: 8,           // px — drives --radius (Tailwind rounded-*). 0 = sharp.
-  reduceMotion: false,
-  fontFamily: 'inter' as FontKey,
-  uiScale: 1,          // 0.8-1.2, whole-UI zoom
+  // density, hue, intensity, groupTint (0-100 coloured group tint, TASK-18), radius (px, drives
+  // --radius), reduceMotion, fontFamily, uiScale (0.8-1.2) and appIcon (TASK-107): one source with
+  // the look the loading pages paint before the store loads (lib/theme.ts).
+  ...DEFAULT_APPEARANCE,
   titleCut: 50,        // 0-100, where "…" sits in a cut saved tab title (TASK-71)
   linkCut: 50,         // 0-100, where "…" sits in a cut saved tab link (TASK-71)
   linkCutScope: 'all' as LinkCutScope, // which part of the link is cut: all, site or path (TASK-71)
@@ -93,6 +89,7 @@ interface SettingsState {
   reduceMotion: boolean;
   fontFamily: FontKey;
   uiScale: number;     // 0.8-1.2 whole-UI zoom
+  appIcon: AppIcon;    // the app icon in the accent, or the manifest blue (TASK-107)
   titleCut: number;    // 0-100, "…" position in a cut saved tab title: 0 keeps the end, 100 the start
   linkCut: number;     // 0-100, the same for a saved tab link
   linkCutScope: LinkCutScope; // which part of the link gives way first
@@ -119,6 +116,7 @@ interface SettingsState {
   setReduceMotion: (reduceMotion: boolean) => void;
   setFontFamily: (fontFamily: FontKey) => void;
   setUiScale: (uiScale: number) => void;
+  setAppIcon: (appIcon: AppIcon) => void;
   setTitleCut: (titleCut: number) => void;
   setLinkCut: (linkCut: number) => void;
   setLinkCutScope: (linkCutScope: LinkCutScope) => void;
@@ -156,6 +154,7 @@ export const useSettingsStore = create<SettingsState>()(
       setReduceMotion: (reduceMotion) => set({ reduceMotion }),
       setFontFamily: (fontFamily) => set({ fontFamily }),
       setUiScale: (uiScale) => set({ uiScale }),
+      setAppIcon: (appIcon) => set({ appIcon }),
       setTitleCut: (titleCut) => set({ titleCut }),
       setLinkCut: (linkCut) => set({ linkCut }),
       setLinkCutScope: (linkCutScope) => set({ linkCutScope }),
@@ -206,14 +205,19 @@ export const useSettingsStore = create<SettingsState>()(
   ),
 );
 
-// Keep the automatic-sync preference consistent across open extension pages.
-// Rehydrate from the current durable record rather than re-saving an old event.
+// Keep every setting consistent across open extension pages: the automatic-sync
+// preference, and the look (TASK-107), so an accent picked in one tab repaints the
+// others at once, and a page left open never writes its old values back over a
+// newer choice. Rehydrate from the current durable record rather than re-saving an
+// old event; a page's own write matches its state and changes nothing.
 chrome.storage?.onChanged?.addListener((changes, area) => {
   if (area !== "local" || !changes["flextab-settings"]?.newValue) return;
   try {
-    const value = JSON.parse(changes["flextab-settings"].newValue)?.state?.autoSync;
-    if (typeof value === "boolean" && value !== useSettingsStore.getState().autoSync) {
-      void useSettingsStore.persist.rehydrate();
-    }
+    const stored = JSON.parse(changes["flextab-settings"].newValue)?.state as Record<string, unknown> | undefined;
+    if (!stored) return;
+    const current = useSettingsStore.getState() as unknown as Record<string, unknown>;
+    const stale = Object.entries(stored).some(([key, value]) =>
+      key !== "lastModified" && typeof current[key] !== "function" && JSON.stringify(value) !== JSON.stringify(current[key]));
+    if (stale) void useSettingsStore.persist.rehydrate();
   } catch { /* Worker treats malformed settings as paused. */ }
 });

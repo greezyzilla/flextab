@@ -155,7 +155,7 @@ describe("showResting", () => {
   it("draws each mark from its own image set", async () => {
     vi.mocked(chrome.tabs.get).mockResolvedValue(tab(1, "https://linear.app/features") as never)
     await flashMark(1, "unsavable", "FlexTab: this page can't be saved", 10)
-    expect(markedIconImages).toHaveBeenLastCalledWith("unsavable")
+    expect(markedIconImages).toHaveBeenLastCalledWith("unsavable", { hue: 214, intensity: 100, appIcon: "accent" })
     await showResting(1)
   })
 })
@@ -203,5 +203,17 @@ describe("installToolbarIcon", () => {
     onChanged({ [yjs.PERSIST_KEY]: {} }, "local")
     vi.advanceTimersByTime(200)
     await vi.waitFor(() => expect(iconOf(1)).toBe("plain"))
+  })
+
+  it("repaints in the accent when the app icon's look changes, and back to the manifest blue (TASK-107)", async () => {
+    const onChanged = listener<(c: Record<string, { newValue?: unknown }>, area: string) => void>(chrome.storage.onChanged)
+    vi.mocked(chrome.tabs.query).mockResolvedValue([tab(2, "https://height.app/")] as never)
+    const green = { hue: 145, intensity: 100, appIcon: "accent" }
+    onChanged({ "flextab-app-icon": { newValue: green } }, "local")
+    await vi.waitFor(() => expect(markedIconImages).toHaveBeenLastCalledWith(null, green))
+    expect(lastOf("setIcon", 2)?.imageData).toEqual({ mark: null })
+    onChanged({ "flextab-app-icon": { newValue: { ...green, appIcon: "blue" } } }, "local")
+    await vi.waitFor(() => expect(iconOf(2)).toBe("plain"))
+    onChanged({ "flextab-app-icon": { newValue: { hue: 214, intensity: 100, appIcon: "accent" } } }, "local")
   })
 })

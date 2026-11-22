@@ -3,7 +3,7 @@ import type { IconWeight } from "~src/components/ui/icon";
 import { Icon } from "~src/components/ui/icon"
 import { DUPLICATE_TONE } from "~src/components/ui/duplicate-mark";
 import { Monitor, Moon, Sun, SwatchBook, RotateCcw, CaseSensitive, Layers, Link2, MousePointerClick, TriangleAlert, Wind, MousePointer2, Option, Keyboard, Ribbon, EyeOff, ArrowUpLeft, ArrowUpRight } from "lucide-react";
-import type { ThemeMode } from "~src/lib/theme";
+import type { AppIcon, ThemeMode } from "~src/lib/theme";
 import { useSettingsStore, HUE_PRESETS, FONT_OPTIONS, type GroupLayout, type Density, type FontKey, type DuplicateMark, type DuplicateTone, type DuplicateCorner, type DuplicateLabel } from "~src/store/useSettingsStore";
 import { Switch } from "~src/components/ui/switch";
 import { Slider } from "~src/components/ui/slider";
@@ -77,7 +77,7 @@ export function ResetAppearance() {
 
 /** Settings › Appearance › Theme: mode, colour and shape. */
 export function ThemeTab() {
-  const { theme, setTheme, hue, setHue, intensity, setIntensity, groupTint, setGroupTint, radius, setRadius } = useSettingsStore();
+  const { theme, setTheme, hue, setHue, intensity, setIntensity, groupTint, setGroupTint, radius, setRadius, appIcon, setAppIcon } = useSettingsStore();
   return (
     <SettingsPage>
       <SettingsSection title="Colour and shape" icon={SwatchBook} subtitle="Light or dark, the accent colour, and how round things are.">
@@ -120,6 +120,20 @@ export function ThemeTab() {
               <Slider {...controlProps} aria-valuetext={`${intensity} percent`} min={0} max={100} value={[intensity]} onValueChange={(v) => setIntensity(v[0])} className="flex-1" />
               <span className="text-fg-subtle text-xs font-sans w-10 text-right shrink-0">{intensity}%</span>
             </div>
+          )}
+        </SettingRow>
+
+        <SettingRow label="App icon" description="The new tab's icon and the toolbar button." info="The Chrome Web Store and chrome://extensions always show FlexTab blue.">
+          {(controlProps) => (
+            <ToggleGroup<AppIcon>
+              {...controlProps}
+              value={appIcon}
+              onChange={setAppIcon}
+              options={[
+                { value: 'accent', label: 'Follow accent' },
+                { value: 'blue', label: 'FlexTab blue' },
+              ]}
+            />
           )}
         </SettingRow>
 
