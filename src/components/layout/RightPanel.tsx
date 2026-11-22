@@ -5,7 +5,7 @@ import { toast } from "sonner"
 import { ActionSlot } from "~src/components/ui/row-actions"
 import { showUndoToast } from "~src/components/ui/sonner"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
-import { captureTabs, closeSavedTabs, isCaptureFailure, loadCloseAfter, loadDefaultDestination, reopenTabs, undoCapture } from "~src/services/capture"
+import { captureTabs, closeSavedTabs, isCaptureFailure, loadCloseAfter, loadDefaultDestination, recordClosed, reopenTabs, undoCapture } from "~src/services/capture"
 import { isSavableTabUrl } from "~src/services/saveTabsAsGroup"
 import { describeAlsoSaved } from "~src/lib/savedUrlIndex"
 import { revealInWorkspace } from "~src/services/reveal"
@@ -72,8 +72,8 @@ const OpenedTab = ({ tab, windowId, windowLabel, saved, closeAfterSave }: { tab:
       describeAlsoSaved(result.alsoIn ?? []) ?? undefined)
   }
   const close = async () => {
-    const closed = { windowId, index: tab.index ?? 0, url: tab.url ?? "" }
     await chrome.tabs.remove(tab.id!)
+    const closed = recordClosed({ windowId, index: tab.index ?? 0, url: tab.url ?? "" })
     showUndoToast(`Closed “${name}”`, () => void reopenTabs([closed]))
   }
   const showSaved = () => {

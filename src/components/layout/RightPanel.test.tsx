@@ -105,7 +105,7 @@ describe("Opened Tabs rows (TASK-60)", () => {
     expect(chrome.tabs.remove).toHaveBeenCalledWith(4)
     expect(undo).toHaveBeenLastCalledWith("Closed “Version”", expect.any(Function))
     await act(async () => { (undo.mock.calls.at(-1)![1] as () => void)() })
-    expect(cap.reopenTabs).toHaveBeenCalledWith([{ windowId: 9, index: 3, url: "chrome://version" }])
+    expect(cap.reopenTabs).toHaveBeenCalledWith([expect.objectContaining({ windowId: 9, index: 3, url: "chrome://version", seq: expect.any(Number) })])
   })
 
   it("names a FlexTab page for which page it is, FlexTab under it, no machine address; a page with no title is named by its site, its address under it", async () => {

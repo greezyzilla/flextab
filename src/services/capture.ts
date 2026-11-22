@@ -29,7 +29,8 @@ export type CaptureDestination = {
   newGroupName?: string
 }
 
-export type ClosedTab = { windowId: number; index: number; url: string }
+/** A closed browser tab, enough to reopen it. `seq` orders closes (TASK-90); tabs closed before it existed have none. */
+export type ClosedTab = { windowId: number; index: number; url: string; seq?: number }
 
 /** What a capture did, enough to Undo it or move it (Change). */
 export type CaptureReceipt = {
@@ -198,21 +199,75 @@ export async function closeSavedTabs(tabs: ChromeTabLike[]): Promise<ClosedTab[]
     if (all.length <= closing.length) await chrome.tabs.create({ windowId, active: true })
   }
   await chrome.tabs.remove(closable.map((t) => t.id!))
-  return closable.map((t) => ({ windowId: t.windowId ?? -1, index: t.index ?? 0, url: t.url! }))
+  // Logged right to left: each index stays true for the tabs left at that step.
+  const logged = [...closable].sort((a, b) => (b.index ?? 0) - (a.index ?? 0))
+    .map((t) => recordClosed({ windowId: t.windowId ?? -1, index: t.index ?? 0, url: t.url! }))
+  return closable.map((t) => logged.find((c) => c.url === t.url && c.index === (t.index ?? 0) && c.windowId === (t.windowId ?? -1))!)
 }
 
-/** Reopen closed tabs in their window (or a new window if it's gone). */
+// ---------------------------------------------------------------------------
+// Undo of closes (TASK-90)
+// ---------------------------------------------------------------------------
+//
+// Closing a window's tabs one by one closes the window with the last one, so
+// every Undo then finds the original window gone. Each tab only knows its
+// index at the moment it closed (the second of two tabs is index 0 once the
+// first is gone), so the original order is rebuilt from the order of closes.
+// The first Undo opens a window in place of the gone one; later ones join it at
+// their original place. Kept for this page's life only (not across restarts).
+
+let closeSeq = 0
+const closeLog = new Map<number, { seq: number; index: number }[]>()
+
+/** Log a close so a later Undo can put the tab back in order. Call once per tab, in the order they closed. */
+export function recordClosed(t: Omit<ClosedTab, "seq">): ClosedTab {
+  const closed = { ...t, seq: ++closeSeq }
+  if (t.windowId >= 0) closeLog.set(t.windowId, [...(closeLog.get(t.windowId) ?? []), { seq: closed.seq, index: t.index }])
+  return closed
+}
+
+/** Where a closed tab stood among the tabs closed from its window: replay the closes backwards. */
+function originalRank(t: ClosedTab): number {
+  const log = closeLog.get(t.windowId)
+  if (t.seq === undefined || !log) return t.index
+  const order: number[] = []
+  for (let i = log.length - 1; i >= 0; i--) order.splice(Math.min(log[i].index, order.length), 0, log[i].seq)
+  const rank = order.indexOf(t.seq)
+  return rank < 0 ? t.index : rank
+}
+
+/** A gone window and the window Undo opened in its place, with the ranks of the tabs it holds back. */
+const reopenedWindows = new Map<number, { id: number; ranks: number[] }>()
+
+async function createTab(windowId: number, index: number, url: string): Promise<boolean> {
+  try {
+    await chrome.tabs.create({ windowId, index, url, active: false })
+    return true
+  } catch (_) {
+    return false
+  }
+}
+
+/** Reopen closed tabs in their window, or in the window an earlier Undo opened for it, or in a new one. */
 export async function reopenTabs(closed: ClosedTab[]): Promise<void> {
   if (!closed.length) return
-  const lost: string[] = []
+  const lost = new Map<number, { rank: number; url: string }[]>()
   for (const t of [...closed].sort((a, b) => a.index - b.index)) {
-    try {
-      await chrome.tabs.create({ windowId: t.windowId, index: t.index, url: t.url, active: false })
-    } catch (_) {
-      lost.push(t.url)
+    if (await createTab(t.windowId, t.index, t.url)) continue
+    const rank = originalRank(t)
+    const instead = reopenedWindows.get(t.windowId)
+    if (instead && await createTab(instead.id, instead.ranks.filter((r) => r < rank).length, t.url)) {
+      instead.ranks.push(rank)
+      continue
     }
+    lost.set(t.windowId, [...(lost.get(t.windowId) ?? []), { rank, url: t.url }])
   }
-  if (lost.length) await chrome.windows.create({ url: lost })
+  // One new window per window that is gone, so tabs that shared a window share one again, in order.
+  for (const [windowId, tabs] of lost) {
+    tabs.sort((a, b) => a.rank - b.rank)
+    const opened = await chrome.windows.create({ url: tabs.map((t) => t.url) })
+    if (windowId >= 0 && opened?.id !== undefined) reopenedWindows.set(windowId, { id: opened.id, ranks: tabs.map((t) => t.rank) })
+  }
 }
 
 // ---------------------------------------------------------------------------

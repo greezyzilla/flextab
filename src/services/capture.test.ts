@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import * as yjs from "~src/lib/yjsDoc"
 import type { SavedSpace } from "~src/types"
 import {
-  captureTabs, undoCapture, moveCapture, closeSavedTabs, reopenTabs, defaultDestination, suggestDestination,
+  captureTabs, undoCapture, moveCapture, closeSavedTabs, recordClosed, reopenTabs, defaultDestination, suggestDestination,
   loadDefaultDestination, isCaptureFailure, loadCloseAfterSave, saveCloseAfterSave, loadCloseAfter, saveCloseAfter,
   storeLastCapture, loadLastCapture, syncDocFromStorage, resetWorkerHydration, windowGroupName,
   type CaptureReceipt,
@@ -154,12 +154,12 @@ describe("closing and reopening tabs", () => {
     ])
     expect(chrome.tabs.create).toHaveBeenCalledWith({ windowId: 7, active: true })
     expect(chrome.tabs.remove).toHaveBeenCalledWith([1, 2])
-    expect(closed).toEqual([{ windowId: 7, index: 0, url: "https://a.com" }, { windowId: 7, index: 1, url: "https://b.com" }])
+    expect(closed).toEqual([expect.objectContaining({ windowId: 7, index: 0, url: "https://a.com" }), expect.objectContaining({ windowId: 7, index: 1, url: "https://b.com" })])
     expect(await closeSavedTabs([{ id: 5, url: "about:blank" }])).toEqual([])
   })
 
   it("closes tabs with no window info without opening a placeholder tab", async () => {
-    expect(await closeSavedTabs([{ id: 6, url: "https://d.com" }])).toEqual([{ windowId: -1, index: 0, url: "https://d.com" }])
+    expect(await closeSavedTabs([{ id: 6, url: "https://d.com" }])).toEqual([expect.objectContaining({ windowId: -1, index: 0, url: "https://d.com" })])
     expect(chrome.tabs.query).not.toHaveBeenCalled()
   })
 
@@ -168,6 +168,57 @@ describe("closing and reopening tabs", () => {
     await reopenTabs([{ windowId: 9, index: 0, url: "https://a.com" }])
     expect(chrome.windows.create).toHaveBeenCalledWith({ url: ["https://a.com"] })
     await reopenTabs([])
+  })
+
+  // TASK-90: a window emptied by closing its tabs one by one is gone for every Undo.
+  const windowsAlive = (alive: number[]) =>
+    vi.mocked(chrome.tabs.create).mockImplementation((async (p: chrome.tabs.CreateProperties) => {
+      if (p.windowId !== undefined && !alive.includes(p.windowId)) throw new Error("No window")
+      return { id: 1 } as chrome.tabs.Tab
+    }) as never)
+
+  it.each([["the last closed", "b"], ["the first closed", "a"]])("brings both tabs back in one window, in their order, when %s is undone first", async (_, firstUndo) => {
+    const win = firstUndo === "b" ? 21 : 22
+    // A then B, each at index 0 when it closed (B moved left once A was gone); the window closed with B.
+    const a = recordClosed({ windowId: win, index: 0, url: "https://a.com" })
+    const b = recordClosed({ windowId: win, index: 0, url: "https://b.com" })
+    const alive: number[] = []
+    windowsAlive(alive)
+    vi.mocked(chrome.windows.create).mockImplementation((async () => { alive.push(900 + win); return { id: 900 + win } }) as never)
+    const [first, second] = firstUndo === "b" ? [b, a] : [a, b]
+    await reopenTabs([first])
+    await reopenTabs([second])
+    // One new window, then the second tab joins it on the side that keeps A before B.
+    expect(chrome.windows.create).toHaveBeenCalledTimes(1)
+    expect(chrome.windows.create).toHaveBeenCalledWith({ url: [first.url] })
+    expect(chrome.tabs.create).toHaveBeenLastCalledWith({ windowId: 900 + win, index: firstUndo === "b" ? 0 : 1, url: second.url, active: false })
+  })
+
+  it("opens a new window again when the one an earlier Undo opened was closed too", async () => {
+    windowsAlive([])
+    vi.mocked(chrome.windows.create).mockResolvedValueOnce({ id: 601 } as never).mockResolvedValueOnce({ id: 602 } as never)
+    await reopenTabs([recordClosed({ windowId: 23, index: 0, url: "https://a.com" })])
+    await reopenTabs([recordClosed({ windowId: 23, index: 0, url: "https://b.com" })])
+    expect(chrome.windows.create).toHaveBeenCalledTimes(2)
+  })
+
+  it("reopens a batch closed together in its order (Close after saving)", async () => {
+    windowsAlive([])
+    vi.mocked(chrome.windows.create).mockResolvedValueOnce({ id: 603 } as never)
+    vi.mocked(chrome.tabs.query).mockResolvedValue([{ id: 1 }, { id: 2 }, { id: 3 }] as chrome.tabs.Tab[])
+    const closed = await closeSavedTabs([
+      { id: 1, url: "https://a.com", windowId: 25, index: 0 },
+      { id: 2, url: "https://b.com", windowId: 25, index: 1 },
+    ])
+    await reopenTabs(closed)
+    expect(chrome.windows.create).toHaveBeenCalledWith({ url: ["https://a.com", "https://b.com"] })
+  })
+
+  it("keeps a tab whose window still exists in that window, untouched (TASK-90)", async () => {
+    windowsAlive([24])
+    await reopenTabs([{ windowId: 24, index: 2, url: "https://c.com" }])
+    expect(chrome.tabs.create).toHaveBeenCalledWith({ windowId: 24, index: 2, url: "https://c.com", active: false })
+    expect(chrome.windows.create).not.toHaveBeenCalled()
   })
 })
 
