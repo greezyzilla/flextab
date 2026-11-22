@@ -2,7 +2,7 @@
 // (components/ui) -> variant. A call site only places a component; it never styles it.
 //
 // A. A component imported from components/ui receives a class that is not placement.
-// B. A raw colour or arbitrary px/text/radius value in a .tsx outside components/ui.
+// B. A raw colour or arbitrary px/text/radius value in a .ts or .tsx outside components/ui.
 // C. A native <button>, <input>, <select> or <textarea> outside components/ui.
 //
 // DEBT is today's findings, grouped by the subtask that clears them. It only shrinks: a new finding
@@ -86,7 +86,7 @@ function invisible(el: ts.JsxOpeningLikeElement) {
 /** Findings for one source file. `file` is relative to src. */
 export function scan(file: string, code: string): Finding[] {
   if (file.startsWith(UI)) return []
-  const sf = ts.createSourceFile(file, code, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+  const sf = ts.createSourceFile(file, code, ts.ScriptTarget.Latest, true, file.endsWith(".ts") ? ts.ScriptKind.TS : ts.ScriptKind.TSX)
   const line = (n: ts.Node) => sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1
   const found: Finding[] = []
 
@@ -99,8 +99,8 @@ export function scan(file: string, code: string): Finding[] {
     if (isUi && named && ts.isNamedImports(named)) for (const el of named.elements) if (!el.isTypeOnly) uiNames.add(el.name.text)
   }
 
-  // B. raw values in any string of the file.
-  for (const s of strings(sf))
+  // B. raw values in any string of the file (a file of data colours is exempt, with its reason).
+  if (!(file in DATA_COLOURS)) for (const s of strings(sf))
     for (const re of RAW) for (const m of s.text.matchAll(re)) found.push({ file, line: line(s.node), key: "B", detail: m[0] })
 
   const visit = (node: ts.Node) => {
@@ -139,12 +139,14 @@ function clearedBy(key: string) {
 type Debt = Record<string, Record<string, Record<string, number>>>
 
 /**
- * Colours that are data, not style (TASK-103.5): literal on purpose, so no theme or accent change
- * alters them. They live only in these files (.ts, which rule B does not read), each with its reason.
+ * Colours that are data, not style (TASK-103.5, TASK-104): literal on purpose, so no theme or accent
+ * change alters them. They live only in these files, which rule B skips, each with its reason.
  */
 const DATA_COLOURS: Record<string, string> = {
   "lib/data-colours.ts":
     "provider brand colours (their guidelines fix them); the space colours (a space stores and syncs the hex, so a value can never change); the accent hue picker's spectrum (the hue is the setting's value)",
+  "services/toolbarMarks.ts":
+    "the browser toolbar icon's badge, drawn on a canvas outside any page, where CSS tokens do not exist",
 }
 
 /** Today's findings (fe dev 4f80647), by the subtask that clears them. Only ever lower or remove an entry. */
@@ -155,7 +157,7 @@ function sources(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
     const p = join(dir, name)
     if (statSync(p).isDirectory()) return sources(p)
-    return /\.tsx$/.test(name) && !/\.test\.tsx$/.test(name) ? [p] : []
+    return /\.tsx?$/.test(name) && !/\.test\.tsx?$/.test(name) && !/\.d\.ts$/.test(name) ? [p] : []
   })
 }
 
@@ -239,6 +241,13 @@ describe("ui layering scanner", () => {
       "A Icon w-4 :3",
       "A Icon text-sm :3",
     ])
+  })
+
+  it("reads .ts files too, parsed as TypeScript, and skips the listed data colour files", () => {
+    const code = `export const tone = <T,>(x: T) => x\nexport const STATUS = { online: { color: "#22c55e" } }`
+    expect(scan("store/useExample.ts", code).map((f) => `${f.key} ${f.detail} :${f.line}`)).toEqual(["B #22c55e :2"])
+    expect(scan("lib/data-colours.ts", code)).toEqual([])
+    expect(scan("services/toolbarMarks.ts", code)).toEqual([])
   })
 
   it("flags raw colours and arbitrary px, type and radius values anywhere in the file", () => {

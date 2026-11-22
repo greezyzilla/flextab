@@ -45,7 +45,7 @@ colour, rotation and spin, never its size or stroke.
 
 ## Raw values
 
-A `.tsx` outside `components/ui` writes no raw value: no hex, `rgb()`, `hsl()` or `oklch()` colour,
+A `.ts` or `.tsx` outside `components/ui` writes no raw value: no hex, `rgb()`, `hsl()` or `oklch()` colour,
 and no arbitrary px, type size or radius (`py-[11px]`, `text-[15px]`, `rounded-[10px]`,
 `min-[1440px]:`). Name the value as a token, or use the component that owns it. Token references
 (`bg-ink/[0.06]`, `text-[var(--accent)]`, `oklch(from var(--fg) ...)`) are fine.
@@ -70,8 +70,10 @@ paint the text). When you add a token, add its name to `extendTailwindMerge` in
 
 Some colours are data, not style, and stay literal on purpose: the provider brand colours on
 sign-in, the space colours (a space stores and syncs the hex), the accent hue picker's spectrum.
-They live only in `src/lib/data-colours.ts`, each with its reason, and the guard lists that file in
-`DATA_COLOURS`. A theme or accent change must never alter them.
+They live only in `src/lib/data-colours.ts`, each with its reason. The browser toolbar icon's badge
+is data too: `src/services/toolbarMarks.ts` draws it on a canvas outside any page, where CSS tokens
+do not exist. The guard lists both files in `DATA_COLOURS` with their reasons and skips them. A
+theme or accent change must never alter these colours.
 
 ## Native controls
 
@@ -81,8 +83,9 @@ under a styled label, `type="hidden"`) carries no look and is allowed.
 
 ## The guard
 
-`ui-layering.test.ts` parses every `.tsx` outside `components/ui` with the TypeScript compiler and
-reads every `className`, including `cn(...)`, conditions and template strings. It fails with the
+`ui-layering.test.ts` parses every `.ts` and `.tsx` outside `components/ui` (tests excepted) with the
+TypeScript compiler and reads every `className`, including `cn(...)`, conditions and template
+strings, and every other string for raw values. It fails with the
 file, line and class of each new finding.
 
 Findings that existed when the guard landed sit in `DEBT`, grouped by the subtask that clears them,
@@ -93,7 +96,3 @@ with an exact count per file. The table only shrinks:
   again.
 
 When a subtask cleans a file, lower or remove its entry in the same change.
-
-Known gap: the guard reads `.tsx` only. Raw colours in `.ts` files are not checked:
-`store/useSyncStore.ts` (sync status colours, style) and `services/toolbarMarks.ts` (the toolbar
-icon drawn on a canvas, data).
