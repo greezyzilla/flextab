@@ -309,7 +309,7 @@ function SnapshotPreviewModal({ snapshot, open, onOpenChange, onRestore, restore
     <Modal kind="dialog" size="m" open={open} onOpenChange={onOpenChange} initialFocus="close">
       <ModalHeader title={`Version v${snapshot.revision}`}
         description={`${formatRelativeTime(new Date(snapshot.created_at).getTime())} · ${snapshot.space_count} space${snapshot.space_count !== 1 ? 's' : ''} · ${snapshot.tab_count} tab${snapshot.tab_count !== 1 ? 's' : ''}`} />
-      <div className="flex min-h-[160px] flex-1 flex-col">
+      <div className="flex min-h-40 flex-1 flex-col">
         {tree === null
           ? <p className="rounded-lg border border-ink/10 p-3 text-xs text-fg-subtle">{failed ? "Couldn't load this snapshot." : "Loading…"}</p>
           : <SourceColumn spaces={tree} includeEmpty emptyText="This snapshot is empty." />}

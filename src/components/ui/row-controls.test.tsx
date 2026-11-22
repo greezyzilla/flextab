@@ -93,7 +93,7 @@ describe("TreeRowButton", () => {
   })
   it("draws a category label as LeftPanel did", () => {
     render(<TreeRowButton level="category" className="flex-1 min-w-0" icon={null}>Research</TreeRowButton>)
-    expect(set(button().className)).toEqual(set("flex-1 min-w-0 flex items-center gap-2 pl-7 pr-1 py-[6px] rounded-md text-left outline-none focus-visible:ring-1 focus-visible:ring-ring"))
+    expect(set(button().className)).toEqual(set("flex-1 min-w-0 flex items-center gap-2 pl-7 pr-1 py-1.5 rounded-md text-left outline-none focus-visible:ring-1 focus-visible:ring-ring"))
     expect(screen.getByText("Research").getAttribute("class")).toBe("flex-1 font-sans text-item truncate")
   })
   it("is a plain button that passes its state and data through", () => {

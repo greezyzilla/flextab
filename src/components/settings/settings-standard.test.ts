@@ -58,7 +58,8 @@ describe("settings standard", () => {
   })
 
   it("shows the Appearance preview only from 1440px, capped at 24rem (rule 10)", () => {
-    expect(read("SettingsShell.tsx")).toMatch(/className="hidden min-\[1440px\]:block min-\[1440px\]:max-w-\[24rem\]/)
+    expect(read("SettingsShell.tsx")).toMatch(/className="hidden preview:block preview:max-w-\[24rem\]/)
+    expect(read("../../../tailwind.config.js")).toMatch(/preview: "1440px"/)
   })
 
   it("decides a guest's missing pages from one list (Pages)", () => {

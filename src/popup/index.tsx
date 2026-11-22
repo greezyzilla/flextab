@@ -11,7 +11,7 @@ import { installExternalPersistBridge } from "~src/lib/yjsDoc"
 import { FaviconImg } from "~src/components/FaviconImg"
 import { ClippedTooltip, IconTooltip } from "~src/components/ui/button"
 import { TooltipProvider } from "~src/components/ui/tooltip"
-import { AppWindow, Ban, BookmarkPlus, Check, CopyPlus, FolderInput, ListX, Replace, RotateCw, Undo2, type LucideIcon } from "lucide-react"
+import { AppWindow, Ban, BookmarkPlus, CopyPlus, FolderInput, ListX, Replace, RotateCw, Undo2, type LucideIcon } from "lucide-react"
 import { CategoryIcon, GroupIcon, ProjectIcon, SpaceAvatar, UnsortedIcon } from "~src/components/levelIcons"
 import { DEFAULT_CATEGORY_NAME, DEFAULT_PROJECT_NAME, DEFAULT_SPACE_NAME, UNSORTED_NAME, findUnsorted, isUnsortedGroup } from "~src/lib/defaultPath"
 import { DestinationPicker, type PickerValue } from "~src/components/DestinationPicker"
@@ -24,6 +24,8 @@ import { openInFlexTab } from "~src/services/reveal"
 import type { SavedSpace, SavedTab } from "~src/types"
 import { Chip } from "~src/components/ui/chip"
 import { ActionList, ActionRow } from "~src/components/ui/action-row"
+import { PageTile } from "~src/components/ui/page-tile"
+import { PlaceCard, PlaceCardRow } from "~src/components/ui/place-card"
 import {
   captureTabs, moveCapture, undoCapture, persistCapture, isCaptureFailure, closeSavedTabs,
   loadSuggestedDestination, loadCloseAfter, POPUP_CLOSE_PORT, POPUP_SUBJECT_KEY, POPUP_SUBJECT_TTL_MS,
@@ -327,7 +329,7 @@ function IndexPopup() {
   const ok = !loading && (status.kind === "saved" || status.kind === "already" || status.kind === "updated" || status.kind === "known")
   const tile = status.kind === "unsavable"
     ? <Icon icon={Ban} size="xl" className="text-fg-subtle" />
-    : currentTab && <FaviconImg src={currentTab.favIconUrl} alt="" className="h-[22px] w-[22px]" />
+    : currentTab && <FaviconImg src={currentTab.favIconUrl} alt="" />
 
   const lead = (t: string) => <span className="font-medium text-fg-muted">{t}</span>
   const groupName = <bdi>{place.group?.name}</bdi>
@@ -415,11 +417,8 @@ function IndexPopup() {
     <main className="flex w-80 flex-col gap-3.5 bg-black-900 p-4 font-sans text-fg">
       <h1 className="sr-only">FlexTab</h1>
       <section data-card="page" role="status" aria-live="polite" className="flex flex-col gap-3.5">
-        <div className="grid grid-cols-[44px_minmax(0,1fr)] items-center gap-x-3">
-          <span className="relative grid h-11 w-11 place-items-center rounded-popup-tile bg-ink/[0.06]">
-            {tile}
-            {ok && <span className="absolute -bottom-1 -right-1 grid h-[18px] w-[18px] place-items-center rounded-full bg-success ring-2 ring-black-900"><Icon icon={Check} size="badge-lg" className="text-black-900" /></span>}
-          </span>
+        <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3">
+          <PageTile done={ok}>{tile}</PageTile>
           <div className="min-w-0">
             {(() => {
               const sentence = <p ref={headingRef} data-slot="page-sentence" className="line-clamp-2 text-popup-title font-semibold text-fg [overflow-wrap:anywhere] data-[lines=2]:text-popup data-[lines=2]:leading-5">{heading}</p>
@@ -466,7 +465,6 @@ function IndexPopup() {
             // Nothing named yet: the tree opens where you are, with nothing ticked.
             value={destination ?? { spaceId: activeSpaceId ?? "", projectId: activeProjectId ?? "", categoryId: "" }}
             onChange={pickDestination}
-            maxHeightClass="max-h-[216px]"
           />
         )}
         {alsoSaved && !picking && <p className="-mt-1.5 text-popup-meta text-fg-subtle [overflow-wrap:anywhere]">{alsoSaved}</p>}
@@ -496,7 +494,6 @@ function IndexPopup() {
               size="panel"
               value={windowDest ?? destination ?? { spaceId: activeSpaceId ?? "", projectId: activeProjectId ?? "", categoryId: "" }}
               onChange={(picked) => { setWindowDest({ ...picked }); setWindowPicking(false) }}
-              maxHeightClass="max-h-[216px]"
             />
           )}
         </section>
@@ -576,14 +573,13 @@ function Location({ place, withGroup }: { place: Place; withGroup: boolean }) {
     ...(withGroup && place.group ? [[place.group.unsorted ? <UnsortedIcon key="g" size="md" className={icon} /> : <GroupIcon key="g" size="md" className={icon} />, place.group.name] as [ReactNode, string]] : []),
   ]
   return (
-    <div aria-label={place.path ?? undefined} className="flex flex-col rounded-popup border border-ink/[0.09] px-[11px] py-1.5">
+    <PlaceCard aria-label={place.path ?? undefined}>
       {rows.filter(([, name]) => name).map(([glyph, name]) => (
-        <div key={name + String((glyph as { key?: string }).key)} className="grid min-h-[30px] grid-cols-[20px_minmax(0,1fr)] items-center gap-x-3 text-popup text-fg-muted">
-          <span className="flex justify-center">{glyph}</span>
+        <PlaceCardRow key={name + String((glyph as { key?: string }).key)} icon={glyph}>
           <ClippedTooltip content={name}><bdi data-clip className="truncate">{name}</bdi></ClippedTooltip>
-        </div>
+        </PlaceCardRow>
       ))}
-    </div>
+    </PlaceCard>
   )
 }
 

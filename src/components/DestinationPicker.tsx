@@ -14,7 +14,7 @@ import { GroupColorSwatch } from "~src/components/GroupColorMenu"
 import { IconTooltip } from "~src/components/ui/button"
 import { groupColorFill } from "~src/lib/groupColors"
 import { DEFAULT_SPACE_NAME, ensureCategoryPath, findUnsorted, isUnsortedGroup, orderedGroups, UNSORTED_NAME } from "~src/lib/defaultPath"
-import { CreateSlot } from "~src/components/ui/create-slot"
+import { CreateSlot, CreateSlotField } from "~src/components/ui/create-slot"
 import { Chip } from "~src/components/ui/chip"
 import { Disclosure } from "~src/components/ui/disclosure"
 
@@ -30,9 +30,10 @@ export type PickerValue = SaveTabsTarget & { groupId?: string; newGroupName?: st
  * repeated saves land in one group). Missing structure is created right here
  * by naming it — never invented.
  */
-export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60", groupLevel = false, size = "default" }: {
+export function DestinationPicker({ value, onChange, maxHeightClass, groupLevel = false, size = "default" }: {
   value: PickerValue
   onChange: (target: PickerValue) => void
+  /** The list's height cap; by default the dialog's (max-h-60) or the popup's (216px). */
   maxHeightClass?: string
   groupLevel?: boolean
   /** "panel": the popup's sizes and a folding tree (TASK-72). Dialogs keep "default". */
@@ -166,7 +167,7 @@ export function DestinationPicker({ value, onChange, maxHeightClass = "max-h-60"
       <div
         role="radiogroup"
         aria-label="Destination"
-        className={`${maxHeightClass} overflow-y-auto ${P ? "rounded-popup bg-ink/[0.04] py-1.5" : "rounded-md border border-ink/10 bg-ink/[0.02] py-1"}`}
+        className={`${maxHeightClass ?? (P ? "max-h-popup-list" : "max-h-60")} overflow-y-auto ${P ? "rounded-popup bg-ink/[0.04] py-1.5" : "rounded-md border border-ink/10 bg-ink/[0.02] py-1"}`}
       >
         {visible.length === 0 && (
           <div className={`px-3 py-3 ${P ? "text-item" : "text-xs"} text-fg-subtle`}>No match.</div>
@@ -458,10 +459,10 @@ function NameRow({ indentClass, indent, icon, label, placeholder, onCommit, onCa
       // Panel size: the create slot's own box (inset, py-0.5, 10px radius,
       // min-h-9), so the field takes the slot's place and nothing moves.
       <div className="pr-3 py-0.5" style={{ paddingLeft: indent - 9 }}>
-        <div className={`flex min-h-9 items-center gap-3 border border-transparent px-[7px] text-popup text-fg ${inlineEditFrame} rounded-popup-item`}>
+        <CreateSlotField>
           {icon}
           {field}
-        </div>
+        </CreateSlotField>
       </div>
     )
   }

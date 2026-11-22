@@ -71,7 +71,7 @@ const GLOW = "radial-gradient(45% 45% at 50% 45%, color-mix(in srgb, var(--accen
 /** A browser tab, drawn small: letter tile, title, the close mark. */
 function LooseTab({ tab, style }: { tab: typeof LOOSE_TABS[number]; style: React.CSSProperties }) {
   return (
-    <div style={style} className="ft-drift absolute flex h-9 items-center gap-2 rounded-t-xl rounded-b-md bg-black-900 pl-2 pr-3 shadow-[0_14px_30px_-16px_rgba(0,0,0,0.55)] ring-1 ring-ink/10">
+    <div style={style} className="ft-drift absolute flex h-9 items-center gap-2 rounded-t-xl rounded-b-md bg-black-900 pl-2 pr-3 shadow-float ring-1 ring-ink/10">
       <span className="flex h-5 w-5 items-center justify-center rounded-md text-caption font-semibold text-white" style={{ backgroundColor: tab.color }}>{tab.letter}</span>
       <span className="whitespace-nowrap text-fg font-sans text-xs">{tab.title}</span>
       <span className="ml-1 text-fg-subtle text-caption">×</span>
@@ -125,7 +125,7 @@ export function EmptyWorkspace({ request }: { request: number }) {
           <span className="inline-flex w-fit items-center gap-2 rounded-full border border-ink/10 bg-ink/[0.04] px-3 py-1 text-fg-muted font-sans text-xs">
             <span aria-hidden className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: "var(--accent)" }} />No spaces left
           </span>
-          <h2 className="text-fg font-sans text-[3.25rem] font-semibold leading-[1.02] tracking-[-0.03em]">A clean{" "}<br />slate.</h2>
+          <h2 className="text-fg font-sans text-display font-semibold tracking-[-0.03em]">A clean{" "}<br />slate.</h2>
           <p className="max-w-md text-fg-muted font-sans text-base leading-relaxed">Every tab you keep lands in a space. Start one, and FlexTab sorts the rest as you save.</p>
           <div className="flex w-full max-w-md flex-col gap-3">
             <CreateRow key={request} autoFocus={request > 0} />

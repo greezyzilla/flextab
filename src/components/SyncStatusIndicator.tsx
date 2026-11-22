@@ -11,6 +11,7 @@ import { syncNow } from "~src/services/syncEngine"
 import { Tooltip, TooltipTrigger, TooltipContent } from "./ui/tooltip"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 import { Button } from "./ui/button"
+import { SyncDirtyDot, SyncGlyph } from "./ui/sync-mark"
 import { UsageBar } from "./settings/shared"
 import { navigate } from "~src/lib/route"
 import { SIGN_IN_ROUTE } from "~src/lib/workspaceAccess"
@@ -145,19 +146,12 @@ export function SyncStatusIndicator() {
           className="relative shrink-0"
           aria-label={`Sync status: ${label}${usage ? `, ${tabs} of ${cap} tabs` : ""}`}
         >
-          <Icon
-            className={`h-[18px] w-[18px] ${cls} ${spin ? "animate-spin" : ""}`}
-            strokeWidth={1.75}
-            aria-hidden
-          />
+          <SyncGlyph icon={Icon} tone={cls} spin={spin} />
           {paused && <span className="text-warning">Sync paused</span>}
           {showConflict && !paused && <span className="text-danger">Sync conflict</span>}
           {usage && <span className="text-warning tabular-nums">{usage}</span>}
           {!paused && showDirty && (
-            <span
-              className="absolute left-[19px] top-1.5 h-[7px] w-[7px] rounded-full bg-amber-400 ring-2 ring-black-900"
-              aria-hidden
-            />
+            <SyncDirtyDot />
           )}
         </Button>
       </PopoverTrigger>

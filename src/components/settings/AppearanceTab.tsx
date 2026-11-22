@@ -1,7 +1,7 @@
 import * as SliderPrimitive from "@radix-ui/react-slider";
 import type { IconWeight } from "~src/components/ui/icon";
 import { Icon } from "~src/components/ui/icon"
-import { DUPLICATE_TONE } from "~src/components/DuplicateMark";
+import { DUPLICATE_TONE } from "~src/components/ui/duplicate-mark";
 import { Monitor, Moon, Sun, SwatchBook, RotateCcw, CaseSensitive, Layers, Link2, MousePointerClick, TriangleAlert, Wind, MousePointer2, Option, Keyboard, Ribbon, EyeOff, ArrowUpLeft, ArrowUpRight } from "lucide-react";
 import type { ThemeMode } from "~src/lib/theme";
 import { useSettingsStore, HUE_PRESETS, FONT_OPTIONS, type GroupLayout, type Density, type FontKey, type DuplicateMark, type DuplicateTone, type DuplicateCorner, type DuplicateLabel } from "~src/store/useSettingsStore";

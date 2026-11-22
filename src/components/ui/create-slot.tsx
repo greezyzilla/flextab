@@ -3,6 +3,7 @@ import { Plus } from "lucide-react"
 import { cva, type VariantProps } from "class-variance-authority"
 
 import { Icon, type IconSize } from "~src/components/ui/icon"
+import { inlineEditFrame } from "~src/components/ui/input"
 import { cn } from "~src/lib/utils"
 
 /**
@@ -46,4 +47,15 @@ const CreateSlot = React.forwardRef<HTMLButtonElement, CreateSlotProps>(({ class
 ))
 CreateSlot.displayName = "CreateSlot"
 
-export { CreateSlot, createSlotVariants }
+/**
+ * The name field that takes a panel slot's place while you type (the popup picker's "New
+ * category…"): the slot's own box (36px, 10px corners, 7px inside the 1px edge) drawn as the
+ * inline edit frame, so opening it moves nothing. Children: the level icon, then the field.
+ */
+const CreateSlotField = ({ children }: { children: React.ReactNode }) => (
+  <div className={`flex min-h-9 items-center gap-3 border border-transparent px-[7px] text-popup text-fg ${inlineEditFrame} rounded-popup-item`}>
+    {children}
+  </div>
+)
+
+export { CreateSlot, CreateSlotField, createSlotVariants }

@@ -127,13 +127,13 @@ export function SettingsContent() {
           // so it never outgrows the controls on wide screens): 1440px of window. Narrower, the previewer
           // is not shown at all (user: "preview ga seharusnya muncul di semua size"): above or below the
           // controls it only pushed them off the first screen or out of sight of the change it shows.
-          <div className="flex flex-col min-[1440px]:flex-row min-[1440px]:items-start gap-6 min-[1440px]:gap-8">
-            <div className="max-w-[40rem] min-w-0 break-words min-[1440px]:w-full min-[1440px]:shrink-0">
+          <div className="flex flex-col preview:flex-row preview:items-start gap-6 preview:gap-8">
+            <div className="max-w-[40rem] min-w-0 break-words preview:w-full preview:shrink-0">
               <SectionContent tab={tab} />
             </div>
             {/* The previewer takes all the width the controls leave, up to 24rem, so wide windows fit
                 more grid columns without it outgrowing the controls. */}
-            <div className="hidden min-[1440px]:block min-[1440px]:max-w-[24rem] min-[1440px]:sticky min-[1440px]:top-0 min-[1440px]:flex-1 min-[1440px]:min-w-0">
+            <div className="hidden preview:block preview:max-w-[24rem] preview:sticky preview:top-0 preview:flex-1 preview:min-w-0">
               <AppearancePreview />
             </div>
           </div>

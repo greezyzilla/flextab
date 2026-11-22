@@ -160,7 +160,7 @@ export function MergeConflictModal() {
 
       {/* The list is the scroll area; hairlines mark its edges while it scrolls (§3). */}
       <ModalBody>
-        <div className="flex min-h-[100px] flex-col gap-3">
+        <div className="flex min-h-24 flex-col gap-3">
           {items.map(({ c, level, path, name, lead, options }) => (
             <section key={c.key} aria-label={`${LEVEL_LABEL[level]} ${name}`} className="flex flex-col gap-2 rounded-lg border border-ink/10 p-3">
               <div className="flex min-w-0 flex-col gap-0.5">

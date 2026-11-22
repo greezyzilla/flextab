@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect, type ReactNode } from "react";
 import { Icon } from "~src/components/ui/icon"
+import { Tag } from "~src/components/ui/tag";
 import { shortcutLabel } from "~src/lib/platform";
 import { openOrFocus } from "~src/services/openTab";
 import { revealInWorkspace } from "~src/services/reveal";
@@ -193,12 +194,12 @@ export function SearchBar() {
     } else if (hit.kind === "saved") {
       icon = <FaviconImg src={hit.tab.favicon} alt="" className="w-4 h-4 shrink-0" />;
       title = hit.tab.title || hit.tab.url; detail = `${host(hit.tab.url)} · ${hit.path.join(" › ")}`;
-      aside = hit.isOpen && <span className="rounded border border-ink/10 px-1.5 text-fg-muted text-caption leading-[18px]">Open</span>;
+      aside = hit.isOpen && <Tag>Open</Tag>;
     } else if (hit.kind === "action") {
       const Icon = THEME_ICON[hit.theme];
       icon = <Icon className="h-4 w-4 shrink-0 text-fg-subtle" aria-hidden />;
       title = hit.title; detail = "";
-      aside = hit.current && <span className="rounded border border-ink/10 px-1.5 text-fg-muted text-caption leading-[18px]">Current</span>;
+      aside = hit.current && <Tag>Current</Tag>;
     } else {
       const space = savedSpaces.find((s) => s.id === hit.spaceId);
       icon = hit.level === "space" ? <SpaceAvatar space={space} size={16} />

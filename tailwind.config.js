@@ -15,6 +15,23 @@ module.exports = {
         "popup-meta": ["13px", "18px"], // the popup's secondary lines
         popup: ["15px", "22px"], // the popup's body: rows, fields, chips
         "popup-title": ["19px", "24px"], // the popup's page sentence
+        display: ["3.25rem", "1.02"], // the empty workspace's headline
+      },
+      // One-off geometry with a name (TASK-103.5).
+      screens: {
+        preview: "1440px", // Settings shows the Appearance previewer beside the controls from here
+      },
+      minHeight: {
+        "group-head": "26px", // a group's header row, and the new-group row that takes its place
+      },
+      maxHeight: {
+        "popup-list": "216px", // the popup picker's list
+      },
+      boxShadow: {
+        float: "0 14px 30px -16px rgba(0,0,0,0.55)", // the empty workspace's floating tabs
+      },
+      backdropBlur: {
+        overlay: "2px", // behind a drawer
       },
       fontFamily: {
         // Routed through a CSS var so the Appearance "Font" setting can swap it

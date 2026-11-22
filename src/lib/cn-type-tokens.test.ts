@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest"
 import { cn } from "./utils"
 
-const TOKENS = ["count", "caption", "item", "popup-meta", "popup", "popup-title"]
+const TOKENS = ["count", "caption", "item", "popup-meta", "popup", "popup-title", "display"]
 
 describe("cn with the type tokens", () => {
   it("keeps a text colour beside a type token", () => {

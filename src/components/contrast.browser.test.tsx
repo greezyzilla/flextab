@@ -13,7 +13,7 @@ import { flushSync } from "react-dom";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { Badge, badgeVariants } from "~src/components/ui/badge";
 import badgeSource from "~src/components/ui/badge.tsx?raw";
-import { DUPLICATE_TONE, DuplicateIcon, DuplicateRibbon } from "~src/components/DuplicateMark";
+import { DUPLICATE_TONE, DuplicateIcon, DuplicateRibbon } from "~src/components/ui/duplicate-mark";
 import { TooltipProvider } from "~src/components/ui/tooltip";
 import { GROUP_COLORS, groupTintSurface } from "~src/lib/groupColors";
 import type { GroupColor } from "~src/types";

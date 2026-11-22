@@ -148,23 +148,6 @@ const DATA_COLOURS: Record<string, string> = {
 
 /** Today's findings (fe dev 4f80647), by the subtask that clears them. Only ever lower or remove an entry. */
 const DEBT: Debt = {
-  "TASK-103.5": { // 51 in 15 files
-    "components/DestinationPicker.tsx": { "B": 1 },
-    "components/DuplicateMark.tsx": { "B": 10 },
-    "components/MergeConflictModal.tsx": { "B": 1 },
-    "components/SearchBar.tsx": { "B": 2 },
-    "components/SyncConflictModal.tsx": { "B": 1 },
-    "components/SyncStatusIndicator.tsx": { "B": 5 },
-    "components/TabGroup.tsx": { "B": 1 },
-    "components/layout/ContentPanel.tsx": { "B": 1 },
-    "components/layout/Drawer.tsx": { "B": 1 },
-    "components/layout/EmptyWorkspace.tsx": { "B": 2 },
-    "components/layout/LeftPanel.tsx": { "B": 2 },
-    "components/settings/AppearancePreview.tsx": { "B": 2 },
-    "components/settings/BackupTab.tsx": { "B": 1 },
-    "components/settings/SettingsShell.tsx": { "B": 11 },
-    "popup/index.tsx": { "B": 10 },
-  },
   "TASK-103.6": { // 65 in 14 files
     "components/MergeConflictModal.tsx": { "A Label": 15, "A RadioGroup": 4, "A RadioGroupItem": 1 },
     "components/OnboardingScreen.tsx": { "A Icon": 1 },

@@ -4,7 +4,7 @@ import { SquareArrowOutUpRight } from "lucide-react"
 import { useState, useRef, useEffect, useId } from "react";
 import { SortableContext, useSortable } from "@dnd-kit/sortable";
 import { useDroppable } from "@dnd-kit/core";
-import { DUPLICATE_TIP, DuplicateIcon, DuplicateRibbon } from "./DuplicateMark";
+import { DUPLICATE_TIP, DuplicateIcon, DuplicateRibbon } from "~src/components/ui/duplicate-mark";
 import { FaviconImg } from "./FaviconImg";
 import { CSS } from "@dnd-kit/utilities";
 import type { SavedGroup, SavedTab } from "~src/types";
@@ -396,7 +396,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
         ...(isOver && shownColor ? { borderColor: groupColorFill(shownColor), backgroundColor: groupTintSurface(shownColor, { strength: 2 }) } : {}),
       }}
     >
-      <div className="flex items-center justify-between gap-2 min-h-[26px] group/header" style={{ paddingInline: 'var(--density-px-tab)' }}>
+      <div className="flex items-center justify-between gap-2 min-h-group-head group/header" style={{ paddingInline: 'var(--density-px-tab)' }}>
         {unsorted ? (
           <div className="flex items-center gap-2.5 min-w-0">
             <span className="w-5 flex justify-center shrink-0"><UnsortedIcon size="sm" className="text-fg-subtle" /></span>
