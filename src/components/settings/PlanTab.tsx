@@ -17,8 +17,14 @@ export function PlanTab() {
   const [billing, setBilling] = useState<BillingStatus | null>(null);
   const [upgradingPlan, setUpgradingPlan] = useState<'plus' | 'pro' | null>(null);
   const [upgradeError, setUpgradeError] = useState('');
-  const [confirming, setConfirming] = useState(false);
+  // A payment coming back: 'pending' while polling for the new plan, 'late' when the schedule ran out
+  // before the plan changed (TASK-101).
+  const [confirm, setConfirm] = useState<'no' | 'pending' | 'late'>('no');
   const planRef = useRef<string | undefined>(undefined);
+  // The page's own first plan load, so a payment read from storage before it lands still compares
+  // against the plan the user had, not against nothing (TASK-101).
+  const firstLoad = useRef<Promise<string | undefined> | null>(null);
+  const checkAgain = useRef<() => void>(() => {});
 
   const refetchBilling = () => {
     apiGetBillingStatus().then(setBilling).catch(() => { /* no billing card */ });
@@ -55,9 +61,9 @@ export function PlanTab() {
   useEffect(() => {
     if (!isAuthenticated) return;
     let active = true;
-    apiGetPlan()
-      .then(s => { if (active) { setStatus(s); planRef.current = s.plan; setFailed(false); } })
-      .catch(() => { if (active) setFailed(true); });
+    firstLoad.current = apiGetPlan()
+      .then(s => { if (active) { setStatus(s); planRef.current = s.plan; setFailed(false); } return s.plan; })
+      .catch(() => { if (active) setFailed(true); return undefined; });
     // Billing details (renewal, card, portal) — absent for free and comped-Pro
     // accounts, so a failure here just hides the billing card.
     apiGetBillingStatus()
@@ -86,13 +92,13 @@ export function PlanTab() {
           setStatus(s);
           planRef.current = s.plan;
           setFailed(false);
-          if (s.plan !== baselinePlan) {
-            setConfirming(false);
+          // Confirmed once the plan changed to a paid one: a payment never ends on Free, so Free
+          // never counts as the change even when the first load failed (TASK-101).
+          if (s.plan !== baselinePlan && s.plan !== 'free') {
+            setConfirm('no');
             // The finished moment: the plan the user now has and what it adds (TASK-96).
-            // Only a paid plan: a payment never ends on Free, and a baseline read
-            // before the first load can make Free look like a change.
             const cap = s.limits?.max_tabs_total ?? 0;
-            if (s.plan !== 'free') toast.success(`You're on ${PLAN_NAME[s.plan] ?? s.plan}`, { id: BILLING_TOAST_ID, description: cap > 0 ? `Up to ${cap.toLocaleString('en-US')} tabs.` : 'No limit on tabs.' });
+            toast.success(`You're on ${PLAN_NAME[s.plan] ?? s.plan}`, { id: BILLING_TOAST_ID, description: cap > 0 ? `Up to ${cap.toLocaleString('en-US')} tabs.` : 'No limit on tabs.' });
             apiGetBillingStatus().then(b => { if (!cancelled) setBilling(b); }).catch(() => { /* ok */ });
             return;
           }
@@ -102,15 +108,20 @@ export function PlanTab() {
     };
     const scheduleNext = (attempt: number, baselinePlan: string | undefined) => {
       const next = attempt + 1;
-      if (next >= CONFIRM_POLL_DELAYS.length) { setConfirming(false); return; }
+      if (next >= CONFIRM_POLL_DELAYS.length) { if (!cancelled) setConfirm('late'); return; }
       setTimeout(() => poll(next, baselinePlan), CONFIRM_POLL_DELAYS[next]);
     };
 
+    // The baseline is the plan before the payment: the one already shown, else the first load's.
+    let baseline: string | undefined;
+    const start = () => {
+      setConfirm('pending');
+      const known = planRef.current !== undefined ? Promise.resolve(planRef.current) : (firstLoad.current ?? Promise.resolve(undefined));
+      void known.then(plan => { baseline = plan; poll(0, plan); });
+    };
+    checkAgain.current = () => { setConfirm('pending'); poll(0, baseline); };
     const onResult = (result: unknown) => {
-      if (result && typeof result === 'object' && (result as { outcome?: unknown }).outcome === 'success') {
-        setConfirming(true);
-        poll(0, planRef.current);
-      }
+      if (result && typeof result === 'object' && (result as { outcome?: unknown }).outcome === 'success') start();
     };
     try { chrome.storage.local.get(KEY).then(r => onResult(r[KEY])); } catch (_) { /* ok */ }
     const listener = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
@@ -140,7 +151,9 @@ export function PlanTab() {
       icon={CreditCard}
       subtitle="Your plan and what it includes."
       notice={upgradeError ? <SettingsNotice tone="warning">{upgradeError}</SettingsNotice>
-        : confirming ? <SettingsNotice>Confirming your payment. This can take a few seconds…</SettingsNotice>
+        : confirm === 'pending' ? <SettingsNotice>Confirming your payment. This can take a few seconds…</SettingsNotice>
+        : confirm === 'late' ? <SettingsNotice>Your payment is still being confirmed. It can take a few minutes.{' '}
+            <Button variant="link" size="inline" onClick={() => checkAgain.current()}>Check again</Button></SettingsNotice>
         : <SettingsNotice>FlexTab is in beta, so limits are generous while we're in preview.</SettingsNotice>}
     >
       {/* Plans side by side so their limits compare line by line (TASK-84 pl2, refs-plans board: 21 of 27
