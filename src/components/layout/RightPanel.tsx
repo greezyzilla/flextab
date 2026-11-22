@@ -26,6 +26,7 @@ import { describeSaved, normalizeUrl, type SavedLocation } from "~src/lib/savedU
 import { DragHandle } from "~src/components/ui/drag-handle"
 import { RowOverlay } from "~src/components/ui/row-overlay"
 import { storeShellShape, windowsShape } from "~src/lib/shellShape"
+import { storeShellSkeletonMarkup } from "./ShellSkeleton"
 
 function flexTabIcon(): string | undefined {
   const icon = chrome.runtime?.getManifest?.().icons?.["128"]
@@ -235,7 +236,10 @@ export function RightPanel() {
   useEffect(() => { void chrome.tabs.getCurrent?.().then((t) => setSelfId(t?.id)).catch(() => {}) }, [])
   // The loading shell draws as many windows and tabs as were listed here (lib/shellShape.ts).
   useEffect(() => {
-    const t = setTimeout(() => storeShellShape({ windows: windowsShape(windows.map((w) => (w.tabs ?? []).filter((x) => x.id !== selfId).length)) }), 300)
+    const t = setTimeout(() => {
+      storeShellShape({ windows: windowsShape(windows.map((w) => (w.tabs ?? []).filter((x) => x.id !== selfId).length)) })
+      storeShellSkeletonMarkup()
+    }, 300)
     return () => clearTimeout(t)
   }, [windows, selfId])
 

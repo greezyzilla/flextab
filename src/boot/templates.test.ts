@@ -20,6 +20,12 @@ describe("page templates (TASK-107)", () => {
     expect(html).toContain('<html lang="en">') // the a11y fix (baadad9) keeps its language
   })
 
+  it("newtab.html fills its boot skeleton with a classic script right after it, before the app bundle", () => {
+    const html = page("newtab")
+    const body = html.slice(html.indexOf("<body>"))
+    expect(body).toMatch(/<div id="boot-skeleton" aria-hidden="true"><\/div>\s*<script src="\.\.\/src\/boot\/shell\.js"><\/script>/)
+  })
+
   it("popup.html holds PopupSkeleton's markup exactly, so the first frame matches what React draws", () => {
     const html = page("popup")
     const open = `<div id="${BOOT_SKELETON_ID}" aria-hidden="true">`

@@ -1,9 +1,11 @@
 import { useState, type CSSProperties } from "react"
+import { flushSync } from "react-dom"
+import { createRoot } from "react-dom/client"
 import { BrandMark } from "~src/components/ui/brand-mark"
 import { Skeleton, SkeletonRegion } from "~src/components/ui/skeleton"
 import { ActionSlot } from "~src/components/ui/row-actions"
 import { GRID_MIN_CELL, GROUP_INLINE } from "~src/components/TabGroup"
-import { useShellLayout } from "~src/hooks/useMediaQuery"
+import { LEFT_INLINE_QUERY, RIGHT_INLINE_QUERY, useShellLayout } from "~src/hooks/useMediaQuery"
 import { fitToScreen, readStoredShellShape, type ShellShape } from "~src/lib/shellShape"
 import { PANEL_HEADER, PANEL_LIST } from "./panelChrome"
 
@@ -32,7 +34,45 @@ const w = (i: number) => W[i % W.length]
  */
 export function ShellSkeleton() {
   const { leftInline, rightInline } = useShellLayout()
-  const [shape] = useState(() => fitToScreen(readStoredShellShape() ?? SAMPLE, window.innerHeight))
+  const [shape] = useState(() => readStoredShellShape() ?? SAMPLE)
+  return <ShellSkeletonView shape={shape} leftInline={leftInline} rightInline={rightInline} />
+}
+
+/**
+ * The height the skeleton is cut at: the screen's (at least the window's), so the copy the boot
+ * script shows (storeShellSkeletonMarkup) and the skeleton React draws on the same screen are the
+ * same markup, whatever the window's height.
+ */
+export const skeletonHeight = () => Math.max(window.innerHeight, window.screen?.availHeight ?? 0)
+
+/** localStorage copy of the skeleton's markup for boot/shell.js (TASK-107). */
+export const SHELL_SKELETON_STORAGE_KEY = "flextab-shell-skeleton"
+
+/**
+ * Renders the skeleton for the stored shape and this window's layout, off screen, and keeps its
+ * markup for the next new tab: boot/shell.js puts it in the page before the first paint, so the
+ * shell is there while the app's script loads, and React then draws the very same markup.
+ */
+export function storeShellSkeletonMarkup() {
+  const shape = readStoredShellShape()
+  if (!shape) return
+  const leftInline = window.matchMedia(LEFT_INLINE_QUERY).matches
+  const rightInline = window.matchMedia(RIGHT_INLINE_QUERY).matches
+  const host = document.createElement("div")
+  const root = createRoot(host)
+  try {
+    flushSync(() => root.render(<ShellSkeletonView shape={shape} leftInline={leftInline} rightInline={rightInline} />))
+    localStorage.setItem(SHELL_SKELETON_STORAGE_KEY, JSON.stringify({ html: host.innerHTML, leftInline, rightInline, height: skeletonHeight() }))
+  } catch {
+    // Storage blocked or full: the next new tab shows the themed surface until its script runs.
+  } finally {
+    root.unmount()
+  }
+}
+
+/** The skeleton for a shape and layout; pure, so the boot copy and React's render are the same markup. */
+export function ShellSkeletonView({ shape: stored, leftInline, rightInline }: { shape: ShellShape; leftInline: boolean; rightInline: boolean }) {
+  const shape = fitToScreen(stored, skeletonHeight())
   const content = shape.content
   return (
     <SkeletonRegion label="Loading your workspace">

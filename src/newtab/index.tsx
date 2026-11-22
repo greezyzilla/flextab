@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect, useLayoutEffect } from "react"
 import { WorkspaceLoadError } from "~src/components/WorkspaceLoadError"
 import { SyncConflictModal } from "~src/components/SyncConflictModal"
 import { OverCapNotice } from "~src/components/OverCapNotice"
@@ -34,6 +34,10 @@ function NewTabPage() {
   useEffect(() => {
     initialize()
   }, [])
+
+  // newtab.html's boot copy of the skeleton held the place while the script loaded; this first
+  // commit draws the same markup (or the workspace in its place), so it goes before that paints.
+  useLayoutEffect(() => { document.getElementById("boot-skeleton")?.remove() }, [])
 
   // Local persistence is always on once hydrated — guests and auto-sync-off
   // users still get every change written to chrome.storage.

@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { useSettingsStore } from "~src/store/useSettingsStore";
 import { storeShellShape, workspaceShape } from "~src/lib/shellShape";
+import { storeShellSkeletonMarkup } from "~src/components/layout/ShellSkeleton";
 
 /**
  * Keeps the loading shell's copy of the workspace shape current (lib/shellShape.ts): after any
@@ -19,6 +20,7 @@ export function useShellShapeMirror() {
   useEffect(() => {
     const t = setTimeout(() => {
       storeShellShape(workspaceShape({ savedSpaces, activeSpaceId, activeProjectId, activeCategoryId, expandedProjectIds }, groupLayout, gridColumns));
+      storeShellSkeletonMarkup();
     }, 300);
     return () => clearTimeout(t);
   }, [savedSpaces, activeSpaceId, activeProjectId, activeCategoryId, expandedProjectIds, groupLayout, gridColumns]);
