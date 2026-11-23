@@ -102,6 +102,16 @@ describe("empty states create in place", () => {
     expect(screen.getByRole("button", { name: "Actions for Reading" })).toBeInTheDocument()
   })
 
+  it("a group's reorder grip is on its mark in its header, not in a gutter; Unsorted has none (TASK-121)", () => {
+    withGroups()
+    setup()
+    const grip = screen.getByRole("button", { name: "Reorder Reading" })
+    expect(grip.closest(".group\\/header")).not.toBeNull()
+    // The mark beside it steps aside while the grip shows.
+    expect(grip.parentElement!.parentElement!.querySelector(".group-hover\\/header\\:opacity-0")).not.toBeNull()
+    expect(screen.queryByRole("button", { name: "Reorder Unsorted" })).not.toBeInTheDocument()
+  })
+
   const withGroups = () => {
     yjs.setSpaces([{ id: "s", name: "Work", order: 0, projects: [{ id: "p", name: "Site", order: 0, categories: [
       { id: "c", name: "Research", order: 0, groups: [

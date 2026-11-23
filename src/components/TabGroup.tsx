@@ -1,7 +1,7 @@
 import { useFlash } from "~src/hooks/useFlash";
 import { Icon } from "~src/components/ui/icon"
 import { SquareArrowOutUpRight } from "lucide-react"
-import { useState, useRef, useEffect, useId } from "react";
+import { useState, useRef, useEffect, useId, type ButtonHTMLAttributes } from "react";
 import { SortableContext, useSortable } from "@dnd-kit/sortable";
 import { useDroppable } from "@dnd-kit/core";
 import { DUPLICATE_TIP, DuplicateIcon, DuplicateRibbon } from "~src/components/ui/duplicate-mark";
@@ -276,9 +276,12 @@ export interface TabGroupProps {
   /** A look-only rendering (Settings › Appearance preview, TASK-30): no header
    *  actions, so nothing that looks clickable is shown where nothing can be done. */
   preview?: boolean;
+  /** The drag library's attributes and listeners for reordering the group (ContentPanel's
+   *  SortableGroup): its grip takes the group mark's slot while the header is hovered (TASK-121). */
+  dragHandle?: ButtonHTMLAttributes<HTMLButtonElement>;
 }
 
-export function TabGroup({ group, location, layout = 'list', gridColumns = 2, preview = false }: TabGroupProps) {
+export function TabGroup({ group, location, layout = 'list', gridColumns = 2, preview = false, dragHandle }: TabGroupProps) {
   const { setNodeRef: setDroppableRef, isOver: overZone, active } = useDroppable({
     id: `droppable-${group.id}`,
   });
@@ -431,7 +434,19 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
           </div>
         ) : (
           <div className="flex items-center gap-2.5 min-w-0">
-            <span className="w-5 flex justify-center shrink-0"><GroupIcon size="sm" className="text-fg-subtle" /></span>
+            {/* The mark's slot doubles as the reorder grip on hover/focus, as a tab's favicon and a
+                category's mark do (TASK-121): no grip in a gutter outside the card. */}
+            <span className="relative w-5 flex justify-center shrink-0">
+              {dragHandle && (
+                <IconTooltip content="Drag to reorder">
+                  <DragHandle reveal="group-hover/header:opacity-100" {...dragHandle} aria-label={`Reorder ${group.name}`} />
+                </IconTooltip>
+              )}
+              {/* Steps aside while the grip shows, so the grip sits on the card itself. */}
+              <span className={dragHandle ? "flex transition-opacity group-hover/header:opacity-0 peer-focus-visible:opacity-0" : "flex"}>
+                <GroupIcon size="sm" className="text-fg-subtle" />
+              </span>
+            </span>
             <h3 className="min-w-0 text-fg-muted font-sans text-item font-medium">
               <IconTooltip content="Rename group">
                 <TextLink

@@ -1,5 +1,5 @@
 import { useActiveCategory, useActiveSpace, useActiveProject, useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
-import { Boxes, GripVertical, LayoutGrid, List } from "lucide-react"
+import { Boxes, LayoutGrid, List } from "lucide-react"
 import { Icon } from "~src/components/ui/icon"
 import { ShortcutTooltip } from "~src/components/ui/kbd";
 import { shortcutLabel } from "~src/lib/platform";
@@ -49,15 +49,9 @@ function SortableGroup({ group, location, layout, gridColumns }: {
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="relative group/sortable">
-      {/* The handle sits in the left gutter, level with the title row inside the card
-          (block top padding + card padding + half of the 26px title row - half the icon). */}
-      <div className="absolute left-1 z-10 opacity-0 group-hover/sortable:opacity-30 hover:!opacity-80 focus-visible:!opacity-100 focus-visible:ring-1 focus-visible:ring-ring outline-none rounded transition-opacity cursor-grab active:cursor-grabbing"
-        style={{ top: 'calc(var(--density-p-section) + var(--density-p-group) + 5px)' }} {...attributes} {...listeners}
-        aria-label={`Reorder ${group.name}`}>
-        <Icon icon={GripVertical} size="md" className="text-fg-subtle" />
-      </div>
-      <TabGroup group={group} location={location} layout={layout} gridColumns={gridColumns} />
+    <div ref={setNodeRef} style={style} className="relative">
+      {/* The grip is in the group's header, on its mark (TASK-121). */}
+      <TabGroup group={group} location={location} layout={layout} gridColumns={gridColumns} dragHandle={{ ...attributes, ...listeners }} />
     </div>
   );
 }
