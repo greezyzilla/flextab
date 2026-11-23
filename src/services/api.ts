@@ -509,6 +509,7 @@ export interface BillingStatus {
   renews_at?: string | null;
   ends_at?: string | null;
   portal_url?: string;   // provider's customer portal (manage/cancel); empty for iPaymu
+  checkout_available?: boolean; // a payment gateway is configured on the server; absent on older servers
 }
 
 /** Subscription details for the Plan & Usage billing card. */

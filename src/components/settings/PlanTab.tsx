@@ -143,6 +143,10 @@ export function PlanTab() {
   }
 
   const currentPlan = status?.plan ?? 'free';
+  // Upgrade buttons only when the server says a payment gateway is live, so a click never ends in
+  // "unavailable", and paid plans open without a new extension release. Unknown counts as closed.
+  const canCheckout = billing?.checkout_available === true;
+  const checkoutClosed = billing !== null && !canCheckout;
 
   return (
     <>
@@ -154,6 +158,7 @@ export function PlanTab() {
         : confirm === 'pending' ? <SettingsNotice>Confirming your payment. This can take a few seconds…</SettingsNotice>
         : confirm === 'late' ? <SettingsNotice>Your payment is still being confirmed. It can take a few minutes.{' '}
             <Button variant="link" size="inline" onClick={() => checkAgain.current()}>Check again</Button></SettingsNotice>
+        : checkoutClosed ? <SettingsNotice>Paid plans open soon. Limits are generous while FlexTab is in beta.</SettingsNotice>
         : <SettingsNotice>FlexTab is in beta, so limits are generous while we're in preview.</SettingsNotice>}
     >
       {/* Plans side by side so their limits compare line by line (TASK-84 pl2, refs-plans board: 21 of 27
@@ -163,13 +168,13 @@ export function PlanTab() {
         <PlanCard
           name="Plus" price={formatIDR(PLAN_PRICE_IDR.plus)} who="For people who save a lot." active={currentPlan === 'plus'}
           limits={status?.plus_limits}
-          onUpgrade={currentPlan === 'free' ? () => handleUpgrade('plus') : undefined}
+          onUpgrade={canCheckout && currentPlan === 'free' ? () => handleUpgrade('plus') : undefined}
           upgrading={upgradingPlan === 'plus'}
         />
         <PlanCard
           name="Pro" price={formatIDR(PLAN_PRICE_IDR.pro)} who="No limits on tabs or storage." active={currentPlan === 'pro'}
           limits={status?.pro_limits}
-          onUpgrade={currentPlan !== 'pro' ? () => handleUpgrade('pro') : undefined}
+          onUpgrade={canCheckout && currentPlan !== 'pro' ? () => handleUpgrade('pro') : undefined}
           upgrading={upgradingPlan === 'pro'}
         />
       </div>

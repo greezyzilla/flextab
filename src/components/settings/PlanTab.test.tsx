@@ -24,7 +24,39 @@ beforeEach(() => {
     limits: { max_tabs_total: 150, max_tree_bytes: 524288, max_snapshots: 10 },
     usage: { total_tabs: 0, tree_bytes: 0, snapshots: 0 },
   });
-  vi.mocked(apiGetBillingStatus).mockResolvedValue({ plan: "free", active: false });
+  vi.mocked(apiGetBillingStatus).mockResolvedValue({ plan: "free", active: false, checkout_available: true });
+});
+
+describe("no payment gateway on the server", () => {
+  it.each([
+    ["the server says checkout is closed", { plan: "free", active: false, checkout_available: false }],
+    ["an older server does not say", { plan: "free", active: false }],
+  ])("hides every upgrade button when %s, and says paid plans open soon", async (_case, billing) => {
+    vi.mocked(apiGetBillingStatus).mockResolvedValue(billing);
+    render(<PlanTab />);
+    expect(await screen.findByText("Paid plans open soon. Limits are generous while FlexTab is in beta.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Current plan" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: /Upgrade to/ })).not.toBeInTheDocument();
+    // The plans and their limits stay readable.
+    expect(screen.getByRole("listitem", { name: "Plus" })).toBeInTheDocument();
+    expect(screen.getByRole("listitem", { name: "Pro" })).toBeInTheDocument();
+    expect(apiGetCheckoutUrl).not.toHaveBeenCalled();
+  });
+
+  it("shows no upgrade button when the billing status cannot be loaded", async () => {
+    vi.mocked(apiGetBillingStatus).mockRejectedValue(new ApiError(503, "billing temporarily unavailable"));
+    render(<PlanTab />);
+    await screen.findByRole("button", { name: "Current plan" });
+    await act(async () => { await Promise.resolve(); });
+    expect(screen.queryByRole("button", { name: /Upgrade to/ })).not.toBeInTheDocument();
+  });
+
+  it("shows the upgrade buttons once the server has a gateway", async () => {
+    render(<PlanTab />);
+    expect(await screen.findByRole("button", { name: "Upgrade to Plus" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Upgrade to Pro" })).toBeEnabled();
+    expect(screen.queryByText(/Paid plans open soon/)).not.toBeInTheDocument();
+  });
 });
 
 describe("checkout availability feedback", () => {
