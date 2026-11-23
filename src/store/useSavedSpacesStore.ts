@@ -83,28 +83,6 @@ export const useActiveGroups = () => useSavedSpacesStore(s => {
   return category?.groups ?? EMPTY_GROUPS;
 });
 
-// Pre-generate IDs for default data
-const defaultSpaceId = uuidv7();
-const defaultProjectId = uuidv7();
-const defaultCategoryId = uuidv7();
-
-// The seed uses the same names as the default path (TASK-20/TASK-24), so
-// "General" only ever names a project, never a category in another place.
-export function ensureDefaultData() {
-  if (yjs.spacesArray.length === 0) {
-    yjs.setSpaces([{
-      id: defaultSpaceId, name: "Personal", order: 0,
-      projects: [{
-        id: defaultProjectId, name: DEFAULT_PROJECT_NAME, order: 0,
-        categories: [{
-          id: defaultCategoryId, name: DEFAULT_CATEGORY_NAME, order: 0,
-          groups: [],
-        }],
-      }],
-    }]);
-  }
-}
-
 /**
  * Sync the Yjs spaces into the store and ensure a valid active space → project →
  * category selection (so the first group shows). With forceFirst=true the
@@ -128,17 +106,34 @@ export function syncActiveSelection(forceFirst = false): void {
   useSavedSpacesStore.setState({ savedSpaces: spaces, activeSpaceId, activeProjectId, activeCategoryId });
 }
 
-/** Seed only an absent workspace; a successfully loaded empty tree is durable. */
+/**
+ * Load the stored workspace into this page. A page never seeds (TASK-127): the
+ * background seeds a first install once, and a page that finds nothing stored
+ * yet stays empty, writes nothing, and takes the seed when it lands. A
+ * successfully loaded empty tree is durable.
+ */
 export async function hydrateYjs(): Promise<void> {
   if (yjsHydrated) return;
   const loaded = await yjs.loadPersistedState();
-  if (!loaded) {
-    ensureDefaultData();
-    // Mark initialization durably even in a popup without a persistence observer.
-    await yjs.persistState();
-  }
+  if (!loaded) awaitFirstInstallSeed();
   yjsHydrated = true;
   syncActiveSelection(false);
+}
+
+/** Take the background's first-install seed into this page, and select it like a loaded workspace. */
+function awaitFirstInstallSeed(): void {
+  const onSeed = () => {
+    if (yjs.spacesArray.length === 0) return;
+    yjs.spacesArray.unobserveDeep(onSeed);
+    syncActiveSelection(false);
+  };
+  yjs.spacesArray.observeDeep(onSeed);
+  yjs.installExternalPersistBridge();
+  // The seed may have been stored between the read above and the bridge install.
+  void chrome.storage.local.get(yjs.PERSIST_KEY).then(stored => {
+    const update = yjs.readPersistedUpdate(stored[yjs.PERSIST_KEY]);
+    if (update) yjs.applyExternalPersistUpdate(update.data, update.origin);
+  }).catch(() => { /* the bridge still delivers the next write */ });
 }
 
 export const useSavedSpacesStore = create<SavedSpacesState>()(

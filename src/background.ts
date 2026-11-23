@@ -16,6 +16,7 @@ import { clearLimitNotice, LIMIT_RECHECK_KEY, saveLimitNotice } from "~src/servi
 import { captureFromBackground, commandKind, menuKind, registerCaptureMenus, registerPopupClose } from "~src/services/backgroundCapture";
 import { installToolbarIcon } from "~src/services/toolbarIcon";
 import { runInstallSteps } from "~src/services/installLifecycle";
+import { seedFirstInstall } from "~src/services/firstInstall";
 import { installUpdateFlow, restoreTabsAfterUpdate } from "~src/services/updateFlow";
 import { hasApiAccess } from "~src/services/apiAccess";
 import { clearUpdateRequired, installUpdateRequired, readUpdateRequired } from "~src/services/updateRequired";
@@ -264,6 +265,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
 chrome.runtime.onInstalled.addListener((details) => {
   void runInstallSteps(details.reason, {
     deviceId: getDeviceId,
+    seed: seedFirstInstall,
     menus: registerCaptureMenus,
     restoreTabs: restoreTabsAfterUpdate,
     clearUpdateRequired,

@@ -3,11 +3,11 @@
  * first install, for every update of FlexTab, and when the browser itself
  * updates; each reason runs only its own steps.
  *
- * There is no first-install-only work yet. When some arrives (a welcome page,
- * seeding), it goes in the "install" list only, never in the shared one, so an
- * update cannot run it again.
+ * First-install-only work goes in the "install" list only, never in the shared
+ * one, so an update cannot run it again. Today that is the first workspace
+ * (TASK-127), seeded here by the background alone.
  */
-export type InstallStep = "deviceId" | "menus" | "restoreTabs" | "clearUpdateRequired" | "initialPush"
+export type InstallStep = "deviceId" | "seed" | "menus" | "restoreTabs" | "clearUpdateRequired" | "initialPush"
 
 /** Idempotent setup every start of a new install or version needs. */
 const EVERY_INSTALL: InstallStep[] = ["deviceId", "menus", "initialPush"]
@@ -15,7 +15,7 @@ const EVERY_INSTALL: InstallStep[] = ["deviceId", "menus", "initialPush"]
 export function installSteps(reason: string): InstallStep[] {
   switch (reason) {
     case "install":
-      return [...EVERY_INSTALL]
+      return ["deviceId", "seed", "menus", "initialPush"]
     case "update":
       // Bring back the pages the update reload dropped, forget a "too old" answer
       // meant for the previous version (TASK-114), then push what was left pending.

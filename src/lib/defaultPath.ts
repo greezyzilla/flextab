@@ -15,6 +15,24 @@ export const UNSORTED_NAME = "Unsorted"
 
 export type CategoryPath = { spaceId: string; projectId: string; categoryId: string }
 
+/**
+ * The first-install workspace: Personal › General › Uncategorized (TASK-20/TASK-24
+ * names, so "General" only ever names a project). Only the background calls this,
+ * once, on install (TASK-127): two pages seeding with their own ids would merge
+ * into two "Personal" spaces. Does nothing when the doc already has a space.
+ */
+export function seedDefaultWorkspace(): boolean {
+  if (yjs.spacesArray.length > 0) return false
+  yjs.setSpaces([{
+    id: uuidv7(), name: DEFAULT_SPACE_NAME, order: 0,
+    projects: [{
+      id: uuidv7(), name: DEFAULT_PROJECT_NAME, order: 0,
+      categories: [{ id: uuidv7(), name: DEFAULT_CATEGORY_NAME, order: 0, groups: [] }],
+    }],
+  }])
+  return true
+}
+
 export function isUnsortedGroup(group: Pick<SavedGroup, "config"> | undefined): boolean {
   return group?.config?.kind === "unsorted"
 }

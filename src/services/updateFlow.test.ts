@@ -43,8 +43,8 @@ const ready = () => { disk[UPDATE_READY_KEY] = { version: "0.1.0.8", at: 1 } }
 const deps = () => ({ flushBackground: vi.fn(async () => {}), reload: vi.fn() })
 
 describe("installSteps (TASK-113)", () => {
-  it("runs the shared setup on a first install", () => {
-    expect(installSteps("install")).toEqual(["deviceId", "menus", "initialPush"])
+  it("seeds the first workspace, then runs the shared setup, on a first install (TASK-127)", () => {
+    expect(installSteps("install")).toEqual(["deviceId", "seed", "menus", "initialPush"])
   })
 
   it("restores the dropped pages on an update and runs no install-only work", () => {
@@ -56,10 +56,15 @@ describe("installSteps (TASK-113)", () => {
     expect(installSteps("chrome_update")).not.toContain("restoreTabs")
   })
 
+  it.each(["update", "chrome_update", "shared_module_update"])("never seeds on %s (TASK-127)", reason => {
+    expect(installSteps(reason)).not.toContain("seed")
+  })
+
   it("runs every step even when one fails", async () => {
     const ran: string[] = []
     await runInstallSteps("update", {
       deviceId: () => ran.push("deviceId"),
+      seed: () => ran.push("seed"),
       menus: () => { throw new Error("menus") },
       restoreTabs: () => ran.push("restoreTabs"),
       clearUpdateRequired: () => ran.push("clearUpdateRequired"),
