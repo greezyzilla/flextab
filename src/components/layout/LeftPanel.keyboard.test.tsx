@@ -119,3 +119,11 @@ describe("sidebar with no space selected (TASK-37)", () => {
     expect(screen.queryByText("Select a space")).not.toBeInTheDocument()
   })
 })
+
+describe("the workspace panel footer (TASK-109)", () => {
+  it("shows the app version, as the Settings footer does", () => {
+    setup()
+    expect(screen.getByText(/^FlexTab v\d/)).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /Shortcuts/ })).toBeInTheDocument()
+  })
+})

@@ -26,6 +26,13 @@ const W = [64, 52, 72, 60, 80, 48]
 const w = (i: number) => W[i % W.length]
 
 /**
+ * The footer's version line ("FlexTab v0.1.0" in the caption size) and its Shortcuts button, as
+ * wide as in the loaded app (measured, default font, TASK-109), so neither moves when it arrives.
+ */
+const VERSION_W = 72
+const SHORTCUTS_W = 86
+
+/**
  * The new tab while the workspace loads (TASK-106): the app shell itself, at its real widths and
  * header lines, drawn in the shape the workspace had when it was last seen (lib/shellShape.ts): as
  * many spaces, projects, categories, Unsorted trays, groups, tabs and windows, in list or grid, with
@@ -116,9 +123,10 @@ export function ShellSkeletonView({ shape: stored, leftInline, rightInline }: { 
             {/* New project…, under the tree. */}
             <div className="mx-2 pl-1 pr-2"><Skeleton width="100%" height={32} round="md" tone="faint" /></div>
           </div>
-          {/* The panel footer (PanelFooter): its Shortcuts button on the right. */}
-          <div className="flex items-center justify-end border-t border-line px-4 py-2">
-            <Skeleton width={76} height={28} round="md" tone="faint" />
+          {/* The panel footer (PanelFooter): the version on the left (a text line), Shortcuts on the right. */}
+          <div className="flex items-center justify-between gap-2 border-t border-line px-4 py-2">
+            <Skeleton line={16} width={VERSION_W} height={8} tone="faint" />
+            <Skeleton width={SHORTCUTS_W} height={28} round="md" tone="faint" />
           </div>
         </div>
       )}

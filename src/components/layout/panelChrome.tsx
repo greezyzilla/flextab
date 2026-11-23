@@ -30,8 +30,9 @@ export const PANEL_ROW_LABEL = TREE_ROW_LABEL
 export const PANEL_ROW_TEXT = TREE_ROW_TEXT
 
 /**
- * The panel's footer, one component for both panels: Shortcuts always in the
- * right slot; Settings puts the version in the left slot.
+ * The panel's footer, one component for both panels. It is layout, so it is the
+ * same on every page (TASK-109): the version in the left slot, Shortcuts in the
+ * right slot.
  */
 export function PanelFooter({ start }: { start?: ReactNode }) {
   return (
@@ -46,7 +47,7 @@ export function PanelFooter({ start }: { start?: ReactNode }) {
   )
 }
 
-/** "FlexTab v0.1.0", for the Settings footer's left slot (TASK-15). */
+/** "FlexTab v0.1.0", for the footer's left slot in the workspace and Settings (TASK-15, TASK-109). */
 export function AppVersion() {
   return <>FlexTab v{config.version || "0.0.1"}</>
 }

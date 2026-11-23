@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { PANEL_HEADER, PANEL_TITLE, PANEL_LIST, PANEL_ROW, PanelFooter } from "./panelChrome";
+import { PANEL_HEADER, PANEL_TITLE, PANEL_LIST, PANEL_ROW, PanelFooter, AppVersion } from "./panelChrome";
 import { TreeRowButton } from "../ui/tree-row-button";
 import { ChevronRight, GripVertical } from "lucide-react"
 import { Icon } from "~src/components/ui/icon"
@@ -516,7 +516,7 @@ export function LeftPanel() {
         ) : null /* No spaces (TASK-37): nothing to select; the workspace offers New space. */}
       </nav>
 
-      <PanelFooter />
+      <PanelFooter start={<AppVersion />} />
 
     </aside>
   );
