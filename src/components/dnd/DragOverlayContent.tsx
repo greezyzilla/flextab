@@ -13,6 +13,7 @@ import { TabUrl } from "../TabUrl";
 import { openTabRowText } from "~src/lib/openTabText";
 import { useSettingsStore } from "~src/store/useSettingsStore";
 import { CategoryIcon, ProjectIcon, spaceAvatarColors } from "../levelIcons";
+import { RAIL_ACTIVE_RING } from "../ui/rail-button";
 
 interface DragOverlayContentProps {
   activeId: string | number | null;
@@ -55,7 +56,7 @@ export function DragOverlayContent({ activeId, draggedGroup, draggedTab, dragged
     return (
       <div data-dragged-space={draggedContainer.spaceId} className="h-10 w-10 rounded-full bg-black-900 shadow-lg cursor-grabbing">
         <div
-          className={`flex h-10 w-10 items-center justify-center rounded-full font-sans text-xs font-normal ${active ? "ring-2 ring-ink/50" : ""}`}
+          className={`flex h-10 w-10 items-center justify-center rounded-full font-sans text-xs font-normal ${active ? RAIL_ACTIVE_RING : ""}`}
           style={spaceAvatarColors(space, active)}
         >
           {(space?.abbreviation || (space?.name ?? draggedContainer.name).slice(0, 2)).toUpperCase()}

@@ -97,10 +97,7 @@ export function ProfilePanel() {
                 aria-label={`Switch to ${space.name}`}
                 aria-pressed={!inSettings && activeSpaceId === space.id}
                 onClick={() => { if (drag.dragged()) return; setActiveSpace(space.id); navigate("/"); }}
-                style={{
-                  ...spaceAvatarColors(space, !inSettings && activeSpaceId === space.id),
-                  ...(space.color && !inSettings && activeSpaceId === space.id ? { borderColor: space.color, ringColor: space.color } : {}),
-                }}
+                style={spaceAvatarColors(space, !inSettings && activeSpaceId === space.id)}
               >
                 {(space.abbreviation || space.name.slice(0, 2)).toUpperCase()}
               </RailButton>

@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react"
 import { Folder, Inbox, Layers, ListTree } from "lucide-react"
 import { Icon, type IconSize } from "~src/components/ui/icon"
 
@@ -45,7 +46,9 @@ export function spaceAvatarColors(space: { color?: string } | undefined, active:
       ? `${space.color}${active ? "40" : "25"}`
       : active ? "hsl(var(--ink) / 0.2)" : "hsl(var(--ink) / 0.08)",
     color: active ? "var(--text-primary)" : "var(--text-secondary)",
-  };
+    // The rail's active ring (RAIL_ACTIVE_RING) takes the space's colour.
+    ...(space?.color ? { "--rail-ring": space.color } : {}),
+  } as CSSProperties;
 }
 
 /** The rail's space avatar, shrunk for inline contexts (breadcrumb, picker). */

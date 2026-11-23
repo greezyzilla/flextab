@@ -10,8 +10,11 @@ import { cn } from "~src/lib/utils"
  *   dashed — Add space: an empty slot.
  *   avatar — a space: colours come from the space (style), hover brightens it.
  *   bare   — wraps something round of its own (the account Avatar).
- * `active` marks the place you are in (the open space, Settings) with an ink/50 ring.
+ * `active` marks the place you are in (the open space, Settings) with a ring: in the space's own
+ * colour when it has one (`--rail-ring`, set by spaceAvatarColors), else ink/50.
  */
+export const RAIL_ACTIVE_RING = "ring-2 ring-[color:var(--rail-ring,hsl(var(--ink)/0.5))]"
+
 const railButtonVariants = cva(
   "flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-black-900",
   {
@@ -22,7 +25,7 @@ const railButtonVariants = cva(
         avatar: "font-sans text-xs font-normal transition-all",
         bare: "",
       },
-      active: { true: "ring-2 ring-ink/50", false: "" },
+      active: { true: RAIL_ACTIVE_RING, false: "" },
     },
     compoundVariants: [
       { look: "solid", active: true, class: "bg-black-700" },
