@@ -117,15 +117,19 @@ Do not put these credentials in either public variable. Missing API variables
 fail validation; submission has no localhost or CI-fixture fallback.
 
 Run **Submit to Web Store** manually on the intended release commit. Its shared
-verification job selects Node from `.nvmrc`, installs with `npm ci`, typechecks,
-runs all regression tests with coverage gates, and builds the production ZIP
-with the supplied API values.
+verification job (with `browser: true`) selects Node from `.nvmrc`, installs
+with `npm ci`, installs Chromium, typechecks, runs all regression tests
+including the browser-mode suite with coverage gates, and builds the production
+ZIP with the supplied API values.
 Only after success does the publish job download that exact artifact and submit
 it. It does not rebuild the extension. Submission runs are serialized and all
 external Actions are pinned to commit SHAs.
 
-PR/main CI uses the same verification job with `api.example.invalid`; those ZIPs
-are build fixtures and must not be uploaded to a store. The
+Push (main, dev) and PR CI uses the same verification job with
+`api.example.invalid` and without the browser suite, plus the Conventional
+Commit and pinned-action checks; those ZIPs are build fixtures and must not be
+uploaded to a store. Where each suite runs is in
+[quality gates](docs/quality-gates.md#where-each-suite-runs). The
 [quality gate contract](docs/quality-gates.md) records the covered scope, baseline
 and remaining gaps; native extension E2E is not yet a release guarantee.
 

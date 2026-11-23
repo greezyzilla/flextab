@@ -8,6 +8,12 @@ on:
       api-host:
         required: true
         type: string
+      # Push and PR CI stays light (TASK-116): no browser install, jsdom tests only.
+      # Release workflows pass true so the browser-mode suite runs before publishing.
+      browser:
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -34,12 +40,14 @@ jobs:
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund
       - name: Install the browser for browser-mode tests
+        if: ${{ inputs.browser }}
         run: npx playwright install --with-deps chromium
       - name: Typecheck source, tests, and configuration
         run: npm run typecheck
+      # The coverage numbers are the same either way: the browser suite measures none of them.
       - name: Run regression tests and coverage gates
         id: coverage
-        run: npm run test:coverage -- --run
+        run: npm run test:coverage -- --run ${{ !inputs.browser && '--project unit' || '' }}
       - name: Upload coverage report
         if: ${{ !cancelled() && steps.coverage.outcome != 'skipped' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -50,6 +58,12 @@ jobs:
           retention-days: 7
       - name: Build production ZIP
         run: npm run build:zip -- --channel=stable
+        env:
+          PLASMO_PUBLIC_API_URL: ${{ inputs.api-url }}
+          PLASMO_PUBLIC_API_HOST: ${{ inputs.api-host }}
+      # The beta channel must build too; this fixture tag is never published.
+      - name: Build the beta channel
+        run: npm run build -- --channel=beta --beta-tag=beta-v0.0.0.1
         env:
           PLASMO_PUBLIC_API_URL: ${{ inputs.api-url }}
           PLASMO_PUBLIC_API_HOST: ${{ inputs.api-host }}

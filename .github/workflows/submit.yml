@@ -15,6 +15,7 @@ jobs:
     with:
       api-url: ${{ vars.PLASMO_PUBLIC_API_URL }}
       api-host: ${{ vars.PLASMO_PUBLIC_API_HOST }}
+      browser: true
 
   publish:
     needs: verify

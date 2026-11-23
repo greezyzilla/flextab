@@ -1,0 +1,9 @@
+#!/bin/sh
+# Rejects a commit message that is not a Conventional Commit (TASK-116), before
+# the commit exists: history is never rewritten, so a bad subject cannot be fixed later.
+# Enable once per clone: npm run setup-hooks
+if ! command -v node >/dev/null 2>&1; then
+  echo "commit-msg: node not found, Conventional Commit check skipped (CI still checks)." >&2
+  exit 0
+fi
+exec node "$(git rev-parse --show-toplevel)/scripts/check-commits.mjs" --message-file="$1"

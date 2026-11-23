@@ -5,15 +5,39 @@ QA-01 contract, reviewed 2026-10-19. Run with pinned Node 24.14.0/npm 11.9.0:
 ```sh
 npm ci
 npx playwright install chromium   # once per machine: browser-mode tests
+npm run setup-hooks               # once per clone: Conventional Commit check on commit
 npm run typecheck
-npm run test:coverage -- --run
+npm run test:coverage -- --run    # both projects; npm run test:browser runs the browser one alone
 # Supply the public API configuration described in RELEASING.md.
 npm run build:zip -- --channel=stable
 ```
 
-The reusable verification workflow runs these gates before producing a release
-ZIP. PR/main CI and manual submission share it. A type error, failed test or
-coverage regression blocks the build/publish dependency. Coverage reports are
+## Where each suite runs
+
+CI stays light so a push answers in about two minutes (TASK-116): the browser
+install and browser-mode tests run locally and before anything is published.
+
+| Check | Push to main/dev, PR (`ci.yml`) | Release (`submit.yml`, later the release workflows) | Locally |
+| --- | --- | --- | --- |
+| Typecheck | yes | yes | `npm run typecheck` |
+| jsdom unit tests + coverage gates | yes (`--project unit`) | yes | `npm run test:coverage -- --run` |
+| Browser-mode tests (Chromium) | no | yes (`browser: true`) | `npm run test:browser` |
+| Stable and beta builds | yes | yes | `npm run build -- --channel=...` |
+| Actions pinned to commit SHAs | yes (`check-actions-pinned.mjs`) | n/a | same script |
+| Conventional Commits | yes, each commit in the push or PR (`check-commits.mjs`) | n/a | `commit-msg` hook after `npm run setup-hooks` |
+
+The coverage numbers are the same with or without the browser project: it
+measures none of the covered files. The commit check lists the six commits made
+before it in `EXEMPT`, because history is never rewritten.
+
+Dependencies update through Dependabot (`.github/dependabot.yml`): monthly, one
+grouped PR per ecosystem (npm, GitHub Actions) to `dev`, and only for versions
+published at least 7 days earlier. External actions stay pinned to SHAs;
+Dependabot updates the SHA and its version comment.
+
+The reusable verification workflow (`verify.yml`) runs these gates before
+producing a release ZIP. PR/push CI and manual submission share it. A type
+error, failed test or coverage regression blocks the build/publish dependency. Coverage reports are
 uploaded even when the coverage step fails, if a report was produced. This
 does not establish GitHub branch protection; repository settings are separate.
 
@@ -29,7 +53,8 @@ TASK-68): every Badge variant and every duplicate-mark tone stays at or above
 x colour intensity (step 25) x group tint, on the page, a panel, and tab rows at
 rest and hovered on plain, Unsorted and every group colour's card. It needs a
 real engine because the tokens use oklch relative colours, color-mix and
-translucent fills. CI installs Chromium before the tests (verify.yml).
+translucent fills. Chromium is installed only when `verify.yml` runs with
+`browser: true` (release workflows), never on push or PR CI.
 
 ## Typecheck scope
 
