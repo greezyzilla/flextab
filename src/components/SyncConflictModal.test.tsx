@@ -39,7 +39,7 @@ describe("SyncConflictModal", () => {
     useSyncConflict.getState().open([], [space("kept", ["A", "B"])])
     render(<SyncConflictModal />)
     expect(screen.getByRole("alertdialog")).toHaveTextContent("tabs from an earlier sign-in")
-    expect(within(column("In this account")).getByText("Empty. Nothing in this account yet.")).toBeInTheDocument()
+    expect(within(column("In this account")).getByText("No tabs in this account yet.")).toBeInTheDocument()
     expect(screen.getAllByRole("radio")).toHaveLength(2)
     expect(screen.getByRole("radio", { name: /Add this device's tabs to this account/ })).toBeChecked()
     expect(screen.queryByRole("button", { name: "Download this device's tabs first" })).not.toBeInTheDocument()

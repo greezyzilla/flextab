@@ -67,7 +67,7 @@ export function SyncConflictModal() {
       {/* The two sides scroll on their own, so the choices and the footer stay in view (§3). */}
       <div className="grid min-h-28 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)_minmax(0,1fr)] gap-3 sm:grid-cols-2 sm:grid-rows-[minmax(0,1fr)]">
         <SourceColumn title="On this device" spaces={local} removed={deviceRemoved} inBoth={inBoth} emptyText="No tabs on this device." />
-        <SourceColumn title="In this account" spaces={server} removed={accountRemoved} inBoth={inBoth} emptyText="Empty. Nothing in this account yet." />
+        <SourceColumn title="In this account" spaces={server} removed={accountRemoved} inBoth={inBoth} emptyText="No tabs in this account yet." />
       </div>
 
       <div className="flex shrink-0 flex-col gap-2">
