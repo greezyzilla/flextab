@@ -21,7 +21,7 @@ const createSlotVariants = cva(
   {
     variants: {
       size: {
-        sidebar: "gap-2 rounded-md py-[5px] pl-[23px] pr-[7px] font-sans text-item focus-visible:ring-1 focus-visible:ring-ring",
+        sidebar: "gap-2 rounded-md py-[5px] pl-[27px] pr-[7px] font-sans text-item focus-visible:ring-1 focus-visible:ring-ring",
         dialog: "gap-2 rounded-md px-[7px] py-[3px] text-xs focus-visible:ring-1 focus-visible:ring-ring",
         panel: "min-h-9 gap-3 rounded-popup-item px-[7px] text-popup focus-visible:ring-2 focus-visible:ring-ring",
       },

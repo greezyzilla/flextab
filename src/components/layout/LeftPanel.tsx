@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { PANEL_HEADER, PANEL_TITLE, PANEL_LIST, PANEL_ROW, PanelFooter, AppVersion } from "./panelChrome";
-import { TreeRowButton } from "../ui/tree-row-button";
+import { TreeRowButton, TREE_ROW_FOCUS } from "../ui/tree-row-button";
 import { ChevronRight, GripVertical } from "lucide-react"
 import { Icon } from "~src/components/ui/icon"
 import { cn } from "~src/lib/utils"
@@ -43,7 +43,8 @@ function NewProjectSlot({ onClick }: { onClick: () => void }) {
     // No top margin of its own: the last project block's mb-1 spaces it like a
     // row, so the slot, the name row that replaces it and the project it
     // creates all sit at the same y (TASK-62; mt-3 made the field jump 8px).
-    <div className="mx-2 pl-1 pr-2">
+    // The tree rows' box (mx-2, TASK-120): the slot's edges are the rows' edges; its + stays 28px in.
+    <div className="mx-2">
       <ShortcutTooltip label="New project" shortcut="Shift+N">
       <CreateSlot size="sidebar" onClick={onClick}>New project</CreateSlot>
       </ShortcutTooltip>
@@ -72,13 +73,13 @@ function CreateRow({ kind, onCommit, onCancel }: {
   const project = kind === "project";
   // TASK-62: the name sits in the label column and the row is as tall as the
   // rows around it. A new project replaces the "New project…" slot, so its
-  // frame IS the slot's box (mx-2 pl-1 pr-2; icon 24px in, py-1.5 = the slot's
-  // 1px border + 5px): the dashed edge turns solid in place. A new category
+  // frame IS the slot's box (mx-2, the tree rows' box; icon 28px in, py-1.5 = the
+  // slot's 1px border + 5px): the dashed edge turns solid in place (TASK-120). A new category
   // is inserted by the project's +, so its frame is the category row's box
   // (mx-2, pl-7 py-1.5 label), the same shape as a selected category.
   return (
-    <div className={project ? "mx-2 pl-1 pr-2" : `flex items-center gap-1 mx-2 pr-1 text-fg-muted ${inlineEditFrame}`}>
-      <div className={`flex-1 min-w-0 flex items-center gap-2 text-item ${project ? `pl-6 pr-2 py-1.5 font-medium text-fg-muted ${inlineEditFrame}` : "pl-7 pr-1 py-1.5"}`}>
+    <div className={project ? "mx-2" : `flex items-center gap-1 mx-2 pr-1 text-fg-muted ${inlineEditFrame}`}>
+      <div className={`flex-1 min-w-0 flex items-center gap-2 text-item ${project ? `pl-7 pr-2 py-1.5 font-medium text-fg-muted ${inlineEditFrame}` : "pl-7 pr-1 py-1.5"}`}>
         {project
           ? <ProjectIcon size="sm" className="text-fg-subtle" />
           : <CategoryIcon size="xs" />}
@@ -336,7 +337,7 @@ export function LeftPanel() {
                     spaceId={currentSpace.id}
                     projectId={project.id}
                   >
-                    <div className={`group/proj flex items-center gap-1 ${PANEL_ROW} ${
+                    <div className={`group/proj flex items-center gap-1 ${PANEL_ROW} ${TREE_ROW_FOCUS} ${
                       renamingId === project.id ? `text-fg ${inlineEditFrame}` :
                       activeProjectId === project.id ? 'text-fg' : 'text-fg-muted hover:bg-ink/[0.04]'
                     }`}>
@@ -439,7 +440,7 @@ export function LeftPanel() {
                               </div>
                             ) : (
                               <div
-                                className={`group/cat flex items-center gap-1 mx-2 pr-1 rounded-md transition-colors ${
+                                className={`group/cat flex items-center gap-1 mx-2 pr-1 rounded-md transition-colors ${TREE_ROW_FOCUS} ${
                                   isActive ? 'text-fg' : 'text-fg-muted hover:text-fg hover:bg-ink/[0.04]'
                                 }`}
                                 style={isActive ? { backgroundColor: 'var(--accent-subtle)' } : undefined}

@@ -120,8 +120,8 @@ export function ShellSkeletonView({ shape: stored, leftInline, rightInline }: { 
                 )}
               </div>
             ))}
-            {/* New project…, under the tree. */}
-            <div className="mx-2 pl-1 pr-2"><Skeleton width="100%" height={32} round="md" tone="faint" /></div>
+            {/* New project…, under the tree, on the rows' box (TASK-120). */}
+            <div className="mx-2"><Skeleton width="100%" height={32} round="md" tone="faint" /></div>
           </div>
           {/* The panel footer (PanelFooter): the version on the left (a text line), Shortcuts on the right. */}
           <div className="flex items-center justify-between gap-2 border-t border-line px-4 py-2">

@@ -127,3 +127,17 @@ describe("the workspace panel footer (TASK-109)", () => {
     expect(screen.getByRole("button", { name: /Shortcuts/ })).toBeInTheDocument()
   })
 })
+
+describe("tree rows share one box (TASK-120)", () => {
+  it("the focus ring is on each row's own box, not on its label, and New project sits on the same box", () => {
+    useSavedSpacesStore.setState({ expandedProjectIds: ["p1"] })
+    setup()
+    for (const name of ["Site", "Research"]) {
+      const label = row(name)
+      expect(label.className).not.toMatch(/focus-visible:ring/)
+      expect(label.parentElement!.className).toContain("has-[[data-tree-row]:focus-visible]:ring-1")
+      expect(label.parentElement!.className).toContain("mx-2")
+    }
+    expect(screen.getByRole("button", { name: /^New project/ }).closest("div.mx-2")!.className).toBe("mx-2")
+  })
+})
