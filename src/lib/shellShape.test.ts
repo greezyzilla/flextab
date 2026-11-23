@@ -97,3 +97,49 @@ describe("fitToScreen (TASK-106)", () => {
     expect(fitToScreen(small, 900)).toEqual(small);
   });
 });
+
+describe("a stored shell shape that is not usable is dropped", () => {
+  const good = { spaces: 1, windows: [2], projects: [{ open: true, categories: [1] }], active: [0, 0], content: null };
+
+  it.each([
+    ["a project without its open flag", { projects: [{ categories: [1] }] }],
+    ["a project with bad category counts", { projects: [{ open: true, categories: [-1] }] }],
+    ["anyTabs that is not a boolean", { anyTabs: "yes" }],
+    ["a selection that is not two counts", { active: [0] }],
+    ["content with an unknown layout", { content: { layout: "masonry", gridColumns: 2, projectHasGroups: true, sections: [] } }],
+  ])("rejects %s", (_, change) => {
+    localStorage.setItem(SHELL_SHAPE_STORAGE_KEY, JSON.stringify({ ...good, ...change }))
+    expect(readStoredShellShape()).toBeNull()
+  })
+
+  it("accepts the same shape when it is whole", () => {
+    localStorage.setItem(SHELL_SHAPE_STORAGE_KEY, JSON.stringify({ ...good, anyTabs: true }))
+    expect(readStoredShellShape()).toMatchObject({ spaces: 1, anyTabs: true })
+  })
+
+  it("keeps working when storage refuses the write", () => {
+    const setItem = Storage.prototype.setItem
+    Storage.prototype.setItem = () => { throw new Error("quota") }
+    try {
+      expect(() => storeShellShape({ spaces: 3 })).not.toThrow()
+    } finally { Storage.prototype.setItem = setItem }
+  })
+})
+
+describe("workspaceShape edges", () => {
+  it("draws no projects when the selected space is gone", () => {
+    const shape = workspaceShape({ savedSpaces: spaces, activeSpaceId: "missing", activeProjectId: null, activeCategoryId: null, expandedProjectIds: [] }, "list", 2)
+    expect(shape.projects).toEqual([])
+    expect(shape.content).toBeNull()
+  })
+
+  it("falls back to two grid columns and orders items without an order first", () => {
+    const unordered = [{ ...spaces[0], projects: [
+      { id: "pa", name: "A", order: 1, categories: [{ id: "ca", name: "C", order: 0, groups: [{ id: "g", name: "G", tabs: [] }] }] },
+      { id: "pb", name: "B", categories: [{ id: "cb", name: "D", groups: [] }] },
+    ] }] as unknown as SavedSpace[]
+    const shape = workspaceShape({ savedSpaces: unordered, activeSpaceId: "s1", activeProjectId: "pa", activeCategoryId: "ca", expandedProjectIds: ["pb"] }, "grid", 0)
+    expect(shape.content?.gridColumns).toBe(2)
+    expect(shape.projects[0].open).toBe(true) // pb, with no order, sorts first
+  })
+})

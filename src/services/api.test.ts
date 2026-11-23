@@ -2,7 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   apiFetch, pushSync, fetchSyncRevision, apiLogin, apiChangePassword,
   getAuthUrl, getDeviceId, loadTokens, saveTokens, clearTokens, ApiError, RefreshUnavailableError,
-  waitForTokenRefresh,
+  waitForTokenRefresh, getOAuthUrl, apiGetAuthProviders, apiGetSignInOptions, apiRegister, apiResendVerification,
+  apiForgotPassword, apiUpdateProfile, apiListIdentities, apiUnbindIdentity, apiGetBindUrl, apiGetPlan,
+  apiGetCheckoutUrl, apiGetTransactions, apiGetSettings, apiPutSettings, apiLogout,
 } from './api';
 import { onServerReachable, isServerAnswer, noteServerResponse } from './serverReachable';
 
@@ -433,5 +435,116 @@ describe('pushSync resolution mark', () => {
     (global.fetch as any).mockImplementation(async () => { mark = 43; return res({ revision: 8 }); });
     await pushSync([{ id: 's' }], 7);
     expect(chrome.storage.local.remove).not.toHaveBeenCalled();
+  });
+});
+
+describe('endpoint contracts the BE answers (coverage gate)', () => {
+  const call = (i = 0) => {
+    const [url, opts = {}] = (global.fetch as any).mock.calls[i];
+    return { path: String(url).replace(/^https?:\/\/[^/]+/, ''), method: opts.method ?? 'GET', body: opts.body ? JSON.parse(opts.body) : undefined, headers: opts.headers ?? {} };
+  };
+
+  it('builds the OAuth sign-in URL per provider', () => {
+    expect(getOAuthUrl('github')).toMatch(/\/api\/auth\/github$/);
+  });
+
+  it('reads the sign-in options, with safe defaults for a bare answer', async () => {
+    (global.fetch as any).mockResolvedValueOnce(res({ providers: ['google', 'github'], email_signup: true }));
+    expect(await apiGetSignInOptions()).toEqual({ providers: ['google', 'github'], emailSignup: true });
+    (global.fetch as any).mockResolvedValueOnce(res({}));
+    expect(await apiGetSignInOptions()).toEqual({ providers: [], emailSignup: false });
+    (global.fetch as any).mockResolvedValueOnce(res({ providers: ['google'] }));
+    expect(await apiGetAuthProviders()).toEqual(['google']);
+    (global.fetch as any).mockResolvedValueOnce(res({}));
+    expect(await apiGetAuthProviders()).toEqual([]);
+    expect(call().path).toBe('/api/auth/providers');
+  });
+
+  it.each([
+    ['apiRegister', () => apiRegister('a@b.c', 'pw'), '/api/auth/register', { email: 'a@b.c', password: 'pw' }],
+    ['apiResendVerification', () => apiResendVerification('a@b.c'), '/api/auth/verification/resend', { email: 'a@b.c' }],
+    ['apiForgotPassword', () => apiForgotPassword('a@b.c'), '/api/auth/password/forgot', { email: 'a@b.c' }],
+  ])('%s posts to its public endpoint without a token', async (_, run, path, body) => {
+    (global.fetch as any).mockResolvedValueOnce(res({ status: 'sent' }));
+    expect(await run()).toEqual({ status: 'sent' });
+    expect(call()).toMatchObject({ path, method: 'POST', body });
+    expect(call().headers.Authorization).toBeUndefined();
+  });
+
+  it('keeps the server code and wait time when a public auth call is refused', async () => {
+    (global.fetch as any).mockResolvedValueOnce({ ok: false, status: 429, statusText: 'Too Many', headers: new Headers({ 'Retry-After': '30' }), json: async () => ({ error: 'Slow down', code: 'rate_limited' }) });
+    await expect(apiRegister('a@b.c', 'pw')).rejects.toMatchObject({ status: 429, message: 'Slow down', code: 'rate_limited', retryAfter: 30 });
+    (global.fetch as any).mockResolvedValueOnce({ ok: false, status: 400, statusText: 'Bad Request', headers: new Headers(), json: async () => null });
+    await expect(apiForgotPassword('x')).rejects.toMatchObject({ status: 400, message: 'Bad Request', retryAfter: undefined });
+  });
+
+  it.each([
+    ['apiUpdateProfile', () => apiUpdateProfile('Ana'), {}, '/api/me', 'PATCH', { name: 'Ana' }, undefined],
+    ['apiListIdentities', () => apiListIdentities(), { identities: [], has_password: true }, '/api/me/identities', 'GET', undefined, { identities: [], has_password: true }],
+    ['apiUnbindIdentity', () => apiUnbindIdentity('github'), {}, '/api/me/identities/github', 'DELETE', undefined, undefined],
+    ['apiGetBindUrl', () => apiGetBindUrl('github'), { url: 'https://bind' }, '/api/auth/github/bind', 'GET', undefined, 'https://bind'],
+    ['apiGetPlan', () => apiGetPlan(), { plan: 'free' }, '/api/plan', 'GET', undefined, { plan: 'free' }],
+    ['apiGetCheckoutUrl', () => apiGetCheckoutUrl(), { url: 'https://pay' }, '/api/billing/checkout', 'POST', { plan: 'pro' }, 'https://pay'],
+    ['apiGetCheckoutUrl plus', () => apiGetCheckoutUrl('plus'), { url: 'https://pay' }, '/api/billing/checkout', 'POST', { plan: 'plus' }, 'https://pay'],
+    ['apiGetTransactions', () => apiGetTransactions(), { transactions: [{ id: 't' }] }, '/api/billing/transactions', 'GET', undefined, [{ id: 't' }]],
+    ['apiGetTransactions bare', () => apiGetTransactions(), {}, '/api/billing/transactions', 'GET', undefined, []],
+    ['apiGetSettings', () => apiGetSettings(), { hue: 30 }, '/api/settings', 'GET', undefined, { hue: 30 }],
+    ['apiPutSettings', () => apiPutSettings({ hue: 30 }), {}, '/api/settings', 'PUT', { hue: 30 }, undefined],
+  ])('%s calls its signed-in endpoint', async (_, run, answer, path, method, body, result) => {
+    await validToken();
+    (global.fetch as any).mockResolvedValueOnce(res(answer));
+    expect(await run()).toEqual(result);
+    expect(call()).toMatchObject({ path, method, ...(body ? { body } : {}) });
+    expect(call().headers.Authorization).toBe('Bearer tok');
+  });
+});
+
+describe('answers with an empty (null) JSON body', () => {
+  const nullBody = (status: number) => ({ ok: status < 300, status, statusText: 'Status text', headers: new Headers(), json: async () => null } as unknown as Response);
+
+  it('apiFetch falls back to the status text', async () => {
+    await validToken();
+    (global.fetch as any).mockResolvedValueOnce(nullBody(500));
+    await expect(apiFetch('/x')).rejects.toMatchObject({ status: 500, message: 'Status text' });
+  });
+
+  it('apiLogin falls back to the status text', async () => {
+    (global.fetch as any).mockResolvedValueOnce(nullBody(400));
+    await expect(apiLogin('e', 'p')).rejects.toMatchObject({ status: 400, message: 'Status text' });
+  });
+
+  it('pushSync without a base revision: conflict at 0, ok at 1, a bare forbidden is an error', async () => {
+    await validToken();
+    (global.fetch as any).mockResolvedValueOnce(nullBody(409));
+    expect(await pushSync([], null as unknown as number)).toEqual({ status: 'conflict', revision: 0, spaces: [] });
+    (global.fetch as any).mockResolvedValueOnce(nullBody(200));
+    expect(await pushSync([], null as unknown as number)).toEqual({ status: 'ok', revision: 1 });
+    (global.fetch as any).mockResolvedValueOnce(nullBody(403));
+    expect(await pushSync([], 1)).toEqual({ status: 'error' });
+  });
+
+  it('pushSync names a plan limit even when the server sends no message', async () => {
+    await validToken();
+    (global.fetch as any).mockResolvedValueOnce(res({ code: 'plan_limit_exceeded' }, 403));
+    expect(await pushSync([], 1)).toEqual({ status: 'limit', message: 'Plan limit reached', limit: undefined, cap: undefined, got: undefined });
+  });
+});
+
+describe('sign-out and session expiry edges', () => {
+  it('apiLogout does nothing without a session and ignores being offline', async () => {
+    await apiLogout();
+    expect(global.fetch).not.toHaveBeenCalled();
+    await validToken();
+    (global.fetch as any).mockRejectedValueOnce(new Error('offline'));
+    await expect(apiLogout()).resolves.toBeUndefined();
+    expect((global.fetch as any).mock.calls[0][0]).toContain('/api/auth/logout');
+  });
+
+  it('a refused refresh still signs out when the expiry note cannot be written', async () => {
+    await saveTokens({ access_token: 'old', refresh_token: 'rt', expires_at: past() });
+    (chrome.storage.local.set as any).mockRejectedValueOnce(new Error('disk'));
+    (global.fetch as any).mockResolvedValueOnce(res({}, 401));
+    await expect(apiFetch('/x')).rejects.toMatchObject({ status: 401 });
+    expect(chrome.storage.local.remove).toHaveBeenCalledWith('auth_tokens');
   });
 });

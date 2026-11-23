@@ -61,3 +61,26 @@ describe("tab icon copy (TASK-107)", () => {
     localStorage.clear(); document.head.innerHTML = ""
   })
 })
+
+describe("the icon takes any accent hue (every colour sector)", () => {
+  // FlexTab blue sits at hue ~221; each accent moves it by (accent - 214).
+  it.each([0, 50, 100, 160, 220, 280, 340])("tints FlexTab blue towards accent %i", (accent) => {
+    const p = px(37, 99, 235, 255)
+    const expected = (((hueOf(p) + accent - 214) % 360) + 360) % 360
+    tintPixels(p, accent, 100)
+    const got = hueOf(p)
+    expect(Math.min(Math.abs(got - expected), 360 - Math.abs(got - expected))).toBeLessThanOrEqual(2)
+  })
+
+  it.each([
+    ["a red pixel", [220, 40, 60]],
+    ["a red pixel leaning blue", [220, 40, 120]],
+    ["a green pixel", [40, 200, 60]],
+  ])("keeps the hue distance for %s", (_, rgb) => {
+    const p = px(...rgb, 255)
+    const before = hueOf(p)
+    tintPixels(p, 244, 100) // +30
+    const got = hueOf(p), expected = (before + 30) % 360
+    expect(Math.min(Math.abs(got - expected), 360 - Math.abs(got - expected))).toBeLessThanOrEqual(2)
+  })
+})

@@ -68,3 +68,55 @@ describe('useSettingsStore', () => {
     expect(chrome.storage.local.set).toHaveBeenCalled();
   });
 });
+
+describe('settings saved by older versions migrate', () => {
+  const migrate = (persisted: unknown, version: number) =>
+    useSettingsStore.persist.getOptions().migrate!(structuredClone(persisted), version) as unknown as Record<string, unknown>;
+
+  it.each([
+    ['#00ff00', 120], ['#0000ff', 240], ['#ff0000', 0], ['#ff00ff', 300], ['ff8000', 30],
+    ['#808080', 214], ['not a colour', 214],
+  ])('turns a v0 custom accent %s into hue %i', (customAccent, hue) => {
+    const s = migrate({ customAccent, accentColor: 'blue' }, 0);
+    expect(s.hue).toBe(hue);
+    expect(s).not.toHaveProperty('customAccent');
+    expect(s).not.toHaveProperty('accentColor');
+  });
+
+  it.each([['purple', 262], ['cyan', 190], ['mauve', 214]])('turns a v0 preset %s into hue %i', (accentColor, hue) => {
+    expect(migrate({ accentColor }, 0).hue).toBe(hue);
+  });
+
+  it('keeps a v0 record without any accent as it is', () => {
+    expect(migrate({ density: 'compact' }, 0)).toEqual({ density: 'compact', intensity: 100 });
+  });
+
+  it('turns a v1 surface tint into full colour intensity, keeping a chosen intensity', () => {
+    expect(migrate({ bgTint: 8 }, 1)).toEqual({ intensity: 100 });
+    expect(migrate({ bgTint: 8, intensity: 40 }, 1)).toEqual({ intensity: 40 });
+  });
+
+  it('leaves a current or empty record alone', () => {
+    expect(migrate({ hue: 10, bgTint: 3 }, 2)).toEqual({ hue: 10, bgTint: 3 });
+    expect(migrate(null, 0)).toBeNull();
+  });
+});
+
+describe('settings changes from other pages that are not for this store', () => {
+  const fire = (changes: Record<string, unknown>, area: string) => {
+    for (const [listener] of vi.mocked(chrome.storage.onChanged.addListener).mock.calls) listener(changes as never, area as never);
+  };
+
+  it.each([
+    ['another storage area', { 'flextab-settings': { newValue: '{"state":{"hue":1}}' } }, 'sync'],
+    ['a removed record', { 'flextab-settings': { oldValue: '{}' } }, 'local'],
+    ['a record without state', { 'flextab-settings': { newValue: '{"version":2}' } }, 'local'],
+    ['a malformed record', { 'flextab-settings': { newValue: '{not json' } }, 'local'],
+  ])('ignores %s', (_, changes, area) => {
+    const rehydrate = vi.spyOn(useSettingsStore.persist, 'rehydrate');
+    try {
+      expect(() => fire(changes, area)).not.toThrow();
+      expect(rehydrate).not.toHaveBeenCalled();
+    } finally { rehydrate.mockRestore(); }
+  });
+});

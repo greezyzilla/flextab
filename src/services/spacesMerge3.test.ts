@@ -453,3 +453,18 @@ describe("merge3 — order (TASK-64)", () => {
     expect(merge3(tree(["s", "t", "u"]), tree(["s", "t", "u"]), tree(["u", "s", "t"])).merged.map((x) => x.id)).toEqual(["u", "s", "t"]);
   });
 });
+
+describe("merge3 — records missing optional fields (synced from older clients)", () => {
+  it("names a conflicting tab by its URL when it has no title", () => {
+    const untitled = (url: string) => ({ id: "t", url, favicon: "", order: 0 }) as unknown as ReturnType<typeof tab>;
+    const r = merge3(wrap([grp("g", "G", [untitled("https://a")])]), wrap([grp("g", "G", [untitled("https://b")])]), wrap([grp("g", "G", [untitled("https://c")])]));
+    expect(r.conflicts).toEqual([expect.objectContaining({ kind: "field", field: "url", name: "https://b" })]);
+  });
+
+  it("merges a space with no name and no project list on either side", () => {
+    const bare = { id: "s", order: 0 } as unknown as SavedSpace;
+    const r = merge3([bare], [{ ...bare }], [{ ...bare, color: "red" } as unknown as SavedSpace]);
+    expect(r.conflicts).toEqual([]);
+    expect(r.merged).toEqual([expect.objectContaining({ id: "s", color: "red", projects: [] })]);
+  });
+});
