@@ -86,7 +86,7 @@ describe("Move to… for projects and categories (TASK-59)", () => {
     expect(within(dialog).getAllByRole("radio").map((r) => r.closest("label")!.textContent)).toEqual(["Home"])
     await user.clear(find)
     await user.type(find, "zzz")
-    expect(within(dialog).getByText("No match.")).toBeInTheDocument()
+    expect(within(dialog).getByText("No results for “zzz”")).toBeInTheDocument()
   })
 
   it("gives each project and category row a drag handle on its icon that a plain click ignores", async () => {

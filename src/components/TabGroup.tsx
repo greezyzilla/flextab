@@ -524,7 +524,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
             </div>
           </SortableContext>
         ) : (
-          <EmptyDropRow isOver={false} label="No tabs yet. Drag tabs here." />
+          <EmptyDropRow isOver={false} label="Drag tabs here." />
         )}
     </div>
 

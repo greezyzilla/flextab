@@ -84,8 +84,8 @@ export function SettingsList({ label, busyLabel, loading, failed, empty, childre
   loading?: { label: string; rows?: number };
   /** Loading failed: a centred block with Try again (every reference offers a retry). */
   failed?: SettingsListState & { onRetry: () => void };
-  /** Nothing to list: a centred block that says what will appear here and when. */
-  empty?: SettingsListState;
+  /** Nothing to list: a centred block that says what will appear here and when, with an optional way to add the first. */
+  empty?: SettingsListState & { action?: ReactNode };
   children?: ReactNode;
 }) {
   const tile = useContext(TileRows);

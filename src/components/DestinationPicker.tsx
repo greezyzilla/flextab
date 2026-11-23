@@ -170,7 +170,7 @@ export function DestinationPicker({ value, onChange, maxHeightClass, groupLevel 
         className={`${maxHeightClass ?? (P ? "max-h-popup-list" : "max-h-60")} overflow-y-auto ${P ? "rounded-popup bg-ink/[0.04] py-1.5" : "rounded-md border border-ink/10 bg-ink/[0.02] py-1"}`}
       >
         {visible.length === 0 && (
-          <div className={`px-3 py-3 ${P ? "text-item" : "text-xs"} text-fg-subtle`}>No match.</div>
+          <div className={`px-3 py-3 ${P ? "text-item" : "text-xs"} text-fg-subtle`}>No results for “{query.trim()}”</div>
         )}
         {visible.map((space) => (
           <div key={space.id} className={P ? "relative py-0.5" : "py-0.5"}>

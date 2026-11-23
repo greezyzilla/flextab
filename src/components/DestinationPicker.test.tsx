@@ -69,7 +69,7 @@ describe("DestinationPicker panel size (TASK-72)", () => {
     expect(screen.getByRole("radio", { name: "React 19" })).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: /^New / })).not.toBeInTheDocument()
     fireEvent.change(screen.getByRole("searchbox", { name: "Find a destination" }), { target: { value: "zzz" } })
-    expect(screen.getByText("No match.")).toBeInTheDocument()
+    expect(screen.getByText("No results for “zzz”")).toBeInTheDocument()
   })
 
   it("names a new group, category or project inline at panel size", () => {

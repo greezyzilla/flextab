@@ -63,7 +63,7 @@ export function ProfileTab() {
     <SettingsPage>
       <SignOutDialog open={signOutOpen} onOpenChange={setSignOutOpen} />
       <SettingsSection title="Signed in as" icon={AtSign} subtitle="The account this device uses.">
-      <SettingsList label="Signed in as" empty={user ? undefined : { title: "Not signed in.", says: "Sign in to back up and sync your tabs across devices." }}>
+      <SettingsList label="Signed in as" empty={user ? undefined : { title: "Not signed in", says: "Sign in to back up and sync your tabs across devices." }}>
         {user && (
           <SettingsListRow
             mark={user.avatar

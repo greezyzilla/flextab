@@ -192,14 +192,13 @@ function NewGroupRow({ categoryName, onCommit, onCancel }: {
  * The row inside an empty category (no groups yet). The drop zone is the whole
  * section (CategorySection), so a tab or group dropped anywhere on it, header
  * included, lands here; this row shows where. While the whole workspace is
- * still empty (first run, TASK-7) it is also the guidance: where to drag from,
- * one real save action, and the shortcut. It goes away by itself once anything
+ * still empty (first run, TASK-7) it is also the guidance: where to drag from
+ * and the shortcut. Its save action is the header's Save all tabs, already in
+ * view, so the row draws no second one. It goes away by itself once anything
  * is saved, so it needs no dismiss.
  */
-function EmptySectionDrop({ location, isOver }: { location: GroupLocation; isOver: boolean }) {
+function EmptySectionDrop({ isOver }: { isOver: boolean }) {
   const firstRun = useSavedSpacesStore((s) => !spacesHaveTabs(s.savedSpaces));
-  const { setActiveCategory } = useSavedSpacesStore();
-  const setSaveAllOpen = useUIStore((s) => s.setSaveAllOpen);
   // The keys as set in Chrome now; no sentence when the command was cleared.
   const savePage = useCommandShortcuts(firstRun)["save-page"];
   if (!firstRun || isOver) {
@@ -209,7 +208,7 @@ function EmptySectionDrop({ location, isOver }: { location: GroupLocation; isOve
   }
   return (
     <div
-      className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-lg border border-dashed border-ink/[0.12] font-sans"
+      className="flex flex-col justify-center rounded-lg border border-dashed border-ink/[0.12] font-sans"
       style={{ padding: 'var(--density-p-group) var(--density-px-tab)' }}
     >
       <div className="flex flex-col gap-1">
@@ -219,15 +218,6 @@ function EmptySectionDrop({ location, isOver }: { location: GroupLocation; isOve
         </span>
         {savePage && <span className="text-fg-subtle text-xs">Or press {shortcutLabel(savePage)} on any page to save it.</span>}
       </div>
-      <ShortcutTooltip label="Save all tabs" shortcut="Mod+Shift+S" side="top">
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => { setActiveCategory(location.categoryId); setSaveAllOpen(true); }}
-        >
-          Save all tabs
-        </Button>
-      </ShortcutTooltip>
     </div>
   );
 }
@@ -335,7 +325,7 @@ function CategorySection({ space, project, category, layout, gridColumns, isCurr
         </SortableContext>
       ) : !unsorted && !naming && (
         <div className="px-6" style={{ paddingTop: 'var(--density-p-section)' }}>
-          <EmptySectionDrop location={location} isOver={dropLit} />
+          <EmptySectionDrop isOver={dropLit} />
         </div>
       )}
       {/* Section end space (2G) as content, not padding: sticky stays within

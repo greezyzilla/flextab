@@ -53,7 +53,7 @@ export function MoveContainerDialog({ kind, name, current, onConfirm, onClose }:
             onChange={(e) => setQuery(e.target.value)}
           />
           <div role="radiogroup" aria-label={`Destination ${where}`} className="max-h-60 overflow-y-auto rounded-md border border-ink/10 bg-ink/[0.02] py-1">
-            {visible.length === 0 && <div className="px-3 py-3 text-xs text-fg-subtle">No match.</div>}
+            {visible.length === 0 && <div className="px-3 py-3 text-xs text-fg-subtle">No results for “{query.trim()}”</div>}
             {visible.map(({ space, projects }) => kind === "project" ? (
               <Choice
                 key={space.id}

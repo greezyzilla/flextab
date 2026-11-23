@@ -193,18 +193,17 @@ describe("empty states create in place", () => {
     expect(screen.queryByText(/on any page to save it/)).not.toBeInTheDocument()
   })
 
-  it("guides a first run from the empty section, with one real save action (TASK-7)", async () => {
+  it("guides a first run from the empty section, and leaves saving to the header's one Save all tabs (TASK-7)", async () => {
     yjs.setSpaces([{ id: "s", name: "Work", order: 0, projects: [{ id: "p", name: "Site", order: 0, categories: [
       { id: "c", name: "Research", order: 0, groups: [] },
       { id: "c2", name: "Design", order: 1, groups: [] },
     ] }] }])
     useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces(), activeSpaceId: "s", activeProjectId: "p", activeCategoryId: "c", expandedProjectIds: ["p"] })
-    const user = setup()
+    setup()
     expect(await screen.findAllByText("Or press Alt+Shift+S on any page to save it.")).toHaveLength(2)
-    // [0] is the header's Save all tabs; then one per empty section.
-    await user.click(screen.getAllByRole("button", { name: "Save all tabs" })[2])
-    expect(useSavedSpacesStore.getState().activeCategoryId).toBe("c2")
-    expect(useUIStore.getState().saveAllOpen).toBe(true)
+    expect(screen.getAllByText("Drag tabs here from Opened Tabs")).toHaveLength(2)
+    // No second Save all tabs inside the rows: the header's is already in view.
+    expect(screen.getAllByRole("button", { name: "Save all tabs" })).toHaveLength(1)
   })
 
   it("keeps an empty section to one quiet line once the workspace holds tabs", () => {

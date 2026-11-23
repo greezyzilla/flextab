@@ -105,7 +105,7 @@ export function DevicesList() {
       label="Devices"
       failed={failed ? { title: "Couldn't load devices.", says: "Check your connection, then try again.", onRetry: load } : undefined}
       loading={devices === null ? { label: "Loading devices", rows: 2 } : undefined}
-      empty={devices?.length === 0 ? { title: "No devices recorded yet.", says: "Each browser you sign in on shows up here." } : undefined}
+      empty={devices?.length === 0 ? { title: "No devices recorded yet", says: "Each browser you sign in on shows up here." } : undefined}
     >
       {devices?.map(d => (
         <SettingsListRow

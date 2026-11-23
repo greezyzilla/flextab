@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { useUIStore } from "~src/store/useUIStore"
 import { act, render as rtlRender, screen, waitFor, within } from "@testing-library/react"
 import { TooltipProvider as TestTooltipProvider } from "~src/components/ui/tooltip"
 // jsdom has no ResizeObserver; tabbing onto an info mark opens its tooltip, whose Radix popper measures with it.
@@ -131,7 +132,12 @@ describe("Settings › Spaces", () => {
     await user.click(screen.getByRole("button", { name: "Delete space" }))
     expect(yjs.getSpaces()).toEqual([])
     expect(useSavedSpacesStore.getState().activeSpaceId).toBeNull()
-    expect(await screen.findByText("No spaces yet. Saving a tab creates one.")).toBeInTheDocument()
+    expect(await screen.findByText("No spaces yet")).toBeInTheDocument()
+    expect(screen.getByText("Saving a tab creates one, or make one now.")).toBeInTheDocument()
+    // New space opens the rail's name field (the same request Alt+N sends).
+    const before = useUIStore.getState().spaceNamingRequest
+    await user.click(screen.getByRole("button", { name: "New space" }))
+    expect(useUIStore.getState().spaceNamingRequest).toBe(before + 1)
 
     const undo = vi.mocked(showUndoToast).mock.calls[0][1] as () => void
     act(() => undo())

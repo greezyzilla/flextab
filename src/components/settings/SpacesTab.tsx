@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Icon } from "~src/components/ui/icon"
-import { ChevronDown, ChevronUp, ShieldAlert, SlidersHorizontal } from "lucide-react";
+import { Boxes, ChevronDown, ChevronUp, ShieldAlert, SlidersHorizontal } from "lucide-react";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
 import { useRoute, navigate } from "~src/lib/route";
 import { showUndoToast } from "~src/components/ui/sonner";
@@ -10,7 +10,8 @@ import { Input } from "~src/components/ui/input";
 import { SpaceAvatar } from "~src/components/levelIcons";
 import { Modal, ModalBody, ModalFooter, ModalHeader } from "~src/components/ui/modal";
 import type { SavedSpace } from "~src/types";
-import { SettingRow, SettingsPage, SettingsSection } from "./shared";
+import { SettingRow, SettingsList, SettingsPage, SettingsSection } from "./shared";
+import { useUIStore } from "~src/store/useUIStore";
 import { SETTINGS_ROUTE } from "./types";
 import { Swatch } from "~src/components/ui/swatch";
 import { SPACE_COLOURS } from "~src/lib/data-colours";
@@ -64,7 +65,19 @@ export function SpacesTab() {
   useEffect(() => { if (routeId && !routed) replaceRoute(SPACES_ROUTE); }, [routeId, routed]);
 
   if (sorted.length === 0 || !selected) {
-    return <p className="text-sm font-sans text-fg-subtle">No spaces yet. Saving a tab creates one.</p>;
+    // The Settings list's empty block, as every other empty list here; New space
+    // opens the rail's own name field, the one place a space is named.
+    return (
+      <SettingsPage>
+        <SettingsSection title="Spaces" icon={Boxes} subtitle="Spaces keep your tabs apart, like Work and Personal.">
+          <SettingsList label="Spaces" empty={{
+            title: "No spaces yet",
+            says: "Saving a tab creates one, or make one now.",
+            action: <Button variant="ghost" size="sm" onClick={() => useUIStore.getState().requestSpaceNaming()}>New space</Button>,
+          }} />
+        </SettingsSection>
+      </SettingsPage>
+    );
   }
 
   return (

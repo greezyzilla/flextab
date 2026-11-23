@@ -211,7 +211,7 @@ function HistoryTab() {
         label="Versions"
         failed={failed ? { title: "Couldn't load history.", says: "Check your connection, then try again.", onRetry: load } : undefined}
         loading={snapshots === null ? { label: "Loading versions" } : undefined}
-        empty={snapshots?.length === 0 ? { title: "No snapshots yet.", says: "They appear after your tabs sync." } : undefined}
+        empty={snapshots?.length === 0 ? { title: "No snapshots yet", says: "They appear after your tabs sync." } : undefined}
       >
         {snapshots?.map(s => (
           <SnapshotRow

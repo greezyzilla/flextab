@@ -45,7 +45,7 @@ export function TransactionsTab() {
         label="Payments"
         failed={failed ? { title: "Couldn't load transaction history.", says: "Check your connection, then try again.", onRetry: load } : undefined}
         loading={!txns ? { label: "Loading payments", rows: 2 } : undefined}
-        empty={txns?.length === 0 ? { title: "No transactions yet.", says: "Purchases and renewals show up here." } : undefined}
+        empty={txns?.length === 0 ? { title: "No transactions yet", says: "Purchases and renewals show up here." } : undefined}
       >
         {txns?.map(t => (
           <SettingsListRow
