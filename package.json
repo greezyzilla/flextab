@@ -18,6 +18,7 @@
     "test:ui": "vitest --ui",
     "test:browser": "vitest run --project browser",
     "setup-hooks": "git config core.hooksPath .githooks",
+    "check:permissions": "node scripts/check-permissions.mjs build/chrome-mv3-prod build/chrome-mv3-beta build/firefox-mv3-prod",
     "test:firefox": "node scripts/firefox-smoke.mjs",
     "lint:firefox": "npm ci --prefix tools/web-ext --ignore-scripts --no-audit --no-fund && tools/web-ext/node_modules/.bin/web-ext lint --source-dir build/firefox-mv3-prod",
     "test:coverage": "vitest --coverage"

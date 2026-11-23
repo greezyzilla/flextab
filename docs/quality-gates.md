@@ -24,6 +24,8 @@ install and browser-mode tests run locally and before anything is published.
 | Browser-mode tests (Chromium) | no | yes (`browser: true`) | `npm run test:browser` |
 | Stable and beta builds | yes | yes | `npm run build -- --channel=...` |
 | Firefox build + `web-ext lint` | yes | yes | `npm run lint:firefox` |
+| No new required permission (built manifests vs `permissions.lock.json`) | yes | yes | `npm run check:permissions` |
+| `permissions.lock.json` changes only with the manifest | yes, each commit | n/a | `node scripts/check-permissions.mjs --lock-commits=<range>` |
 | Firefox smoke test (installed Firefox) | no | before a release, by hand | `npm run test:firefox` |
 | Actions pinned to commit SHAs | yes (`check-actions-pinned.mjs`) | n/a | same script |
 | Conventional Commits | yes, each commit in the push or PR (`check-commits.mjs`) | n/a | `commit-msg` hook after `npm run setup-hooks` |

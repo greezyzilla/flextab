@@ -80,6 +80,30 @@ a revoked host permission, and an update while FlexTab pages are open. Run it
 on a build pointed at `https://api.example.invalid`: it signs in with a fake
 token, which a real server would answer by signing out.
 
+## Permissions: never add a required one by accident
+
+When an update asks for a new required permission, host or content script
+match, Chrome disables FlexTab for every user until they accept it, and
+Firefox holds the update back the same way. To the user FlexTab simply broke.
+The rule (TASK-115):
+
+- A new capability uses `optional_permissions` (or `optional_host_permissions`),
+  requested in context from a user gesture, and released when turned off, as
+  `tabGroups` does. Adding optional permissions always passes.
+- `permissions.lock.json` records what each browser's build requires today
+  (permissions, host permissions with the API host as `$API_HOST`, content
+  script matches, and Firefox's required data collection).
+  `npm run check:permissions` compares the **built** manifests with it; light CI
+  runs it after the stable, beta and Firefox builds. A required addition fails
+  and is named.
+- If a permission truly has to become required, add it to the lock **in the
+  same commit** as the manifest change (CI fails a commit that changes the lock
+  without `package.json` or `src/contents/`), and plan the release: users will
+  see FlexTab disabled until they accept.
+- Removing a permission passes; drop it from the lock in the same commit. A
+  removed permission left in the lock could later come back unnoticed, and
+  users who installed in between never granted it.
+
 ## Versioning
 
 - **Single source of truth: `package.json` `version`.** Plasmo propagates it into

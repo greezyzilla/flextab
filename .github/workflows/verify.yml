@@ -76,6 +76,12 @@ jobs:
         env:
           PLASMO_PUBLIC_API_URL: ${{ inputs.api-url }}
           PLASMO_PUBLIC_API_HOST: ${{ inputs.api-host }}
+      # TASK-115: a new required permission disables FlexTab until each user
+      # accepts it. The built manifests are checked against permissions.lock.json.
+      - name: No new required permission
+        run: npm run check:permissions
+        env:
+          PLASMO_PUBLIC_API_HOST: ${{ inputs.api-host }}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: chrome-mv3-prod

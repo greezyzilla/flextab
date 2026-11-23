@@ -35,7 +35,8 @@ jobs:
           node-version-file: .nvmrc
       - name: External actions are pinned to commit SHAs
         run: node scripts/check-actions-pinned.mjs
-      - name: Commits are Conventional Commits
+      - name: Commit range
+        id: range
         env:
           EVENT: ${{ github.event_name }}
           PR_BASE: ${{ github.event.pull_request.base.sha }}
@@ -51,4 +52,13 @@ jobs:
             # A new branch: every commit it adds over main.
             range="origin/main..$AFTER"
           fi
-          node scripts/check-commits.mjs --range="$range"
+          echo "range=$range" >> "$GITHUB_OUTPUT"
+      - name: Commits are Conventional Commits
+        run: node scripts/check-commits.mjs --range="$RANGE"
+        env:
+          RANGE: ${{ steps.range.outputs.range }}
+      # TASK-115: the recorded required permissions change only with the manifest.
+      - name: permissions.lock.json changes only with the manifest
+        run: node scripts/check-permissions.mjs --lock-commits="$RANGE"
+        env:
+          RANGE: ${{ steps.range.outputs.range }}

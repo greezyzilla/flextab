@@ -1,0 +1,13 @@
+{
+  "chrome": {
+    "permissions": ["alarms", "contextMenus", "favicon", "storage", "tabs", "unlimitedStorage"],
+    "host_permissions": ["$API_HOST"],
+    "content_scripts": ["https://api.flextabmanager.com/*"]
+  },
+  "firefox": {
+    "permissions": ["alarms", "contextMenus", "storage", "tabs", "unlimitedStorage"],
+    "host_permissions": ["$API_HOST"],
+    "content_scripts": ["https://api.flextabmanager.com/*"],
+    "data_collection_required": ["none"]
+  }
+}
