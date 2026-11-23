@@ -110,7 +110,7 @@ function Cards({ page, height }: { page: SettingsPageShape; height: number }) {
             </div>
           </div>
           {c.notice !== null && <Skeleton width="100%" height={c.notice} round="lg" tone="faint" />}
-          <div className="flex flex-col" style={{ gap: "calc(var(--density-gap-group) * 5 / 3)" }}>
+          <div className="ft-setting-rows flex flex-col" style={{ gap: "calc(var(--density-gap-group) * 5 / 3)" }}>
             {c.rows.map((r, ri) => <Row key={ri} row={r} i={ci + ri} />)}
           </div>
         </div>
@@ -122,16 +122,16 @@ function Cards({ page, height }: { page: SettingsPageShape; height: number }) {
 /** A SettingRow tile (label and description on the left, its control on the right) or another row's box. */
 function Row({ row, i }: { row: SettingsRowShape; i: number }) {
   if (row.tile === false) return <Skeleton width="100%" height={row.height} round="lg" tone="faint" />
-  // Arranged as SettingRow is: label over control below md, side by side from md. The name bars
-  // never pass the room the control leaves them.
+  // Arranged as SettingRow is (ft-setting-tile-skel, TASK-123): label over control until the row has
+  // 34rem, then side by side. The name bars never pass the room the control leaves them.
   return (
     <div className="rounded-lg bg-row" style={{ padding: TILE_PADDING }}>
-      <div className="flex flex-col justify-center gap-3 md:flex-row md:items-center md:justify-between md:gap-6" style={{ height: row.content }}>
+      <div className="ft-setting-tile-skel" style={{ height: row.content }}>
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <Skeleton line={20} width={`min(${w(i) + 20}px, 100%)`} height={10} />
           <Skeleton line={16} width={`min(${w(i + 1) + 100}px, 100%)`} height={8} tone="faint" />
         </div>
-        <span className="self-end md:self-auto"><Skeleton width={row.control[0]} height={row.control[1]} round="md" tone="faint" /></span>
+        <span><Skeleton width={row.control[0]} height={row.control[1]} round="md" tone="faint" /></span>
       </div>
     </div>
   )

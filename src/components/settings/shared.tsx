@@ -56,8 +56,8 @@ export function SettingsSection({ title, icon, subtitle, notice, children }: {
         </div>
       </div>
       {notice}
-      {/* Tiles 10px apart (gap-group x 5/3). */}
-      <div className="flex flex-col" style={{ gap: "calc(var(--density-gap-group) * 5 / 3)" }}>
+      {/* Tiles 10px apart (gap-group x 5/3). The rows' container: each row lays itself out by its own width (TASK-123). */}
+      <div className="ft-setting-rows flex flex-col" style={{ gap: "calc(var(--density-gap-group) * 5 / 3)" }}>
         <SectionMark.Provider value={icon}><TileRows.Provider value>{children}</TileRows.Provider></SectionMark.Provider>
       </div>
     </section>
@@ -295,8 +295,9 @@ export function SettingRow({ label, description, info, children }: {
     <div
       className={tile
         // 16rem input column; a row of fitted choices wider than that widens it instead of wrapping (TASK-84).
+        // Side by side only once the row itself has room, else label over control (ft-setting-tile, TASK-123).
         // A field here is the one field look (ui/input: no fill, ink/25 edge), so it adds no layer to the tile.
-        ? "flex flex-col gap-3 rounded-lg bg-row md:grid md:grid-cols-[minmax(0,1fr)_minmax(16rem,max-content)] md:items-center md:gap-x-6"
+        ? "ft-setting-tile rounded-lg bg-row"
         : "flex flex-col gap-3 py-4 md:grid md:grid-cols-[minmax(0,1fr)_22rem] md:items-center md:gap-x-6"}
       // A tile: the tab row's padding, 14px top and bottom (py-tab x 1.75, spacing s2).
       style={tile ? { padding: TILE_PADDING } : undefined}>

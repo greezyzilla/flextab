@@ -347,3 +347,19 @@
 .ft-done-check { animation: ft-done-check 300ms cubic-bezier(0.65, 0, 0.35, 1) 220ms both; }
 :root.reduce-motion .ft-done-tile, :root.reduce-motion .ft-done-tile::after, :root.reduce-motion .ft-done-check { animation: none !important; }
 @media (prefers-reduced-motion: reduce) { .ft-done-tile, .ft-done-tile::after, .ft-done-check { animation: none; } }
+
+/* Settings rows in a card decide their layout by their own width, not the window's (TASK-123): the
+   section's rows host is the container; a row stacks its label over its control, and becomes the
+   two-column row (label | control column of at least 16rem, a row of choices may widen it) once it
+   has 34rem, which leaves the label about 240px. The loading skeleton's rows follow the same rule. */
+.ft-setting-rows { container-type: inline-size; }
+.ft-setting-tile { display: flex; flex-direction: column; gap: 0.75rem; }
+@container (min-width: 34rem) {
+  .ft-setting-tile { display: grid; grid-template-columns: minmax(0, 1fr) minmax(16rem, max-content); align-items: center; column-gap: 1.5rem; }
+}
+.ft-setting-tile-skel { display: flex; flex-direction: column; justify-content: center; gap: 0.75rem; }
+.ft-setting-tile-skel > :last-child { align-self: flex-end; }
+@container (min-width: 34rem) {
+  .ft-setting-tile-skel { flex-direction: row; align-items: center; justify-content: space-between; gap: 1.5rem; }
+  .ft-setting-tile-skel > :last-child { align-self: auto; }
+}

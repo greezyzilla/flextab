@@ -43,8 +43,12 @@ describe("settings standard", () => {
     expect(header).not.toMatch(/<Button|Reset/)
   })
 
-  it("keeps one control column: at least 16rem, wider only for its content (rule 4)", () => {
-    expect(read("shared.tsx")).toContain("md:grid-cols-[minmax(0,1fr)_minmax(16rem,max-content)]")
+  it("keeps one control column: at least 16rem, wider only for its content (rule 4), once the row has room (TASK-123)", () => {
+    const css = readFileSync(join(DIR, "..", "..", "..", "style.css"), "utf8")
+    expect(read("shared.tsx")).toContain('"ft-setting-tile rounded-lg bg-row"')
+    expect(read("shared.tsx")).toContain("ft-setting-rows")
+    expect(css).toMatch(/\.ft-setting-rows \{ container-type: inline-size; \}/)
+    expect(css).toMatch(/@container \(min-width: 34rem\) \{\s*\.ft-setting-tile \{ display: grid; grid-template-columns: minmax\(0, 1fr\) minmax\(16rem, max-content\);/)
   })
 
   it("gives every field one look, no fill and an ink/25 edge, with no tile override (rule 7)", () => {
