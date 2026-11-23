@@ -1,0 +1,108 @@
+# Stable releases (TASK-117). release-please keeps one Release PR on main up to
+# date (next version + CHANGELOG.md) from the Conventional Commits there.
+# Merging that PR is the one deliberate release step: it tags vX.Y.Z and makes
+# the GitHub Release; only then is anything built, once, and published:
+# - the verified Chrome and Firefox zips go on the GitHub Release;
+# - Chrome Web Store: uploaded and submitted as a STAGED publish, so after
+#   review it waits for you to press Publish (deploy the backend it needs first);
+# - AMO: submitted as a listed version with its source code.
+# A store step without its secrets is skipped with a notice; the tag and the
+# GitHub Release still happen. Beta (beta-v* tags) is TASK-118, never here.
+name: Release
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      created: ${{ steps.release.outputs.release_created }}
+      tag: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - id: release
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  verify:
+    needs: release-please
+    if: needs.release-please.outputs.created == 'true'
+    uses: ./.github/workflows/verify.yml
+    with:
+      api-url: ${{ vars.PLASMO_PUBLIC_API_URL }}
+      api-host: ${{ vars.PLASMO_PUBLIC_API_HOST }}
+      browser: true
+
+  publish:
+    needs: [release-please, verify]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ needs.release-please.outputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+      # Only yes/no here: each secret reaches its own step alone.
+      CWS_CONFIGURED: ${{ secrets.CWS_REFRESH_TOKEN != '' && secrets.CWS_ITEM_ID != '' }}
+      AMO_CONFIGURED: ${{ secrets.AMO_JWT_ISSUER != '' && secrets.AMO_JWT_SECRET != '' }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.release-please.outputs.tag }}
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: chrome-mv3-prod
+          path: build
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: firefox-mv3-prod
+          path: build
+      - name: Attach the verified builds to the GitHub Release
+        run: |
+          version="${TAG#v}"
+          cp build/chrome-mv3-prod.zip "flextab-$version-chrome.zip"
+          cp build/firefox-mv3-prod.zip "flextab-$version-firefox.zip"
+          gh release upload "$TAG" "flextab-$version-chrome.zip" "flextab-$version-firefox.zip" --clobber
+      - name: Chrome Web Store (staged, you publish)
+        if: env.CWS_CONFIGURED == 'true'
+        env:
+          CWS_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+          CWS_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+          CWS_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+          CWS_PUBLISHER_ID: ${{ secrets.CWS_PUBLISHER_ID }}
+          CWS_ITEM_ID: ${{ secrets.CWS_ITEM_ID }}
+        run: node scripts/cws-publish.mjs build/chrome-mv3-prod.zip
+      - if: env.CWS_CONFIGURED != 'true'
+        run: |
+          echo "::notice::Chrome Web Store skipped: CWS_* secrets are not set. Upload flextab-${TAG#v}-chrome.zip by hand."
+      - name: AMO (listed, with source)
+        if: env.AMO_CONFIGURED == 'true'
+        env:
+          AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
+          AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+        run: |
+          mkdir -p build/firefox-mv3-prod
+          unzip -q build/firefox-mv3-prod.zip -d build/firefox-mv3-prod
+          npm ci --prefix tools/web-ext --ignore-scripts --no-audit --no-fund
+          node scripts/amo-submit.mjs --tag="$TAG" --source-dir=build/firefox-mv3-prod
+      - if: env.AMO_CONFIGURED != 'true'
+        run: |
+          echo "::notice::AMO skipped: AMO_JWT_* secrets are not set. Submit flextab-${TAG#v}-firefox.zip by hand."

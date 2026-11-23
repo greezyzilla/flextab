@@ -17,7 +17,7 @@ npm run build:zip -- --channel=stable
 CI stays light so a push answers in about two minutes (TASK-116): the browser
 install and browser-mode tests run locally and before anything is published.
 
-| Check | Push to main/dev, PR (`ci.yml`) | Release (`submit.yml`, later the release workflows) | Locally |
+| Check | Push to main/dev, PR (`ci.yml`) | Release (`release.yml` → `verify.yml` with `browser: true`) | Locally |
 | --- | --- | --- | --- |
 | Typecheck | yes | yes | `npm run typecheck` |
 | jsdom unit tests + coverage gates | yes (`--project unit`) | yes | `npm run test:coverage -- --run` |

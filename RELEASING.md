@@ -106,43 +106,48 @@ The rule (TASK-115):
 
 ## Versioning
 
-- **Single source of truth: `package.json` `version`.** Plasmo propagates it into
-  the generated `manifest.json`. **Never edit the manifest version by hand.**
-- **CWS rule:** the manifest version must be **dot-separated integers** (`1.2.3`,
-  each segment 0–65535) and **strictly higher** than the currently published one.
-  - ⚠️ **No semver pre-release suffixes** (`0.1.0-beta.1` is rejected). Stay numeric.
-- **Scheme:** stay on `0.x.y` through beta (0.x already signals pre-1.0).
-  - `release:patch` → bug fixes (`0.1.0 → 0.1.1`)
-  - `release:minor` → features (`0.1.x → 0.2.0`)
-  - bump to `1.0.0` at public launch.
-- **Git tags are the record of what's live on CWS** — each release is tagged
-  `vX.Y.Z` automatically by `npm version`.
+- **Single source of truth: `package.json` `version`**, written by release-please
+  (stable) or by the beta tag (TASK-111). Never edit it or the manifest version by hand.
+- **Store rule:** a version is dot-separated integers (each 0-65535), strictly
+  higher than the one published. No `-beta.1` suffixes: the stores reject them.
+- **Scheme:** `0.x.y` until the public launch. release-please bumps from the
+  Conventional Commits on `main` (`bump-minor-pre-major`): `fix:` → patch,
+  `feat:` → minor, a breaking change → minor while on 0.x.
+- **Tags:** stable `vX.Y.Z` (release-please), beta `beta-vX.Y.Z.N` (release:beta).
+  release-please skips `beta-` tags. Never create a bare four-part tag such as
+  `v0.1.0.7`: release-please would read it as `0.1.0`.
 
-## Release steps
+## Stable release (release-please, TASK-117)
 
-```bash
-# 0. Pre-flight
-#    - nvm install && nvm use, then npm ci (pinned Node/npm)
-#    - working tree clean (npm version requires it — commit other work first)
-#    - on the intended branch
-#    - prod env present: .env.production has PLASMO_PUBLIC_API_URL +
-#      PLASMO_PUBLIC_API_HOST pointing at the REAL backend (not localhost).
-#      build:zip runs scripts/check-env.mjs and fails otherwise.
-npm run typecheck
-npm run test:coverage -- --run  # tests and coverage gates must pass
-npm run release:patch    # bump + commit "release: vX.Y.Z" + tag + build the
-                         # stable zip (use release:minor for feature releases)
+1. **Work reaches `main` from `dev` as a merge commit, never a squash.**
+   release-please reads every Conventional Commit for the next version and the
+   changelog; a squash leaves only the PR title. Never rebase.
+2. **release-please keeps one Release PR on `main`** (`chore(main): release X.Y.Z`)
+   with the next version and `CHANGELOG.md`, updated on every push to `main`.
+   Ordinary pushes build nothing (`.github/workflows/release.yml`).
+3. **Backend first.** Before merging the Release PR, every BE change the release
+   needs is deployed to production and works with the previous extension
+   version (expand, then contract). Both channels share that one BE.
+4. **Merging the Release PR is the release.** It tags `vX.Y.Z` and creates the
+   GitHub Release. Only then the release workflow runs the full verification
+   (`verify.yml` with `browser: true` and the real API variables), builds the
+   Chrome and Firefox zips once, attaches them to the GitHub Release, and:
+   - **Chrome Web Store:** `scripts/cws-publish.mjs` uploads and submits a
+     **staged publish** (API v2 `STAGED_PUBLISH`). After review it waits: press
+     **Publish** in the dashboard when you are ready.
+   - **AMO:** `scripts/amo-submit.mjs` submits a **listed** version with the
+     tag's source code (`git archive`, which carries `SOURCE_BUILD.md`), required
+     because the build is bundled and minified. The build is reproducible: the
+     same commands on another machine give byte-identical files.
+5. **After the release, merge `main` back into `dev`** (a merge commit), so the
+   version bump and the `vX.Y.Z` tag are in `dev`'s history: `release:beta`
+   counts beta numbers from the last stable tag it can reach.
+6. **A bad release is fixed forward.** The stores have no rollback: revert the
+   change on `dev`, bring it to `main`, and release a higher version.
 
-# Output: build/chrome-mv3-prod.zip  ← upload this to the CWS dashboard
-
-git push && git push --tags   # record the published version
-```
-
-Then in the **CWS dashboard**: upload `build/chrome-mv3-prod.zip`, submit for
-review. Each upload is reviewed (hours–days) even for beta. For the invite-only
-beta keep visibility **Private/Unlisted** + the Google Group of trusted testers.
-
-If CWS rejects the version as not-higher, just run `release:patch` again.
+The first release-please run starts from `bootstrap-sha` in
+`release-please-config.json` (the tip of `main` when this was set up) with the
+manifest at 0.1.0; the first merged Release PR creates the first stable tag.
 
 ### Storage fixture (every release)
 
@@ -159,33 +164,25 @@ hydration (workspace, UI selection, settings, sign-in). Never edit or delete an
 old fixture: a failing one means the new version breaks data users already have,
 so add a migration instead.
 
-## GitHub manual submission
+## One-time setup for releases
 
-Configure these repository **Actions variables** (public build configuration):
-
-- `PLASMO_PUBLIC_API_URL`: the deployed backend base URL.
-- `PLASMO_PUBLIC_API_HOST`: the scoped Chrome host match pattern ending in `/*`.
-
-Keep publisher credentials in the existing `SUBMIT_KEYS` **Actions secret**.
-Do not put these credentials in either public variable. Missing API variables
-fail validation; submission has no localhost or CI-fixture fallback.
-
-Run **Submit to Web Store** manually on the intended release commit. Its shared
-verification job (with `browser: true`) selects Node from `.nvmrc`, installs
-with `npm ci`, installs Chromium, typechecks, runs all regression tests
-including the browser-mode suite with coverage gates, and builds the production
-ZIP with the supplied API values.
-Only after success does the publish job download that exact artifact and submit
-it. It does not rebuild the extension. Submission runs are serialized and all
-external Actions are pinned to commit SHAs.
+- **Repository variables** (public build configuration): `PLASMO_PUBLIC_API_URL`
+  (the deployed API) and `PLASMO_PUBLIC_API_HOST` (its match pattern ending in `/*`).
+- **First versions by hand:** neither store API can create an item. Upload the
+  first stable version once in the Chrome Web Store Developer Dashboard and in
+  the AMO Developer Hub (listing, categories, privacy policy URL); the workflow
+  adds every later version.
+- **Secrets** (each store step is skipped with a notice until they exist):
+  - Chrome Web Store API v2: `CWS_CLIENT_ID`, `CWS_CLIENT_SECRET`,
+    `CWS_REFRESH_TOKEN` (an OAuth client with the Chrome Web Store scope),
+    `CWS_PUBLISHER_ID`, `CWS_ITEM_ID` (the stable item).
+  - AMO: `AMO_JWT_ISSUER`, `AMO_JWT_SECRET` (AMO API credentials).
 
 Push (main, dev) and PR CI uses the same verification job with
 `api.example.invalid` and without the browser suite, plus the Conventional
-Commit and pinned-action checks; those ZIPs are build fixtures and must not be
-uploaded to a store. Where each suite runs is in
-[quality gates](docs/quality-gates.md#where-each-suite-runs). The
-[quality gate contract](docs/quality-gates.md) records the covered scope, baseline
-and remaining gaps; native extension E2E is not yet a release guarantee.
+Commit, pinned-action and permission checks; those zips are build fixtures and
+must never reach a store. Where each suite runs is in
+[quality gates](docs/quality-gates.md#where-each-suite-runs).
 
 ## Prerequisites & related docs
 

@@ -71,7 +71,7 @@ jobs:
       # linter. web-ext lives in tools/web-ext with its own lockfile.
       - name: Build Firefox and lint it with web-ext
         run: |
-          npm run build -- --channel=stable --target=firefox-mv3
+          npm run build:zip -- --channel=stable --target=firefox-mv3
           npm run lint:firefox
         env:
           PLASMO_PUBLIC_API_URL: ${{ inputs.api-url }}
@@ -86,5 +86,13 @@ jobs:
         with:
           name: chrome-mv3-prod
           path: build/chrome-mv3-prod.zip
+          if-no-files-found: error
+          retention-days: 7
+      # A release publishes exactly what was verified here (TASK-117).
+      - if: ${{ inputs.browser }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: firefox-mv3-prod
+          path: build/firefox-mv3-prod.zip
           if-no-files-found: error
           retention-days: 7

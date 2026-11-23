@@ -9,8 +9,6 @@
     "check-env": "node scripts/check-env.mjs",
     "build": "npm run check-env && node scripts/build.mjs",
     "build:zip": "npm run check-env && node scripts/build.mjs --zip",
-    "release:patch": "npm version patch -m \"release: v%s\" && npm run build:zip -- --channel=stable",
-    "release:minor": "npm version minor -m \"release: v%s\" && npm run build:zip -- --channel=stable",
     "release:beta": "node scripts/release-beta.mjs",
     "package": "plasmo package",
     "test": "vitest",
