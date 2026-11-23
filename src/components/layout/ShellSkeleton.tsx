@@ -84,21 +84,7 @@ export function ShellSkeletonView({ shape: stored, leftInline, rightInline }: { 
   return (
     <SkeletonRegion label="Loading your workspace">
       <div className="flex h-screen w-screen overflow-hidden bg-black-900">
-      <div className="flex h-full w-16 flex-col border-r border-line">
-        <div className="flex h-16 w-full shrink-0 items-center justify-center border-b border-line">
-          <BrandMark />
-        </div>
-        <div className="flex min-h-0 flex-1 flex-col items-center gap-3 overflow-hidden pb-4 pt-2">
-          {/* The spaces, then the Add space slot. */}
-          {Array.from({ length: shape.spaces }, (_, i) => <Skeleton key={i} width={40} height={40} round="full" />)}
-          <Skeleton width={40} height={40} round="full" tone="faint" />
-        </div>
-        {/* Settings and the account, at the rail's foot as in ProfilePanel. */}
-        <div className="flex flex-col items-center gap-2 py-4">
-          <Skeleton width={40} height={40} round="full" tone="faint" />
-          <Skeleton width={40} height={40} round="full" tone="faint" />
-        </div>
-      </div>
+      <RailSkeleton spaces={shape.spaces} />
 
       {leftInline && (
         <div className="flex h-full w-64 flex-col">
@@ -123,11 +109,7 @@ export function ShellSkeletonView({ shape: stored, leftInline, rightInline }: { 
             {/* New project…, under the tree, on the rows' box (TASK-120). */}
             <div className="mx-2"><Skeleton width="100%" height={32} round="md" tone="faint" /></div>
           </div>
-          {/* The panel footer (PanelFooter): the version on the left (a text line), Shortcuts on the right. */}
-          <div className="flex items-center justify-between gap-2 border-t border-line px-4 py-2">
-            <Skeleton line={16} width={VERSION_W} height={8} tone="faint" />
-            <Skeleton width={SHORTCUTS_W} height={28} round="md" tone="faint" />
-          </div>
+          <PanelFooterSkeleton />
         </div>
       )}
 
@@ -205,6 +187,37 @@ export function ShellSkeletonView({ shape: stored, leftInline, rightInline }: { 
       )}
       </div>
     </SkeletonRegion>
+  )
+}
+
+/** The rail (ProfilePanel), the same on every page: brand mark, the spaces and Add space, then Settings and the account at its foot. */
+export function RailSkeleton({ spaces }: { spaces: number }) {
+  return (
+      <div className="flex h-full w-16 flex-col border-r border-line">
+        <div className="flex h-16 w-full shrink-0 items-center justify-center border-b border-line">
+          <BrandMark />
+        </div>
+        <div className="flex min-h-0 flex-1 flex-col items-center gap-3 overflow-hidden pb-4 pt-2">
+          {/* The spaces, then the Add space slot. */}
+          {Array.from({ length: spaces }, (_, i) => <Skeleton key={i} width={40} height={40} round="full" />)}
+          <Skeleton width={40} height={40} round="full" tone="faint" />
+        </div>
+        {/* Settings and the account, at the rail's foot as in ProfilePanel. */}
+        <div className="flex flex-col items-center gap-2 py-4">
+          <Skeleton width={40} height={40} round="full" tone="faint" />
+          <Skeleton width={40} height={40} round="full" tone="faint" />
+        </div>
+      </div>
+  )
+}
+
+/** The panel footer (PanelFooter), the same on every page: the version on the left (a text line), Shortcuts on the right. */
+export function PanelFooterSkeleton() {
+  return (
+          <div className="flex items-center justify-between gap-2 border-t border-line px-4 py-2">
+            <Skeleton line={16} width={VERSION_W} height={8} tone="faint" />
+            <Skeleton width={SHORTCUTS_W} height={28} round="md" tone="faint" />
+          </div>
   )
 }
 

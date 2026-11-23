@@ -28,7 +28,7 @@ const TileRows = createContext(false);
 const SectionMark = createContext<LucideIcon | null>(null);
 
 /** A tile's padding: the tab row's, 14px top and bottom (py-tab x 1.75, spacing s2). */
-const TILE_PADDING = "calc(var(--density-py-tab) * 1.75) var(--density-px-tab)";
+export const TILE_PADDING = "calc(var(--density-py-tab) * 1.75) var(--density-px-tab)";
 
 export function SettingsSection({ title, icon, subtitle, notice, children }: {
   title: string;

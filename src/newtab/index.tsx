@@ -19,6 +19,8 @@ import { pullSettings, startSettingsSync, stopSettingsSync } from "~src/services
 import { useSettingsStore } from "~src/store/useSettingsStore"
 import { useRevealRequests } from "~src/hooks/useRevealRequests"
 import { ShellSkeleton } from "~src/components/layout/ShellSkeleton"
+import { SettingsSkeleton } from "~src/components/layout/SettingsSkeleton"
+import { isSettingsRoute } from "~src/components/settings/types"
 
 // The mode and look are on <html> before the first paint: newtab.html's boot script (TASK-107).
 
@@ -27,7 +29,8 @@ function NewTabPage() {
   const { hydrated, error: hydrationError } = useHydrated()
   const { initialize, isAuthenticated, isLoading: authLoading, user } = useAuthStore()
   const autoSync = useSettingsStore((s) => s.autoSync)
-  const onSignInRoute = useRoute() === SIGN_IN_ROUTE
+  const route = useRoute()
+  const onSignInRoute = route === SIGN_IN_ROUTE
   // The popup's "Open in FlexTab" (TASK-75).
   useRevealRequests(hydrated && !authLoading)
 
@@ -67,7 +70,8 @@ function NewTabPage() {
   }, [isAuthenticated, user?.id])
 
   if (hydrationError) return <WorkspaceLoadError />
-  if (authLoading || !hydrated) return <ShellSkeleton />
+  // The loading shell is the page that is coming: Settings on a Settings route (TASK-108), else the workspace.
+  if (authLoading || !hydrated) return isSettingsRoute(route) ? <SettingsSkeleton route={route} /> : <ShellSkeleton />
   // The workspace is always local and usable, signed in or not (TASK-7).
   // Sign-in is a place you go to (rail, popup, getting-started card): it opens
   // over the workspace (TASK-79), never as a wall in front of it.

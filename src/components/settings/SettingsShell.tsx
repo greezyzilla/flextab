@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { useEffect, useId } from "react"
+import { useEffect, useId, useRef } from "react"
 import { useRoute, navigate, goBack } from "~src/lib/route"
 import { SETTINGS_ROUTE, SECTION_LABEL, settingsGroupsFor, tabFromRoute, type SettingsTab } from "./types"
 import { useAuthStore } from "~src/store/useAuthStore"
@@ -18,6 +18,7 @@ import { canGroupTabs } from "~src/services/openTab"
 import { cn } from "~src/lib/utils"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "~src/components/ui/select"
 import { PANEL_HEADER, PANEL_TITLE, PANEL_LIST, PANEL_ROW, PANEL_ROW_LABEL, PANEL_ROW_TEXT, PanelFooter, AppVersion } from "~src/components/layout/panelChrome"
+import { useSettingsShapeMirror } from "~src/hooks/useSettingsShapeMirror"
 
 const ICON: Record<SettingsTab, ReactNode> = {
   spaces: <SpacesIcon />, saving: <SavingIcon />, backup: <SyncIcon />,
@@ -87,6 +88,10 @@ export function SettingsContent() {
   const signedIn = useAuthStore(s => s.isAuthenticated)
   const tab = tabFromRoute(useRoute(), signedIn)
   const sectionSelectId = useId()
+  // The loading shell's copy of this page's shape (TASK-108): the controls column and the previewer.
+  const columnRef = useRef<HTMLDivElement>(null)
+  const previewRef = useRef<HTMLDivElement>(null)
+  useSettingsShapeMirror(tab, signedIn, columnRef, previewRef)
 
   useEffect(() => {
     // An Escape already handled (a modal or menu closing, which Radix marks with
@@ -128,17 +133,17 @@ export function SettingsContent() {
           // is not shown at all (user: "preview ga seharusnya muncul di semua size"): above or below the
           // controls it only pushed them off the first screen or out of sight of the change it shows.
           <div className="flex flex-col preview:flex-row preview:items-start gap-6 preview:gap-8">
-            <div className="max-w-[40rem] min-w-0 break-words preview:w-full preview:shrink-0">
+            <div ref={columnRef} className="max-w-[40rem] min-w-0 break-words preview:w-full preview:shrink-0">
               <SectionContent tab={tab} />
             </div>
             {/* The previewer takes all the width the controls leave, up to 24rem, so wide windows fit
                 more grid columns without it outgrowing the controls. */}
-            <div className="hidden preview:block preview:max-w-[24rem] preview:sticky preview:top-0 preview:flex-1 preview:min-w-0">
+            <div ref={previewRef} className="hidden preview:block preview:max-w-[24rem] preview:sticky preview:top-0 preview:flex-1 preview:min-w-0">
               <AppearancePreview />
             </div>
           </div>
         ) : (
-          <div className="max-w-[40rem] min-w-0 break-words">
+          <div ref={columnRef} className="max-w-[40rem] min-w-0 break-words">
             <SectionContent tab={tab} />
           </div>
         )}
