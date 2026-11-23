@@ -189,15 +189,14 @@ function NewGroupRow({ categoryName, onCommit, onCancel }: {
 }
 
 /**
- * Drop zone for a category that has no groups yet (tabs or whole groups).
- * While the whole workspace is still empty (first run, TASK-7) it is also the
- * guidance: where to drag from, one real save action, and the shortcut. It
- * goes away by itself once anything is saved, so it needs no dismiss.
+ * The row inside an empty category (no groups yet). The drop zone is the whole
+ * section (CategorySection), so a tab or group dropped anywhere on it, header
+ * included, lands here; this row shows where. While the whole workspace is
+ * still empty (first run, TASK-7) it is also the guidance: where to drag from,
+ * one real save action, and the shortcut. It goes away by itself once anything
+ * is saved, so it needs no dismiss.
  */
-function EmptySectionDrop({ location }: { location: GroupLocation }) {
-  const { setNodeRef, isOver } = useDroppable({
-    id: `section-drop:${location.spaceId}:${location.projectId}:${location.categoryId}`,
-  });
+function EmptySectionDrop({ location, isOver }: { location: GroupLocation; isOver: boolean }) {
   const firstRun = useSavedSpacesStore((s) => !spacesHaveTabs(s.savedSpaces));
   const { setActiveCategory } = useSavedSpacesStore();
   const setSaveAllOpen = useUIStore((s) => s.setSaveAllOpen);
@@ -205,14 +204,11 @@ function EmptySectionDrop({ location }: { location: GroupLocation }) {
   const savePage = useCommandShortcuts(firstRun)["save-page"];
   if (!firstRun || isOver) {
     return (
-      <div ref={setNodeRef}>
-        <EmptyDropRow isOver={isOver} label="No groups yet. Drag tabs here." />
-      </div>
+      <EmptyDropRow isOver={isOver} label="No groups yet. Drag tabs here." />
     );
   }
   return (
     <div
-      ref={setNodeRef}
       className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-lg border border-dashed border-ink/[0.12] font-sans"
       style={{ padding: 'var(--density-p-group) var(--density-px-tab)' }}
     >
@@ -239,11 +235,14 @@ function EmptySectionDrop({ location }: { location: GroupLocation }) {
 /** A category's header bar: its name, counts and the one place to create a
  *  group. Also drawn by the Appearance previewer (TASK-30), so the preview is
  *  the real header, not a copy of it. */
-export function CategoryHeader({ id, name, counts, isCurrent = false, onNewGroup }: {
+export function CategoryHeader({ id, name, counts, isCurrent = false, onNewGroup, dropTarget = false }: {
   id: string; name: string; counts: string; isCurrent?: boolean; onNewGroup?: () => void;
+  /** Its section is the drop target: the opaque sticky bar takes the section's tint on top of its own fill. */
+  dropTarget?: boolean;
 }) {
   return (
-      <div className="sticky top-0 z-20 bg-black-900 h-12 px-6 flex items-center justify-between gap-3 border-b border-ink/[0.12]">
+      <div className="sticky top-0 z-20 bg-black-900 h-12 px-6 flex items-center justify-between gap-3 border-b border-ink/[0.12]"
+        style={dropTarget ? { backgroundImage: 'linear-gradient(var(--accent-subtle), var(--accent-subtle))' } : undefined}>
         {/* h2 under the panel's h1 (the space); groups are h3 (TASK-28). */}
         <h2 id={`section-${id}`} className={`flex items-center gap-2 min-w-0 font-sans text-base ${isCurrent ? 'text-fg' : 'text-fg'}`}>
           <CategoryIcon size="md" />
@@ -272,6 +271,16 @@ function CategorySection({ space, project, category, layout, gridColumns, isCurr
   // A group dragged in from another category shows here while dragging (TASK-64).
   const preview = useSortPreview(s => s.preview);
   const groups = withPreview(ownGroups, category.id, "group", preview);
+  // An empty category takes drops on its whole section, header included, not
+  // only on its 48px row: the target someone aims at from Opened Tabs is what
+  // they see as the category. Nothing changes size, so nothing shifts. Read
+  // from the stored groups, so a group previewed here mid-drag keeps the zone.
+  const emptyDrop = ownGroups.length === 0 && !unsorted && !naming;
+  const { setNodeRef: setDropRef, isOver: dropOver } = useDroppable({
+    id: `section-drop:${space.id}:${project.id}:${category.id}`,
+    disabled: !emptyDrop,
+  });
+  const dropLit = emptyDrop && dropOver;
 
   const newGroup = () => {
     setActiveCategory(category.id);
@@ -306,12 +315,16 @@ function CategorySection({ space, project, category, layout, gridColumns, isCurr
     //   can be pinned (owned) like every other one.
     // Left edge: category icon, group headers and group cards all start at the
     // same 1.5rem line; levels differ by type size, not by indentation.
-    <section data-category-id={category.id} aria-labelledby={`section-${category.id}`}
+    <section ref={setDropRef} data-category-id={category.id} aria-labelledby={`section-${category.id}`}
       // -mt-px: the top line overlaps the previous section's last pixel, so
       // while the previous header is pushed out its bottom line and this top
       // line coincide (one line, never a double line).
-      className={`${isFirst ? '' : '-mt-px border-t border-ink/[0.12]'} ${isLast ? 'min-h-full' : ''}`}>
-      <CategoryHeader id={category.id} name={category.name} counts={counts} isCurrent={isCurrent} onNewGroup={newGroup} />
+      className={`${isFirst ? '' : '-mt-px border-t border-ink/[0.12]'} ${isLast ? 'min-h-full' : ''}`}
+      // Lit as a group card is on drop (accent edge, accent-subtle fill). The
+      // outline is drawn inside the box and the section lifted, so the edge
+      // shows over the sticky header and the neighbours' lines.
+      style={dropLit ? { outline: '1px solid var(--accent)', outlineOffset: '-1px', position: 'relative', zIndex: 1, backgroundColor: 'var(--accent-subtle)' } : undefined}>
+      <CategoryHeader id={category.id} name={category.name} counts={counts} isCurrent={isCurrent} onNewGroup={newGroup} dropTarget={dropLit} />
       {unsorted && <TabGroup group={unsorted} location={location} layout={layout} gridColumns={gridColumns} />}
       {naming && <NewGroupRow categoryName={category.name} onCommit={createGroup} onCancel={endNamingGroup} />}
       {groups.length > 0 ? (
@@ -322,7 +335,7 @@ function CategorySection({ space, project, category, layout, gridColumns, isCurr
         </SortableContext>
       ) : !unsorted && !naming && (
         <div className="px-6" style={{ paddingTop: 'var(--density-p-section)' }}>
-          <EmptySectionDrop location={location} />
+          <EmptySectionDrop location={location} isOver={dropLit} />
         </div>
       )}
       {/* Section end space (2G) as content, not padding: sticky stays within
