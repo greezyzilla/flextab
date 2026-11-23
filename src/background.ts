@@ -1,6 +1,6 @@
 import { completeOAuthLogin, registerOAuthMessages } from "~src/services/oauthLogin";
 import { automaticPushAllowed, PUSH_REQUEST_KEY, SETTINGS_KEY, storedAutoSync, withSyncWriteLock } from "~src/services/syncPolicy";
-import { loadTokens, getDeviceId } from "~src/services/api";
+import { loadTokens, getDeviceId, waitForTokenRefresh } from "~src/services/api";
 import { syncStructuredSnapshot } from "~src/services/structuredSync";
 import { merge3 } from "~src/services/spacesMerge3";
 import { getMergeBase } from "~src/services/mergeBase";
@@ -15,6 +15,8 @@ import type { SavedSpace } from "~src/types";
 import { clearLimitNotice, LIMIT_RECHECK_KEY, saveLimitNotice } from "~src/services/syncLimit";
 import { captureFromBackground, commandKind, menuKind, registerCaptureMenus, registerPopupClose } from "~src/services/backgroundCapture";
 import { installToolbarIcon } from "~src/services/toolbarIcon";
+import { runInstallSteps } from "~src/services/installLifecycle";
+import { installUpdateFlow, restoreTabsAfterUpdate } from "~src/services/updateFlow";
 
 const API_BASE_URL = process.env.PLASMO_PUBLIC_API_URL || "http://localhost:3000";
 const AUTH_SUCCESS_PATH = "/auth/success";
@@ -41,16 +43,14 @@ const PENDING_PUSH_KEY = "flextab_push_pending";
 const RETRY_ALARM = "flextab_push_retry";
 
 // Establish the stable device id from the single background context at install
-// and on every worker start, so new-tab pages read it instead of racing to
-// generate one (which could register duplicate devices on a fresh install).
-chrome.runtime.onInstalled.addListener(() => { void getDeviceId(); });
+// (installLifecycle) and on every worker start, so new-tab pages read it instead
+// of racing to generate one (which could register duplicate devices on a fresh install).
 void getDeviceId();
 
 // =====================================================================
 // Capture from anywhere (TASK-2): keyboard commands + right-click menu
 // =====================================================================
 
-chrome.runtime.onInstalled.addListener(() => { registerCaptureMenus(); });
 registerPopupClose();
 installToolbarIcon();
 chrome.contextMenus.onClicked.addListener((info, tab) => {
@@ -253,8 +253,23 @@ chrome.storage.onChanged.addListener((changes, area) => {
   syncTimer = setTimeout(() => { syncTimer = null; void pushStructuredData(); }, SYNC_DEBOUNCE_MS);
 });
 
-chrome.runtime.onInstalled.addListener(doInitialPush);
+// Install, update and browser-update each run their own steps (TASK-113).
+chrome.runtime.onInstalled.addListener((details) => {
+  void runInstallSteps(details.reason, {
+    deviceId: getDeviceId,
+    menus: registerCaptureMenus,
+    restoreTabs: restoreTabsAfterUpdate,
+    initialPush: doInitialPush,
+  });
+});
 chrome.runtime.onStartup.addListener(doInitialPush);
+
+// A new version is applied when no one is using FlexTab, after every write has
+// finished (TASK-113, services/updateFlow.ts).
+installUpdateFlow({
+  flushBackground: async () => { await Promise.allSettled([pushInFlight ?? Promise.resolve(), waitForTokenRefresh()]); },
+  reload: () => chrome.runtime.reload(),
+});
 
 async function doInitialPush() {
   await pushStructuredData();

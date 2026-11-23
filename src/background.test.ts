@@ -49,7 +49,9 @@ beforeEach(async () => {
   });
   Object.assign(chrome.runtime, {
     onInstalled: { addListener: vi.fn() }, onStartup: { addListener: vi.fn() },
+    onUpdateAvailable: { addListener: vi.fn() },
   });
+  Object.assign(chrome.windows, { onFocusChanged: { addListener: vi.fn() } });
   Object.assign(chrome, { alarms: { create: vi.fn(), onAlarm: { addListener: vi.fn() } } });
   yjs = await import("./lib/yjsDoc");
   api = await import("./services/api");

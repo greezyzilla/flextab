@@ -510,3 +510,135 @@ describe('settings request serialization and recovery', () => {
     expect(api.put).toHaveBeenCalledExactlyOnceWith({ ...initial, hue: 30, autoSync: false });
   });
 });
+
+describe('settings changes survive a reload before they are pushed (TASK-113)', () => {
+  let disk: Record<string, unknown>;
+
+  beforeEach(() => {
+    disk = {};
+    vi.mocked(chrome.storage.local.get).mockImplementation((async (key: string) => (key in disk ? { [key]: structuredClone(disk[key]) } : {})) as never);
+    vi.mocked(chrome.storage.local.set).mockImplementation((async (values: Record<string, unknown>) => { Object.assign(disk, structuredClone(values)); }) as never);
+  });
+
+  afterEach(() => {
+    vi.mocked(chrome.storage.local.get).mockReset().mockImplementation((async () => ({})) as never);
+    vi.mocked(chrome.storage.local.set).mockReset().mockImplementation((async () => {}) as never);
+  });
+
+  /** A fresh page on the same disk: what an update reload, a closed tab or a crash leaves. */
+  async function reload() {
+    sync.stopSettingsSync();
+    vi.resetModules();
+    ({ useAuthStore: auth } = await import('~src/store/useAuthStore'));
+    auth.setState({ isAuthenticated: true, user: user('A') });
+    ({ useSettingsStore: store } = await import('~src/store/useSettingsStore'));
+    await store.persist.rehydrate();
+    sync = await import('./settingsSync');
+  }
+
+  /** As newtab/index.tsx starts it: pull, then subscribe, without waiting in between. */
+  async function signedInPage() {
+    const pulled = sync.pullSettings();
+    sync.startSettingsSync();
+    await pulled;
+    await sync.flushSettingsSync();
+  }
+
+  it('keeps a change made inside the push debounce and pushes it after the reload', async () => {
+    await signedInPage();
+    store.getState().setHue(30);
+    await vi.advanceTimersByTimeAsync(100); // reloaded before the 800ms push
+    expect(api.put).not.toHaveBeenCalled();
+    await reload();
+    api.put.mockClear();
+    await signedInPage();
+    expect(store.getState().hue).toBe(30);
+    await vi.advanceTimersByTimeAsync(800);
+    expect(api.put).toHaveBeenLastCalledWith({ ...initial, hue: 30 });
+  });
+
+  it('keeps a change whose push failed offline', async () => {
+    await signedInPage();
+    api.get.mockRejectedValueOnce(new Error('offline'));
+    store.getState().setHue(30);
+    await vi.advanceTimersByTimeAsync(800);
+    await reload();
+    api.put.mockClear();
+    await signedInPage();
+    expect(store.getState().hue).toBe(30);
+    await vi.advanceTimersByTimeAsync(800);
+    expect(api.put).toHaveBeenLastCalledWith({ ...initial, hue: 30 });
+  });
+
+  it('still takes a change another device made to a field this device did not touch', async () => {
+    await signedInPage();
+    store.getState().setHue(30);
+    await reload();
+    api.get.mockResolvedValue({ ...initial, density: 'compact' });
+    await signedInPage();
+    expect(store.getState()).toMatchObject({ hue: 30, density: 'compact' });
+  });
+
+  it('ignores a merge base stored for another account', async () => {
+    await signedInPage();
+    store.getState().setHue(30);
+    await reload();
+    auth.setState({ isAuthenticated: true, user: user('B') });
+    api.get.mockResolvedValue({ ...initial, hue: 99 });
+    await signedInPage();
+    expect(store.getState().hue).toBe(99);
+  });
+});
+
+describe('the stored settings merge base when it cannot be used (TASK-113)', () => {
+  it.each([
+    ['unreadable storage', () => { throw new Error('disk') }],
+    ['a record without a base', () => ({ [sync.SETTINGS_SYNC_STATE_KEY]: { userId: 'A', base: null, unconfirmed: [] } })],
+  ])('falls back to the server values on %s', async (_, read) => {
+    vi.mocked(chrome.storage.local.get).mockImplementation((async () => read()) as never);
+    store.getState().setHue(30);
+    api.get.mockResolvedValue({ ...initial, hue: 99 });
+    await sync.pullSettings();
+    expect(store.getState().hue).toBe(99);
+    vi.mocked(chrome.storage.local.get).mockReset().mockImplementation((async () => ({})) as never);
+  });
+
+  it('keeps an unconfirmed field and lets the server fill a field the stored base predates', async () => {
+    const { titleCut: _omitted, ...olderBase } = { ...initial };
+    vi.mocked(chrome.storage.local.get).mockImplementation((async () => ({
+      [sync.SETTINGS_SYNC_STATE_KEY]: { userId: 'A', base: { ...olderBase, unknown: 1 }, unconfirmed: ['hue', 'notASetting'] },
+    })) as never);
+    api.get.mockResolvedValue({ ...initial, hue: initial.hue, titleCut: 70 });
+    store.setState({ hue: initial.hue }); // a revert that was never confirmed still counts
+    await sync.pullSettings();
+    expect(store.getState()).toMatchObject({ hue: initial.hue, titleCut: 70 });
+    vi.mocked(chrome.storage.local.get).mockReset().mockImplementation((async () => ({})) as never);
+  });
+
+  it('reads a record whose unconfirmed list is missing', async () => {
+    vi.mocked(chrome.storage.local.get).mockImplementation((async () => ({
+      [sync.SETTINGS_SYNC_STATE_KEY]: { userId: 'A', base: { ...initial } },
+    })) as never);
+    store.getState().setHue(30);
+    api.get.mockResolvedValue({ ...initial, density: 'compact' });
+    await sync.pullSettings();
+    expect(store.getState()).toMatchObject({ hue: 30, density: 'compact' });
+    vi.mocked(chrome.storage.local.get).mockReset().mockImplementation((async () => ({})) as never);
+  });
+
+  it('drops a pull whose account switched while the stored base was read', async () => {
+    vi.mocked(chrome.storage.local.get).mockImplementation((async () => {
+      auth.setState({ isAuthenticated: true, user: user('B') });
+      return {};
+    }) as never);
+    await sync.pullSettings();
+    expect(api.get).not.toHaveBeenCalled();
+    vi.mocked(chrome.storage.local.get).mockReset().mockImplementation((async () => ({})) as never);
+  });
+
+  it('pulls without a stored base while the account identity is still loading', async () => {
+    auth.setState({ isAuthenticated: true, user: null });
+    await sync.pullSettings();
+    expect(api.get).not.toHaveBeenCalled();
+  });
+});

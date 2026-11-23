@@ -21,6 +21,10 @@ import { useRevealRequests } from "~src/hooks/useRevealRequests"
 import { ShellSkeleton } from "~src/components/layout/ShellSkeleton"
 import { SettingsSkeleton } from "~src/components/layout/SettingsSkeleton"
 import { isSettingsRoute } from "~src/components/settings/types"
+import { installUpdatePrepareListener } from "~src/services/updatePrepare"
+
+// Before an update reload, the background asks this page to finish its writes (TASK-113).
+installUpdatePrepareListener()
 
 // The mode and look are on <html> before the first paint: newtab.html's boot script (TASK-107).
 

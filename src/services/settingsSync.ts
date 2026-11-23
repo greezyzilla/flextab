@@ -37,6 +37,40 @@ let generation = 0;
 let pending = Promise.resolve();
 const unconfirmedFields = new Set<keyof Snap>();
 
+/**
+ * The merge base and the unconfirmed fields, kept on disk per account (TASK-113).
+ * In memory only, a reload (an extension update, a closed tab, a crash) forgot
+ * which settings this device changed, and the startup pull then put the server's
+ * value over a change that had not been pushed yet.
+ */
+export const SETTINGS_SYNC_STATE_KEY = "flextab_settings_sync_state";
+interface StoredSyncState { userId: string; base: Partial<Snap>; unconfirmed: string[] }
+let stateWrite: Promise<void> = Promise.resolve();
+
+function saveSyncState() {
+  const userId = useAuthStore.getState().user?.id;
+  if (!userId || !base) return;
+  const record: StoredSyncState = { userId, base, unconfirmed: [...unconfirmedFields] };
+  stateWrite = stateWrite
+    .then(() => chrome.storage.local.set({ [SETTINGS_SYNC_STATE_KEY]: record }))
+    .catch(() => {});
+}
+
+async function readSyncState(userId: string | undefined): Promise<StoredSyncState | null> {
+  try {
+    const value = (await chrome.storage.local.get(SETTINGS_SYNC_STATE_KEY))?.[SETTINGS_SYNC_STATE_KEY] as StoredSyncState | undefined;
+    if (!userId || !value || value.userId !== userId || typeof value.base !== "object" || !value.base) return null;
+    return { userId, base: value.base, unconfirmed: Array.isArray(value.unconfirmed) ? value.unconfirmed : [] };
+  } catch {
+    return null;
+  }
+}
+
+/** Resolves once the merge base on disk is current: called before an update reload. */
+export function flushSettingsSync(): Promise<void> {
+  return stateWrite;
+}
+
 // Also serialize within this page when Web Locks are unavailable. Never reset
 // the queue on stop: old work keeps its session guard and must finish first.
 function withSettingsLock(work: () => Promise<void>): Promise<void> {
@@ -109,6 +143,7 @@ function adoptConfirmed(confirmed: Snap, rebased: Snap, allowed: () => boolean) 
     pushTimer = null;
   }
   if (!eq(rebased, current)) applyLocally(rebased);
+  saveSyncState();
   schedulePush(allowed);
 }
 
@@ -129,6 +164,7 @@ async function pushNow(allowed: () => boolean): Promise<void> {
       for (const k of KEYS) {
         if (!base || !eq(local[k], base[k])) unconfirmedFields.add(k);
       }
+      saveSyncState();
       await apiPutSettings(merged);
       if (!allowed()) return;
       adoptConfirmed(merged, fieldMerge(local, merged, snapshot()), allowed);
@@ -143,8 +179,11 @@ export async function pullSettings(): Promise<void> {
   const allowed = captureSession();
   if (!allowed()) return;
   const local = snapshot(); // preserve edits made while waiting for lock/GET
+  const userId = useAuthStore.getState().user?.id;
   try {
     await withSettingsLock(async () => {
+      if (!allowed()) return;
+      const stored = await readSyncState(userId);
       if (!allowed()) return;
       const remote = await apiGetSettings();
       if (!allowed()) return;
@@ -162,6 +201,17 @@ export async function pullSettings(): Promise<void> {
         if (remote[k] !== undefined) (patch as Record<string, unknown>)[k] = remote[k];
       }
       const confirmed = { ...local, ...patch };
+      if (stored) {
+        // This device synced before: what it changed since its last confirmed
+        // base (and anything still unconfirmed) is a local change, kept and
+        // pushed; every other field takes the server's value. A field the
+        // stored base lacks (added in a newer version) counts as unchanged.
+        const storedBase = { ...local } as Snap;
+        for (const k of KEYS) if (stored.base[k] !== undefined) (storedBase as Record<string, unknown>)[k] = stored.base[k];
+        for (const k of stored.unconfirmed) if ((KEYS as string[]).includes(k)) unconfirmedFields.add(k as keyof Snap);
+        adoptConfirmed(confirmed, mergePending(storedBase, patch, snapshot()), allowed);
+        return;
+      }
       adoptConfirmed(confirmed, mergePending(local, confirmed, snapshot()), allowed);
     });
   } catch {

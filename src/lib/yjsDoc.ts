@@ -114,6 +114,14 @@ export async function persistState(): Promise<void> {
 }
 
 /**
+ * Resolves once no persist write is in flight or queued, so an update reload
+ * (TASK-113) never cuts a write in half. Starts no write of its own.
+ */
+export async function flushPersist(): Promise<void> {
+  while (persistInFlight) await persistInFlight.catch(() => {});
+}
+
+/**
  * Encode plain spaces into a Yjs update byte array suitable for PERSIST_KEY.
  * Uses a throwaway doc so the background worker can write without a live UI doc.
  */

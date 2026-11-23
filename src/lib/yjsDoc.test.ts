@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, onTestFinished } from 'vitest';
 import * as y from './yjsDoc';
 import type * as Y from 'yjs';
 import type { SavedSpace } from '~src/types';
@@ -241,6 +241,25 @@ describe('binary state + persistence', () => {
     await Promise.all([p1, p2, p3])
     // Trailing coalesced write after the flight (queued by p2/p3)
     expect(setCalls).toBe(2)
+  });
+
+  it('flushPersist waits for the write in flight and its trailing write, and starts none itself (TASK-113)', async () => {
+    const pending: (() => void)[] = []
+    ;(chrome.storage.local.set as any).mockClear().mockImplementation(() => new Promise<void>((r) => pending.push(r)))
+    onTestFinished(() => { (chrome.storage.local.set as any).mockImplementation(() => Promise.resolve()) })
+    await y.flushPersist()
+    expect(chrome.storage.local.set).not.toHaveBeenCalled()
+
+    void y.persistState()
+    void y.persistState() // queued behind the first
+    let flushed = false
+    const flush = y.flushPersist().then(() => { flushed = true })
+    pending.shift()!()
+    await new Promise((r) => setTimeout(r, 0))
+    expect(flushed).toBe(false) // the trailing write is still out
+    pending.shift()!()
+    await flush
+    expect(flushed).toBe(true)
   });
 
   it('loadPersistedState applies a stored update and reports true/false', async () => {

@@ -90,6 +90,21 @@ beta keep visibility **Private/Unlisted** + the Google Group of trusted testers.
 
 If CWS rejects the version as not-higher, just run `release:patch` again.
 
+### Storage fixture (every release)
+
+Each release adds what it leaves in browser storage as a test fixture, so every
+later version is tested to load it (TASK-113). From the release's own build:
+
+```bash
+node scripts/capture-storage-fixture.mjs --build=build/chrome-mv3-prod --version=X.Y.Z
+# writes src/test/fixtures/storage/vX.Y.Z.json; commit it with the release
+```
+
+`src/test/storageFixtures.test.ts` loads every fixture through the app's real
+hydration (workspace, UI selection, settings, sign-in). Never edit or delete an
+old fixture: a failing one means the new version breaks data users already have,
+so add a migration instead.
+
 ## GitHub manual submission
 
 Configure these repository **Actions variables** (public build configuration):

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   apiFetch, pushSync, fetchSyncRevision, apiLogin, apiChangePassword,
   getAuthUrl, getDeviceId, loadTokens, saveTokens, clearTokens, ApiError, RefreshUnavailableError,
+  waitForTokenRefresh,
 } from './api';
 import { onServerReachable, isServerAnswer, noteServerResponse } from './serverReachable';
 
@@ -99,6 +100,25 @@ describe('apiFetch', () => {
     await validToken();
     vi.mocked(global.fetch).mockResolvedValue(new Response('not json', { status: 503, statusText: 'Unavailable' }));
     await expect(apiFetch('/x')).rejects.toMatchObject({ message: 'Unavailable' });
+  });
+
+  it('waitForTokenRefresh resolves at once with no refresh, and after a refresh stored its pair (TASK-113)', async () => {
+    await waitForTokenRefresh();
+    await saveTokens({ access_token: 'old', refresh_token: 'rt', expires_at: past() });
+    let answer!: (r: Response) => void;
+    (global.fetch as any)
+      .mockImplementationOnce(() => new Promise<Response>((r) => { answer = r; }))
+      .mockResolvedValueOnce(res({ ok: true }));
+    const request = apiFetch('/x');
+    await new Promise((r) => setTimeout(r, 0));
+    let done = false;
+    const waited = waitForTokenRefresh().then(() => { done = true; });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(done).toBe(false);
+    answer(res({ access_token: 'new', refresh_token: 'rt2', expires_at: future() }));
+    await waited;
+    expect(chrome.storage.local.set).toHaveBeenCalledWith({ auth_tokens: expect.objectContaining({ refresh_token: 'rt2' }) });
+    await request;
   });
 
   it('refreshes an expired token before the request', async () => {

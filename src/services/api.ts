@@ -57,6 +57,15 @@ export async function saveTokens(tokens: TokenData): Promise<void> {
   try { await chrome.storage.local.set({ auth_tokens: tokens }); } catch (_) { /* no extension context */ }
 }
 
+/**
+ * Resolves once this context's token refresh, if any, has settled and stored its
+ * result. The server rotates refresh tokens strictly, so an update reload in the
+ * middle of a refresh would lose the new pair and sign the user out (TASK-113).
+ */
+export function waitForTokenRefresh(): Promise<void> {
+  return refreshPromise ? refreshPromise.then(() => {}, () => {}) : Promise.resolve();
+}
+
 export async function clearTokens(): Promise<void> {
   tokenData = null;
   try { await chrome.storage.local.remove("auth_tokens"); } catch (_) { /* no extension context */ }
