@@ -1,3 +1,5 @@
+import { isFirefox } from "~src/lib/browserKind";
+
 const FAVICON_SIZE = 16;
 
 /**
@@ -17,9 +19,13 @@ export function faviconToDataUrl(favIconUrl: string, pageUrl?: string): Promise<
   return typeof Image === 'undefined' ? workerFaviconToDataUrl(source, favIconUrl) : pageFaviconToDataUrl(source, favIconUrl);
 }
 
-/** Chrome's cached icon for a web page, or null when there is no web page to ask about. */
+/**
+ * Chrome's cached icon for a web page, or null when there is no web page to ask
+ * about, or no such cache: Firefox has no `_favicon/` (TASK-112), so there the
+ * tab's own favicon URL is kept and FaviconImg falls back to the globe.
+ */
 export function chromeFaviconUrl(pageUrl: string | undefined): string | null {
-  if (!pageUrl) return null;
+  if (!pageUrl || isFirefox()) return null;
   try {
     const { protocol } = new URL(pageUrl);
     if (protocol !== 'http:' && protocol !== 'https:') return null;

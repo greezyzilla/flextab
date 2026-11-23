@@ -23,6 +23,8 @@ install and browser-mode tests run locally and before anything is published.
 | jsdom unit tests + coverage gates | yes (`--project unit`) | yes | `npm run test:coverage -- --run` |
 | Browser-mode tests (Chromium) | no | yes (`browser: true`) | `npm run test:browser` |
 | Stable and beta builds | yes | yes | `npm run build -- --channel=...` |
+| Firefox build + `web-ext lint` | yes | yes | `npm run lint:firefox` |
+| Firefox smoke test (installed Firefox) | no | before a release, by hand | `npm run test:firefox` |
 | Actions pinned to commit SHAs | yes (`check-actions-pinned.mjs`) | n/a | same script |
 | Conventional Commits | yes, each commit in the push or PR (`check-commits.mjs`) | n/a | `commit-msg` hook after `npm run setup-hooks` |
 

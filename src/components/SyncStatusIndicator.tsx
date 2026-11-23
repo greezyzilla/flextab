@@ -8,6 +8,7 @@ import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import { spaceTabCount } from "~src/services/spacesTree"
 import { limitSummary } from "~src/services/syncLimit"
 import { syncNow } from "~src/services/syncEngine"
+import { requestApiAccess } from "~src/services/apiAccess"
 import { Tooltip, TooltipTrigger, TooltipContent } from "./ui/tooltip"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 import { Button } from "./ui/button"
@@ -28,6 +29,9 @@ import { SIGN_IN_ROUTE } from "~src/lib/workspaceAccess"
  *   the popover reopens the resolver (TASK-10)
  * - signed in + over the plan's tab cap → "Sync paused" in words (TASK-9), so
  *   the state never rests on colour alone; the button opens the details.
+ * - signed in + the browser took away access to the server (a revoked host
+ *   permission, or Firefox's data consent) → "Sync off" in words, and the
+ *   popover asks for it again (TASK-112). Nothing else can happen until then.
  */
 export function SyncStatusIndicator() {
   const status = useSyncStore((s) => s.status)
@@ -37,6 +41,7 @@ export function SyncStatusIndicator() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const userId = useAuthStore((s) => s.user?.id)
   const limit = useSyncStore((s) => s.limit)
+  const apiAccess = useSyncStore((s) => s.apiAccess)
   const plan = usePlanStore((s) => s.status)
   const savedSpaces = useSavedSpacesStore((s) => s.savedSpaces)
   const tabs = useMemo(() => savedSpaces.reduce((n, sp) => n + spaceTabCount(sp), 0), [savedSpaces])
@@ -92,11 +97,18 @@ export function SyncStatusIndicator() {
   const idle =
     isAuthenticated &&
     (status === "paused" || status === "offline" || status === "error")
-  const showConflict = idle && conflictPending
+  const blocked = isAuthenticated && !apiAccess
+  const showConflict = idle && conflictPending && !blocked
   const showDirty = idle && dirty && !showConflict
 
-  const paused = isAuthenticated && limit !== null
-  if (paused) {
+  const paused = isAuthenticated && limit !== null && !blocked
+  if (blocked) {
+    Icon = CloudOff
+    cls = "text-warning"
+    label = "Sync off"
+    detail = "Your browser turned off FlexTab's access to its server. Your tabs stay on this device until you allow it again."
+    spin = false
+  } else if (paused) {
     Icon = CloudOff
     cls = "text-warning"
     label = "Sync paused"
@@ -134,7 +146,7 @@ export function SyncStatusIndicator() {
   const cap = tabCap(plan)
   // Usage joins the header only when it matters: near the cap (Von Restorff),
   // and never beside another state label, so one thing asks for attention.
-  const near = !paused && !showConflict && cap !== undefined && cap > 0 && tabs >= cap * NEAR_CAP
+  const near = !blocked && !paused && !showConflict && cap !== undefined && cap > 0 && tabs >= cap * NEAR_CAP
   const usage = near ? `${tabs}/${cap}` : null
 
   return (
@@ -147,10 +159,11 @@ export function SyncStatusIndicator() {
           aria-label={`Sync status: ${label}${usage ? `, ${tabs} of ${cap} tabs` : ""}`}
         >
           <SyncGlyph icon={Icon} tone={cls} spin={spin} />
+          {blocked && <span className="text-warning">Sync off</span>}
           {paused && <span className="text-warning">Sync paused</span>}
           {showConflict && !paused && <span className="text-danger">Sync conflict</span>}
           {usage && <span className="text-warning tabular-nums">{usage}</span>}
-          {!paused && showDirty && (
+          {!blocked && !paused && showDirty && (
             <SyncDirtyDot />
           )}
         </Button>
@@ -166,7 +179,12 @@ export function SyncStatusIndicator() {
             <Button variant="link" size="sm" onClick={() => { setOpen(false); navigate("/settings/sync") }}>
               Sync settings
             </Button>
-            {paused ? (
+            {blocked ? (
+              // Asked inside the click: browsers only prompt from a user gesture.
+              <Button variant="default" size="sm" onClick={() => { void requestApiAccess(); setOpen(false) }}>
+                Allow access
+              </Button>
+            ) : paused ? (
               <Button variant="default" size="sm" onClick={() => { setOpen(false); navigate("/settings/plan") }}>
                 See plan
               </Button>

@@ -52,6 +52,8 @@ beforeEach(async () => {
     onUpdateAvailable: { addListener: vi.fn() },
   });
   Object.assign(chrome.windows, { onFocusChanged: { addListener: vi.fn() } });
+  apiAllowed = true;
+  Object.assign(chrome, { permissions: { contains: vi.fn(async () => apiAllowed), onAdded: { addListener: vi.fn() } } });
   Object.assign(chrome, { alarms: { create: vi.fn(), onAlarm: { addListener: vi.fn() } } });
   yjs = await import("./lib/yjsDoc");
   api = await import("./services/api");
@@ -68,6 +70,8 @@ async function until(predicate: () => boolean) {
   for (let i = 0; i < 100 && !predicate(); i++) await Promise.resolve();
   expect(predicate()).toBe(true);
 }
+
+let apiAllowed = true;
 
 describe("production background push", () => {
   it("uploads deletion of the last space and advances the empty merge-base", async () => {
@@ -335,4 +339,21 @@ it("does not accept raw callback credentials through tabs.onUpdated", async () =
   for (let i = 0; i < 10; i++) await Promise.resolve();
   expect(disk.auth_tokens).toBeUndefined();
   expect(chrome.tabs.remove).not.toHaveBeenCalled();
+});
+
+describe("background push without access to the server (TASK-112)", () => {
+  it("keeps the change pending while access is off and pushes once it is back", async () => {
+    apiAllowed = false;
+    await edit([space("kept")]);
+    disk.flextab_push_pending = true;
+    await background.pushStructuredData();
+    expect(api.pushSync).not.toHaveBeenCalled();
+    expect(disk.flextab_push_pending).toBe(true);
+
+    apiAllowed = true;
+    vi.mocked(api.pushSync).mockResolvedValue({ status: "ok", revision: 2 });
+    vi.mocked((chrome as any).permissions.onAdded.addListener).mock.calls[0][0]();
+    await until(() => vi.mocked(api.pushSync).mock.calls.length === 1);
+    await until(() => disk.flextab_push_pending === undefined);
+  });
 });

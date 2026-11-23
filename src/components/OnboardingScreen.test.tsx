@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { act, render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { OnboardingScreen } from "./OnboardingScreen"
@@ -289,5 +289,41 @@ describe("sign-in screen (TASK-7)", () => {
     useSyncConflict.setState({ pending: true })
     render(<OnboardingScreen onBack={vi.fn()} />)
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+  })
+})
+
+describe("sign-in asks the browser for access to the server first (TASK-112)", () => {
+  const c = chrome as unknown as Record<string, unknown>
+  afterEach(() => { delete c.permissions })
+
+  it("stops before sending the email when access is refused, and says why", async () => {
+    c.permissions = { request: vi.fn(async () => false) }
+    const user = userEvent.setup()
+    render(<OnboardingScreen onBack={vi.fn()} />)
+    await ready()
+    await user.type(screen.getByLabelText("Email"), "me@example.com")
+    await user.type(screen.getByLabelText("Password"), "password1")
+    await user.click(screen.getByRole("button", { name: "Sign in" }))
+    expect(await screen.findByRole("alert")).toHaveTextContent("Allow FlexTab to reach its server to sign in.")
+    expect(loginWithEmail).not.toHaveBeenCalled()
+  })
+
+  it("does not open the provider when access is refused", async () => {
+    c.permissions = { request: vi.fn(async () => false) }
+    const user = userEvent.setup()
+    render(<OnboardingScreen onBack={vi.fn()} />)
+    await user.click(await ready())
+    expect(await screen.findByRole("alert")).toHaveTextContent("Allow FlexTab to reach its server to sign in.")
+    expect(loginWithGoogle).not.toHaveBeenCalled()
+  })
+
+  it("signs in as before once access is granted", async () => {
+    const request = vi.fn(async () => true)
+    c.permissions = { request }
+    const user = userEvent.setup()
+    render(<OnboardingScreen onBack={vi.fn()} />)
+    await user.click(await ready())
+    await vi.waitFor(() => expect(loginWithGoogle).toHaveBeenCalled())
+    expect(request).toHaveBeenCalledOnce()
   })
 })

@@ -50,6 +50,36 @@ and only after the build succeeds creates the annotated tag `beta-vX.Y.Z.N`. Any
 failure aborts with no tag left behind. A repository with no stable tag yet
 cannot cut a beta: tag the last stable release first.
 
+## Firefox build
+
+The same code builds for Firefox with `--target=firefox-mv3` (TASK-112), for
+either channel. Plasmo turns the background service worker into Firefox's event
+page; package.json `manifest.overrides.firefox` drops the Chrome-only `favicon`
+permission; `browser_specific_settings.gecko` (kept for Firefox only) sets the
+add-on id per channel, `strict_min_version` 140.0 (the ESR, and the first with
+built-in data consent) and `data_collection_permissions` (none required; account
+data, sign-in data, saved tabs and the device id optional, asked for at sign-in;
+the list in `src/services/apiAccess.ts` must match it, a test checks).
+
+```bash
+npm run build:zip -- --channel=stable --target=firefox-mv3   # build/firefox-mv3-prod.zip
+npm run lint:firefox      # Mozilla's web-ext lint on build/firefox-mv3-prod (0 errors required)
+npm run test:firefox      # smoke test in the installed Firefox, see below
+```
+
+`web-ext` lives in `tools/web-ext` with its own lockfile, apart from the
+extension's dependencies; every package in it was published at least 7 days
+before it was added (`npm install --before=<date>`). `lint:firefox` installs it
+with `npm ci --ignore-scripts`. Known lint warnings: `innerHTML` in React's
+`dangerouslySetInnerHTML` and in `src/boot/shell.js` (the cached loading shell),
+and the data consent key being newer than Firefox for Android 140.
+
+`npm run test:firefox` drives the installed Firefox through WebDriver BiDi (no
+dependency) and checks the new tab, popup, shortcuts, tab grouping, Sync off on
+a revoked host permission, and an update while FlexTab pages are open. Run it
+on a build pointed at `https://api.example.invalid`: it signs in with a fake
+token, which a real server would answer by signing out.
+
 ## Versioning
 
 - **Single source of truth: `package.json` `version`.** Plasmo propagates it into

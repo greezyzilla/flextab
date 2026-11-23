@@ -3,6 +3,7 @@ import { Button } from "~src/components/ui/button"
 import { Kbd } from "~src/components/ui/kbd"
 import { useUIStore } from "~src/store/useUIStore"
 import { useCommandShortcuts } from "~src/hooks/useCommandShortcuts"
+import { browserName, openShortcutSettings } from "~src/lib/browserKind"
 
 // The page's own shortcuts. They work while the new tab is focused and you
 // are not typing; letters were chosen because Chrome keeps Ctrl/⌘+N for
@@ -62,12 +63,12 @@ export function ShortcutsDialog() {
             <section aria-labelledby="shortcuts-chrome" className="flex flex-col gap-1">
               {/* "Change" sits on its section's heading, so it is clear what it changes. */}
               <div className="flex items-center justify-between text-xs">
-                <h3 id="shortcuts-chrome" className={heading}>Anywhere in Chrome</h3>
+                <h3 id="shortcuts-chrome" className={heading}>Anywhere in {browserName()}</h3>
                 <Button
                   variant="link"
                   size="inline"
-                  aria-label="Change the Chrome shortcuts"
-                  onClick={() => { try { void chrome.tabs.create({ url: "chrome://extensions/shortcuts" }) } catch (_) { /* ok */ } }}
+                  aria-label={`Change the ${browserName()} shortcuts`}
+                  onClick={openShortcutSettings}
                 >
                   Change
                 </Button>

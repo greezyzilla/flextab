@@ -10,6 +10,10 @@ import { Input, PasswordField } from "~src/components/ui/input"
 import { Label } from "~src/components/ui/label"
 import { Modal, ModalHeader } from "~src/components/ui/modal"
 import { ApiError, apiForgotPassword, apiGetSignInOptions, apiRegister, apiResendVerification } from "~src/services/api"
+import { requestApiAccess } from "~src/services/apiAccess"
+
+// Signing in sends the email to the server, which needs the browser's OK first (TASK-112).
+const NO_ACCESS = "Allow FlexTab to reach its server to sign in."
 import { SESSION_EXPIRED_KEY } from "~src/services/api"
 import { OAUTH_PENDING_KEY, OAUTH_PROVIDERS, type OAuthProvider } from "~src/services/oauthLogin"
 import { spaceTabCount } from "~src/services/spacesTree"
@@ -169,6 +173,10 @@ export function OnboardingScreen({ onBack }: {
   }, [step])
 
   const startOAuth = async (provider: Provider) => {
+    // Asked before the first await: browsers only prompt from the click itself.
+    const access = requestApiAccess()
+    if (!(await access)) { setError(NO_ACCESS); return }
+    setError('')
     await { google: loginWithGoogle, github: loginWithGithub, gitlab: loginWithGitlab, discord: loginWithDiscord }[provider]()
     try {
       const pending = (await chrome.storage.session.get(OAUTH_PENDING_KEY))[OAUTH_PENDING_KEY]
@@ -178,9 +186,11 @@ export function OnboardingScreen({ onBack }: {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    const access = requestApiAccess()
     setError('')
     setLoading(true)
     try {
+      if (!(await access)) { setError(NO_ACCESS); return }
       if (mode === "create") {
         await apiRegister(email.trim(), password)
         setStep({ kind: "check", reason: "verify", email: email.trim(), created: true })
@@ -513,9 +523,11 @@ function Forgot({ initialEmail, onSent, onBack }: { initialEmail: string; onSent
   const [sending, setSending] = useState(false)
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
+    const access = requestApiAccess()
     setSending(true)
     setError('')
     try {
+      if (!(await access)) { setError(NO_ACCESS); return }
       await apiForgotPassword(email.trim())
       onSent(email.trim())
     } catch (err) {

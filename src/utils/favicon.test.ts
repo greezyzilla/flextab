@@ -98,3 +98,13 @@ describe('faviconToDataUrl in a service worker (no Image/DOM)', () => {
     expect(await faviconToDataUrl('http://x/err.ico', PAGE)).toBe('http://x/err.ico');
   });
 });
+
+describe('favicons in Firefox, which has no _favicon cache (TASK-112)', () => {
+  afterEach(() => { delete (chrome.runtime as unknown as Record<string, unknown>).getBrowserInfo })
+
+  it('keeps the tab\'s own favicon URL instead of asking a cache that does not exist', async () => {
+    (chrome.runtime as unknown as Record<string, unknown>).getBrowserInfo = vi.fn()
+    expect(chromeFaviconUrl('https://example.com/')).toBeNull()
+    expect(await faviconToDataUrl('https://example.com/favicon.ico', 'https://example.com/')).toBe('https://example.com/favicon.ico')
+  })
+})

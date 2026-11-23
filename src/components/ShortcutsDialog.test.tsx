@@ -35,3 +35,25 @@ describe("ShortcutsDialog (TASK-13)", () => {
     expect(useUIStore.getState().shortcutsOpen).toBe(false)
   })
 })
+
+describe("ShortcutsDialog in Firefox (TASK-112)", () => {
+  it("names Firefox and opens its own shortcut screen", async () => {
+    const runtime = chrome.runtime as unknown as Record<string, unknown>
+    const c = chrome as unknown as Record<string, unknown>
+    const previous = c.commands
+    const openShortcutSettings = vi.fn(async () => {})
+    runtime.getBrowserInfo = vi.fn()
+    c.commands = { ...(previous as object), openShortcutSettings }
+    try {
+      useUIStore.getState().setShortcutsOpen(true)
+      render(<ShortcutsDialog />)
+      const dialog = await screen.findByRole("dialog")
+      expect(within(dialog).getByRole("region", { name: "Anywhere in Firefox" })).toBeInTheDocument()
+      fireEvent.click(within(dialog).getByRole("button", { name: "Change the Firefox shortcuts" }))
+      expect(openShortcutSettings).toHaveBeenCalledOnce()
+    } finally {
+      delete runtime.getBrowserInfo
+      c.commands = previous
+    }
+  })
+})

@@ -18,6 +18,8 @@
     "test:ui": "vitest --ui",
     "test:browser": "vitest run --project browser",
     "setup-hooks": "git config core.hooksPath .githooks",
+    "test:firefox": "node scripts/firefox-smoke.mjs",
+    "lint:firefox": "npm ci --prefix tools/web-ext --ignore-scripts --no-audit --no-fund && tools/web-ext/node_modules/.bin/web-ext lint --source-dir build/firefox-mv3-prod",
     "test:coverage": "vitest --coverage"
   },
   "dependencies": {
@@ -97,7 +99,12 @@
     "version_name": "$FLEXTAB_EXT_VERSION_NAME",
     "browser_specific_settings": {
       "gecko": {
-        "id": "$FLEXTAB_GECKO_ID"
+        "id": "$FLEXTAB_GECKO_ID",
+        "strict_min_version": "140.0",
+        "data_collection_permissions": {
+          "required": ["none"],
+          "optional": ["personallyIdentifyingInfo", "authenticationInfo", "bookmarksInfo", "technicalAndInteraction"]
+        }
       }
     },
     "permissions": [
@@ -123,7 +130,12 @@
     },
     "host_permissions": [
       "$PLASMO_PUBLIC_API_HOST"
-    ]
+    ],
+    "overrides": {
+      "firefox": {
+        "permissions": ["tabs", "storage", "unlimitedStorage", "alarms", "contextMenus"]
+      }
+    }
   },
   "overrides": {
     "jiti": "^1.21.7"

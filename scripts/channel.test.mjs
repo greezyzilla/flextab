@@ -10,7 +10,7 @@ const pkg = JSON.parse(readFileSync(resolve(__dirname, "../package.json"), "utf8
  * What Plasmo does with package.json `manifest` (0.90): a "$VAR" placeholder takes
  * the variable's value, an unset one is dropped, and the overrides land on top of
  * the manifest built from package.json name/version. Chrome builds drop
- * browser_specific_settings.
+ * browser_specific_settings; a browser's `overrides` entry replaces keys for it.
  */
 function builtManifest(plan, browser = "chrome") {
   const fill = (v) => {
@@ -21,9 +21,8 @@ function builtManifest(plan, browser = "chrome") {
     }
     return v
   }
-  const { permissions, optional_permissions, commands, host_permissions, ...channelKeys } = pkg.manifest
-  const overrides = fill(channelKeys)
-  const manifest = { name: pkg.displayName, version: pkg.version, ...overrides }
+  const { optional_permissions, commands, host_permissions, overrides = {}, ...channelKeys } = pkg.manifest
+  const manifest = { name: pkg.displayName, version: pkg.version, ...fill(channelKeys), ...(overrides[browser] ?? {}) }
   if (browser === "chrome") delete manifest.browser_specific_settings
   return finalizeManifest(manifest, plan)
 }
@@ -75,7 +74,7 @@ describe("the stable build", () => {
   })
 
   it("carries the stable Firefox add-on id", () => {
-    expect(builtManifest(plan, "firefox").browser_specific_settings).toEqual({ gecko: { id: GECKO_IDS.stable } })
+    expect(builtManifest(plan, "firefox").browser_specific_settings.gecko).toMatchObject({ id: GECKO_IDS.stable })
   })
 })
 
@@ -91,7 +90,7 @@ describe("the beta build", () => {
   })
 
   it("has its own Firefox add-on id, so it installs next to stable", () => {
-    expect(builtManifest(plan, "firefox").browser_specific_settings).toEqual({ gecko: { id: GECKO_IDS.beta } })
+    expect(builtManifest(plan, "firefox").browser_specific_settings.gecko).toMatchObject({ id: GECKO_IDS.beta })
     expect(GECKO_IDS.beta).not.toBe(GECKO_IDS.stable)
   })
 
@@ -109,5 +108,25 @@ describe("package.json manifest placeholders", () => {
     const placeholders = JSON.stringify(pkg.manifest).match(/"\$FLEXTAB_\w+"/g).map((s) => s.slice(2, -1))
     const used = new Set([...Object.keys(channelPlan("stable").env), ...Object.keys(channelPlan("beta", { betaTag: "beta-v1.0.0.1" }).env)])
     expect(new Set(placeholders)).toEqual(used)
+  })
+})
+
+describe("the Firefox manifest (TASK-112)", () => {
+  const firefox = builtManifest(channelPlan("stable"), "firefox")
+  const chrome = builtManifest(channelPlan("stable"), "chrome")
+
+  it("asks for Firefox 140 (ESR) and declares its data collection: none required, the account data optional", () => {
+    expect(firefox.browser_specific_settings.gecko).toMatchObject({
+      strict_min_version: "140.0",
+      data_collection_permissions: {
+        required: ["none"],
+        optional: ["personallyIdentifyingInfo", "authenticationInfo", "bookmarksInfo", "technicalAndInteraction"],
+      },
+    })
+  })
+
+  it("drops the Chrome-only favicon permission for Firefox and keeps the rest", () => {
+    expect(firefox.permissions).toEqual(pkg.manifest.permissions.filter((p) => p !== "favicon"))
+    expect(chrome.permissions).toContain("favicon")
   })
 })

@@ -17,6 +17,7 @@ import { captureFromBackground, commandKind, menuKind, registerCaptureMenus, reg
 import { installToolbarIcon } from "~src/services/toolbarIcon";
 import { runInstallSteps } from "~src/services/installLifecycle";
 import { installUpdateFlow, restoreTabsAfterUpdate } from "~src/services/updateFlow";
+import { hasApiAccess } from "~src/services/apiAccess";
 
 const API_BASE_URL = process.env.PLASMO_PUBLIC_API_URL || "http://localhost:3000";
 const AUTH_SUCCESS_PATH = "/auth/success";
@@ -154,6 +155,9 @@ export function pushStructuredData(): Promise<void> {
 
 async function pushLatestStructuredData() {
   if (!await automaticPushAllowed()) return;
+  // Access taken away in the browser (TASK-112): the pending flag stays, and the
+  // push runs again once access is back (permissions.onAdded below).
+  if (!await hasApiAccess()) return;
   const tokens = await loadTokens();
   if (!tokens) return;
   // Hold pushes while a true OCC / merge conflict is unresolved (FE-B3).
@@ -263,6 +267,7 @@ chrome.runtime.onInstalled.addListener((details) => {
   });
 });
 chrome.runtime.onStartup.addListener(doInitialPush);
+chrome.permissions?.onAdded?.addListener(() => { void pushStructuredData(); });
 
 // A new version is applied when no one is using FlexTab, after every write has
 // finished (TASK-113, services/updateFlow.ts).

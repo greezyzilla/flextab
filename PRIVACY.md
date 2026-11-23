@@ -1,8 +1,8 @@
 # FlexTab — Privacy Policy
 
-_Last updated: 19 October 2026_
+_Last updated: 23 November 2026_
 
-FlexTab is a browser extension that replaces your new tab page with a workspace to save, organize, and sync your tabs across devices. This policy explains what data FlexTab handles and why.
+FlexTab is a browser extension that replaces your new tab page with a workspace to save, organize, and sync your tabs across devices. It is available for Chrome and other Chromium browsers, and for Firefox. This policy explains what data FlexTab handles and why, and applies the same way in every browser.
 
 ## What we collect
 
@@ -52,6 +52,17 @@ Contact us below to request account/data deletion and information about retained
 - `contextMenus` to add Save page, Save link and Save all tabs in this window to FlexTab to the right-click menu. FlexTab reads the page or link only when you choose one of them.
 - `tabGroups` (optional, asked for only when you first open a group as a tab group, and given back when you turn it off in Settings) to give the browser tab group the saved group's name and color. FlexTab does not read your existing tab groups.
 - API host access — for authentication, workspace sync, account settings, and billing. This permission list does not mean image requests can only reach the API host.
+
+## Firefox
+
+In Firefox, FlexTab declares the data it sends in Firefox's own data collection settings. Nothing is required: FlexTab works on your device without sending anything. The following are optional, and Firefox asks for your consent when you sign in:
+
+- **Personally identifying information**: your account's name and email address.
+- **Authentication information**: the data used to sign in and keep you signed in.
+- **Bookmarks information**: your saved workspace (the URLs, titles and favicons of saved tabs, and how you organize them).
+- **Technical and interaction data**: the per-install identifier and browser User-Agent sent with signed-in requests.
+
+This is the same data described above for every browser. If you withdraw the consent in Firefox, or remove FlexTab's access to its server in your browser's settings, sync stops and your workspace stays on your device; FlexTab shows "Sync off" and how to allow access again. Firefox has no favicon cache for extensions, so in Firefox saved tabs keep the favicon address the browser reports, and displaying it can contact its image host as described above.
 
 ## Children's privacy
 

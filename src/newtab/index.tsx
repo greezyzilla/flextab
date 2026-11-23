@@ -22,9 +22,13 @@ import { ShellSkeleton } from "~src/components/layout/ShellSkeleton"
 import { SettingsSkeleton } from "~src/components/layout/SettingsSkeleton"
 import { isSettingsRoute } from "~src/components/settings/types"
 import { installUpdatePrepareListener } from "~src/services/updatePrepare"
+import { watchApiAccess } from "~src/services/apiAccess"
+import { useSyncStore } from "~src/store/useSyncStore"
 
 // Before an update reload, the background asks this page to finish its writes (TASK-113).
 installUpdatePrepareListener()
+// Sync needs access to the server, which the browser can take away (TASK-112).
+watchApiAccess((allowed) => useSyncStore.getState().setApiAccess(allowed))
 
 // The mode and look are on <html> before the first paint: newtab.html's boot script (TASK-107).
 
@@ -59,11 +63,12 @@ function NewTabPage() {
   // makes the running session stale and cancels its first reconcile, so without
   // a restart the sign-in choice would wait for the next new tab (TASK-11).
   const userId = user?.id
+  const apiAccess = useSyncStore((s) => s.apiAccess)
   useEffect(() => {
-    if (!hydrated || !isAuthenticated || !autoSync) return
+    if (!hydrated || !isAuthenticated || !autoSync || !apiAccess) return
     startSyncEngine()
     return () => stopSyncEngine()
-  }, [hydrated, isAuthenticated, autoSync, userId])
+  }, [hydrated, isAuthenticated, autoSync, userId, apiAccess])
 
   // Account settings (theme/layout/etc.): pull on sign-in, then push on change.
   useEffect(() => {

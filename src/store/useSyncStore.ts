@@ -27,6 +27,10 @@ interface SyncState {
   // paused until a push lands, so this is a lasting state, not a toast.
   // Mirrors chrome.storage (services/syncLimit) via useBackgroundNotices.
   limit: SyncLimitNotice | null
+  // The browser took away FlexTab's access to its server (TASK-112): the API's
+  // host permission, or Firefox's data collection consent. Sync is off until it is back.
+  apiAccess: boolean
+  setApiAccess: (apiAccess: boolean) => void
   setStatus: (status: SyncStatus) => void
   setDirty: (dirty: boolean) => void
   setConflictPending: (conflictPending: boolean) => void
@@ -45,6 +49,8 @@ export const useSyncStore = create<SyncState>((set) => ({
   dirty: false,
   conflictPending: false,
   limit: null,
+  apiAccess: true,
+  setApiAccess: (apiAccess) => set({ apiAccess }),
   setStatus: (status) => set({ status }),
   setDirty: (dirty) => set({ dirty }),
   setConflictPending: (conflictPending) => set({ conflictPending }),

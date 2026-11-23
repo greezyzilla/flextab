@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { SyncStatusIndicator } from "./SyncStatusIndicator"
@@ -99,5 +99,36 @@ describe("SyncStatusIndicator", () => {
     expect(await screen.findByText(/Sync is paused until you choose which changes to keep/)).toBeInTheDocument()
     await userEvent.click(screen.getByRole("button", { name: "Resolve conflict" }))
     expect(syncNow).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe("SyncStatusIndicator when the browser took away access (TASK-112)", () => {
+  const c = chrome as unknown as Record<string, unknown>
+  afterEach(() => {
+    useSyncStore.setState({ apiAccess: true })
+    delete c.permissions
+  })
+
+  it("says Sync off in words, over any other state, and asks for access again from the click", async () => {
+    const request = vi.fn(async () => true)
+    c.permissions = { request }
+    useAuthStore.setState({ isAuthenticated: true, user: { id: "u" } as never })
+    useSyncStore.setState({ apiAccess: false, status: "paused", dirty: true, conflictPending: true })
+    render(<TooltipProvider><SyncStatusIndicator /></TooltipProvider>)
+    const badge = screen.getByRole("button", { name: "Sync status: Sync off" })
+    expect(badge).toHaveTextContent("Sync off")
+    expect(badge).not.toHaveTextContent("Sync conflict")
+    await userEvent.click(badge)
+    expect(await screen.findByText(/turned off FlexTab's access to its server/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "Allow access" }))
+    expect(request).toHaveBeenCalledWith({ origins: [expect.any(String)] })
+  })
+
+  it("is not shown while signed out: local use needs no server", () => {
+    useAuthStore.setState({ isAuthenticated: false })
+    useSyncStore.setState({ apiAccess: false })
+    render(<TooltipProvider><SyncStatusIndicator /></TooltipProvider>)
+    expect(screen.getByRole("button", { name: "Sign in to sync" })).toBeInTheDocument()
+    expect(screen.queryByText("Sync off")).not.toBeInTheDocument()
   })
 })

@@ -1,4 +1,5 @@
 import * as SliderPrimitive from "@radix-ui/react-slider";
+import { isFirefox } from "~src/lib/browserKind";
 import type { IconWeight } from "~src/components/ui/icon";
 import { Icon } from "~src/components/ui/icon"
 import { DUPLICATE_TONE } from "~src/components/ui/duplicate-mark";
@@ -123,7 +124,7 @@ export function ThemeTab() {
           )}
         </SettingRow>
 
-        <SettingRow label="App icon" description="The new tab's icon and the toolbar button." info="The Chrome Web Store and chrome://extensions always show FlexTab blue.">
+        <SettingRow label="App icon" description="The new tab's icon and the toolbar button." info={isFirefox() ? "Firefox Add-ons and the Add-ons Manager always show FlexTab blue." : "The Chrome Web Store and chrome://extensions always show FlexTab blue."}>
           {(controlProps) => (
             <ToggleGroup<AppIcon>
               {...controlProps}
