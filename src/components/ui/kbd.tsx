@@ -24,9 +24,13 @@ export function ShortcutTooltip({ label, shortcut, side = "bottom", children }: 
   return (
     <Tooltip>
       <TooltipTrigger asChild>{children}</TooltipTrigger>
-      <TooltipContent side={side} className="flex items-center gap-2">
-        {label}
-        <Kbd shortcut={shortcut} />
+      {/* The label and its keys 8px apart on their own row: TooltipContent puts its children in a text
+          span, so a gap on the tooltip box would not reach them (TASK-119). */}
+      <TooltipContent side={side}>
+        <span data-slot="shortcut-tip" className="inline-flex flex-wrap items-center gap-2">
+          {label}
+          <Kbd shortcut={shortcut} />
+        </span>
       </TooltipContent>
     </Tooltip>
   )
