@@ -23,12 +23,15 @@ import { SettingsSkeleton } from "~src/components/layout/SettingsSkeleton"
 import { isSettingsRoute } from "~src/components/settings/types"
 import { installUpdatePrepareListener } from "~src/services/updatePrepare"
 import { watchApiAccess } from "~src/services/apiAccess"
+import { watchUpdateRequired } from "~src/services/updateRequired"
 import { useSyncStore } from "~src/store/useSyncStore"
 
 // Before an update reload, the background asks this page to finish its writes (TASK-113).
 installUpdatePrepareListener()
 // Sync needs access to the server, which the browser can take away (TASK-112).
 watchApiAccess((allowed) => useSyncStore.getState().setApiAccess(allowed))
+// The server can refuse a version that is too old (TASK-114).
+watchUpdateRequired((required) => useSyncStore.getState().setUpdateRequired(required !== null))
 
 // The mode and look are on <html> before the first paint: newtab.html's boot script (TASK-107).
 
@@ -64,11 +67,12 @@ function NewTabPage() {
   // a restart the sign-in choice would wait for the next new tab (TASK-11).
   const userId = user?.id
   const apiAccess = useSyncStore((s) => s.apiAccess)
+  const updateRequired = useSyncStore((s) => s.updateRequired)
   useEffect(() => {
-    if (!hydrated || !isAuthenticated || !autoSync || !apiAccess) return
+    if (!hydrated || !isAuthenticated || !autoSync || !apiAccess || updateRequired) return
     startSyncEngine()
     return () => stopSyncEngine()
-  }, [hydrated, isAuthenticated, autoSync, userId, apiAccess])
+  }, [hydrated, isAuthenticated, autoSync, userId, apiAccess, updateRequired])
 
   // Account settings (theme/layout/etc.): pull on sign-in, then push on change.
   useEffect(() => {

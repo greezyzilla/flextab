@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { installSteps, runInstallSteps } from "./installLifecycle"
 import {
-  PREPARE_UPDATE_MESSAGE, RESTORE_TABS_KEY, UPDATE_ALARM, UPDATE_READY_KEY,
+  APPLY_UPDATE_NOW_MESSAGE, PREPARE_UPDATE_MESSAGE, RESTORE_TABS_KEY, UPDATE_ALARM, UPDATE_FORCE_KEY, UPDATE_READY_KEY,
   flexTabKind, installUpdateFlow, restoreTabsAfterUpdate, tryApplyUpdate, type RestoreTab,
 } from "./updateFlow"
 
@@ -19,7 +19,8 @@ beforeEach(() => {
   disk = {}
   tabs = []
   focused = { focused: true }
-  vi.mocked(chrome.storage.local.get).mockImplementation((async (key: string) => (key in disk ? { [key]: structuredClone(disk[key]) } : {})) as never)
+  vi.mocked(chrome.storage.local.get).mockImplementation((async (keys: string | string[]) =>
+    Object.fromEntries([keys].flat().filter((k) => k in disk).map((k) => [k, structuredClone(disk[k])]))) as never)
   vi.mocked(chrome.storage.local.set).mockImplementation((async (v: Record<string, unknown>) => { Object.assign(disk, structuredClone(v)) }) as never)
   vi.mocked(chrome.storage.local.remove).mockImplementation((async (keys: string | string[]) => { for (const k of [keys].flat()) delete disk[k] }) as never)
   c.tabs.query = vi.fn(async () => tabs.map((t) => ({ windowId: 1, index: 0, active: false, ...t })))
@@ -47,7 +48,7 @@ describe("installSteps (TASK-113)", () => {
   })
 
   it("restores the dropped pages on an update and runs no install-only work", () => {
-    expect(installSteps("update")).toEqual(["deviceId", "menus", "restoreTabs", "initialPush"])
+    expect(installSteps("update")).toEqual(["deviceId", "menus", "restoreTabs", "clearUpdateRequired", "initialPush"])
     expect(installSteps("install")).not.toContain("restoreTabs")
   })
 
@@ -61,9 +62,10 @@ describe("installSteps (TASK-113)", () => {
       deviceId: () => ran.push("deviceId"),
       menus: () => { throw new Error("menus") },
       restoreTabs: () => ran.push("restoreTabs"),
+      clearUpdateRequired: () => ran.push("clearUpdateRequired"),
       initialPush: () => ran.push("initialPush"),
     })
-    expect(ran).toEqual(["deviceId", "restoreTabs", "initialPush"])
+    expect(ran).toEqual(["deviceId", "restoreTabs", "clearUpdateRequired", "initialPush"])
   })
 })
 
@@ -233,5 +235,35 @@ describe("installUpdateFlow", () => {
     c.alarms.onAlarm.addListener.mock.calls[0][0]({ name: UPDATE_ALARM })
     await new Promise((r) => setTimeout(r, 0))
     expect(d.reload).toHaveBeenCalledOnce() // FlexTab in front: still waiting
+  })
+})
+
+describe("installing at once when the user asks (TASK-114)", () => {
+  it("applies with FlexTab in front once the user asked, and the restore forgets the request", async () => {
+    ready()
+    disk[UPDATE_FORCE_KEY] = true
+    tabs = [{ id: 1, url: "chrome://newtab/" }]
+    focused = { focused: true, activeId: 1 }
+    const d = deps()
+    expect(await tryApplyUpdate(d)).toBe(true)
+    expect(d.reload).toHaveBeenCalledOnce()
+    await restoreTabsAfterUpdate()
+    expect(disk[UPDATE_FORCE_KEY]).toBeUndefined()
+  })
+
+  it("turns the page's request into the force flag, from this extension only", async () => {
+    c.runtime.onMessage = { addListener: vi.fn() }
+    c.runtime.onUpdateAvailable = { addListener: vi.fn() }
+    c.tabs.onActivated = { addListener: vi.fn() }
+    c.windows.onFocusChanged = { addListener: vi.fn() }
+    c.alarms = { ...c.alarms, create: vi.fn(), onAlarm: { addListener: vi.fn() } }
+    installUpdateFlow(deps())
+    const onMessage = c.runtime.onMessage.addListener.mock.calls[0][0]
+    onMessage({ type: APPLY_UPDATE_NOW_MESSAGE }, { id: "someone-else" })
+    onMessage({ type: "other" }, { id: chrome.runtime.id })
+    await new Promise((r) => setTimeout(r, 0))
+    expect(disk[UPDATE_FORCE_KEY]).toBeUndefined()
+    onMessage({ type: APPLY_UPDATE_NOW_MESSAGE }, { id: chrome.runtime.id })
+    await vi.waitFor(() => expect(disk[UPDATE_FORCE_KEY]).toBe(true))
   })
 })

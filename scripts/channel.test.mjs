@@ -106,7 +106,7 @@ describe("the beta build", () => {
 describe("package.json manifest placeholders", () => {
   it("has a placeholder for every value a channel sets", () => {
     const placeholders = JSON.stringify(pkg.manifest).match(/"\$FLEXTAB_\w+"/g).map((s) => s.slice(2, -1))
-    const used = new Set([...Object.keys(channelPlan("stable").env), ...Object.keys(channelPlan("beta", { betaTag: "beta-v1.0.0.1" }).env)])
+    const used = new Set([...Object.keys(channelPlan("stable").env), ...Object.keys(channelPlan("beta", { betaTag: "beta-v1.0.0.1" }).env)].filter((k) => k.startsWith("FLEXTAB_")))
     expect(new Set(placeholders)).toEqual(used)
   })
 })
@@ -128,5 +128,12 @@ describe("the Firefox manifest (TASK-112)", () => {
   it("drops the Chrome-only favicon permission for Firefox and keeps the rest", () => {
     expect(firefox.permissions).toEqual(pkg.manifest.permissions.filter((p) => p !== "favicon"))
     expect(chrome.permissions).toContain("favicon")
+  })
+})
+
+describe("the channel the code reports (TASK-114)", () => {
+  it("is stable or beta, inlined through a PLASMO_PUBLIC variable", () => {
+    expect(channelPlan("stable").env.PLASMO_PUBLIC_FLEXTAB_CHANNEL).toBe("stable")
+    expect(channelPlan("beta", { betaTag: "beta-v0.1.0.7" }).env.PLASMO_PUBLIC_FLEXTAB_CHANNEL).toBe("beta")
   })
 })

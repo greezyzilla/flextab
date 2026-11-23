@@ -18,6 +18,10 @@
  */
 /** Sent to every open FlexTab page before the reload; see services/updatePrepare.ts. */
 export const PREPARE_UPDATE_MESSAGE = "flextab:prepare-update"
+/** A page asks the background to install the waiting update even with FlexTab in front (TASK-114). */
+export const APPLY_UPDATE_NOW_MESSAGE = "flextab:apply-update-now"
+/** Set by that message: the next ready update applies without waiting for a safe moment. */
+export const UPDATE_FORCE_KEY = "flextab_update_force"
 export const UPDATE_READY_KEY = "flextab_update_ready"
 export const RESTORE_TABS_KEY = "flextab_update_restore_tabs"
 export const UPDATE_ALARM = "flextab_update_apply"
@@ -85,8 +89,12 @@ let applying = false
 /** Applies a waiting update when it is safe; otherwise leaves it for the next check. */
 export async function tryApplyUpdate(deps: UpdateDeps): Promise<boolean> {
   if (applying) return false
-  const ready = (await chrome.storage.local.get(UPDATE_READY_KEY))[UPDATE_READY_KEY]
-  if (!ready || !(await updateIsSafe())) return false
+  const stored = await chrome.storage.local.get([UPDATE_READY_KEY, UPDATE_FORCE_KEY])
+  const ready = stored[UPDATE_READY_KEY]
+  // The user asked for it ("Check for update"): no waiting for FlexTab to leave the front.
+  const force = Boolean(stored[UPDATE_FORCE_KEY])
+  const safe = () => (force ? Promise.resolve(true) : updateIsSafe())
+  if (!ready || !(await safe())) return false
   applying = true
   try {
     const pages = await openFlexTabTabs()
@@ -95,7 +103,7 @@ export async function tryApplyUpdate(deps: UpdateDeps): Promise<boolean> {
       deps.flushBackground(),
     ]), FLUSH_TIMEOUT_MS)
     // The user may have come back to FlexTab while the writes finished.
-    if (!(await updateIsSafe())) return false
+    if (!(await safe())) return false
     await chrome.storage.local.set({ [RESTORE_TABS_KEY]: await openFlexTabTabs() })
     deps.reload()
     return true
@@ -107,7 +115,7 @@ export async function tryApplyUpdate(deps: UpdateDeps): Promise<boolean> {
 /** Brings back the FlexTab tabs an update reload dropped. Runs once the new version starts. */
 export async function restoreTabsAfterUpdate(): Promise<void> {
   const tabs = ((await chrome.storage.local.get(RESTORE_TABS_KEY))[RESTORE_TABS_KEY] ?? []) as RestoreTab[]
-  await chrome.storage.local.remove([RESTORE_TABS_KEY, UPDATE_READY_KEY])
+  await chrome.storage.local.remove([RESTORE_TABS_KEY, UPDATE_READY_KEY, UPDATE_FORCE_KEY])
   await chrome.alarms.clear(UPDATE_ALARM)
   for (const saved of tabs) {
     const tab = await chrome.tabs.get(saved.id).catch(() => null)
@@ -129,6 +137,10 @@ export function installUpdateFlow(deps: UpdateDeps): void {
       chrome.alarms.create(UPDATE_ALARM, { periodInMinutes: 1 })
       check()
     })
+  })
+  chrome.runtime.onMessage.addListener((message, sender) => {
+    if (message?.type !== APPLY_UPDATE_NOW_MESSAGE || sender.id !== chrome.runtime.id) return
+    void chrome.storage.local.set({ [UPDATE_FORCE_KEY]: true }).then(check)
   })
   chrome.tabs.onActivated.addListener(check)
   chrome.windows.onFocusChanged.addListener(check)

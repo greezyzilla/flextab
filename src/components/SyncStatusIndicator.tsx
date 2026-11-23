@@ -9,6 +9,7 @@ import { spaceTabCount } from "~src/services/spacesTree"
 import { limitSummary } from "~src/services/syncLimit"
 import { syncNow } from "~src/services/syncEngine"
 import { requestApiAccess } from "~src/services/apiAccess"
+import { checkForUpdateNow } from "~src/services/updateRequired"
 import { Tooltip, TooltipTrigger, TooltipContent } from "./ui/tooltip"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 import { Button } from "./ui/button"
@@ -32,6 +33,9 @@ import { SIGN_IN_ROUTE } from "~src/lib/workspaceAccess"
  * - signed in + the browser took away access to the server (a revoked host
  *   permission, or Firefox's data consent) → "Sync off" in words, and the
  *   popover asks for it again (TASK-112). Nothing else can happen until then.
+ * - signed in + the server refused this version as too old → "Update needed"
+ *   in words, and the popover checks for the update (TASK-114). It comes first:
+ *   allowing access would not help a version the server no longer takes.
  */
 export function SyncStatusIndicator() {
   const status = useSyncStore((s) => s.status)
@@ -42,6 +46,9 @@ export function SyncStatusIndicator() {
   const userId = useAuthStore((s) => s.user?.id)
   const limit = useSyncStore((s) => s.limit)
   const apiAccess = useSyncStore((s) => s.apiAccess)
+  const updateRequired = useSyncStore((s) => s.updateRequired)
+  // "Check for update": idle, asking the browser, an update coming, or none yet.
+  const [updateCheck, setUpdateCheck] = useState<"idle" | "checking" | "coming" | "none">("idle")
   const plan = usePlanStore((s) => s.status)
   const savedSpaces = useSavedSpacesStore((s) => s.savedSpaces)
   const tabs = useMemo(() => savedSpaces.reduce((n, sp) => n + spaceTabCount(sp), 0), [savedSpaces])
@@ -97,12 +104,23 @@ export function SyncStatusIndicator() {
   const idle =
     isAuthenticated &&
     (status === "paused" || status === "offline" || status === "error")
-  const blocked = isAuthenticated && !apiAccess
-  const showConflict = idle && conflictPending && !blocked
+  const tooOld = isAuthenticated && updateRequired
+  const blocked = isAuthenticated && !apiAccess && !tooOld
+  const showConflict = idle && conflictPending && !blocked && !tooOld
   const showDirty = idle && dirty && !showConflict
 
-  const paused = isAuthenticated && limit !== null && !blocked
-  if (blocked) {
+  const paused = isAuthenticated && limit !== null && !blocked && !tooOld
+  if (tooOld) {
+    Icon = CloudOff
+    cls = "text-warning"
+    label = "Update needed"
+    detail = updateCheck === "coming"
+      ? "Updating now. FlexTab reopens on the new version."
+      : updateCheck === "none"
+        ? "No update yet. FlexTab installs it as soon as the store has it. Your tabs stay on this device."
+        : "This version of FlexTab is too old to sync. Your tabs stay on this device until it updates."
+    spin = updateCheck === "checking"
+  } else if (blocked) {
     Icon = CloudOff
     cls = "text-warning"
     label = "Sync off"
@@ -146,7 +164,7 @@ export function SyncStatusIndicator() {
   const cap = tabCap(plan)
   // Usage joins the header only when it matters: near the cap (Von Restorff),
   // and never beside another state label, so one thing asks for attention.
-  const near = !blocked && !paused && !showConflict && cap !== undefined && cap > 0 && tabs >= cap * NEAR_CAP
+  const near = !tooOld && !blocked && !paused && !showConflict && cap !== undefined && cap > 0 && tabs >= cap * NEAR_CAP
   const usage = near ? `${tabs}/${cap}` : null
 
   return (
@@ -159,11 +177,12 @@ export function SyncStatusIndicator() {
           aria-label={`Sync status: ${label}${usage ? `, ${tabs} of ${cap} tabs` : ""}`}
         >
           <SyncGlyph icon={Icon} tone={cls} spin={spin} />
+          {tooOld && <span className="text-warning">Update needed</span>}
           {blocked && <span className="text-warning">Sync off</span>}
           {paused && <span className="text-warning">Sync paused</span>}
           {showConflict && !paused && <span className="text-danger">Sync conflict</span>}
           {usage && <span className="text-warning tabular-nums">{usage}</span>}
-          {!blocked && !paused && showDirty && (
+          {!tooOld && !blocked && !paused && showDirty && (
             <SyncDirtyDot />
           )}
         </Button>
@@ -179,7 +198,12 @@ export function SyncStatusIndicator() {
             <Button variant="link" size="sm" onClick={() => { setOpen(false); navigate("/settings/sync") }}>
               Sync settings
             </Button>
-            {blocked ? (
+            {tooOld ? (
+              <Button variant="default" size="sm" disabled={updateCheck === "checking" || updateCheck === "coming"}
+                onClick={() => { setUpdateCheck("checking"); void checkForUpdateNow().then((status) => setUpdateCheck(status === "update_available" ? "coming" : "none")) }}>
+                {updateCheck === "checking" ? "Checking…" : "Check for update"}
+              </Button>
+            ) : blocked ? (
               // Asked inside the click: browsers only prompt from a user gesture.
               <Button variant="default" size="sm" onClick={() => { void requestApiAccess(); setOpen(false) }}>
                 Allow access

@@ -357,3 +357,14 @@ describe("background push without access to the server (TASK-112)", () => {
     await until(() => disk.flextab_push_pending === undefined);
   });
 });
+
+describe("background push for a version the server refused (TASK-114)", () => {
+  it("holds the push, pending flag kept, while an update is required", async () => {
+    disk.flextab_update_required = { minVersion: "0.2.0", at: 1 };
+    await edit([space("kept")]);
+    disk.flextab_push_pending = true;
+    await background.pushStructuredData();
+    expect(api.pushSync).not.toHaveBeenCalled();
+    expect(disk.flextab_push_pending).toBe(true);
+  });
+});

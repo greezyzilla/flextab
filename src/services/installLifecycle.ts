@@ -7,7 +7,7 @@
  * seeding), it goes in the "install" list only, never in the shared one, so an
  * update cannot run it again.
  */
-export type InstallStep = "deviceId" | "menus" | "restoreTabs" | "initialPush"
+export type InstallStep = "deviceId" | "menus" | "restoreTabs" | "clearUpdateRequired" | "initialPush"
 
 /** Idempotent setup every start of a new install or version needs. */
 const EVERY_INSTALL: InstallStep[] = ["deviceId", "menus", "initialPush"]
@@ -17,8 +17,9 @@ export function installSteps(reason: string): InstallStep[] {
     case "install":
       return [...EVERY_INSTALL]
     case "update":
-      // Bring back the pages the update reload dropped, then push what they left pending.
-      return ["deviceId", "menus", "restoreTabs", "initialPush"]
+      // Bring back the pages the update reload dropped, forget a "too old" answer
+      // meant for the previous version (TASK-114), then push what was left pending.
+      return ["deviceId", "menus", "restoreTabs", "clearUpdateRequired", "initialPush"]
     default:
       // chrome_update / shared_module_update: FlexTab itself did not change.
       return [...EVERY_INSTALL]

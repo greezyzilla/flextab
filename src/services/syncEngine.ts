@@ -1,4 +1,5 @@
 import { markResolutionPush, requestPush, withSyncWriteLock } from "./syncPolicy";
+import { CLIENT_TOO_OLD_CLOSE_CODE, clientQuery, markClientTooOld } from "~src/utils/http";
 import { syncStructuredSnapshot } from "./structuredSync";
 import { clearLimitNotice, saveLimitNotice } from "./syncLimit";
 import { recordLandedSnapshot } from "./landedSnapshot";
@@ -134,6 +135,9 @@ function hasRealData(spaces: SavedSpace[]): boolean {
 
 let sessionHydrated = false;
 let engineRunning = false;
+// The server closed the socket as too old (TASK-114): no path reconnects it until
+// the engine starts again, which the page only does once the update arrived.
+let clientTooOld = false;
 let engineGeneration = 0;
 let authGeneration = 0;
 // Capture before waiting for a lock or I/O. An old request must never acquire
@@ -476,7 +480,7 @@ function scheduleReconnect() {
 }
 
 function connectWebSocket() {
-  if (ws || !automaticSyncActive()) return;
+  if (ws || clientTooOld || !automaticSyncActive()) return;
   if (deviceOffline()) { setStatus("offline"); return; }
   // An attempt is starting now, from whichever path: a retry still waiting would
   // be a second, early attempt that breaks the backoff, so drop it.
@@ -493,7 +497,7 @@ function connectWebSocket() {
     // string, which lands in proxy/access logs). The server echoes back
     // "flextab.v1" to satisfy the browser's subprotocol negotiation.
     const wsUrl = API_BASE_URL.replace(/^http/, "ws") +
-      "/api/ws?device_id=" + encodeURIComponent(did);
+      "/api/ws?device_id=" + encodeURIComponent(did) + "&" + clientQuery();
     wsLastAttemptAt = Date.now();
     ws = new WebSocket(wsUrl, ["flextab.v1", "flextab.bearer." + tokens.access_token]);
 
@@ -527,8 +531,14 @@ function connectWebSocket() {
       } catch (_) { /* ignore parse errors */ }
     };
 
-    ws.onclose = () => {
+    ws.onclose = (event) => {
       ws = null;
+      // Too old for the server (TASK-114): no reconnect; "Update needed" takes over.
+      if (event?.code === CLIENT_TOO_OLD_CLOSE_CODE) {
+        clientTooOld = true; // a retry already waiting finds this and stops
+        void markClientTooOld(String(event.reason ?? "").split(" ")[1]);
+        return;
+      }
       if (automaticSyncActive() && generation === engineGeneration) {
         setStatus("offline");
         scheduleReconnect();
@@ -646,6 +656,7 @@ export async function startSyncEngine() {
   const sameSession = captureSyncSession();
   const generation = ++engineGeneration;
   engineRunning = true;
+  clientTooOld = false;
   listenForReconnectHints(true);
   clearHydrated();
   // Wait for persisted settings before using the default-on UI state.

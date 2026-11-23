@@ -65,12 +65,13 @@ export function parseBetaTag(tag) {
 /**
  * Everything a build of `channel` needs:
  *   tag      Plasmo's --tag: picks assets/icon.<tag>.png and build/<target>-<tag>
- *   env      the FLEXTAB_* values the package.json manifest placeholders read
+ *   env      the FLEXTAB_* values the package.json manifest placeholders read, and
+ *            PLASMO_PUBLIC_FLEXTAB_CHANNEL, which the code sends as X-Client-Channel
  *   version  the final manifest version, written after the build (see build.mjs)
  */
 export function channelPlan(channel, { betaTag } = {}) {
   if (channel === "stable") {
-    return { channel, tag: "prod", env: { FLEXTAB_GECKO_ID: GECKO_IDS.stable }, version: null }
+    return { channel, tag: "prod", env: { FLEXTAB_GECKO_ID: GECKO_IDS.stable, PLASMO_PUBLIC_FLEXTAB_CHANNEL: "stable" }, version: null }
   }
   if (channel === "beta") {
     const { version, base, versionName } = parseBetaTag(betaTag)
@@ -84,6 +85,8 @@ export function channelPlan(channel, { betaTag } = {}) {
         FLEXTAB_EXT_VERSION: base,
         FLEXTAB_EXT_VERSION_NAME: versionName,
         FLEXTAB_GECKO_ID: GECKO_IDS.beta,
+        // Inlined into the bundle: the channel the extension reports to the server (TASK-114).
+        PLASMO_PUBLIC_FLEXTAB_CHANNEL: "beta",
       },
       version,
     }

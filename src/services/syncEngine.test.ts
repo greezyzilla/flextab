@@ -39,14 +39,14 @@ class FakeWS {
   readyState = 0;
   onopen: (() => void) | null = null;
   onmessage: ((e: { data: string }) => void) | null = null;
-  onclose: (() => void) | null = null;
+  onclose: ((e?: { code: number; reason: string }) => void) | null = null;
   onerror: (() => void) | null = null;
   constructor(public url: string) { FakeWS.instances.push(this); }
   send() {}
   close() { this.readyState = 3; }
   open() { this.readyState = 1; this.onopen?.(); }
   message(data: unknown) { this.onmessage?.({ data: JSON.stringify(data) }); }
-  fireClose() { this.readyState = 3; this.onclose?.(); }
+  fireClose(code = 1006, reason = '') { this.readyState = 3; this.onclose?.({ code, reason }); }
 }
 (global as any).WebSocket = FakeWS;
 
@@ -509,6 +509,31 @@ describe('realtime + lifecycle', () => {
     await connect();
     FakeWS.instances[0].fireClose();
     expect(useSyncStore.getState().status).toBe('offline');
+  });
+
+  it('carries the client version and channel in the socket URL (TASK-114)', async () => {
+    await connect();
+    expect(FakeWS.instances[0].url).toMatch(/[?&]client_version=[^&]+&client_channel=dev/);
+  });
+
+  it('records a too-old close (4426) and does not reconnect (TASK-114)', async () => {
+    await connect();
+    vi.useFakeTimers();
+    try {
+      vi.mocked(chrome.storage.local.set).mockClear();
+      FakeWS.instances[0].fireClose(4426, 'client_too_old 0.2.0');
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(FakeWS.instances).toHaveLength(1);
+      expect(chrome.storage.local.set).toHaveBeenCalledWith({ flextab_update_required: { minVersion: '0.2.0', at: expect.any(Number) } });
+    } finally { vi.useRealTimers(); }
+  });
+
+  it('records a too-old close without a reason (TASK-114)', async () => {
+    await connect();
+    vi.mocked(chrome.storage.local.set).mockClear();
+    FakeWS.instances[0].onclose?.({ code: 4426, reason: undefined as unknown as string });
+    await flush();
+    expect(chrome.storage.local.set).toHaveBeenCalledWith({ flextab_update_required: { minVersion: null, at: expect.any(Number) } });
   });
 
   it('does not reconnect after close when signed out', async () => {

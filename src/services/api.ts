@@ -1,5 +1,6 @@
 import { v7 as uuidv7 } from "uuid";
 import { noteServerResponse } from "./serverReachable";
+import { http } from "~src/utils/http";
 import { clearResolutionPush, pendingResolutionPush } from "./syncPolicy";
 
 const API_BASE_URL = process.env.PLASMO_PUBLIC_API_URL || "http://localhost:3000";
@@ -91,7 +92,7 @@ async function refreshTokens(): Promise<TokenData | null> {
   const attemptedRefreshToken = tokenData.refresh_token;
 
   try {
-    const res = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+    const res = await http(`${API_BASE_URL}/api/auth/refresh`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refresh_token: attemptedRefreshToken }),
@@ -185,7 +186,7 @@ export async function apiFetch<T = unknown>(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE_URL}${path}`, {
+  const res = await http(`${API_BASE_URL}${path}`, {
     ...options,
     headers,
   });
@@ -200,7 +201,7 @@ export async function apiFetch<T = unknown>(
 
   if (!res.ok) {
     const body = (await res.json().catch(() => ({}))) ?? {};
-    throw new ApiError(res.status, body.error || res.statusText);
+    throw new ApiError(res.status, body.error || res.statusText, typeof body.code === "string" ? body.code : undefined);
   }
 
   return res.json();
@@ -253,7 +254,7 @@ export async function apiGetSignInOptions(): Promise<{ providers: string[]; emai
 
 /** POST to a public auth endpoint; failures keep the server's code and wait time. */
 async function publicAuthPost<T>(path: string, body: unknown): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}${path}`, {
+  const res = await http(`${API_BASE_URL}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -313,7 +314,7 @@ export async function pushSync(spaces: unknown[], baseRevision: number | null, c
     // Recheck after token refresh/device lookup: the user may have paused sync
     // while those awaited operations were in flight.
     if (canPush && !await canPush()) return { status: "paused" };
-    res = await fetch(`${API_BASE_URL}/api/sync`, {
+    res = await http(`${API_BASE_URL}/api/sync`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -326,6 +327,10 @@ export async function pushSync(spaces: unknown[], baseRevision: number | null, c
     return { status: "error" };
   }
   noteServerResponse(res.status);
+
+  // This version is below the server's minimum (TASK-114): http() recorded it,
+  // and the push waits for the update with its pending flag kept.
+  if (res.status === 426) return { status: "paused" };
 
   if (res.status === 409) {
     const body = (await res.json().catch(() => ({}))) ?? {};
@@ -379,7 +384,7 @@ export async function fetchSyncRevision(): Promise<number | null> {
 }
 
 export async function apiLogin(email: string, password: string): Promise<TokenData> {
-  const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+  const res = await http(`${API_BASE_URL}/api/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
@@ -399,7 +404,7 @@ export async function apiLogout(): Promise<void> {
   const tokens = tokenData ?? (await loadTokens());
   if (!tokens?.refresh_token) return;
   try {
-    await fetch(`${API_BASE_URL}/api/auth/logout`, {
+    await http(`${API_BASE_URL}/api/auth/logout`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refresh_token: tokens.refresh_token }),

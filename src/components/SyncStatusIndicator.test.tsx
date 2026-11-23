@@ -132,3 +132,35 @@ describe("SyncStatusIndicator when the browser took away access (TASK-112)", () 
     expect(screen.queryByText("Sync off")).not.toBeInTheDocument()
   })
 })
+
+describe("SyncStatusIndicator when the server refused this version (TASK-114)", () => {
+  const runtime = chrome.runtime as unknown as Record<string, unknown>
+  afterEach(() => {
+    useSyncStore.setState({ updateRequired: false, apiAccess: true })
+    delete runtime.requestUpdateCheck
+  })
+
+  it("says Update needed in words, over Sync off, and reports a check that found nothing", async () => {
+    runtime.requestUpdateCheck = vi.fn(async () => ({ status: "no_update" }))
+    useAuthStore.setState({ isAuthenticated: true, user: { id: "u" } as never })
+    useSyncStore.setState({ updateRequired: true, apiAccess: false, status: "paused" })
+    render(<TooltipProvider><SyncStatusIndicator /></TooltipProvider>)
+    const badge = screen.getByRole("button", { name: "Sync status: Update needed" })
+    expect(badge).not.toHaveTextContent("Sync off")
+    await userEvent.click(badge)
+    expect(await screen.findByText(/too old to sync/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "Check for update" }))
+    expect(await screen.findByText(/No update yet/)).toBeInTheDocument()
+  })
+
+  it("says the update is on its way when one is found", async () => {
+    runtime.requestUpdateCheck = vi.fn(async () => ({ status: "update_available" }))
+    useAuthStore.setState({ isAuthenticated: true, user: { id: "u" } as never })
+    useSyncStore.setState({ updateRequired: true, status: "paused" })
+    render(<TooltipProvider><SyncStatusIndicator /></TooltipProvider>)
+    await userEvent.click(screen.getByRole("button", { name: "Sync status: Update needed" }))
+    await userEvent.click(screen.getByRole("button", { name: "Check for update" }))
+    expect(await screen.findByText(/Updating now/)).toBeInTheDocument()
+    expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({ type: "flextab:apply-update-now" })
+  })
+})

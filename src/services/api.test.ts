@@ -548,3 +548,25 @@ describe('sign-out and session expiry edges', () => {
     expect(chrome.storage.local.remove).toHaveBeenCalledWith('auth_tokens');
   });
 });
+
+describe('a version the server no longer takes (TASK-114)', () => {
+  it('pauses a push on 426, so its pending flag stays until the update', async () => {
+    await validToken();
+    (global.fetch as any).mockResolvedValueOnce({ ...res({ code: 'client_too_old', min_version: '0.2.0' }, 426), clone: () => res({ code: 'client_too_old', min_version: '0.2.0' }, 426) });
+    expect(await pushSync([], 1)).toEqual({ status: 'paused' });
+    expect(chrome.storage.local.set).toHaveBeenCalledWith({ flextab_update_required: { minVersion: '0.2.0', at: expect.any(Number) } });
+  });
+
+  it('carries the server code on an apiFetch error', async () => {
+    await validToken();
+    (global.fetch as any).mockResolvedValueOnce({ ...res({ code: 'client_too_old', error: 'Update FlexTab' }, 426), clone: () => res({}, 426) });
+    await expect(apiFetch('/x')).rejects.toMatchObject({ status: 426, code: 'client_too_old', message: 'Update FlexTab' });
+  });
+
+  it('sends the client version and channel with every request', async () => {
+    await validToken();
+    (global.fetch as any).mockResolvedValueOnce(res({ ok: true }));
+    await apiFetch('/x');
+    expect((global.fetch as any).mock.calls[0][1].headers).toMatchObject({ 'X-Client-Version': expect.any(String), 'X-Client-Channel': 'dev' });
+  });
+});

@@ -1,4 +1,5 @@
 import { withSyncWriteLock } from "./syncPolicy";
+import { http } from "~src/utils/http";
 
 const API_BASE_URL = process.env.PLASMO_PUBLIC_API_URL || "http://localhost:3000";
 export const OAUTH_PENDING_KEY = "flextab_oauth_pending";
@@ -103,7 +104,7 @@ export async function completeOAuthLogin(tabId: number, callbackURL: string): Pr
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 10_000);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/oauth/exchange`, {
+      const response = await http(`${API_BASE_URL}/api/auth/oauth/exchange`, {
         method: "POST", headers: { "Content-Type": "application/json" }, credentials: "omit",
         body: JSON.stringify({ code, state: nonce, code_verifier: pending.verifier }),
         signal: controller.signal,

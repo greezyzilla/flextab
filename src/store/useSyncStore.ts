@@ -31,6 +31,9 @@ interface SyncState {
   // host permission, or Firefox's data collection consent. Sync is off until it is back.
   apiAccess: boolean
   setApiAccess: (apiAccess: boolean) => void
+  // The server refused this version as too old (TASK-114): sync waits for the update.
+  updateRequired: boolean
+  setUpdateRequired: (updateRequired: boolean) => void
   setStatus: (status: SyncStatus) => void
   setDirty: (dirty: boolean) => void
   setConflictPending: (conflictPending: boolean) => void
@@ -51,6 +54,8 @@ export const useSyncStore = create<SyncState>((set) => ({
   limit: null,
   apiAccess: true,
   setApiAccess: (apiAccess) => set({ apiAccess }),
+  updateRequired: false,
+  setUpdateRequired: (updateRequired) => set({ updateRequired }),
   setStatus: (status) => set({ status }),
   setDirty: (dirty) => set({ dirty }),
   setConflictPending: (conflictPending) => set({ conflictPending }),

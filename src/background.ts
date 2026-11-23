@@ -18,6 +18,7 @@ import { installToolbarIcon } from "~src/services/toolbarIcon";
 import { runInstallSteps } from "~src/services/installLifecycle";
 import { installUpdateFlow, restoreTabsAfterUpdate } from "~src/services/updateFlow";
 import { hasApiAccess } from "~src/services/apiAccess";
+import { clearUpdateRequired, installUpdateRequired, readUpdateRequired } from "~src/services/updateRequired";
 
 const API_BASE_URL = process.env.PLASMO_PUBLIC_API_URL || "http://localhost:3000";
 const AUTH_SUCCESS_PATH = "/auth/success";
@@ -158,6 +159,8 @@ async function pushLatestStructuredData() {
   // Access taken away in the browser (TASK-112): the pending flag stays, and the
   // push runs again once access is back (permissions.onAdded below).
   if (!await hasApiAccess()) return;
+  // The server refused this version (TASK-114): wait for the update, pending flag kept.
+  if (await readUpdateRequired()) return;
   const tokens = await loadTokens();
   if (!tokens) return;
   // Hold pushes while a true OCC / merge conflict is unresolved (FE-B3).
@@ -263,6 +266,7 @@ chrome.runtime.onInstalled.addListener((details) => {
     deviceId: getDeviceId,
     menus: registerCaptureMenus,
     restoreTabs: restoreTabsAfterUpdate,
+    clearUpdateRequired,
     initialPush: doInitialPush,
   });
 });
@@ -271,6 +275,7 @@ chrome.permissions?.onAdded?.addListener(() => { void pushStructuredData(); });
 
 // A new version is applied when no one is using FlexTab, after every write has
 // finished (TASK-113, services/updateFlow.ts).
+installUpdateRequired();
 installUpdateFlow({
   flushBackground: async () => { await Promise.allSettled([pushInFlight ?? Promise.resolve(), waitForTokenRefresh()]); },
   reload: () => chrome.runtime.reload(),
