@@ -30,7 +30,9 @@ export function releaseBeta({ git, build, log = () => {} }) {
     throw new Error("The working tree has uncommitted changes. Commit or stash them first, so the tag names exactly what was built.")
   }
 
-  const list = (pattern) => git(["tag", "--list", pattern, ...(pattern === "v*" ? ["--merged", "HEAD"] : [])]).split("\n").filter(Boolean)
+  // Tags in dev's history only: the last stable it can reach, and the betas released from it
+  // (a stray tag elsewhere must not block or bend the numbering).
+  const list = (pattern) => git(["tag", "--list", pattern, "--merged", "HEAD"]).split("\n").filter(Boolean)
   const stableTag = latestStableTag(list("v*"))
   const commitsSince = stableTag ? Number(git(["rev-list", "--count", `${stableTag}..HEAD`])) : 0
   const tag = nextBetaTag({ stableTag, commitsSince, betaTags: list("beta-v*") })

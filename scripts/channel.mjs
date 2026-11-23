@@ -23,6 +23,14 @@ export const GECKO_IDS = {
   beta: "flextab-beta@flextabmanager.com",
 }
 
+/**
+ * Where installed Firefox Beta copies look for updates (TASK-118): an asset of
+ * the permanent `firefox-beta` release, overwritten by every beta release. A
+ * fixed address, because GitHub's releases/latest skips pre-releases. Stable
+ * Firefox updates through AMO (listed) and carries no update_url.
+ */
+export const BETA_UPDATE_URL = "https://github.com/greezyzilla/flextab-fe/releases/download/firefox-beta/updates.json"
+
 const BETA_NAME = "FlexTab Beta"
 const BETA_TAG = /^beta-v(\d+)\.(\d+)\.(\d+)\.(\d+)$/
 
@@ -85,6 +93,7 @@ export function channelPlan(channel, { betaTag } = {}) {
         FLEXTAB_EXT_VERSION: base,
         FLEXTAB_EXT_VERSION_NAME: versionName,
         FLEXTAB_GECKO_ID: GECKO_IDS.beta,
+        FLEXTAB_GECKO_UPDATE_URL: BETA_UPDATE_URL,
         // Inlined into the bundle: the channel the extension reports to the server (TASK-114).
         PLASMO_PUBLIC_FLEXTAB_CHANNEL: "beta",
       },
@@ -133,6 +142,27 @@ export function nextBetaTag({ stableTag, commitsSince, betaTags }) {
     throw new Error(`${tag} is not above the last beta tag ${highest.t}. A beta version has to go up.`)
   }
   return tag
+}
+
+/**
+ * Why a pushed beta tag must not be released, or null when it may (TASK-118):
+ * the format, a commit not on dev, or a version not above every earlier beta.
+ * The beta workflow runs this before it builds anything.
+ */
+export function betaTagProblem({ tag, betaTags, onDev }) {
+  let version
+  try {
+    version = parseBetaTag(tag).version.split(".").map(Number)
+  } catch (err) {
+    return err.message
+  }
+  if (!onDev) return `${tag} points at a commit that is not on dev. Beta releases are cut from dev.`
+  const highest = betaTags
+    .filter((t) => t !== tag && BETA_TAG.test(t))
+    .map((t) => ({ t, parts: BETA_TAG.exec(t).slice(1).map(Number) }))
+    .sort((a, b) => compareParts(b.parts, a.parts))[0]
+  if (highest && compareParts(version, highest.parts) <= 0) return `${tag} is not above the last beta tag ${highest.t}.`
+  return null
 }
 
 /** The built manifest with the plan's final version, or unchanged when the plan has none. */

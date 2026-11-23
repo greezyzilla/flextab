@@ -1,17 +1,21 @@
 #!/usr/bin/env node
 /**
- * Submits the stable Firefox build to AMO as a new LISTED version (TASK-117).
- * The build is bundled and minified, so AMO requires the human-readable source
- * with build instructions: the tag's tracked files (git archive), which include
- * SOURCE_BUILD.md. AMO review can take days: the submission does not wait for it.
+ * Sends a Firefox build to AMO with the tag's source code attached (the build
+ * is bundled and minified; git archive carries SOURCE_BUILD.md).
+ *   listed    stable (TASK-117): a new version of the public listing; AMO review
+ *             can take days, so the submission does not wait for it.
+ *   unlisted  beta (TASK-118): AMO signs it for self-distribution within
+ *             minutes; the signed .xpi is copied to --xpi-out.
  *
  *   AMO_JWT_ISSUER=… AMO_JWT_SECRET=… node scripts/amo-submit.mjs --tag=v0.2.0 [--source-dir=build/firefox-mv3-prod]
+ *   AMO_JWT_ISSUER=… AMO_JWT_SECRET=… node scripts/amo-submit.mjs --tag=beta-v0.2.0.3 --channel=unlisted \
+ *     --source-dir=build/firefox-mv3-beta --xpi-out=flextab-beta-0.2.0.3.xpi
  *
  * The first version of the listing is created once by hand in the AMO
  * Developer Hub (listing details, categories); this adds later versions.
  */
 import { execFileSync } from "node:child_process"
-import { mkdtempSync, rmSync } from "node:fs"
+import { copyFileSync, mkdtempSync, readdirSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
@@ -28,9 +32,13 @@ export function sourceArchiveArgs(tag, out) {
   return ["archive", "--format=zip", `--output=${out}`, tag]
 }
 
-/** `web-ext sign` arguments: listed, with the source attached, not waiting for review. */
-export function signArgs({ sourceDir, sourceArchive, artifactsDir }) {
-  return ["sign", "--channel=listed", `--source-dir=${sourceDir}`, `--upload-source-code=${sourceArchive}`, `--artifacts-dir=${artifactsDir}`, "--approval-timeout=0"]
+/**
+ * `web-ext sign` arguments, with the source attached. Listed does not wait for
+ * the review; unlisted waits for AMO's automatic signing to download the .xpi.
+ */
+export function signArgs({ channel = "listed", sourceDir, sourceArchive, artifactsDir }) {
+  const args = ["sign", `--channel=${channel}`, `--source-dir=${sourceDir}`, `--upload-source-code=${sourceArchive}`, `--artifacts-dir=${artifactsDir}`]
+  return channel === "listed" ? [...args, "--approval-timeout=0"] : args
 }
 
 /** The keys reach web-ext through its own environment variables, never the command line. */
@@ -41,9 +49,11 @@ export function signEnv(env) {
 function main() {
   const arg = (name) => process.argv.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3)
   const tag = arg("tag")
+  const channel = arg("channel") ?? "listed"
   const sourceDir = resolve(arg("source-dir") ?? "build/firefox-mv3-prod")
-  if (!tag) {
-    console.error("Pass --tag=vX.Y.Z (the release being submitted).")
+  const xpiOut = arg("xpi-out")
+  if (!tag || !["listed", "unlisted"].includes(channel) || (channel === "unlisted" && !xpiOut)) {
+    console.error("Pass --tag=<release tag>, --channel=listed|unlisted, and --xpi-out for unlisted.")
     process.exit(2)
   }
   const missing = missingEnv(process.env)
@@ -55,8 +65,16 @@ function main() {
   try {
     const sourceArchive = join(work, `flextab-source-${tag}.zip`)
     execFileSync("git", sourceArchiveArgs(tag, sourceArchive), { stdio: "inherit" })
-    execFileSync(WEB_EXT, signArgs({ sourceDir, sourceArchive, artifactsDir: join(work, "artifacts") }), { stdio: "inherit", env: signEnv(process.env) })
-    console.log(`Submitted ${tag} to AMO as a listed version, with its source. Review happens on AMO.`)
+    const artifactsDir = join(work, "artifacts")
+    execFileSync(WEB_EXT, signArgs({ channel, sourceDir, sourceArchive, artifactsDir }), { stdio: "inherit", env: signEnv(process.env) })
+    if (channel === "listed") {
+      console.log(`Submitted ${tag} to AMO as a listed version, with its source. Review happens on AMO.`)
+      return
+    }
+    const signed = readdirSync(artifactsDir).find((f) => f.endsWith(".xpi"))
+    if (!signed) throw new Error("AMO signed nothing: no .xpi came back.")
+    copyFileSync(join(artifactsDir, signed), resolve(xpiOut))
+    console.log(`AMO signed ${tag}: ${xpiOut}`)
   } catch (err) {
     console.error(`✖ AMO submission failed: ${err.message}`)
     process.exit(1)

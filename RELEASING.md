@@ -35,20 +35,68 @@ writes `X.Y.Z.N` into `manifest.json` before zipping. The channel logic lives in
 The two items have different extension ids, so both install in one browser
 profile. The Firefox ids are permanent once uploaded to AMO.
 
-### Cutting a beta
+### Cutting a beta (TASK-118)
 
 ```bash
-npm run release:beta          # checks, builds build/chrome-mv3-beta.zip, tags
+npm run release:beta          # on dev: checks, builds build/chrome-mv3-beta.zip, tags
 git push origin beta-vX.Y.Z.N # when ready; the script never pushes
 ```
 
 `scripts/release-beta.mjs` checks that HEAD is on `dev`, the working tree is
 clean, a stable tag `vX.Y.Z` is in the history, there are commits since it, and
-the new version is above every earlier beta tag. `X.Y.Z` is that stable tag and
-`N` the number of commits since it. It then runs check-env and the beta build,
-and only after the build succeeds creates the annotated tag `beta-vX.Y.Z.N`. Any
-failure aborts with no tag left behind. A repository with no stable tag yet
-cannot cut a beta: tag the last stable release first.
+the new version is above every earlier beta tag in `dev`'s history. `X.Y.Z` is
+that stable tag and `N` the number of commits since it. It then runs check-env
+and the beta build, and only after the build succeeds creates the annotated tag
+`beta-vX.Y.Z.N`. Any failure aborts with no tag left behind. Until the first
+stable release exists (TASK-117) there is no stable tag, so no beta can be cut.
+
+Before pushing the tag, deploy every BE change the beta needs: both channels
+share the production BE, and it must keep working for the stable version too.
+
+Pushing the tag runs `.github/workflows/beta.yml`:
+
+1. **validate** (`scripts/check-beta-tag.mjs`), before anything is built: the
+   format, the commit being on `dev`, and the version being above every earlier
+   beta released from `dev`. A refused tag can be deleted and redone.
+2. **verify**: `verify.yml` with `browser: true` and the tag, building the Chrome
+   and Firefox beta zips (Firefox linted as self-hosted, permissions checked).
+3. **publish**:
+   - a **GitHub pre-release** for the tag with `flextab-beta-X.Y.Z.N-chrome.zip`;
+   - the **FlexTab Beta** Web Store item gets the upload as a default publish:
+     live for the testers as soon as it is approved;
+   - Firefox: AMO signs the build as **unlisted** (`scripts/amo-submit.mjs
+     --channel=unlisted`); the signed `flextab-beta-X.Y.Z.N.xpi` goes on the
+     pre-release, and `updates.json` on the permanent **`firefox-beta`** release
+     is replaced. Firefox Beta's `gecko.update_url` points at that fixed address
+     (`scripts/channel.mjs` `BETA_UPDATE_URL`; GitHub's `releases/latest` skips
+     pre-releases), so installed copies update themselves. Never delete the
+     `firefox-beta` release.
+
+### Setting up the beta once (manual steps)
+
+1. **Chrome Web Store, FlexTab Beta item:** in the Developer Dashboard create a
+   new item and upload the first beta zip by hand (the API cannot create items).
+   Name it FlexTab Beta with the Beta icon, set visibility to **Private**, and
+   under "Testers" add the **Google Group** of internal testers. Copy its item ID
+   into the `CWS_BETA_ITEM_ID` secret (the CWS API secrets are shared with stable,
+   see "One-time setup for releases").
+2. **Google Group:** create it (for example flextab-beta@googlegroups.com), add
+   the testers, and keep membership invite-only. Testers install from the item's
+   link while signed in to Chrome with an address in the group.
+3. **AMO keys:** in the AMO Developer Hub, under "Manage API Keys", generate a
+   JWT issuer and secret and store them as `AMO_JWT_ISSUER` and `AMO_JWT_SECRET`
+   (shared with stable). The beta add-on id `flextab-beta@flextabmanager.com` is
+   created on AMO by the first unlisted signing.
+4. **Google OAuth test users:** while the OAuth consent screen is in Testing
+   mode, only listed test users can sign in with Google. Add every tester's
+   Google address under "Test users" in the Google Cloud console (OAuth consent
+   screen), or publish the consent screen before inviting testers.
+5. **Firefox testers, first install:** send them the pre-release page; they open
+   `flextab-beta-X.Y.Z.N.xpi` in Firefox 140+ and accept. Later betas arrive by
+   themselves through `updates.json`.
+6. **Prove one real update** before relying on it: install beta N on Chrome and
+   Firefox, sign in, save tabs, release beta N+1, and check that it arrives,
+   sign-in stays, and local data and sync are intact.
 
 ## Firefox build
 
@@ -175,7 +223,8 @@ so add a migration instead.
 - **Secrets** (each store step is skipped with a notice until they exist):
   - Chrome Web Store API v2: `CWS_CLIENT_ID`, `CWS_CLIENT_SECRET`,
     `CWS_REFRESH_TOKEN` (an OAuth client with the Chrome Web Store scope),
-    `CWS_PUBLISHER_ID`, `CWS_ITEM_ID` (the stable item).
+    `CWS_PUBLISHER_ID`, `CWS_ITEM_ID` (the stable item), `CWS_BETA_ITEM_ID`
+    (the FlexTab Beta item, see "Setting up the beta once").
   - AMO: `AMO_JWT_ISSUER`, `AMO_JWT_SECRET` (AMO API credentials).
 
 Push (main, dev) and PR CI uses the same verification job with
