@@ -86,15 +86,16 @@ describe("TextLink without an underline", () => {
 
 describe("TreeRowButton", () => {
   // No ring on the label: the row draws it on its own box (TREE_ROW_FOCUS, TASK-120).
+  // The vertical padding follows Density (TASK-128): py-1.5 on Comfortable, as LeftPanel drew it.
   it("draws a project label as LeftPanel did (PANEL_ROW_LABEL's box, name PANEL_ROW_TEXT), with no ring of its own", () => {
     render(<TreeRowButton level="project" className="flex-1 min-w-0" icon={<i data-testid="icon" />}>Launch</TreeRowButton>)
-    expect(set(button().className)).toEqual(set("flex-1 min-w-0 flex items-center gap-2 py-1.5 text-left rounded outline-none"))
+    expect(set(button().className)).toEqual(set("flex-1 min-w-0 flex items-center gap-2 py-[var(--density-py-row,0.375rem)] text-left rounded outline-none"))
     expect(button().firstElementChild).toBe(screen.getByTestId("icon"))
     expect(screen.getByText("Launch").getAttribute("class")).toBe("flex-1 font-sans text-item font-medium truncate")
   })
   it("draws a category label as LeftPanel did, with no ring of its own", () => {
     render(<TreeRowButton level="category" className="flex-1 min-w-0" icon={null}>Research</TreeRowButton>)
-    expect(set(button().className)).toEqual(set("flex-1 min-w-0 flex items-center gap-2 pl-7 pr-1 py-1.5 rounded-md text-left outline-none"))
+    expect(set(button().className)).toEqual(set("flex-1 min-w-0 flex items-center gap-2 pl-7 pr-1 py-[var(--density-py-row,0.375rem)] rounded-md text-left outline-none"))
     expect(screen.getByText("Research").getAttribute("class")).toBe("flex-1 font-sans text-item truncate")
   })
   it("is a plain button that passes its state and data through", () => {

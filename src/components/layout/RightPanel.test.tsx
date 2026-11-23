@@ -5,6 +5,7 @@ import { DndContext } from "@dnd-kit/core"
 import { TooltipProvider } from "~src/components/ui/tooltip"
 import { RightPanel } from "./RightPanel"
 import { useOpenTabPreview } from "~src/store/useOpenTabPreview"
+import { DENSITY_ROW_PY } from "~src/components/ui/tree-row-button"
 
 const tabs = [
   { id: 1, windowId: 9, index: 0, title: "FlexTab", url: "chrome-extension://x/newtab.html" },
@@ -54,6 +55,17 @@ describe("an open tab dragged in Opened Tabs (TASK-73)", () => {
     expect(screen.getByText("Window 1").parentElement!.textContent).toContain("8 tabs") // counted as it will be
     act(() => useOpenTabPreview.getState().show(null))
     expect(screen.getAllByRole("button", { name: /^Go to / }).map((b) => b.getAttribute("aria-label")).at(-1)).toBe("Go to Lone")
+  })
+})
+
+describe("Opened Tabs rows follow Density (TASK-128)", () => {
+  it("takes the rows' padding from the density setting; the window header keeps its 56px line, level with the location header", async () => {
+    renderPanel()
+    await waitFor(() => expect(row("News")).toBeTruthy())
+    expect(row("News").className).toContain(DENSITY_ROW_PY)
+    expect(row("News").className).not.toContain("py-1.5")
+    const header = screen.getAllByText(/^Window 1/)[0].closest("div.sticky") as HTMLElement
+    expect(header.className).toContain("h-14")
   })
 })
 

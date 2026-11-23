@@ -25,6 +25,7 @@ import { useSavedUrlIndex } from "~src/hooks/useSavedUrlIndex"
 import { describeSaved, normalizeUrl, type SavedLocation } from "~src/lib/savedUrlIndex"
 import { DragHandle } from "~src/components/ui/drag-handle"
 import { RowOverlay } from "~src/components/ui/row-overlay"
+import { DENSITY_ROW_PY } from "~src/components/ui/tree-row-button"
 import { storeShellShape, windowsShape } from "~src/lib/shellShape"
 import { storeShellSkeletonMarkup } from "./ShellSkeleton"
 
@@ -118,7 +119,7 @@ const OpenedTab = ({ tab, windowId, windowLabel, saved, closeAfterSave, targets 
     // A plain list row, as in the sidebar tree: no box, a light fill on hover.
     // The whole row goes to the tab; the few controls sit above that.
     <div
-      className="relative flex gap-2.5 items-center w-full rounded-md px-3 py-1.5 text-left group/tab transition-colors hover:bg-ink/[0.04] focus-within:bg-ink/[0.04]"
+      className={`relative flex gap-2.5 items-center w-full rounded-md px-3 ${DENSITY_ROW_PY} text-left group/tab transition-colors hover:bg-ink/[0.04] focus-within:bg-ink/[0.04]`}
       ref={(el) => { setNodeRef(el); setDropRef(el) }}
       data-open-zone={zone}
       // While dragged, the row stays where it is, dimmed; the card that

@@ -21,7 +21,8 @@ const createSlotVariants = cva(
   {
     variants: {
       size: {
-        sidebar: "gap-2 rounded-md py-[5px] pl-[27px] pr-[7px] font-sans text-item focus-visible:ring-1 focus-visible:ring-ring",
+        // The tree rows' density padding minus the 1px border, so the slot is as tall as a row (TASK-128).
+        sidebar: "gap-2 rounded-md py-[calc(var(--density-py-row,0.375rem)_-_1px)] pl-[27px] pr-[7px] font-sans text-item focus-visible:ring-1 focus-visible:ring-ring",
         dialog: "gap-2 rounded-md px-[7px] py-[3px] text-xs focus-visible:ring-1 focus-visible:ring-ring",
         panel: "min-h-9 gap-3 rounded-popup-item px-[7px] text-popup focus-visible:ring-2 focus-visible:ring-ring",
       },

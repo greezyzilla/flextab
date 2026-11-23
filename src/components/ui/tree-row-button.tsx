@@ -13,8 +13,15 @@ import { cn } from "~src/lib/utils"
  * Pass the icon (or its drag handle) as `icon` and the name as children.
  */
 
+/**
+ * A list row's vertical padding outside the cards (sidebar tree, Settings nav, Opened Tabs): it
+ * follows Settings › Appearance › Density (TASK-128). Comfortable is py-1.5; the fallback keeps that
+ * where no density class is set.
+ */
+export const DENSITY_ROW_PY = "py-[var(--density-py-row,0.375rem)]"
+
 /** The top-level label's box, shared with the Settings nav's links; no focus ring of its own. */
-export const TREE_LABEL_BOX = "flex items-center gap-2 py-1.5 text-left rounded outline-none"
+export const TREE_LABEL_BOX = `flex items-center gap-2 ${DENSITY_ROW_PY} text-left rounded outline-none`
 
 /**
  * On a row: its ring while its label (marked data-row-label) has keyboard focus, so the ring is the
@@ -29,7 +36,7 @@ const treeRowVariants = cva("", {
   variants: {
     level: {
       project: TREE_LABEL_BOX,
-      category: "flex items-center gap-2 pl-7 pr-1 py-1.5 rounded-md text-left outline-none",
+      category: `flex items-center gap-2 pl-7 pr-1 ${DENSITY_ROW_PY} rounded-md text-left outline-none`,
     },
   },
 })

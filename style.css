@@ -285,6 +285,8 @@
   --density-gap-group: 0.375rem; /* gap-1.5 */
   --density-p-group: 0.75rem;  /* p-3 */
   --density-p-section: 1.25rem; /* p-5 */
+  /* List rows outside the cards (sidebar tree, Opened Tabs), TASK-128: py-1.5, a 32px tree row. */
+  --density-py-row: 0.375rem;
 }
 
 /* Density: cozy (between compact and comfortable) */
@@ -294,6 +296,7 @@
   --density-gap-group: 0.3125rem;
   --density-p-group: 0.625rem;
   --density-p-section: 1rem;
+  --density-py-row: 0.25rem;     /* a 28px tree row */
 }
 
 /* Density: compact */
@@ -303,6 +306,8 @@
   --density-gap-group: 0.25rem;  /* gap-1 */
   --density-p-group: 0.5rem;   /* p-2 */
   --density-p-section: 0.75rem; /* p-3 */
+  /* A 26px tree row: the row's 26px action slot (TASK-5) is the floor. */
+  --density-py-row: 0.1875rem;
 }
 
 /* Reduce motion: near-instant animations/transitions (accessibility + perf). */

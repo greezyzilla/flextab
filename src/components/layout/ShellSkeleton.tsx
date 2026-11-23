@@ -8,6 +8,7 @@ import { GRID_MIN_CELL, GROUP_INLINE } from "~src/components/TabGroup"
 import { LEFT_INLINE_QUERY, RIGHT_INLINE_QUERY, useShellLayout } from "~src/hooks/useMediaQuery"
 import { fitToScreen, readStoredShellShape, type ShellShape } from "~src/lib/shellShape"
 import { PANEL_HEADER, PANEL_LIST, PANEL_ROW_END } from "./panelChrome"
+import { DENSITY_ROW_PY } from "~src/components/ui/tree-row-button"
 
 /**
  * Drawn before anything has been seen (first run, storage blocked): two spaces, an open project with
@@ -107,7 +108,7 @@ export function ShellSkeletonView({ shape: stored, leftInline, rightInline }: { 
               </div>
             ))}
             {/* New project…, under the tree, on the rows' box (TASK-120). */}
-            <div className="mx-2"><Skeleton width="100%" height={32} round="md" tone="faint" /></div>
+            <div className="mx-2"><Skeleton width="100%" height="calc(1.25rem + var(--density-py-row, 0.375rem) * 2)" round="md" tone="faint" /></div>
           </div>
           <PanelFooterSkeleton />
         </div>
@@ -221,10 +222,16 @@ export function PanelFooterSkeleton() {
   )
 }
 
-/** A project row of the sidebar tree: its chevron column, folder mark, name and its two actions, 32px tall. */
+/**
+ * A tree row's height: the 20px name line plus the density row padding, never under the row's 26px
+ * action slot (32 / 28 / 26px, TASK-128).
+ */
+const TREE_ROW_HEIGHT = "max(26px, calc(1.25rem + var(--density-py-row, 0.375rem) * 2))"
+
+/** A project row of the sidebar tree: its chevron column, folder mark, name and its two actions. */
 function ProjectRow({ width }: { width: number }) {
   return (
-    <div className={`mx-2 flex h-8 items-center gap-1 pl-1 ${PANEL_ROW_END}`}>
+    <div className={`mx-2 flex items-center gap-1 pl-1 ${PANEL_ROW_END}`} style={{ height: TREE_ROW_HEIGHT }}>
       <span className="flex w-5 justify-center"><Skeleton width={8} height={8} tone="faint" /></span>
       <span className="flex items-center gap-2">
         <Skeleton width={14} height={14} />
@@ -242,7 +249,7 @@ function ProjectRow({ width }: { width: number }) {
 /** A category row: indented under its project's name, its mark, name and group count; lit when selected. */
 function CategoryRow({ width, groups, active }: { width: number; groups: number; active: boolean }) {
   return (
-    <div className={`mx-2 flex h-8 items-center gap-2 rounded-md pl-7 ${PANEL_ROW_END}`} style={active ? { backgroundColor: "var(--accent-subtle)" } : undefined}>
+    <div className={`mx-2 flex items-center gap-2 rounded-md pl-7 ${PANEL_ROW_END}`} style={{ height: TREE_ROW_HEIGHT, ...(active ? { backgroundColor: "var(--accent-subtle)" } : {}) }}>
       <Skeleton width={12} height={12} />
       <Skeleton line={20} width={width} height={10} tone="faint" />
       {groups > 0 && <span className="ml-auto"><ActionSlot><Skeleton width={8} height={8} tone="faint" /></ActionSlot></span>}
@@ -341,7 +348,7 @@ function SavedTabRow({ i }: { i: number }) {
 /** An Opened tabs row: favicon, title and address. */
 function OpenTabRow({ i }: { i: number }) {
   return (
-    <div className="flex items-center gap-2.5 px-3 py-1.5">
+    <div className={`flex items-center gap-2.5 px-3 ${DENSITY_ROW_PY}`}>
       <Skeleton width={20} height={20} round="full" tone="faint" />
       <div className="flex min-w-0 flex-1 flex-col">
         <Skeleton line={16} width={`${[60, 48, 54][i % 3]}%`} height={9} />
