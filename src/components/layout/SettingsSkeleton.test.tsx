@@ -51,6 +51,22 @@ describe("the Settings page's loading shell (TASK-108)", () => {
     expect(container.querySelectorAll(".mx-2.pl-1.pr-1")).toHaveLength(6)
   })
 
+  it("the Spaces page draws its tab strip in the room before its first card, one chip per space (TASK-125)", () => {
+    localStorage.setItem("flextab-shell-shape", JSON.stringify({ spaces: 3, projects: [], active: null, content: null, windows: [] }))
+    const spacesPage: SettingsPageShape = { ...page, cards: [{ ...page.cards[0], gapBefore: 77 }, page.cards[1]] }
+    storeSettingsShape("spaces", spacesPage, true)
+    const { container } = render(<SettingsSkeleton route="/settings/spaces" />)
+    const strip = container.querySelector(".border-ink\\/10.pb-3") as HTMLElement
+    expect(strip.style.height).toBe("49px")
+    expect(strip.children).toHaveLength(3)
+    expect((strip.children[0] as HTMLElement).style.backgroundColor).toBe("var(--accent-subtle)")
+    expect((container.querySelectorAll(".rounded-card")[0] as HTMLElement).style.marginTop).toBe("28px")
+    // Other pages draw no strip.
+    cleanup()
+    storeSettingsShape("backup", spacesPage, true)
+    expect(render(<SettingsSkeleton route="/settings/backup" />).container.querySelector(".border-ink\\/10.pb-3")).toBeNull()
+  })
+
   it("a page never opened uses its topic's sample", () => {
     expect(settingsSkeletonFor("/settings/backup").page).toEqual(sample("backup"))
     expect(settingsSkeletonFor("/settings/sync").tab).toBe("backup")

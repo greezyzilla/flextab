@@ -72,13 +72,13 @@ export function SettingsSkeletonView({ tab, page, signedIn, spaces }: { tab: Set
             <div className="flex-1 min-h-0 overflow-hidden px-4 py-5 sm:px-6 md:px-8 md:py-7">
               {APPEARANCE.includes(tab) ? (
                 <div className="flex flex-col preview:flex-row preview:items-start gap-6 preview:gap-8">
-                  <div className="max-w-[40rem] min-w-0 preview:w-full preview:shrink-0"><Cards page={page} height={height} /></div>
+                  <div className="max-w-[40rem] min-w-0 preview:w-full preview:shrink-0"><Cards page={page} height={height} tabs={tab === "spaces" ? spaces : 0} /></div>
                   <div className="hidden preview:block preview:max-w-[24rem] preview:flex-1 preview:min-w-0">
                     {page.preview !== null && <Skeleton width="100%" height={page.preview} round="lg" tone="faint" />}
                   </div>
                 </div>
               ) : (
-                <div className="max-w-[40rem] min-w-0"><Cards page={page} height={height} /></div>
+                <div className="max-w-[40rem] min-w-0"><Cards page={page} height={height} tabs={tab === "spaces" ? spaces : 0} /></div>
               )}
             </div>
           </div>
@@ -89,7 +89,16 @@ export function SettingsSkeletonView({ tab, page, signedIn, spaces }: { tab: Set
 }
 
 /** The page's section cards, stopping once they pass the bottom of the screen. */
-function Cards({ page, height }: { page: SettingsPageShape; height: number }) {
+/** Space between the Spaces page's tab strip and its first card (Tabs: gap-7). */
+const TABS_GAP = 28
+
+/**
+ * The page's section cards, stopping once they pass the bottom of the screen. `tabs`: the Spaces
+ * page's strip of space tabs above them, one chip per space (TASK-125), drawn in the room recorded
+ * before the first card so the cards land where they did.
+ */
+function Cards({ page, height, tabs }: { page: SettingsPageShape; height: number; tabs: number }) {
+  const strip = tabs > 0 && page.cards.length > 0 && page.cards[0].gapBefore > TABS_GAP ? page.cards[0].gapBefore - TABS_GAP : 0
   let used = 0
   const shown = page.cards.filter((c) => {
     if (used > height) return false
@@ -98,10 +107,21 @@ function Cards({ page, height }: { page: SettingsPageShape; height: number }) {
   })
   return (
     <div className="flex flex-col">
+      {strip > 0 && (
+        // TabsList: chips 4px apart, wrapping, a line 12px under them; each chip an avatar and a name.
+        <div className="flex flex-wrap content-start items-center gap-1 overflow-hidden border-b border-ink/10 pb-3" style={{ height: strip }}>
+          {Array.from({ length: tabs }, (_, i) => (
+            <span key={i} className="flex items-center gap-2.5 rounded-lg px-2.5 py-2" style={i === 0 ? { backgroundColor: "var(--accent-subtle)" } : undefined}>
+              <Skeleton width={20} height={20} round="full" />
+              <Skeleton line={20} width={w(i) - 8} height={10} />
+            </span>
+          ))}
+        </div>
+      )}
       {shown.map((c, ci) => (
         // SettingsSection: one card per section, its header box inside, density padding and gaps.
         <div key={ci} className="flex flex-col rounded-card border border-ink/[0.08] bg-ink/[0.015]"
-          style={{ marginTop: c.gapBefore, padding: "var(--density-p-group)", gap: "calc(var(--density-p-group) * 4 / 3)" }}>
+          style={{ marginTop: ci === 0 && strip > 0 ? TABS_GAP : c.gapBefore, padding: "var(--density-p-group)", gap: "calc(var(--density-p-group) * 4 / 3)" }}>
           <div className="flex min-w-0 items-center gap-3">
             <Skeleton width={40} height={40} round="lg" />
             <div className="flex min-w-0 flex-col">
