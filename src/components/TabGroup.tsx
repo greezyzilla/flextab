@@ -18,7 +18,7 @@ import { GroupIcon, UnsortedIcon } from "./levelIcons";
 import { ensureUnsortedGroup, isUnsortedGroup } from "~src/lib/defaultPath";
 import { normalizeUrl } from "~src/lib/savedUrlIndex";
 import { openGroupTabs, openOrFocus } from "~src/services/openTab";
-import { ActionSlot, RowActions } from "./ui/row-actions";
+import { ACTION_ROW_END_PAD, ActionSlot, RowActions } from "./ui/row-actions";
 import { IconButton, IconTooltip, isFocusVisible } from "./ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { useAltHeld, useArmAlt } from "~src/lib/altKey";
@@ -169,7 +169,7 @@ function SavedTabItem({ tab, groupId, location, copies = 1, unsorted }: { tab: S
   return (
     <div
       ref={(el) => { setNodeRef(el); flash.ref.current = el; }}
-      style={{ ...style, padding: `var(--density-py-tab) var(--density-px-tab)` }}
+      style={{ ...style, padding: `var(--density-py-tab) ${ACTION_ROW_END_PAD} var(--density-py-tab) var(--density-px-tab)` }}
       className={`relative flex flex-col gap-1 rounded-lg transition-[background-color,box-shadow] group bg-row hover:bg-row-hover ${flash.on ? '!ring-2 !ring-[var(--accent)]' : ''}`}
     >
       {/* A duplicate is flagged by one mark the user picks in Appearance
@@ -402,7 +402,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
         ...(isOver && shownColor ? { borderColor: groupColorFill(shownColor), backgroundColor: groupTintSurface(shownColor, { strength: 2 }) } : {}),
       }}
     >
-      <div className="flex items-center justify-between gap-2 min-h-group-head group/header" style={{ paddingInline: 'var(--density-px-tab)' }}>
+      <div className="flex items-center justify-between gap-2 min-h-group-head group/header" style={{ paddingLeft: 'var(--density-px-tab)', paddingRight: ACTION_ROW_END_PAD }}>
         {unsorted ? (
           <div className="flex items-center gap-2.5 min-w-0">
             <span className="w-5 flex justify-center shrink-0"><UnsortedIcon size="sm" className="text-fg-subtle" /></span>

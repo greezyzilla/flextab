@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { PANEL_HEADER, PANEL_TITLE, PANEL_LIST, PANEL_ROW, PanelFooter, AppVersion } from "./panelChrome";
+import { PANEL_HEADER, PANEL_TITLE, PANEL_LIST, PANEL_ROW, PANEL_ROW_END, PanelFooter, AppVersion } from "./panelChrome";
 import { TreeRowButton, TREE_ROW_FOCUS } from "../ui/tree-row-button";
 import { ChevronRight, GripVertical } from "lucide-react"
 import { Icon } from "~src/components/ui/icon"
@@ -78,7 +78,7 @@ function CreateRow({ kind, onCommit, onCancel }: {
   // is inserted by the project's +, so its frame is the category row's box
   // (mx-2, pl-7 py-1.5 label), the same shape as a selected category.
   return (
-    <div className={project ? "mx-2" : `flex items-center gap-1 mx-2 pr-1 text-fg-muted ${inlineEditFrame}`}>
+    <div className={project ? "mx-2" : `flex items-center gap-1 mx-2 ${PANEL_ROW_END} text-fg-muted ${inlineEditFrame}`}>
       <div className={`flex-1 min-w-0 flex items-center gap-2 text-item ${project ? `pl-7 pr-2 py-1.5 font-medium text-fg-muted ${inlineEditFrame}` : "pl-7 pr-1 py-1.5"}`}>
         {project
           ? <ProjectIcon size="sm" className="text-fg-subtle" />
@@ -427,7 +427,7 @@ export function LeftPanel() {
                           >
                             {renamingId === category.id ? (
                               // The category row's own box (mx-2 + pl-7 py-1.5 label), so the name stays put (TASK-62).
-                              <div className={`flex items-center gap-1 mx-2 pr-1 text-fg ${inlineEditFrame}`}>
+                              <div className={`flex items-center gap-1 mx-2 ${PANEL_ROW_END} text-fg ${inlineEditFrame}`}>
                                 <div className="flex-1 min-w-0 flex items-center gap-2 pl-7 pr-1 py-1.5 text-item">
                                   <CategoryIcon size="xs" />
                                   <Input variant="inline" ref={renameRef} type="text" value={renameValue}
@@ -440,7 +440,7 @@ export function LeftPanel() {
                               </div>
                             ) : (
                               <div
-                                className={`group/cat flex items-center gap-1 mx-2 pr-1 rounded-md transition-colors ${TREE_ROW_FOCUS} ${
+                                className={`group/cat flex items-center gap-1 mx-2 ${PANEL_ROW_END} rounded-md transition-colors ${TREE_ROW_FOCUS} ${
                                   isActive ? 'text-fg' : 'text-fg-muted hover:text-fg hover:bg-ink/[0.04]'
                                 }`}
                                 style={isActive ? { backgroundColor: 'var(--accent-subtle)' } : undefined}

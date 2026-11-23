@@ -4,6 +4,7 @@ import { Kbd } from "~src/components/ui/kbd"
 import { useUIStore } from "~src/store/useUIStore"
 import { Button } from "~src/components/ui/button"
 import { TREE_LABEL_BOX, TREE_ROW_FOCUS, TREE_ROW_TEXT } from "~src/components/ui/tree-row-button"
+import { TREE_HEADER_END, TREE_ROW_END } from "~src/components/ui/row-actions"
 
 /**
  * The left panel's frame (TASK-84): the workspace tree (LeftPanel) and the
@@ -11,8 +12,8 @@ import { TREE_LABEL_BOX, TREE_ROW_FOCUS, TREE_ROW_TEXT } from "~src/components/u
  * workspace panel is the reference.
  */
 
-/** Title row. pr-3 keeps a trailing ⋯ in the rows' trailing slot column. */
-export const PANEL_HEADER = "h-16 flex items-end justify-between gap-2 pl-4 pr-3 pb-4 border-b border-line"
+/** Title row. Its end padding (TREE_HEADER_END) keeps a trailing ⋯ in the rows' trailing slot column. */
+export const PANEL_HEADER = `h-16 flex items-end justify-between gap-2 pl-4 ${TREE_HEADER_END} pb-4 border-b border-line`
 
 /** The panel's title text. */
 export const PANEL_TITLE = "min-w-0 truncate text-fg font-sans text-2xl"
@@ -20,8 +21,11 @@ export const PANEL_TITLE = "min-w-0 truncate text-fg font-sans text-2xl"
 /** The scrolling list under the title. */
 export const PANEL_LIST = "flex-1 overflow-y-auto py-4"
 
+/** A row's end padding: its trailing ⋯ sits as far from the end as its chevron from the start. */
+export const PANEL_ROW_END = TREE_ROW_END
+
 /** A top-level row's box: inset from the panel edge, rounded like every row. */
-export const PANEL_ROW = "mx-2 pl-1 pr-1 rounded-md transition-colors"
+export const PANEL_ROW = `mx-2 pl-1 ${PANEL_ROW_END} rounded-md transition-colors`
 
 /** The clickable label inside a row: icon, then the name. The tree's TreeRowButton draws its own. */
 export const PANEL_ROW_LABEL = TREE_LABEL_BOX

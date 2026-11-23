@@ -35,7 +35,7 @@ describe("the Settings page's loading shell (TASK-108)", () => {
     const { container } = render(<SettingsSkeleton route="/settings/display" />)
     expect(screen.getByRole("status", { name: "Loading Settings" })).toBeInTheDocument()
     // Nine topics under three headings, the open one with the accent fill.
-    const rows = container.querySelectorAll(".mx-2.pl-1.pr-1")
+    const rows = container.querySelectorAll(".mx-2.pl-1")
     expect(rows).toHaveLength(9)
     expect((rows[SETTINGS_TABS.indexOf("display")] as HTMLElement).style.backgroundColor).toBe("var(--accent-subtle)")
     const cards = container.querySelectorAll(".rounded-card")
@@ -48,7 +48,7 @@ describe("the Settings page's loading shell (TASK-108)", () => {
     storeSettingsShape("theme", sample("theme"), false)
     expect(settingsSkeletonFor("/settings/plan")).toMatchObject({ tab: "theme", signedIn: false })
     const { container } = render(<SettingsSkeleton route="/settings/plan" />)
-    expect(container.querySelectorAll(".mx-2.pl-1.pr-1")).toHaveLength(6)
+    expect(container.querySelectorAll(".mx-2.pl-1")).toHaveLength(6)
   })
 
   it("the Spaces page draws its tab strip in the room before its first card, one chip per space (TASK-125)", () => {

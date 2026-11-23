@@ -22,6 +22,24 @@ export type RowAction = {
  * slots of a panel form one column, and header controls sit in the same
  * column by using it too. Nothing else in a row reserves room for actions.
  */
+/*
+ * End paddings that keep a row symmetric around this 26px slot: the slot's
+ * glyph sits as far from the row's end as the leading glyph from its start.
+ * calc keeps it exact at every UI scale (rem scales, the slot does not).
+ */
+
+/** A content row (group header, saved-tab card): leading mark in a 1.25rem slot, inset by
+ *  --density-px-tab; the end is trimmed by half the slot difference (3px at 100%). */
+export const ACTION_ROW_END_PAD = "calc(var(--density-px-tab) - (26px - 1.25rem) / 2)"
+
+/** A sidebar tree row: a 12px chevron in a 1.25rem column after pl-1, a 14px glyph in the
+ *  slot (2px at 100%). */
+export const TREE_ROW_END = "pr-[calc((1.875rem_-_26px)_/_2)]"
+
+/** The sidebar title row: the rows' mx-2 plus TREE_ROW_END, so its ⋯ stays in the rows'
+ *  column and its glyph sits as far from the panel's edge as the title (pl-4). */
+export const TREE_HEADER_END = "pr-[calc((2.875rem_-_26px)_/_2)]"
+
 export function ActionSlot({ children }: { children?: ReactNode }) {
   return <span className="relative flex h-[26px] w-[26px] shrink-0 items-center justify-center">{children}</span>
 }

@@ -3,11 +3,11 @@ import { flushSync } from "react-dom"
 import { createRoot } from "react-dom/client"
 import { BrandMark } from "~src/components/ui/brand-mark"
 import { Skeleton, SkeletonRegion } from "~src/components/ui/skeleton"
-import { ActionSlot } from "~src/components/ui/row-actions"
+import { ACTION_ROW_END_PAD, ActionSlot } from "~src/components/ui/row-actions"
 import { GRID_MIN_CELL, GROUP_INLINE } from "~src/components/TabGroup"
 import { LEFT_INLINE_QUERY, RIGHT_INLINE_QUERY, useShellLayout } from "~src/hooks/useMediaQuery"
 import { fitToScreen, readStoredShellShape, type ShellShape } from "~src/lib/shellShape"
-import { PANEL_HEADER, PANEL_LIST } from "./panelChrome"
+import { PANEL_HEADER, PANEL_LIST, PANEL_ROW_END } from "./panelChrome"
 
 /**
  * Drawn before anything has been seen (first run, storage blocked): two spaces, an open project with
@@ -224,7 +224,7 @@ export function PanelFooterSkeleton() {
 /** A project row of the sidebar tree: its chevron column, folder mark, name and its two actions, 32px tall. */
 function ProjectRow({ width }: { width: number }) {
   return (
-    <div className="mx-2 flex h-8 items-center gap-1 pl-1 pr-1">
+    <div className={`mx-2 flex h-8 items-center gap-1 pl-1 ${PANEL_ROW_END}`}>
       <span className="flex w-5 justify-center"><Skeleton width={8} height={8} tone="faint" /></span>
       <span className="flex items-center gap-2">
         <Skeleton width={14} height={14} />
@@ -242,7 +242,7 @@ function ProjectRow({ width }: { width: number }) {
 /** A category row: indented under its project's name, its mark, name and group count; lit when selected. */
 function CategoryRow({ width, groups, active }: { width: number; groups: number; active: boolean }) {
   return (
-    <div className="mx-2 flex h-8 items-center gap-2 rounded-md pl-7 pr-1" style={active ? { backgroundColor: "var(--accent-subtle)" } : undefined}>
+    <div className={`mx-2 flex h-8 items-center gap-2 rounded-md pl-7 ${PANEL_ROW_END}`} style={active ? { backgroundColor: "var(--accent-subtle)" } : undefined}>
       <Skeleton width={12} height={12} />
       <Skeleton line={20} width={width} height={10} tone="faint" />
       {groups > 0 && <span className="ml-auto"><ActionSlot><Skeleton width={8} height={8} tone="faint" /></ActionSlot></span>}
@@ -285,7 +285,7 @@ function GroupBlock({ tabs, unsorted = false, nameWidth = 88, layout, gridColumn
     <div style={{ paddingTop: "var(--density-p-section)", paddingInline: GROUP_INLINE }}>
       <div className={`flex flex-col rounded-card border ${unsorted ? "border-transparent bg-ink/[0.04]" : "border-ink/[0.08] bg-ink/[0.015]"}`}
         style={{ padding: "var(--density-p-group)", gap: "var(--density-p-group)" }}>
-        <div className="flex min-h-group-head items-center gap-2" style={{ paddingInline: "var(--density-px-tab)" }}>
+        <div className="flex min-h-group-head items-center gap-2" style={{ paddingLeft: "var(--density-px-tab)", paddingRight: ACTION_ROW_END_PAD }}>
           <span className="flex w-5 justify-center"><Skeleton width={14} height={14} /></span>
           <Skeleton line={20} width={unsorted ? 64 : nameWidth} height={10} />
           <Skeleton line={16} width={unsorted ? 180 : 36} height={8} tone="faint" />
