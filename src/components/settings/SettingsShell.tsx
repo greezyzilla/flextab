@@ -17,7 +17,7 @@ import { SpacesIcon, SavingIcon, PaletteIcon, DisplayIcon, LayoutIcon, SyncIcon,
 import { canGroupTabs } from "~src/services/openTab"
 import { cn } from "~src/lib/utils"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "~src/components/ui/select"
-import { PANEL_HEADER, PANEL_TITLE, PANEL_LIST, PANEL_ROW, PANEL_ROW_LABEL, PANEL_ROW_TEXT, PanelFooter, AppVersion } from "~src/components/layout/panelChrome"
+import { PANEL_HEADER, PANEL_TITLE, PANEL_LIST, PANEL_ROW, PANEL_ROW_FOCUS, PANEL_ROW_LABEL, PANEL_ROW_TEXT, PanelFooter, AppVersion } from "~src/components/layout/panelChrome"
 import { useSettingsShapeMirror } from "~src/hooks/useSettingsShapeMirror"
 
 const ICON: Record<SettingsTab, ReactNode> = {
@@ -50,9 +50,9 @@ export function SettingsNav() {
               <div id={headingId} className="px-4 pb-1.5 text-fg-subtle text-caption font-medium font-sans uppercase tracking-wider">{group.heading}</div>
               <ul aria-labelledby={headingId} className="flex flex-col">
                 {topics.map((id) => (
-                  <li key={id} className={cn(PANEL_ROW, active === id ? "text-fg" : "text-fg-muted hover:text-fg hover:bg-ink/[0.04]")}
+                  <li key={id} className={cn(PANEL_ROW, PANEL_ROW_FOCUS, active === id ? "text-fg" : "text-fg-muted hover:text-fg hover:bg-ink/[0.04]")}
                     style={active === id ? { backgroundColor: "var(--accent-subtle)" } : undefined}>
-                    <a href={`#${SETTINGS_ROUTE}/${id}`} aria-current={active === id ? "page" : undefined} className={cn(PANEL_ROW_LABEL, "w-full px-1")}>
+                    <a href={`#${SETTINGS_ROUTE}/${id}`} data-row-label="" aria-current={active === id ? "page" : undefined} className={cn(PANEL_ROW_LABEL, "w-full px-1")}>
                       <span className="text-fg-subtle">{ICON[id]}</span>
                       <span className={PANEL_ROW_TEXT}>{SECTION_LABEL[id]}</span>
                     </a>

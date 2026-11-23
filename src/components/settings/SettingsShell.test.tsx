@@ -128,6 +128,14 @@ describe("compact settings navigation", () => {
     for (const id of ACCOUNT_ONLY) expect(screen.queryByRole("option", { name: SECTION_LABEL[id] })).not.toBeInTheDocument();
   });
 
+  it("a nav item's focus ring is its row's own box, not the link's (TASK-124)", () => {
+    render(<SettingsNav />);
+    const link = screen.getByRole("link", { name: SECTION_LABEL.theme });
+    expect(link).toHaveAttribute("data-row-label");
+    expect(link.className).not.toMatch(/focus-visible:ring/);
+    expect(link.closest("li")!.className).toContain("has-[[data-row-label]:focus-visible]:ring-1");
+  });
+
   it("shows the app version under the settings nav (TASK-15)", () => {
     render(<SettingsNav />);
     expect(screen.getByText(/^FlexTab v\d/)).toBeInTheDocument();

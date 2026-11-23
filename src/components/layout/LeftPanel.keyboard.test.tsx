@@ -135,7 +135,8 @@ describe("tree rows share one box (TASK-120)", () => {
     for (const name of ["Site", "Research"]) {
       const label = row(name)
       expect(label.className).not.toMatch(/focus-visible:ring/)
-      expect(label.parentElement!.className).toContain("has-[[data-tree-row]:focus-visible]:ring-1")
+      expect(label.parentElement!.className).toContain("has-[[data-row-label]:focus-visible]:ring-1")
+      expect(label).toHaveAttribute("data-row-label")
       expect(label.parentElement!.className).toContain("mx-2")
     }
     expect(screen.getByRole("button", { name: /^New project/ }).closest("div.mx-2")!.className).toBe("mx-2")

@@ -3,7 +3,7 @@ import type { ReactNode } from "react"
 import { Kbd } from "~src/components/ui/kbd"
 import { useUIStore } from "~src/store/useUIStore"
 import { Button } from "~src/components/ui/button"
-import { TREE_ROW_LABEL, TREE_ROW_TEXT } from "~src/components/ui/tree-row-button"
+import { TREE_LABEL_BOX, TREE_ROW_FOCUS, TREE_ROW_TEXT } from "~src/components/ui/tree-row-button"
 
 /**
  * The left panel's frame (TASK-84): the workspace tree (LeftPanel) and the
@@ -24,7 +24,10 @@ export const PANEL_LIST = "flex-1 overflow-y-auto py-4"
 export const PANEL_ROW = "mx-2 pl-1 pr-1 rounded-md transition-colors"
 
 /** The clickable label inside a row: icon, then the name. The tree's TreeRowButton draws its own. */
-export const PANEL_ROW_LABEL = TREE_ROW_LABEL
+export const PANEL_ROW_LABEL = TREE_LABEL_BOX
+
+/** On a row: its focus ring is the row's own box while its label (data-row-label) has keyboard focus (TASK-124). */
+export const PANEL_ROW_FOCUS = TREE_ROW_FOCUS
 
 /** A row's name: 13px, medium for a top-level row. */
 export const PANEL_ROW_TEXT = TREE_ROW_TEXT

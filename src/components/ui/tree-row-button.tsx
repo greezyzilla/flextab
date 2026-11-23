@@ -13,14 +13,14 @@ import { cn } from "~src/lib/utils"
  * Pass the icon (or its drag handle) as `icon` and the name as children.
  */
 
-/** The top-level label's box, without a focus ring of its own. */
-const TREE_LABEL_BOX = "flex items-center gap-2 py-1.5 text-left rounded outline-none"
+/** The top-level label's box, shared with the Settings nav's links; no focus ring of its own. */
+export const TREE_LABEL_BOX = "flex items-center gap-2 py-1.5 text-left rounded outline-none"
 
-/** The top-level label's box, shared with the Settings nav's links (which draw their ring on the link). */
-export const TREE_ROW_LABEL = `${TREE_LABEL_BOX} focus-visible:ring-1 focus-visible:ring-ring`
-
-/** On a tree row: its ring while its label has keyboard focus, so the ring is the row's own box (TASK-120). */
-export const TREE_ROW_FOCUS = "has-[[data-tree-row]:focus-visible]:ring-1 has-[[data-tree-row]:focus-visible]:ring-ring"
+/**
+ * On a row: its ring while its label (marked data-row-label) has keyboard focus, so the ring is the
+ * row's own box, its other controls included (TASK-120 tree rows, TASK-124 Settings nav).
+ */
+export const TREE_ROW_FOCUS = "has-[[data-row-label]:focus-visible]:ring-1 has-[[data-row-label]:focus-visible]:ring-ring"
 
 /** The top-level row's name, shared with the Settings nav's links. */
 export const TREE_ROW_TEXT = "font-sans text-item font-medium truncate"
@@ -45,7 +45,7 @@ export interface TreeRowButtonProps extends React.ButtonHTMLAttributes<HTMLButto
 }
 
 const TreeRowButton = React.forwardRef<HTMLButtonElement, TreeRowButtonProps>(({ level, icon, className, children, ...props }, ref) => (
-  <button ref={ref} type="button" className={cn(treeRowVariants({ level }), className)} {...props}>
+  <button ref={ref} type="button" data-row-label="" className={cn(treeRowVariants({ level }), className)} {...props}>
     {icon}
     <span className={NAME[level]}>{children}</span>
   </button>
