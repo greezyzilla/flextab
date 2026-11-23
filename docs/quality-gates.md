@@ -8,7 +8,7 @@ npx playwright install chromium   # once per machine: browser-mode tests
 npm run typecheck
 npm run test:coverage -- --run
 # Supply the public API configuration described in RELEASING.md.
-npm run build:zip
+npm run build:zip -- --channel=stable
 ```
 
 The reusable verification workflow runs these gates before producing a release

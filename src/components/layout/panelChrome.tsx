@@ -50,7 +50,17 @@ export function PanelFooter({ start }: { start?: ReactNode }) {
   )
 }
 
+/**
+ * The version people see: the manifest's version_name when the build has one (a
+ * beta build reads "0.1.0 Beta 7", TASK-111), else its version. Outside the
+ * extension (tests) it falls back to package.json.
+ */
+function versionText(): string {
+  const manifest = typeof chrome !== "undefined" ? chrome.runtime?.getManifest?.() : undefined
+  return manifest?.version_name || manifest?.version || config.version || "0.0.1"
+}
+
 /** "FlexTab v0.1.0", for the footer's left slot in the workspace and Settings (TASK-15, TASK-109). */
 export function AppVersion() {
-  return <>FlexTab v{config.version || "0.0.1"}</>
+  return <>FlexTab v{versionText()}</>
 }

@@ -2,6 +2,54 @@
 
 Runbook for cutting an extension release and uploading the ZIP to the CWS.
 
+## Channels: FlexTab Beta and FlexTab
+
+One codebase builds two permanent, separate extension items (TASK-111, design in
+backlog doc-2). Every build names its channel; a build without one fails.
+
+| | `--channel=stable` | `--channel=beta` |
+|---|---|---|
+| Name | package.json `displayName` | FlexTab Beta |
+| Icon | `assets/icon.png` | `assets/icon.beta.png` |
+| Manifest version | package.json `version` | `X.Y.Z.N` from the tag `beta-vX.Y.Z.N` |
+| Version people see | the version | `version_name` "X.Y.Z Beta N" |
+| Firefox add-on id | `flextab@flextabmanager.com` | `flextab-beta@flextabmanager.com` |
+| Output | `build/<target>-prod[.zip]` | `build/<target>-beta[.zip]` |
+
+```bash
+npm run build:zip -- --channel=stable
+npm run build:zip -- --channel=beta --beta-tag=beta-v0.1.0.7
+# the beta tag can also come from FLEXTAB_BETA_TAG, or a beta-v* tag on HEAD
+# --target=firefox-mv3 builds Firefox; the default is chrome-mv3
+```
+
+How it works: `scripts/build.mjs` runs Plasmo with `--tag=prod` or `--tag=beta`
+(the tag picks `assets/icon.<tag>.png` and the build folder) and sets the
+`FLEXTAB_*` variables that the placeholders in package.json `manifest` read. An
+unset variable drops its placeholder, so stable keeps package.json's name and
+version, and the Chrome manifest stays exactly as before. Plasmo's manifest check
+allows a three-part version only, so a beta builds as `X.Y.Z` and the script then
+writes `X.Y.Z.N` into `manifest.json` before zipping. The channel logic lives in
+`scripts/channel.mjs`, tested by `scripts/channel.test.mjs`.
+
+The two items have different extension ids, so both install in one browser
+profile. The Firefox ids are permanent once uploaded to AMO.
+
+### Cutting a beta
+
+```bash
+npm run release:beta          # checks, builds build/chrome-mv3-beta.zip, tags
+git push origin beta-vX.Y.Z.N # when ready; the script never pushes
+```
+
+`scripts/release-beta.mjs` checks that HEAD is on `dev`, the working tree is
+clean, a stable tag `vX.Y.Z` is in the history, there are commits since it, and
+the new version is above every earlier beta tag. `X.Y.Z` is that stable tag and
+`N` the number of commits since it. It then runs check-env and the beta build,
+and only after the build succeeds creates the annotated tag `beta-vX.Y.Z.N`. Any
+failure aborts with no tag left behind. A repository with no stable tag yet
+cannot cut a beta: tag the last stable release first.
+
 ## Versioning
 
 - **Single source of truth: `package.json` `version`.** Plasmo propagates it into
@@ -28,8 +76,8 @@ Runbook for cutting an extension release and uploading the ZIP to the CWS.
 #      build:zip runs scripts/check-env.mjs and fails otherwise.
 npm run typecheck
 npm run test:coverage -- --run  # tests and coverage gates must pass
-npm run release:patch    # bump + commit "release: vX.Y.Z" + tag + build the zip
-                         # (use release:minor for feature releases)
+npm run release:patch    # bump + commit "release: vX.Y.Z" + tag + build the
+                         # stable zip (use release:minor for feature releases)
 
 # Output: build/chrome-mv3-prod.zip  ← upload this to the CWS dashboard
 
@@ -77,7 +125,7 @@ and remaining gaps; native extension E2E is not yet a release guarantee.
 
 ## What ships in a build
 
-`plasmo build --zip` bundles the prod extension (newtab override, popup,
+`npm run build:zip -- --channel=stable` bundles the prod extension (newtab override, popup,
 background worker) into `build/chrome-mv3-prod.zip`. The backend is deployed
 separately (Go + Postgres + Redis) — the extension only talks to it over the
 env-configured API host.

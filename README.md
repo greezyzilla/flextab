@@ -34,7 +34,7 @@ npm run test:coverage -- --run
 # Set both variables to the deployed backend; values enter the public bundle.
 export PLASMO_PUBLIC_API_URL=https://api.example.com
 export PLASMO_PUBLIC_API_HOST='https://api.example.com/*'
-npm run build:zip
+npm run build:zip -- --channel=stable   # or --channel=beta, see RELEASING.md
 ```
 
 Output: `build/chrome-mv3-prod.zip`. `.env.production` may supply these values for
