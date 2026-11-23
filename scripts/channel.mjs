@@ -2,7 +2,7 @@
  * Release channels (TASK-111): one codebase builds two permanent extension items,
  * like Edge Beta next to Edge.
  *
- *   stable  "Flextab", the public item. Exactly today's build: name and version
+ *   stable  "FlexTab", the public item. Exactly today's build: name and version
  *           come from package.json, the build lands in build/<target>-prod.
  *   beta    "FlexTab Beta", the testers' item. Its own name, icon
  *           (assets/icon.beta.png) and Firefox add-on id, so both install side
