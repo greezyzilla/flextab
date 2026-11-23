@@ -9,6 +9,7 @@ import { LEFT_INLINE_QUERY, RIGHT_INLINE_QUERY, useShellLayout } from "~src/hook
 import { fitToScreen, readStoredShellShape, type ShellShape } from "~src/lib/shellShape"
 import { PANEL_HEADER, PANEL_LIST, PANEL_ROW_END } from "./panelChrome"
 import { DENSITY_ROW_PY } from "~src/components/ui/tree-row-button"
+import { APPEARANCE_DEFAULTS } from "~src/store/useSettingsStore"
 
 /**
  * Drawn before anything has been seen (first run, storage blocked): two spaces, an open project with
@@ -18,7 +19,7 @@ const SAMPLE: ShellShape = {
   spaces: 2,
   projects: [{ open: true, categories: [0, 0] }, { open: false, categories: [] }],
   active: null,
-  content: { layout: "list", gridColumns: 2, projectHasGroups: true, sections: [{ unsorted: null, groups: [3, 2] }] },
+  content: { layout: APPEARANCE_DEFAULTS.groupLayout, gridColumns: APPEARANCE_DEFAULTS.gridColumns, projectHasGroups: true, sections: [{ unsorted: null, groups: [3, 2] }] },
   windows: [2],
 }
 

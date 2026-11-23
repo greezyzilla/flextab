@@ -78,11 +78,11 @@ describe("AppearancePreview (TASK-30)", () => {
 
   it("follows the layout settings live and returns to the defaults on reset", async () => {
     render(<AppearancePreview />)
-    expect(grid()).toBeNull() // list by default
-    await act(async () => { useSettingsStore.setState({ groupLayout: "grid", gridColumns: 4 }) })
-    expect(grid()).not.toBeNull()
-    await act(async () => { useSettingsStore.getState().resetAppearance() })
+    expect(grid()).not.toBeNull() // grid by default
+    await act(async () => { useSettingsStore.setState({ groupLayout: "list" }) })
     expect(grid()).toBeNull()
+    await act(async () => { useSettingsStore.getState().resetAppearance() })
+    expect(grid()).not.toBeNull()
   })
 
   it("is a bounded card labelled Preview", () => {

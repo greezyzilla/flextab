@@ -1,12 +1,13 @@
 import type { SettingsTab } from "~src/components/settings/types";
 import type { Density } from "~src/store/useSettingsStore";
+import { DEFAULT_APPEARANCE } from "~src/lib/theme";
 
 const DENSITIES: Density[] = ["compact", "cozy", "comfortable"];
 
 /** The density on <html> (lib/theme, boot/look.js), which the loading shell is drawn in. */
 export function currentDensity(): Density {
   const found = DENSITIES.find((d) => document.documentElement.classList.contains(`density-${d}`));
-  return found ?? "comfortable";
+  return found ?? DEFAULT_APPEARANCE.density;
 }
 
 /**

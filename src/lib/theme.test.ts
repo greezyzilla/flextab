@@ -108,7 +108,7 @@ describe("appearance before the first render", () => {
   it("puts the stored look on <html> in one call, or the defaults on first run (the boot script)", () => {
     applyStoredLook();
     expect(root.style.getPropertyValue("--hue")).toBe("214");
-    expect(root.classList.contains("density-comfortable")).toBe(true);
+    expect(root.classList.contains("density-cozy")).toBe(true); // the default density is Cozy
     localStorage.setItem(APPEARANCE_STORAGE_KEY, JSON.stringify(green));
     localStorage.setItem(THEME_STORAGE_KEY, "dark");
     applyStoredLook();

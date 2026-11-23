@@ -66,7 +66,8 @@ export const DEFAULT_APPEARANCE: Appearance = {
   radius: 8,
   fontFamily: "inter",
   uiScale: 1,
-  density: "comfortable",
+  // Cozy, the middle step: a first look that shows more, with room to go looser or tighter.
+  density: "cozy",
   reduceMotion: false,
   appIcon: "accent",
 };

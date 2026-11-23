@@ -60,7 +60,7 @@ function hexToHue(hex: string): number {
  *  it's a sync concern, not a look-and-feel one). */
 export const APPEARANCE_DEFAULTS = {
   theme: 'system' as ThemeMode, // follow the OS; Light/Dark force one (device-only, not synced)
-  groupLayout: 'list' as GroupLayout,
+  groupLayout: 'grid' as GroupLayout, // groups side by side: more of the workspace in one look
   gridColumns: 2,
   // density, hue, intensity, groupTint (0-100 coloured group tint, TASK-18), radius (px, drives
   // --radius), reduceMotion, fontFamily, uiScale (0.8-1.2) and appIcon (TASK-107): one source with

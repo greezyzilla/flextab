@@ -5,7 +5,7 @@
 // (src/boot/templates.test.ts runs both on the same copies and requires the same <html>).
 ;(function () {
   var root = document.documentElement
-  var DEFAULT = { hue: 214, intensity: 100, groupTint: 35, radius: 8, fontFamily: "inter", uiScale: 1, density: "comfortable", reduceMotion: false }
+  var DEFAULT = { hue: 214, intensity: 100, groupTint: 35, radius: 8, fontFamily: "inter", uiScale: 1, density: "cozy", reduceMotion: false }
   var FONTS = {
     inter: '"Inter Variable", Inter, system-ui, -apple-system, sans-serif',
     system: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',

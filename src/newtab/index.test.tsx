@@ -16,7 +16,8 @@ vi.mock('~src/store/useSavedSpacesStore', () => ({
   useHydrated: () => ({ hydrated: true, error: false }),
   useSavedSpacesStore: (select: (s: { savedSpaces: [] }) => unknown) => select({ savedSpaces: [] }),
 }));
-vi.mock('~src/store/useSettingsStore', () => ({
+vi.mock('~src/store/useSettingsStore', async (orig) => ({
+  ...(await orig<typeof import('~src/store/useSettingsStore')>()),
   useSettingsStore: (select: (s: { autoSync: boolean }) => unknown) => select({ autoSync: settings.autoSync }),
 }));
 vi.mock('~src/services/syncEngine', () => ({
