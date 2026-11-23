@@ -316,8 +316,10 @@ export function SettingRow({ label, description, info, children }: {
       {/* In a card (TASK-84, h13d): controls sit on the right edge like the draft; sliders keep the full column. */}
       {/* In a card a control that is only as wide as its content (a button, a switch with its On/Off, Move up/down)
           sits on the right edge; one that fills the column (field, slider, choices, a row of dots) keeps filling it. */}
+      {/* A message in the column (an error, a done line: role status or alert) adds no width to it,
+          so it wraps under the controls instead of pushing the label to one letter a line (TASK-122). */}
       <div className={tile
-        ? "flex min-w-0 flex-col items-stretch gap-2 [&>button]:self-end [&>div.flex:not(.justify-between)]:justify-end"
+        ? "flex min-w-0 flex-col items-stretch gap-2 [&>button]:self-end [&>div.flex:not(.justify-between)]:justify-end [&>[role=status]]:[contain:inline-size] [&>[role=alert]]:[contain:inline-size]"
         : "flex min-w-0 flex-col items-stretch gap-2 [&>button]:self-start"}>
         {typeof children === 'function' ? children(controlProps) : children}
       </div>
