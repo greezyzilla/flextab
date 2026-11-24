@@ -10,4 +10,4 @@ An empty workspace is a valid data state. Import, restore, a remote deletion, or
 
 Regression coverage includes real Yjs persistence/reload, first install, invalid storage, missing data with history, worker debounce/startup/retry, manual sync, restore, and a simulated two-device OCC backend. It does not replace a loaded Chrome extension check with two pages and an actual service-worker restart.
 
-Recovery is intentionally conservative: repeated load failures require investigation of the saved data. Reload retries transient failures; it does not repair corrupt bytes or automatically choose cloud data over potentially unsynced local work. Keep the extension installed and preserve its storage for recovery. Existing accounts whose empty state was already replaced by an older release need their intended state restored explicitly.
+Recovery is intentionally conservative: repeated load failures require investigation of the saved data. Reload retries transient failures; it does not repair corrupt bytes or automatically choose cloud data over potentially unsynced local work. Keep the extension installed and preserve its storage for recovery.
