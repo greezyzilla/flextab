@@ -72,4 +72,4 @@ the updated terms.
 
 ## Contact
 
-Questions about these terms: **greezyzilla@gmail.com**.
+Questions about these terms: **support@flextabmanager.com**.
