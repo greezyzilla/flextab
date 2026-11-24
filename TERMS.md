@@ -7,7 +7,7 @@ service behind it. By creating an account or using FlexTab, you agree to them.
 
 > **Replace the contact email below with your real values before publishing.**
 > This is a starting draft, not legal advice. The rendered version lives at the
-> landing site's `/terms.html` (see `flextab-landing/src/Terms.tsx`) — keep the
+> landing site's `/terms` (see `flextab-landing/src/Terms.tsx`) — keep the
 > two in sync.
 
 ## The service
@@ -40,7 +40,7 @@ We may suspend or disable accounts that violate these rules.
 
 The tabs, titles, and structures you save are yours. You grant us the limited
 rights needed to store, back up, and sync that data on your behalf — that's all
-we use it for. See the Privacy Policy (`PRIVACY.md` / `/privacy.html`) for what
+we use it for. See the Privacy Policy (`PRIVACY.md` / `/privacy`) for what
 we collect and why.
 
 ## Plans and limits

@@ -26,8 +26,8 @@ import { useSyncStore } from "~src/store/useSyncStore"
 import { TextLink } from "~src/components/ui/text-link"
 import { PROVIDER_BRAND } from "~src/lib/data-colours"
 
-// Where the legal pages are hosted (flextab-landing's /terms.html and
-// /privacy.html). The site is also where FlexTab is installed from.
+// Where the legal pages are hosted (flextab-landing's /terms and
+// /privacy). The site is also where FlexTab is installed from.
 const LEGAL_BASE_URL = "https://flextabmanager.com"
 
 // The offer side carries the accent, so it reads as FlexTab in any theme.
@@ -266,9 +266,9 @@ export function OnboardingScreen({ onBack }: {
               )}
               <p className="text-fg-subtle text-caption leading-relaxed">
                 By continuing, you accept the{' '}
-                <a href={`${LEGAL_BASE_URL}/terms.html`} target="_blank" rel="noreferrer" className="underline hover:text-fg">Terms</a>
+                <a href={`${LEGAL_BASE_URL}/terms`} target="_blank" rel="noreferrer" className="underline hover:text-fg">Terms</a>
                 {' '}and{' '}
-                <a href={`${LEGAL_BASE_URL}/privacy.html`} target="_blank" rel="noreferrer" className="underline hover:text-fg">Privacy Policy</a>.
+                <a href={`${LEGAL_BASE_URL}/privacy`} target="_blank" rel="noreferrer" className="underline hover:text-fg">Privacy Policy</a>.
               </p>
             </>}>
               {/* Fastest path first (Hick): one click, no password. Each creates the
