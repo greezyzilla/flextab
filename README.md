@@ -44,6 +44,9 @@ npm run dev
 
 Load `build/chrome-mv3-dev` as an unpacked extension in Chrome. The development
 API defaults to localhost; configure `.env.development` for your backend.
+`npm run dev` stops before Plasmo starts if the dev build would point at a
+non-localhost API or not be named "FlexTab Dev"; `ALLOW_REMOTE_DEV_API=1`
+allows a remote API on purpose.
 
 The toolchain is pinned to Node 24.14.0 / npm 11.9.0 through `.nvmrc`,
 `package.json` `devEngines` and `packageManager`. Change them together. Use

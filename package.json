@@ -5,7 +5,7 @@
   "description": "Organize your tabs into spaces, projects, and groups. A beautiful new tab page that keeps your browsing life in order.",
   "author": "GreezyZilla",
   "scripts": {
-    "dev": "plasmo dev",
+    "dev": "node scripts/dev.mjs",
     "check-env": "node scripts/check-env.mjs",
     "build": "npm run check-env && node scripts/build.mjs",
     "build:zip": "npm run check-env && node scripts/build.mjs --zip",
