@@ -9,7 +9,7 @@ import type { ContainerTarget } from "~src/services/moveTo"
 export type { ContainerTarget }
 
 /**
- * "Move to…" for a project or a category (TASK-59): the non-drag way to move a
+ * "Move to…" for a project or a category: the non-drag way to move a
  * container, keyboard-reachable from its ⋯ menu. Same dialog and row shape as
  * a group's "Move to…" (PickDestinationDialog); a project picks a space, a
  * category picks a project. The current place is listed, marked, and can't be

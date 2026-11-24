@@ -28,21 +28,18 @@ to finish; it does not cancel a request already sent to the server.
 
 ## Scope and verification
 
-This fixes unannounced destructive sign-out and provides an export route. It does
-not automatically retain per-account local archives or guarantee a download was
-accepted by the browser/user. A user may deliberately discard unsynced data after
-confirming. Automatic sync-before-logout, account data partitioning, interrupted
-cleanup recovery, and transport timeouts remain separate work. Existing storage
-cleanup remains best-effort; this is not a secure-erasure guarantee.
+Sign-out does not automatically retain per-account local archives or guarantee a
+download was accepted by the browser/user. A user may deliberately discard
+unsynced data after confirming. Automatic sync-before-logout, account data
+partitioning, interrupted cleanup recovery, and transport timeouts are not
+covered. Storage cleanup is best-effort; this is not a secure-erasure guarantee.
 
 Tests exercise both real UI entry points, offline/error/conflict/in-flight status,
 Cancel, fresh consent, current-document export, download failure, logout errors,
 store-level refusal without consent, and a blocked sync lock before cleanup. The
 lock test simulates an in-flight operation; it is not a live multi-tab browser E2E.
-The complete extension suite and production build are run before commit.
 
 Before release, load the MV3 build, make an offline edit, open each sign-out entry,
 and verify Cancel preserves it. Download and inspect/import the JSON before any
 intentional discard. Repeat with a quota rejection, unresolved conflict, and a
 pending upload. Confirm that only the explicit delete action removes local data.
-No backend, database migration, or production data change is part of this fix.

@@ -1,4 +1,4 @@
-// Gate for docs/danger-standard.md (TASK-84 section 7): red reaches the UI only through the danger
+// Gate for docs/danger-standard.md: red reaches the UI only through the danger
 // tokens (danger, danger-strong, destructive) and the primitives that use them, never as a raw palette
 // class or a hard-coded red hex, so every red follows the theme (light/dark) and its contrast rules.
 import { describe, expect, it } from "vitest"

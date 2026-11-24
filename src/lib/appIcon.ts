@@ -1,7 +1,7 @@
 import { DEFAULT_APPEARANCE, type Appearance } from "~src/lib/theme"
 
 /**
- * The app icon in the user's accent (TASK-107): the new tab's tab icon and the toolbar button. The
+ * The app icon in the user's accent: the new tab's tab icon and the toolbar button. The
  * manifest icon is FlexTab blue with a darker fold; recolouring shifts every pixel's hue by the
  * accent's distance from that blue and scales its saturation by the intensity, keeping lightness and
  * alpha, so the fold's shading stays and the default accent gives back the icon unchanged.

@@ -8,8 +8,8 @@ local until another manual sync or until auto-sync is enabled.
 
 The worker reads `state.autoSync` from the existing `flextab-settings` JSON string
 in `chrome.storage.local`, rather than importing an unhydrated Zustand store.
-Missing settings retain the existing default-on behavior, subject to successful
-account hydration. Malformed settings or failed reads pause uploads. Settings
+Missing settings keep the default-on behavior, subject to successful account
+hydration. Malformed settings or failed reads pause uploads. Settings
 changes in other open pages are rehydrated from the latest persisted record.
 
 All automatic worker triggers share the same policy: storage debounce, startup,
@@ -26,7 +26,7 @@ engine cannot reopen a connection or apply an obsolete automatic pull. Startup
 waits for persisted settings hydration before consulting the default-on state.
 Manual sync, automatic reconciliation, restore pulls, and background writes use
 the same Chrome Web Lock to serialize shared revision/receipt work across extension
-contexts. Environments without Web Locks use the existing OCC safety net.
+contexts. Environments without Web Locks fall back to the OCC safety net.
 
 ## Manual outcomes
 
@@ -66,8 +66,8 @@ recheck ownership after asynchronous reads, before starting the next stage.
 
 The guard uses auth-store transitions observed in this page. It does not partition
 storage by account, cancel a storage write already issued, or retroactively undo
-an HTTP request already sent. Existing Web Locks still serialize participating
-login/logout and sync writers. Token changes not reflected in the auth store,
+an HTTP request already sent. Web Locks serialize participating login/logout
+and sync writers. Token changes not reflected in the auth store,
 worker/account ownership, and invalidation during an already-started local apply
 need their own lifecycle guarantees; this is not a claim of complete account
 isolation across extension contexts.
@@ -94,8 +94,9 @@ production-server E2E run. Before release, load the built MV3 extension, sign in
 turn Off, run Sync now, and verify subsequent local edits produce no PUT or WS
 reconnect; repeat across two new-tab pages and after restarting the worker.
 
-This change governs workspace automatic sync. Account preference synchronization
-(theme/layout and the existing account-level autoSync preference) retains its
-existing separate lifecycle. Empty-tree synchronization (DAT-12), sign-out data
-preservation (DAT-09), and account ownership isolation remain separate findings.
-No schema migration, backend deployment, or production data change is required.
+This document covers workspace automatic sync. Account preference
+synchronization (theme/layout and the account-level autoSync preference) has its
+own lifecycle, described in [settings-sync.md](settings-sync.md). Empty workspaces
+and sign-out are covered in [empty-workspace-sync.md](empty-workspace-sync.md) and
+[sign-out-data-safety.md](sign-out-data-safety.md). Account ownership isolation is
+not covered.

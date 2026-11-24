@@ -61,7 +61,7 @@ export async function saveTokens(tokens: TokenData): Promise<void> {
 /**
  * Resolves once this context's token refresh, if any, has settled and stored its
  * result. The server rotates refresh tokens strictly, so an update reload in the
- * middle of a refresh would lose the new pair and sign the user out (TASK-113).
+ * middle of a refresh would lose the new pair and sign the user out.
  */
 export function waitForTokenRefresh(): Promise<void> {
   return refreshPromise ? refreshPromise.then(() => {}, () => {}) : Promise.resolve();
@@ -267,7 +267,7 @@ async function publicAuthPost<T>(path: string, body: unknown): Promise<T> {
   return data as T;
 }
 
-/** Email sign-up (TASK-79): the account waits for the link sent to the address. */
+/** Email sign-up: the account waits for the link sent to the address. */
 export function apiRegister(email: string, password: string): Promise<{ status: string }> {
   return publicAuthPost("/api/auth/register", { email, password });
 }
@@ -328,7 +328,7 @@ export async function pushSync(spaces: unknown[], baseRevision: number | null, c
   }
   noteServerResponse(res.status);
 
-  // This version is below the server's minimum (TASK-114): http() recorded it,
+  // This version is below the server's minimum: http() recorded it,
   // and the push waits for the update with its pending flag kept.
   if (res.status === 426) return { status: "paused" };
 
@@ -358,7 +358,7 @@ export async function pushSync(spaces: unknown[], baseRevision: number | null, c
       return {
         status: "limit",
         message: typeof body.error === "string" ? body.error : "Plan limit reached",
-        // Which cap and by how much, so the UI can say exactly what to remove (TASK-9).
+        // Which cap and by how much, so the UI can say exactly what to remove.
         limit: typeof body.limit === "string" ? body.limit : undefined,
         cap: typeof body.cap === "number" ? body.cap : undefined,
         got: typeof body.got === "number" ? body.got : undefined,
@@ -413,7 +413,7 @@ export async function apiLogout(): Promise<void> {
 }
 
 /**
- * Delete the signed-in account and its cloud data (TASK-17). The server checks
+ * Delete the signed-in account and its cloud data. The server checks
  * the typed email too. 409 means a renewing subscription must be cancelled first.
  */
 export async function apiDeleteAccount(email: string): Promise<void> {

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Captures what a released version leaves in browser storage, as a fixture for
- * src/test/storageFixtures.test.ts (TASK-113). Run once per release, from the
+ * src/test/storageFixtures.test.ts. Run once per release, from the
  * release's own build, so every later version is tested against it:
  *
  *   npm run build:zip -- --channel=stable

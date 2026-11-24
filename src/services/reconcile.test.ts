@@ -16,7 +16,7 @@ const space = (id: string, name: string, tabs: ReturnType<typeof tab>[] = []): S
 const withTabs = [space('s', 'Work', [tab('t1')])];
 const empty = [space('e', 'Personal', [])];
 
-describe('decideReconciliation over the plan cap (TASK-33)', () => {
+describe('decideReconciliation over the plan cap', () => {
   const many = [space('l', 'Research', [tab('a'), tab('b'), tab('c')])];
 
   it('fresh login, empty account, more local tabs than the cap → over-cap notice first', () => {
@@ -75,7 +75,7 @@ describe('decideReconciliation', () => {
   });
 });
 
-describe('decideReconciliation after a kept sign-out (TASK-11)', () => {
+describe('decideReconciliation after a kept sign-out', () => {
   const local = [space('l', 'Kept', [tab('k')])];
   it('asks even when the account is empty', () => {
     expect(decideReconciliation([], local, true, true)).toEqual({ kind: 'conflict' });

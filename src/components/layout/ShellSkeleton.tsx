@@ -29,13 +29,13 @@ const w = (i: number) => W[i % W.length]
 
 /**
  * The footer's version line ("FlexTab v0.1.0" in the caption size) and its Shortcuts button, as
- * wide as in the loaded app (measured, default font, TASK-109), so neither moves when it arrives.
+ * wide as in the loaded app (measured, default font), so neither moves when it arrives.
  */
 const VERSION_W = 72
 const SHORTCUTS_W = 86
 
 /**
- * The new tab while the workspace loads (TASK-106): the app shell itself, at its real widths and
+ * The new tab while the workspace loads: the app shell itself, at its real widths and
  * header lines, drawn in the shape the workspace had when it was last seen (lib/shellShape.ts): as
  * many spaces, projects, categories, Unsorted trays, groups, tabs and windows, in list or grid, with
  * the selected category lit. The spacing comes from the same density variables as the real rows, so
@@ -54,7 +54,7 @@ export function ShellSkeleton() {
  */
 export const skeletonHeight = () => Math.max(window.innerHeight, window.screen?.availHeight ?? 0)
 
-/** localStorage copy of the skeleton's markup for boot/shell.js (TASK-107). */
+/** localStorage copy of the skeleton's markup for boot/shell.js. */
 export const SHELL_SKELETON_STORAGE_KEY = "flextab-shell-skeleton"
 
 /**
@@ -108,7 +108,7 @@ export function ShellSkeletonView({ shape: stored, leftInline, rightInline }: { 
                 )}
               </div>
             ))}
-            {/* New project…, under the tree, on the rows' box (TASK-120). */}
+            {/* New project…, under the tree, on the rows' box. */}
             <div className="mx-2"><Skeleton width="100%" height="calc(1.25rem + var(--density-py-row, 0.375rem) * 2)" round="md" tone="faint" /></div>
           </div>
           <PanelFooterSkeleton />
@@ -225,7 +225,7 @@ export function PanelFooterSkeleton() {
 
 /**
  * A tree row's height: the 20px name line plus the density row padding, never under the row's 26px
- * action slot (32 / 28 / 26px, TASK-128).
+ * action slot (32 / 28 / 26px).
  */
 const TREE_ROW_HEIGHT = "max(26px, calc(1.25rem + var(--density-py-row, 0.375rem) * 2))"
 

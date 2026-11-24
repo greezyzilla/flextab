@@ -1,4 +1,4 @@
-// Gate for docs/settings-standard.md (TASK-84): every Settings page speaks one
+// Gate for docs/settings-standard.md: every Settings page speaks one
 // design language, built only from the parts in shared.tsx.
 import { describe, expect, it } from "vitest"
 import { readdirSync, readFileSync } from "node:fs"
@@ -43,7 +43,7 @@ describe("settings standard", () => {
     expect(header).not.toMatch(/<Button|Reset/)
   })
 
-  it("keeps one control column: at least 16rem, wider only for its content (rule 4), once the row has room (TASK-123)", () => {
+  it("keeps one control column: at least 16rem, wider only for its content (rule 4), once the row has room", () => {
     const css = readFileSync(join(DIR, "..", "..", "..", "style.css"), "utf8")
     expect(read("shared.tsx")).toContain('"ft-setting-tile rounded-lg bg-row"')
     expect(read("shared.tsx")).toContain("ft-setting-rows")

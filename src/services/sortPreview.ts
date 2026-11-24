@@ -1,5 +1,5 @@
-// Live preview of a saved tab or group dragged into another container
-// (TASK-64). Within one list dnd-kit's sortable moves the rows aside; across
+// Live preview of a saved tab or group dragged into another container.
+// Within one list dnd-kit's sortable moves the rows aside; across
 // lists nothing moved, and the drop landed next to whatever was under the
 // pointer, unseen. Here the dragged item is shown in the target list while
 // dragging, at the spot the drop will use, and the drop commits that spot.

@@ -107,7 +107,7 @@ export function syncActiveSelection(forceFirst = false): void {
 }
 
 /**
- * Load the stored workspace into this page. A page never seeds (TASK-127): the
+ * Load the stored workspace into this page. A page never seeds: the
  * background seeds a first install once, and a page that finds nothing stored
  * yet stays empty, writes nothing, and takes the seed when it lands. A
  * successfully loaded empty tree is durable.

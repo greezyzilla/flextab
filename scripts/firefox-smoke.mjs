@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Firefox smoke test (TASK-112): drives the installed Firefox through WebDriver
+ * Firefox smoke test: drives the installed Firefox through WebDriver
  * BiDi, with no dependency, and checks what the unit tests cannot: the build
  * really runs in Firefox. Local and before a release only (it needs Firefox).
  *
@@ -14,7 +14,7 @@
  * Checks: the new tab page and the popup render; both shortcuts are registered;
  * the tab grouping API is there; revoking the API host permission turns sync to
  * "Sync off"; an update applied while FlexTab pages are open brings them back on
- * the new version (Firefox closes every extension tab on reload, TASK-113).
+ * the new version (Firefox closes every extension tab on reload).
  */
 import { spawn } from "node:child_process"
 import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
@@ -43,13 +43,16 @@ writeFileSync(join(profile, "user.js"), [
 // --- a minimal WebDriver BiDi client (Node's global WebSocket) ---
 const port = 9300 + Math.floor(Math.random() * 600)
 const ff = spawn(firefoxBin, ["--headless", "--profile", profile, `--remote-debugging-port=${port}`, "--no-remote"], {
-  stdio: ["ignore", "ignore", "pipe"],
+  stdio: ["ignore", "pipe", "pipe"],
   // Lets the test open moz-extension:// pages from the browser window, which plain BiDi refuses.
   env: { ...process.env, MOZ_REMOTE_ALLOW_SYSTEM_ACCESS: "1" },
 })
 await new Promise((ok, fail) => {
   const timer = setTimeout(() => fail(new Error("Firefox did not start")), 30000)
-  ff.stderr.on("data", (d) => { if (String(d).includes("WebDriver BiDi listening")) { clearTimeout(timer); ok() } })
+  // Firefox 160 prints this line on stdout; earlier versions printed it on stderr.
+  const ready = (d) => { if (String(d).includes("WebDriver BiDi listening")) { clearTimeout(timer); ok() } }
+  ff.stdout.on("data", ready)
+  ff.stderr.on("data", ready)
 })
 const ws = new WebSocket(`ws://127.0.0.1:${port}/session`)
 await new Promise((ok, fail) => { ws.onopen = ok; ws.onerror = fail })
@@ -139,7 +142,7 @@ try {
   for (let i = 0; i < 30 && !back; i++) { back = (await textOf(extUrl("newtab.html"), "/^Sync off$/", 1)) === null; if (!back) await sleep(200) }
   check("allowing access again clears Sync off", back === true)
 
-  // An update while FlexTab pages are open (TASK-113): a newer version on disk,
+  // An update while FlexTab pages are open: a newer version on disk,
   // the browser's update notice (the ready flag), then the user switches away.
   manifest.version = manifest.version.split(".").map((n, i, all) => (i === all.length - 1 ? String(Number(n) + 1) : n)).join(".")
   if (manifest.version_name) manifest.version_name = `${manifest.version_name} (smoke update)`

@@ -32,7 +32,7 @@ export function ProfilePanel() {
 
   // Name-first, like projects/categories: nothing is created until the user
   // commits a name. No chained project prompt: saving into the new space
-  // works right away (default project/category + Unsorted, TASK-20).
+  // works right away (default project/category + Unsorted).
   const [creatingSpace, setCreatingSpace] = useState(false);
   const [newSpaceName, setNewSpaceName] = useState("");
   const newSpaceDone = useRef(false);
@@ -43,7 +43,7 @@ export function ProfilePanel() {
     setCreatingSpace(true);
   };
 
-  // Alt+N (TASK-81) opens this same field. With no spaces on the workspace
+  // Alt+N opens this same field. With no spaces on the workspace
   // page, the empty state's "New space" entry answers instead.
   const spaceNamingRequest = useUIStore((s) => s.spaceNamingRequest);
   useEffect(() => {
@@ -58,7 +58,7 @@ export function ProfilePanel() {
     setCreatingSpace(false);
     const name = newSpaceName.trim();
     if (!commit || !name) return;
-    // Starts with General › Uncategorized, so it opens on a category (TASK-98).
+    // Starts with General › Uncategorized, so it opens on a category.
     setActiveSpace(createSpace(name));
     navigate("/");
   };
@@ -78,13 +78,13 @@ export function ProfilePanel() {
             row in RightPanel, so the space rail lines up with them too. */}
         <div className="flex flex-col gap-3 items-center pt-2 pb-4 flex-1">
         {/* The other avatars move aside while one is dragged, as tabs and groups
-            do (TASK-66), so the rail shows its new order before the drop. */}
+            do, so the rail shows its new order before the drop. */}
         <SortableContext items={savedSpaces.map((s) => spaceDragId(s.id))} strategy={verticalListSortingStrategy}>
         {savedSpaces.map((space) => (
           <DroppableSpace key={space.id} spaceId={space.id}>
             <DraggableSpace spaceId={space.id}>
-              {/* A click switches; dragging it puts it elsewhere in the rail
-                  (TASK-66). Rename and delete live in Settings › Spaces,
+              {/* A click switches; dragging it puts it elsewhere in the rail.
+Rename and delete live in Settings › Spaces,
                   which also keeps Move up/down for the keyboard. */}
               {(drag) => (
               <Tooltip>
@@ -117,7 +117,7 @@ export function ProfilePanel() {
               {newSpaceName.trim().slice(0, 2).toUpperCase()}
             </div>
             {/* The app's popover surface (same tokens as menus) around the form
-                field; Enter/Esc is read to screen readers, not printed (TASK-62). */}
+                field; Enter/Esc is read to screen readers, not printed. */}
             <div className="absolute left-14 top-0 z-50 w-48 rounded-md border bg-popover p-1 text-popover-foreground shadow-md">
               <Input
                 autoFocus
@@ -194,10 +194,10 @@ function DroppableSpace({ spaceId, children }: { spaceId: string; children: Reac
   const { setNodeRef, isOver, active } = useDroppable({ id: zone });
   const activeSpaceId = useSavedSpacesStore((s) => s.activeSpaceId);
   // A dragged category cannot land on a space: hovering one opens it after a
-  // moment (spring-loaded, TASK-59). That reads as a countdown ring, not as the
+  // moment (spring-loaded). That reads as a countdown ring, not as the
   // drop highlight (ring + grow), so the avatar never promises a drop.
   const opens = isOver && !!active && parseContainerDrag(active.id)?.kind === "category";
-  // A dragged space goes between spaces, never into one (TASK-66): no
+  // A dragged space goes between spaces, never into one: no
   // "inside" highlight; the other avatars move aside instead.
   const movingSpace = !!active && parseContainerDrag(active.id)?.kind === "space";
 
@@ -213,7 +213,7 @@ function DroppableSpace({ spaceId, children }: { spaceId: string; children: Reac
 const SPACE_DRAG_PX = 4;
 
 /**
- * A rail avatar that can be dragged to a new place (TASK-66). The drag only
+ * A rail avatar that can be dragged to a new place. The drag only
  * starts once the pointer has moved a little, so a click still switches space
  * without the avatar lifting. While one is dragged the others move aside, and
  * the dragged one's own slot shows dimmed where it will land. The keyboard

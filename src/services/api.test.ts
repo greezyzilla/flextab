@@ -104,7 +104,7 @@ describe('apiFetch', () => {
     await expect(apiFetch('/x')).rejects.toMatchObject({ message: 'Unavailable' });
   });
 
-  it('waitForTokenRefresh resolves at once with no refresh, and after a refresh stored its pair (TASK-113)', async () => {
+  it('waitForTokenRefresh resolves at once with no refresh, and after a refresh stored its pair', async () => {
     await waitForTokenRefresh();
     await saveTokens({ access_token: 'old', refresh_token: 'rt', expires_at: past() });
     let answer!: (r: Response) => void;
@@ -257,7 +257,7 @@ describe('pushSync', () => {
     (global.fetch as any).mockResolvedValueOnce(res({ error: 'Forbidden' }, 403));
     expect(await pushSync([], 7)).toEqual({ status: 'error' });
   });
-  it('carries which cap a plan limit hit and by how much (TASK-9)', async () => {
+  it('carries which cap a plan limit hit and by how much', async () => {
     await validToken();
     (global.fetch as any).mockResolvedValueOnce(res({ code: 'plan_limit_exceeded', error: 'total tab limit reached (190/150) on the free plan', limit: 'max_tabs_total', cap: 150, got: 190 }, 403));
     expect(await pushSync([], 7)).toEqual({ status: 'limit', message: 'total tab limit reached (190/150) on the free plan', limit: 'max_tabs_total', cap: 150, got: 190 });
@@ -347,7 +347,7 @@ describe('misc', () => {
   });
 });
 
-describe('server reachable signal (TASK-63)', () => {
+describe('server reachable signal', () => {
   it('reports every API answer below 500 from apiFetch, refresh and pushSync', async () => {
     const heard = vi.fn();
     const stop = onServerReachable(heard);
@@ -386,7 +386,7 @@ describe('server reachable signal (TASK-63)', () => {
   });
 });
 
-// TASK-67: the upload that carries a conflict resolution says so, and the mark
+// The upload that carries a conflict resolution says so, and the mark
 // only clears once that upload has landed.
 describe('pushSync resolution mark', () => {
   const stored = (mark: unknown) => (chrome.storage.local.get as any).mockImplementation(async (key: string) =>
@@ -549,7 +549,7 @@ describe('sign-out and session expiry edges', () => {
   });
 });
 
-describe('a version the server no longer takes (TASK-114)', () => {
+describe('a version the server no longer takes', () => {
   it('pauses a push on 426, so its pending flag stays until the update', async () => {
     await validToken();
     (global.fetch as any).mockResolvedValueOnce({ ...res({ code: 'client_too_old', min_version: '0.2.0' }, 426), clone: () => res({ code: 'client_too_old', min_version: '0.2.0' }, 426) });

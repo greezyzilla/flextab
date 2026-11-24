@@ -118,7 +118,7 @@ function HistoryTab() {
   const [previewing, setPreviewing] = useState<number | null>(null);
   const [confirming, setConfirming] = useState<number | null>(null);
   const [restoring, setRestoring] = useState(false);
-  // What the restore brought back, said once it landed (TASK-96); stays until the next restore.
+  // What the restore brought back, said once it landed; stays until the next restore.
   const [done, setDone] = useState<string | null>(null);
   const [restoreError, setRestoreError] = useState<string | null>(null);
   const [pendingPull, setPendingPull] = useState(false);

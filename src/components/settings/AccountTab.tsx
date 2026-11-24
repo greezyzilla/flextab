@@ -32,7 +32,7 @@ const LINKABLE_PROVIDERS: { id: string; label: string }[] = [
 ];
 
 /**
- * Settings › Account › Profile (TASK-84): who you are here, and signing this
+ * Settings › Account › Profile: who you are here, and signing this
  * device out. Routine edits live here, away from sign-in methods and deletion.
  */
 export function ProfileTab() {
@@ -103,7 +103,7 @@ export function ProfileTab() {
 }
 
 /**
- * Settings › Account › Sign-in & security (TASK-84): the ways into the
+ * Settings › Account › Sign-in & security: the ways into the
  * account, the password, and deleting the account as the last section
  * (a page visited rarely, so a sleepy click on Profile never lands near it).
  */
@@ -113,7 +113,7 @@ export function SecurityTab() {
 
   // Linked sign-in methods
   // Until the list call returns, draw from what /api/me already said, so a
-  // password-only account shows its warning from the first frame (TASK-41).
+  // password-only account shows its warning from the first frame.
   const [listed, setListed] = useState<LinkedIdentity[] | null>(null);
   const [listedHasPassword, setListedHasPassword] = useState<boolean | null>(null);
   const identities = listed ?? user?.identities ?? null;
@@ -202,7 +202,7 @@ export function SecurityTab() {
   // The form opens in a modal, so opening it never pushes the rest of the page down.
   const [pwOpen, setPwOpen] = useState(false);
   const closePassword = () => { setPwOpen(false); setPwError(''); setCurrentPw(''); setNewPw(''); setConfirmPw(''); setResetSent(''); };
-  // Forgot the current password (TASK-87): the same reset link as the sign-in screen, sent to this
+  // Forgot the current password: the same reset link as the sign-in screen, sent to this
   // account's address. Offered only while the server can send email.
   const [resetSent, setResetSent] = useState('');
   const [emailOn, setEmailOn] = useState(false);
@@ -256,7 +256,7 @@ export function SecurityTab() {
         subtitle="The ways you can get into your account."
         notice={idError ? <SettingsNotice tone="warning">{idError}</SettingsNotice>
           // A password-only account has one way in. A reset by email exists when
-          // the server can send email (TASK-79), but a linked provider is a second
+          // the server can send email, but a linked provider is a second
           // way in that never depends on a mailbox.
           : identities?.length === 0 && hasPassword ? <SettingsNotice tone="warning">Only a password gets you into this account. Link Google or GitHub as a second way in.</SettingsNotice>
           : undefined}
@@ -281,7 +281,7 @@ export function SecurityTab() {
           meta={p.identity ? (p.identity.email || 'Linked') : 'Not linked'}
           action={p.identity ? (
             // Same quiet shape as Link: removing a way in is routine, and the
-            // server refuses to remove the last one (TASK-84 §4).
+            // server refuses to remove the last one.
             <Button variant="ghost" size="sm" onClick={() => handleUnlink(p.id)} disabled={unlinking === p.id} aria-label={`Unlink ${p.label}`}>
               {unlinking === p.id ? 'Unlinking…' : 'Unlink'}
             </Button>
@@ -350,7 +350,7 @@ export function SecurityTab() {
         }} />}
       </Modal>
 
-      {/* Same danger zone as Settings › Spaces (TASK-17): last, under its own heading. */}
+      {/* Same danger zone as Settings › Spaces: last, under its own heading. */}
       </SettingsSection>
       <SettingsSection title="Devices" icon={MonitorSmartphone} subtitle="Where your account is signed in.">
         <DevicesList />

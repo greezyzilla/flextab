@@ -67,12 +67,12 @@ function SavedTabItem({ tab, groupId, location, copies = 1, unsorted }: { tab: S
   const duplicateTone = useSettingsStore((s) => s.duplicateTone);
   const duplicateCorner = useSettingsStore((s) => s.duplicateCorner);
   const duplicateLabel = useSettingsStore((s) => s.duplicateLabel);
-  // Where a long title and link are cut, from Settings › Appearance (TASK-71).
+  // Where a long title and link are cut, from Settings › Appearance.
   const titleCut = useSettingsStore((s) => s.titleCut);
   const linkCut = useSettingsStore((s) => s.linkCut);
   const linkCutScope = useSettingsStore((s) => s.linkCutScope);
   const linkRef = useRef<HTMLAnchorElement>(null);
-  // The full title and link on demand (TASK-80): with "Hold Alt" it opens only
+  // The full title and link on demand: with "Hold Alt" it opens only
   // while Alt is held over the card (or on it by keyboard), with no delay.
   const manualPreview = useSettingsStore((s) => s.tabPreview) === "alt";
   const [overLink, setOverLink] = useState(false);
@@ -85,7 +85,7 @@ function SavedTabItem({ tab, groupId, location, copies = 1, unsorted }: { tab: S
 
   const onClick =(event: React.MouseEvent<HTMLAnchorElement>) => {
     // Modified/middle clicks keep the native "always open a new tab" link
-    // behaviour. A plain click goes to the tab if it is already open (TASK-4).
+    // behaviour. A plain click goes to the tab if it is already open.
     // With "Hold Alt" previews, Alt is part of looking, so Alt+click opens the
     // card like a plain click instead of Chrome's download.
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || (event.altKey && !manualPreview)) return;
@@ -93,7 +93,7 @@ function SavedTabItem({ tab, groupId, location, copies = 1, unsorted }: { tab: S
     void openOrFocus(tab.url, { ...location, groupId, tabId: tab.id });
   }
 
-  // TASK-72: the page the browser tab opened from this card has moved on to
+  // The page the browser tab opened from this card has moved on to
   // (next episode), kept current for every card by useWatchMovedTabs.
   const moved = useMovedTabs((s) => s.moved[tab.id]);
   const change = moved ? describeChange(tab, moved) : null;
@@ -118,7 +118,7 @@ function SavedTabItem({ tab, groupId, location, copies = 1, unsorted }: { tab: S
   };
 
   // Every passive state the card shows sighted users is read with its link, in the
-  // tooltip's own words (TASK-93). One sentence per visible state; a mark that is
+  // tooltip's own words. One sentence per visible state; a mark that is
   // switched off (Duplicate tabs: Off) shows nothing, so it says nothing.
   const statesId = useId();
   const states = [
@@ -153,7 +153,7 @@ function SavedTabItem({ tab, groupId, location, copies = 1, unsorted }: { tab: S
         <MiddleText text={tab.title} className="text-fg text-xs font-sans" startShare={titleCut / 100} />
         <TabUrl url={tab.url} pathShare={linkCut / 100} scope={linkCutScope} />
       </div>
-      {/* TASK-72: the browser tab opened from this card moved on (next
+      {/* The browser tab opened from this card moved on (next
           episode). A passive signal like "dup"; the action lives in ⋯. */}
       {change && (
         <IconTooltip content={`Open tab is on ${change.to}`}>
@@ -172,8 +172,8 @@ function SavedTabItem({ tab, groupId, location, copies = 1, unsorted }: { tab: S
       style={{ ...style, padding: `var(--density-py-tab) ${ACTION_ROW_END_PAD} var(--density-py-tab) var(--density-px-tab)` }}
       className={`relative flex flex-col gap-1 rounded-lg transition-[background-color,box-shadow] group bg-row hover:bg-row-hover ${flash.on ? '!ring-2 !ring-[var(--accent)]' : ''}`}
     >
-      {/* A duplicate is flagged by one mark the user picks in Appearance
-          (TASK-68): a ribbon across the row's top-right corner, an icon on
+      {/* A duplicate is flagged by one mark the user picks in Appearance:
+a ribbon across the row's top-right corner, an icon on
           the favicon, or nothing. No row tint, no box beside the title. The
           clip box keeps the row itself unclipped, so menus and rings show. */}
       {isDuplicate && duplicateMark === "ribbon" && (
@@ -194,9 +194,9 @@ function SavedTabItem({ tab, groupId, location, copies = 1, unsorted }: { tab: S
         </span>
 
         {/* The full title and address, by hover or keyboard focus, only when
-            the card has cut one of them (TASK-54): a tooltip on every card
+            the card has cut one of them: a tooltip on every card
             would follow the pointer across the grid. Settings › Appearance can
-            make it open only while Alt is held (TASK-80). */}
+            make it open only while Alt is held. */}
         {manualPreview ? (
           <Tooltip open={previewOpen}>
             <TooltipTrigger asChild>{cardLink}</TooltipTrigger>
@@ -211,7 +211,7 @@ function SavedTabItem({ tab, groupId, location, copies = 1, unsorted }: { tab: S
           </IconTooltip>
         )}
 
-        {/* Same actions as dragging and the old hover ✕, reachable by keyboard (TASK-5). */}
+        {/* Same actions as dragging and the old hover ✕, reachable by keyboard. */}
         <RowActions
           label={`Actions for ${tab.title}`}
           reveal="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
@@ -273,11 +273,11 @@ export interface TabGroupProps {
   location: GroupLocation;
   layout?: GroupLayout;
   gridColumns?: number;
-  /** A look-only rendering (Settings › Appearance preview, TASK-30): no header
+  /** A look-only rendering (Settings › Appearance preview): no header
    *  actions, so nothing that looks clickable is shown where nothing can be done. */
   preview?: boolean;
   /** The drag library's attributes and listeners for reordering the group (ContentPanel's
-   *  SortableGroup): its grip takes the group mark's slot while the header is hovered (TASK-121). */
+   *  SortableGroup): its grip takes the group mark's slot while the header is hovered. */
   dragHandle?: ButtonHTMLAttributes<HTMLButtonElement>;
 }
 
@@ -286,7 +286,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
     id: `droppable-${group.id}`,
   });
   // The "drop into this group" look is for tabs. A dragged group never goes
-  // inside another one; where it lands shows as its placeholder (TASK-64).
+  // inside another one; where it lands shows as its placeholder.
   const isOver = overZone && !(typeof active?.id === "string" && findGroupLocation(useSavedSpacesStore.getState().savedSpaces, active.id));
   const { removeSavedGroup, addSavedGroup, updateSavedGroup } = useSavedSpacesStore();
   const { spaceId, projectId, categoryId } = location;
@@ -318,7 +318,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
     return orderA - orderB;
   });
 
-  // A tab dragged in from another group shows here while dragging (TASK-64).
+  // A tab dragged in from another group shows here while dragging.
   const sortPreview = useSortPreview((s) => s.preview);
   const shownTabs = withPreview(sortedTabs, group.id, "tab", sortPreview);
 
@@ -331,7 +331,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
 
   const openable = sortedTabs.filter(t => t.url);
   const urls = openable.map(t => t.url);
-  // As a browser tab group when allowed (TASK-31). openGroupTabs asks for the
+  // As a browser tab group when allowed. openGroupTabs asks for the
   // permission inside this click; declining turns the setting off, so it asks once.
   const openAll = (where: "here" | "new-window") => {
     if (!urls.length) return;
@@ -365,7 +365,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
     setIsRenaming(false);
   };
 
-  // Unsorted (TASK-20): the category's system tray for tabs saved without a
+  // Unsorted: the category's system tray for tabs saved without a
   // group. It reads as the system's, not the user's: a fixed uppercase label
   // (not an editable name), a borderless tinted tray (not a bordered card),
   // no rename, no delete, and a hint saying what to do with it.
@@ -387,7 +387,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
       style={{
         padding: 'var(--density-p-group)',
         gap: 'var(--density-p-group)',
-        // A coloured group (TASK-18) is tinted as a whole: its surface and
+        // A coloured group is tinted as a whole: its surface and
         // edge take the colour's hue at the surface's own lightness, so the
         // region the ⋯ menu belongs to is what changes, and the colour stays
         // in view while its tabs scroll.
@@ -413,7 +413,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
           </div>
         ) : isRenaming ? (
           // Icon kept and the frame's padding cancelled by negative margins, so
-          // the name stays where it was and the header keeps its height (TASK-62).
+          // the name stays where it was and the header keeps its height.
           <div className={`flex flex-1 min-w-0 items-center gap-2.5 -ml-1.5 pl-1.5 pr-1.5 -my-1 py-1 text-item font-medium ${inlineEditFrame}`}>
             <span className="w-5 flex justify-center shrink-0"><GroupIcon size="sm" className="text-fg-subtle" /></span>
             <Input
@@ -435,7 +435,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
         ) : (
           <div className="flex items-center gap-2.5 min-w-0">
             {/* The mark's slot doubles as the reorder grip on hover/focus, as a tab's favicon and a
-                category's mark do (TASK-121): no grip in a gutter outside the card. */}
+                category's mark do: no grip in a gutter outside the card. */}
             <span className="relative w-5 flex justify-center shrink-0">
               {dragHandle && (
                 <IconTooltip content="Drag to reorder">
@@ -463,10 +463,10 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
             <span className="text-fg-subtle text-xs font-sans shrink-0">{sortedTabs.length} tab{sortedTabs.length !== 1 ? 's' : ''}</span>
           </div>
         )}
-        {/* A group header is a header row (TASK-5): its primary action (open
+        {/* A group header is a header row: its primary action (open
             all) and its ⋯ (rename, move, delete) are always visible, ⋯
             outermost in the slot column. Unsorted is the system's tray: no ⋯,
-            and no blank slot in its place (TASK-56). Its open-all ends at the
+            and no blank slot in its place. Its open-all ends at the
             tray's own edge; the tray is its own surface, so it doesn't share
             the cards' column (a blank slot read as a missing button). */}
         {!preview && <div className="flex items-center gap-0.5 shrink-0">
@@ -474,7 +474,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
               an empty Unsorted has nothing to hold there, so no slot either. */}
           {(!unsorted || sortedTabs.length > 0) && <ActionSlot>
             {sortedTabs.length > 0 && (
-              // One "open all" control, two destinations (TASK-4).
+              // One "open all" control, two destinations.
               <DropdownMenu open={openAllMenu} onOpenChange={setOpenAllMenu}>
                 <DropdownMenuTrigger asChild>
                   <IconButton aria-label={`Open all tabs in ${group.name}`} tooltip="Open all">
@@ -509,7 +509,7 @@ export function TabGroup({ group, location, layout = 'list', gridColumns = 2, pr
                 gap: 'var(--density-gap-group)',
                 // Fluid grid: render up to `gridColumns` columns, but collapse to
                 // fewer when the container gets too narrow to keep cells >=
-                // GRID_MIN_CELL, wide enough for a readable title (TASK-25; at
+                // GRID_MIN_CELL, wide enough for a readable title (at
                 // 150px a 4-column grid cut titles after ~12 characters).
                 ...(layout === 'grid'
                   ? {

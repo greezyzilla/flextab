@@ -14,7 +14,7 @@ const chromeManifest = (over = {}) => ({
 })
 const lock = { permissions: ["storage", "tabs"], host_permissions: [API_HOST_TOKEN], content_scripts: ["https://api.flextabmanager.com/*"] }
 
-describe("required permissions (TASK-115)", () => {
+describe("required permissions", () => {
   it("reads what users must grant, with the API host from the build environment as a token", () => {
     expect(requiredOf(chromeManifest(), API)).toEqual(lock)
     expect(requiredOf(chromeManifest({ host_permissions: ["https://api.flextabmanager.com/*"] }), "https://api.flextabmanager.com/*").host_permissions).toEqual([API_HOST_TOKEN])

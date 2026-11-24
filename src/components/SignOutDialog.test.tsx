@@ -103,7 +103,7 @@ describe("safe sign-out choice", () => {
     expect(getSpaces()[0].name).toBe("Unsynced work");
   });
 
-  it("removes synced tabs without a consent box: the choice and the red Sign out are the confirmation (TASK-84)", async () => {
+  it("removes synced tabs without a consent box: the choice and the red Sign out are the confirmation", async () => {
     open();
     chooseRemove();
     expect(screen.queryByRole("checkbox")).toBeNull();
@@ -124,7 +124,7 @@ describe("safe sign-out choice", () => {
     expect(logout).toHaveBeenCalledExactlyOnceWith({ localData: "remove" });
   });
 
-  it("keeps Sign out quiet and Cancel in one place whichever choice is made (TASK-84)", () => {
+  it("keeps Sign out quiet and Cancel in one place whichever choice is made", () => {
     open();
     expect(confirmButton()).toHaveAttribute("data-modal-tone", "primary");
     expect(confirmButton()).toHaveClass("min-w-28");

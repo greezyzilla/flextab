@@ -1,4 +1,4 @@
-// The toolbar button (TASK-78): its icon says something about the page in
+// The toolbar button: its icon says something about the page in
 // front, and only that. At rest it carries the saved check while the page is
 // saved and is plain while it isn't; the tooltip says where, in the words
 // Opened Tabs uses. Saved means what Opened Tabs and the popup mean
@@ -34,7 +34,7 @@ export function toolbarStateFor(url: string | undefined, index: Map<string, Save
   return saved ? { saved: true, title: `${IDLE_TITLE}: ${saved}` } : { saved: false, title: IDLE_TITLE }
 }
 
-/** The app icon's look (TASK-107), as the pages last wrote it; read once per worker, then kept by onChanged. */
+/** The app icon's look, as the pages last wrote it; read once per worker, then kept by onChanged. */
 let look: Promise<AppIconLook> | null = null
 function appIconLook(): Promise<AppIconLook> {
   look ??= chrome.storage.local.get(APP_ICON_STORAGE_KEY).then((v) => readAppIconLook(v[APP_ICON_STORAGE_KEY])).catch(() => readAppIconLook(undefined))
@@ -43,7 +43,7 @@ function appIconLook(): Promise<AppIconLook> {
 
 /**
  * The icon every tab falls back to when Chrome clears its own (a navigation does, before the tab is
- * painted again): the accent icon, so that moment never shows the blue file (TASK-107).
+ * painted again): the accent icon, so that moment never shows the blue file.
  */
 async function paintDefault(): Promise<void> {
   try {
@@ -113,7 +113,7 @@ export function installToolbarIcon(): void {
   chrome.tabs.onUpdated.addListener((_tabId, change, tab) => {
     // Chrome clears a tab's own icon and title whenever it navigates, a reload included (which
     // reports "loading" with no url): paint it again right then, in any tab, so a reload never
-    // leaves the plain icon until the user switches tabs (TASK-107).
+    // leaves the plain icon until the user switches tabs.
     if (change.url !== undefined || change.status === "loading") void refreshToolbar([tab])
   })
   chrome.storage.onChanged.addListener((changes, area) => {

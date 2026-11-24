@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
- * A release must not add a required permission by accident (TASK-115). When an
+ * A release must not add a required permission by accident. When an
  * update asks for a new required permission or host, Chrome disables FlexTab
  * until the user accepts it (Firefox holds the update back the same way), which
  * looks like FlexTab broke. New capabilities use optional permissions, asked
  * for in context (as tab groups does). permissions.lock.json records what is
  * required today; this checks the BUILT manifests against it.
  *
- *   node scripts/check-permissions.mjs build/chrome-mv3-prod build/chrome-mv3-beta build/firefox-mv3-prod
+ *   node scripts/check-permissions.mjs build/chrome-mv3-prod build/firefox-mv3-prod
  *       fails on any required permission, host, content script match or
  *       Firefox required data that the lock does not list; removals pass
  *   node scripts/check-permissions.mjs --lock-commits=<from>..<to>

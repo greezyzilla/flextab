@@ -1,6 +1,10 @@
-# Dependency updates (TASK-116): monthly, one grouped PR per ecosystem, and only
+# Dependency updates: monthly, one grouped PR per ecosystem, and only
 # versions published at least 7 days ago, so a hijacked release has time to be
 # caught before it reaches us (the 2026 npm worm). PRs go to dev, where work lands.
+# Security updates (alerts on dev, the default branch) come as one grouped PR per
+# ecosystem too. They skip the cooldown, so check each with malscan before merging.
+# Monthly version updates carry minor and patch only: a major version can break,
+# so it is done on purpose as its own task, never inside the monthly batch.
 version: 2
 updates:
   - package-ecosystem: npm
@@ -10,8 +14,18 @@ updates:
       interval: monthly
     cooldown:
       default-days: 7
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+      # Even patch releases of the Chrome types change signatures the tests mock,
+      # so upgrading them is a task of its own, never part of the monthly batch.
+      - dependency-name: "@types/chrome"
     groups:
       npm:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+      npm-security:
+        applies-to: security-updates
         patterns: ["*"]
     commit-message:
       prefix: build
@@ -25,8 +39,15 @@ updates:
       interval: monthly
     cooldown:
       default-days: 7
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       actions:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+      actions-security:
+        applies-to: security-updates
         patterns: ["*"]
     commit-message:
       prefix: ci

@@ -1,4 +1,4 @@
-// The boot script (TASK-107): a classic script in the <head> of the new tab and the popup. It runs
+// The boot script: a classic script in the <head> of the new tab and the popup. It runs
 // before the body paints and before the app bundle, so the first frame is already in the user's
 // mode, colours, spacing and font, or the defaults. MV3 pages allow no inline scripts, hence a file;
 // a classic script may not import, hence this standalone copy of lib/theme.ts applyStoredLook
@@ -41,7 +41,7 @@
   root.classList.add("density-" + a.density)
   root.classList.toggle("reduce-motion", a.reduceMotion)
 
-  // The tab icon in the accent from the start (TASK-107): the copy lib/appIcon.ts keeps of the last
+  // The tab icon in the accent from the start: the copy lib/appIcon.ts keeps of the last
   // drawn icon, when it was drawn for this look. The <link> sits above this script in <head>.
   var accent = s && s.appIcon !== "blue" && a === s && (a.hue !== DEFAULT.hue || a.intensity !== DEFAULT.intensity)
   var link = document.querySelector('link[rel~="icon"]')

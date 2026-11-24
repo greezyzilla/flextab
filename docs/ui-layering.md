@@ -1,8 +1,7 @@
 # UI layering
 
-Status: **clean and guarded** (2026-11-23, TASK-103). `src/components/ui/ui-layering.test.ts` fails
-when a look bypasses the chain below. Its `DEBT` table is empty: no call site styles a shared
-component, writes a raw value or renders a native control.
+`src/components/ui/ui-layering.test.ts` fails when a look bypasses the chain below. No call site
+styles a shared component, writes a raw value or renders a native control.
 
 ## The rule
 
@@ -52,7 +51,7 @@ and no arbitrary px, type size or radius (`py-[11px]`, `text-[15px]`, `rounded-[
 
 ## Named tokens
 
-`tailwind.config.js` names the values that are not on Tailwind's scale (TASK-103.5):
+`tailwind.config.js` names the values that are not on Tailwind's scale:
 
 | Kind | Tokens |
 |---|---|
@@ -88,11 +87,11 @@ TypeScript compiler and reads every `className`, including `cn(...)`, conditions
 strings, and every other string for raw values. It fails with the
 file, line and class of each new finding.
 
-Findings that existed when the guard landed sit in `DEBT`, grouped by the subtask that clears them,
-with an exact count per file. The table only shrinks:
+Findings allowed to remain sit in `DEBT`, with an exact count per file. The table is empty and
+only shrinks:
 
 - a new finding fails, even in a file that already has entries;
 - a cleared finding whose entry was not lowered fails as stale, so a cleaned file cannot get dirty
   again.
 
-When a subtask cleans a file, lower or remove its entry in the same change.
+When a change cleans a file, lower or remove its entry in the same change.

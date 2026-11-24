@@ -74,4 +74,4 @@ We may update this policy; material changes will be reflected by the “Last upd
 
 ## Contact
 
-Questions or data-deletion requests: [greezyzilla@gmail.com](mailto:greezyzilla@gmail.com).
+Questions or data-deletion requests: [support@flextabmanager.com](mailto:support@flextabmanager.com).

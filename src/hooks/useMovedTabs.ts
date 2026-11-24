@@ -5,7 +5,7 @@ import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import { useUIStore } from "~src/store/useUIStore"
 import { findLinkedTab, JUST_UPDATED_KEY, OPEN_LINKS_KEY, readOpenLinks } from "~src/services/openLinks"
 
-/** The open page a saved tab's browser tab has moved on to (TASK-72). */
+/** The open page a saved tab's browser tab has moved on to. */
 export interface MovedTab { url: string; title?: string; favIconUrl?: string }
 
 /** Saved tab id -> the page its open browser tab is on now, for every saved tab whose tab moved. */

@@ -38,14 +38,14 @@ const SaveIcon = () => <Icon icon={BookmarkPlus} size="sm" />
 
 
 /**
- * One open tab (TASK-60). What people do with an open tab here is one click
+ * One open tab. What people do with an open tab here is one click
  * each: go to it (the row), save it (or, once saved, go to where it is), close
  * it, or drag it to a place. Saving closes it too when Settings › Saving says
  * so ("Close after dragging a tab in"); every save and close can be undone.
  * Pages that can't be saved (browser, extension, local) can't be saved, but
- * can still be dragged to another spot or window (TASK-73).
+ * can still be dragged to another spot or window.
  */
-/** A window a tab can be moved to without dragging (TASK-94): its name, as its header shows it, and where its end is. */
+/** A window a tab can be moved to without dragging: its name, as its header shows it, and where its end is. */
 type MoveTarget = { id: number; label: string; end: number }
 
 const OpenedTab = ({ tab, windowId, windowLabel, saved, closeAfterSave, targets = [], ownTabs = 0 }: { tab: chrome.tabs.Tab, windowId: number, windowLabel: string, saved?: SavedLocation[], closeAfterSave: boolean, targets?: MoveTarget[], ownTabs?: number }) => {
@@ -87,7 +87,7 @@ const OpenedTab = ({ tab, windowId, windowLabel, saved, closeAfterSave, targets 
     chrome.windows.update(windowId, { focused: true })
   }
 
-  // Any tab can be dragged: to another spot or window here (TASK-73), or, if
+  // Any tab can be dragged: to another spot or window here, or, if
   // it can be saved, into the workspace (an unsavable one is refused there).
   // Its own window and index, even while it is shown in another window's list.
   const place: OpenTabDragData = { windowId: tab.windowId ?? windowId, index: tab.index ?? 0, name }
@@ -99,7 +99,7 @@ const OpenedTab = ({ tab, windowId, windowLabel, saved, closeAfterSave, targets 
   // page. They take their room then (the title ellipsizes), never cover text.
   const onHover = "hidden group-hover/tab:flex group-focus-within/tab:flex"
 
-  // The non-drag move (TASK-94, WCAG 2.5.7): another window, or a new one. A
+  // The non-drag move (WCAG 2.5.7): another window, or a new one. A
   // window's only tab gains nothing from a new window, so it is offered only
   // when its window has more tabs. While the menu is open the row's actions
   // stay up, since focus has left the row for the menu.
@@ -124,13 +124,13 @@ const OpenedTab = ({ tab, windowId, windowLabel, saved, closeAfterSave, targets 
       data-open-zone={zone}
       // While dragged, the row stays where it is, dimmed; the card that
       // follows the pointer is the overlay. A row that moved away left a
-      // blank slot, which read as a place to drop (TASK-73).
+      // blank slot, which read as a place to drop.
       style={{ opacity: isDragging ? 0.5 : 1 }}
     >
       <RowOverlay aria-label={`Go to ${name}`} onClick={onTabClick} />
 
       {/* Favicon slot doubles as the drag handle on hover/focus, as on saved
-          tabs, so no empty gutter sits in front of the favicon (TASK-5). */}
+          tabs, so no empty gutter sits in front of the favicon. */}
       <span className="relative w-5 h-5 shrink-0 pointer-events-none">
         <DragHandle reveal="group-hover/tab:opacity-100" {...attributes} {...listeners} aria-label={`Drag ${name}`} />
         <span className="relative grid h-5 w-5 place-items-center transition-opacity group-hover/tab:opacity-0 peer-focus-visible:opacity-0">
@@ -190,7 +190,7 @@ const OpenedTab = ({ tab, windowId, windowLabel, saved, closeAfterSave, targets 
 }
 
 /**
- * A window's sticky header (TASK-73): a tab dropped on it goes to the end of
+ * A window's sticky header: a tab dropped on it goes to the end of
  * that window. It lights up like a group card taking a tab, unless the drop
  * would leave the tab where it is.
  */
@@ -222,11 +222,11 @@ function useCloseAfterDrag(): boolean {
 
 export function RightPanel() {
   const { windows } = useWindows({ populate: true })
-  // While an open tab is dragged here, the lists show it where it would land (TASK-73).
+  // While an open tab is dragged here, the lists show it where it would land.
   const preview = useOpenTabPreview((s) => s.preview)
   const shown = previewWindows(windows, preview)
   const parentRef = useRef<HTMLDivElement | null>(null)
-  // The whole list: an open tab let go here moves in the browser, never into the workspace (TASK-73).
+  // The whole list: an open tab let go here moves in the browser, never into the workspace.
   const { setNodeRef: setPanelRef } = useDroppable({ id: OPEN_PANEL_ZONE })
   const [collapsed, setCollapsed] = useState<Set<number>>(new Set())
   const [saveModal, setSaveModal] = useState<{ tabs: chrome.tabs.Tab[] } | null>(null)
@@ -267,7 +267,7 @@ export function RightPanel() {
       {/* Tab list */}
       <div ref={(el) => { parentRef.current = el; setPanelRef(el) }} className="flex-1 overflow-y-auto">
         {(() => {
-          // Every window as a place to move a tab to (TASK-94): its name, and its real end
+          // Every window as a place to move a tab to: its name, and its real end
           // (the hidden FlexTab tab counts there, as for a drop on its header).
           const targets: MoveTarget[] = shown.map((w, i) => ({
             id: w.id!, label: `Window ${i + 1}`,

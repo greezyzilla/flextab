@@ -4,7 +4,7 @@ import { navigate } from "~src/lib/route"
 import { Modal, ModalFooter, ModalHeader, ModalLink } from "~src/components/ui/modal"
 
 /**
- * TASK-33: a first sign-in would upload more tabs than the plan syncs. Say so
+ * A first sign-in would upload more tabs than the plan syncs. Say so
  * before the upload (error prevention) instead of ending the first sync in
  * "Sync paused". There is nothing to choose, so it is a notice, not a choice:
  * "Got it" is primary and the upgrade path stays secondary.

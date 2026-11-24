@@ -8,7 +8,7 @@ import { Progress } from "~src/components/ui/progress";
 import { ToggleGroup as ShadcnToggleGroup, ToggleGroupItem } from "~src/components/ui/toggle-group";
 
 /**
- * Settings has ONE design language (TASK-84, docs/settings-standard.md). Every
+ * Settings has ONE design language (docs/settings-standard.md). Every
  * sub-setting is built from this closed set of parts and nothing else:
  *
  *   SettingsSection  a group: its title, an optional notice, then rows or one list
@@ -42,7 +42,7 @@ export function SettingsSection({ title, icon, subtitle, notice, children }: {
 }) {
   const id = useId();
   return (
-    // TASK-84, approved h13d + spacing s2 (h14d2): one group card per section, its header inside the card.
+    // One group card per section, its header inside the card.
     // One padding (the card's) on every side of the header box; the box lines up with the tiles' edge.
     <section aria-labelledby={id} data-look="card" className="flex flex-col rounded-card border border-ink/[0.08] bg-ink/[0.015]"
       style={{ padding: "var(--density-p-group)", gap: "calc(var(--density-p-group) * 4 / 3)" }}>
@@ -56,7 +56,7 @@ export function SettingsSection({ title, icon, subtitle, notice, children }: {
         </div>
       </div>
       {notice}
-      {/* Tiles 10px apart (gap-group x 5/3). The rows' container: each row lays itself out by its own width (TASK-123). */}
+      {/* Tiles 10px apart (gap-group x 5/3). The rows' container: each row lays itself out by its own width. */}
       <div className="ft-setting-rows flex flex-col" style={{ gap: "calc(var(--density-gap-group) * 5 / 3)" }}>
         <SectionMark.Provider value={icon}><TileRows.Provider value>{children}</TileRows.Provider></SectionMark.Provider>
       </div>
@@ -80,7 +80,7 @@ export function SettingsList({ label, busyLabel, loading, failed, empty, childre
   label: string;
   /** While the caller draws its own placeholder rows: the list becomes a status with this name. */
   busyLabel?: string;
-  /** While the items load: skeleton rows shaped like a real row (TASK-84, refs-states board), so nothing jumps. */
+  /** While the items load: skeleton rows shaped like a real row (refs-states board), so nothing jumps. */
   loading?: { label: string; rows?: number };
   /** Loading failed: a centred block with Try again (every reference offers a retry). */
   failed?: SettingsListState & { onRetry: () => void };
@@ -119,7 +119,7 @@ function SkeletonRow() {
 }
 
 /**
- * A list's failed or empty state, centred in the list's own area (TASK-84 st2). The mark sits in its own box
+ * A list's failed or empty state, centred in the list's own area. The mark sits in its own box
  * so an illustration can take that one slot later without moving anything else.
  */
 function ListBlock({ tone, title, says, action }: SettingsListState & { tone: "failed" | "empty"; action?: ReactNode }) {
@@ -282,7 +282,7 @@ export function SettingRow({ label, description, info, children }: {
 }) {
   const id = useId();
   const tile = useContext(TileRows);
-  // The row shows one sentence. Anything after it joins the info mark (TASK-84: "deskripsi kalo panjang
+  // The row shows one sentence. Anything after it joins the info mark ("deskripsi kalo panjang
   // dijadiin info, yang di row tetep pendek"), so a page can't put a paragraph in a row.
   const cut = description.search(/[.!?]\s+\S/);
   if (cut > 0) {
@@ -294,8 +294,8 @@ export function SettingRow({ label, description, info, children }: {
   return (
     <div
       className={tile
-        // 16rem input column; a row of fitted choices wider than that widens it instead of wrapping (TASK-84).
-        // Side by side only once the row itself has room, else label over control (ft-setting-tile, TASK-123).
+        // 16rem input column; a row of fitted choices wider than that widens it instead of wrapping.
+        // Side by side only once the row itself has room, else label over control (ft-setting-tile).
         // A field here is the one field look (ui/input: no fill, ink/25 edge), so it adds no layer to the tile.
         ? "ft-setting-tile rounded-lg bg-row"
         : "flex flex-col gap-3 py-4 md:grid md:grid-cols-[minmax(0,1fr)_22rem] md:items-center md:gap-x-6"}
@@ -314,11 +314,11 @@ export function SettingRow({ label, description, info, children }: {
           {description}{info ? " " : null}{info && <span className="sr-only">{info}</span>}
         </div>
       </div>
-      {/* In a card (TASK-84, h13d): controls sit on the right edge like the draft; sliders keep the full column. */}
+      {/* In a card (h13d): controls sit on the right edge like the draft; sliders keep the full column. */}
       {/* In a card a control that is only as wide as its content (a button, a switch with its On/Off, Move up/down)
           sits on the right edge; one that fills the column (field, slider, choices, a row of dots) keeps filling it. */}
       {/* A message in the column (an error, a done line: role status or alert) adds no width to it,
-          so it wraps under the controls instead of pushing the label to one letter a line (TASK-122). */}
+          so it wraps under the controls instead of pushing the label to one letter a line. */}
       <div className={tile
         ? "flex min-w-0 flex-col items-stretch gap-2 [&>button]:self-end [&>div.flex:not(.justify-between)]:justify-end [&>[role=status]]:[contain:inline-size] [&>[role=alert]]:[contain:inline-size]"
         : "flex min-w-0 flex-col items-stretch gap-2 [&>button]:self-start"}>
@@ -346,7 +346,7 @@ export function ToggleGroup<T extends string>({ value, onChange, options, ...con
         if (v) onChange(v as T);
       }}
       // In a card each option is as wide as its own content and the group sits on the column's right edge
-      // (TASK-84: "fit rata kanan"); forcing equal shares made every row's buttons a different forced size.
+      // ("fit rata kanan"); forcing equal shares made every row's buttons a different forced size.
       arrange={tile ? "end" : "wrap"}
     >
       {options.map((opt) => (

@@ -1,4 +1,4 @@
-// TASK-103.6: looks that call sites passed in now come from the components, with the same classes.
+// Looks that call sites passed in now come from the components, with the same classes.
 import { render, screen } from "@testing-library/react"
 import { ShieldCheck } from "lucide-react"
 import { describe, expect, it } from "vitest"
@@ -52,7 +52,7 @@ describe("components that took over a call site's look", () => {
   })
 })
 
-describe("Skeleton (TASK-106)", () => {
+describe("Skeleton", () => {
   it("paints in the first frame: no element waits before it shows", async () => {
     const { Skeleton, SkeletonRegion } = await import("./skeleton")
     const { container } = render(<SkeletonRegion label="Loading"><Skeleton width={40} height={40} round="full" /><Skeleton line={20} width={80} height={10} /><Skeleton width={10} height={10} /></SkeletonRegion>)

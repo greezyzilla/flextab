@@ -8,7 +8,7 @@ import type { SavedTab } from "~src/types"
 const card = (props: Partial<Parameters<typeof DragOverlayContent>[0]>) =>
   render(<DndContext><DragOverlayContent activeId="x" draggedGroup={null} draggedTab={null} draggedSavedTab={null} draggedContainer={null} {...props} /></DndContext>).container
 
-// TASK-95: a dragged tab's card prints the page as its row does, never the raw address.
+// A dragged tab's card prints the page as its row does, never the raw address.
 describe("the drag card of a tab", () => {
   beforeEach(() => useSettingsStore.setState({ titleCut: 100, linkCut: 0, linkCutScope: "all" }))
 

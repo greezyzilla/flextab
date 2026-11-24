@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import { EXEMPT, badCommits, isConventional, subjectOf } from "./check-commits.mjs"
 
-describe("isConventional (TASK-116)", () => {
+describe("isConventional", () => {
   it.each([
     "feat(ui): the Spaces page draws its tabs",
     "fix: keep edits made offline",

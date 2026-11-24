@@ -108,7 +108,7 @@ export function SourceColumn({ title, spaces, removed = false, inBoth = new Set(
   const openAll = tabCount(spaces) <= OPEN_ALL_AT
   return (
     // Removal is shown by a label and struck-through text at fg-subtle, never by
-    // opacity, so the list stays readable (>= 4.5:1, TASK-6).
+    // opacity, so the list stays readable (>= 4.5:1).
     <section aria-label={title} className={cn("flex min-h-0 min-w-0 flex-col gap-2 rounded-lg border p-3 transition-colors", removed ? "border-danger/30" : "border-ink/10")}>
       {title !== undefined && (
         <div className="flex shrink-0 items-center justify-between gap-2 px-1">
@@ -130,7 +130,7 @@ export function SourceColumn({ title, spaces, removed = false, inBoth = new Set(
 }
 
 /**
- * A SourceColumn still loading (TASK-106): the same frame, rows and spacing as the loaded column. A
+ * A SourceColumn still loading: the same frame, rows and spacing as the loaded column. A
  * large version opens as one row per space (chevron, avatar, name, counts at the row's own 28px). A
  * small one opens fully, so with its `shape` (per space, each group's tab count) the skeleton draws
  * every group row and up to PREVIEW_TABS tab rows with the "+N more" line, as SpaceBlock and

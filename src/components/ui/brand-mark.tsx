@@ -1,6 +1,6 @@
 /**
  * The FlexTab mark: an accent tile holding the manifest icon used as a mask over an accent gradient,
- * so it follows the accent in every theme. Every place that draws the mark uses this (TASK-102):
+ * so it follows the accent in every theme. Every place that draws the mark uses this:
  * the space rail and the sign-in dialog.
  *
  * Forced colours (Windows contrast themes) drop author backgrounds, gradients included, which left an

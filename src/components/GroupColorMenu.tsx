@@ -8,7 +8,7 @@ import { GROUP_COLORS, groupColorFill } from "~src/lib/groupColors"
 const NONE = "none"
 
 /**
- * The items of a group's "Colour" submenu (TASK-18): None plus the nine
+ * The items of a group's "Colour" submenu: None plus the nine
  * colours, one radio choice each. Every choice shows its swatch and its name
  * (never colour alone, WCAG 1.4.1), and the current one carries a check.
  */

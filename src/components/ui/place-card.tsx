@@ -1,7 +1,7 @@
 import * as React from "react"
 
 /**
- * A place, one level per row (TASK-103.5; the popup's "where this is saved"): a hairline box of
+ * A place, one level per row (the popup's "where this is saved"): a hairline box of
  * 30px rows, each the level's icon centred in a 20px column, then its name in the popup's body type.
  */
 export function PlaceCard(props: React.HTMLAttributes<HTMLDivElement>) {

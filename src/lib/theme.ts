@@ -1,5 +1,5 @@
 /**
- * Light / dark mode (TASK-16). "system" follows the OS through the
+ * Light / dark mode. "system" follows the OS through the
  * `prefers-color-scheme` media query in style.css, so it needs no class and
  * no script. "light" / "dark" force a theme with a class on <html>.
  *
@@ -52,7 +52,7 @@ export type Appearance = {
   uiScale: number;
   density: Density;
   reduceMotion: boolean;
-  /** The app icon (new tab's tab icon, toolbar button): drawn in the accent, or the manifest blue (TASK-107). */
+  /** The app icon (new tab's tab icon, toolbar button): drawn in the accent, or the manifest blue. */
   appIcon: AppIcon;
 };
 
@@ -110,7 +110,7 @@ export function readStoredAppearance(): Appearance | null {
     if (!num(a.hue) || !num(a.intensity) || !num(a.groupTint) || !num(a.radius) || !num(a.uiScale)) return null;
     if (typeof a.fontFamily !== "string" || !(a.fontFamily in FONT_STACKS)) return null;
     if (!DENSITY_CLASSES.includes(`density-${a.density}`) || typeof a.reduceMotion !== "boolean") return null;
-    // A copy written before TASK-107 has no app icon choice: the default.
+    // A copy written before the app icon setting existed has no choice: the default.
     const appIcon: AppIcon = a.appIcon === "blue" ? "blue" : "accent";
     return { ...(a as Appearance), appIcon };
   } catch {
@@ -127,7 +127,7 @@ export function storeAppearance(a: Appearance) {
 }
 
 /**
- * Puts the stored mode and look on <html> (TASK-107): the boot script runs it in <head>, before the
+ * Puts the stored mode and look on <html>: the boot script runs it in <head>, before the
  * first paint, so a page opens in the user's colours, spacing and font, or the defaults.
  */
 export function applyStoredLook(root: HTMLElement = document.documentElement) {

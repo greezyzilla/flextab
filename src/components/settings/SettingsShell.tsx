@@ -29,7 +29,7 @@ const ICON: Record<SettingsTab, ReactNode> = {
 /** Theme, Display and Layout show the appearance previewer beside their controls. */
 const APPEARANCE: SettingsTab[] = ["theme", "display", "layout"]
 
-/** Left navigation column: the workspace panel's frame (TASK-84), so nothing moves between them. */
+/** Left navigation column: the workspace panel's frame, so nothing moves between them. */
 export function SettingsNav() {
   const signedIn = useAuthStore(s => s.isAuthenticated)
   const active = tabFromRoute(useRoute(), signedIn)
@@ -39,8 +39,8 @@ export function SettingsNav() {
         <h1 className={PANEL_TITLE}>Settings</h1>
       </div>
       {/* Topics are pages (one route each), so this is navigation with
-          aria-current, not tabs (TASK-28). Grouped under headings, every
-          topic one click away (TASK-84). */}
+          aria-current, not tabs. Grouped under headings, every
+          topic one click away. */}
       <div className={cn(PANEL_LIST, "flex flex-col gap-6")}>
         {settingsGroupsFor(signedIn).map((group) => {
           const topics = group.topics
@@ -88,7 +88,7 @@ export function SettingsContent() {
   const signedIn = useAuthStore(s => s.isAuthenticated)
   const tab = tabFromRoute(useRoute(), signedIn)
   const sectionSelectId = useId()
-  // The loading shell's copy of this page's shape (TASK-108): the controls column and the previewer.
+  // The loading shell's copy of this page's shape: the controls column and the previewer.
   const columnRef = useRef<HTMLDivElement>(null)
   const previewRef = useRef<HTMLDivElement>(null)
   useSettingsShapeMirror(tab, signedIn, columnRef, previewRef)
@@ -127,7 +127,7 @@ export function SettingsContent() {
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto px-4 py-5 sm:px-6 md:px-8 md:py-7">
         {APPEARANCE.includes(tab) ? (
-          // TASK-30 / TASK-84: the previewer sits on the right and stays in view while the controls scroll.
+          // The previewer sits on the right and stays in view while the controls scroll.
           // Side by side needs the controls (40rem), a 2rem gap and a previewer of 24rem (capped there,
           // so it never outgrows the controls on wide screens): 1440px of window. Narrower, the previewer
           // is not shown at all (user: "preview ga seharusnya muncul di semua size"): above or below the

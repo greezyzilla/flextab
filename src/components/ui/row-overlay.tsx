@@ -3,7 +3,7 @@ import * as React from "react"
 import { cn } from "~src/lib/utils"
 
 /**
- * A row's main action spread over the whole row (TASK-103.4; Opened tabs' "Go to"), the stretched
+ * A row's main action spread over the whole row (Opened tabs' "Go to"), the stretched
  * link pattern: an empty button covering its `relative` parent, under the row's own controls (give
  * those `relative z-10`) and its text (pointer-events-none). It needs an aria-label, since it has
  * no text; its focus ring traces the row's rounded box.

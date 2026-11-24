@@ -18,7 +18,7 @@ export type RowAction = {
 }
 
 /**
- * The one trailing slot every row owns (TASK-5). Its width is fixed, so the
+ * The one trailing slot every row owns. Its width is fixed, so the
  * slots of a panel form one column, and header controls sit in the same
  * column by using it too. Nothing else in a row reserves room for actions.
  */

@@ -13,7 +13,7 @@ const toggleVariants = cva(
           "bg-transparent text-fg-subtle hover:bg-ink/[0.05] hover:text-fg-muted data-[state=on]:bg-[var(--accent-subtle)] data-[state=on]:text-fg",
         outline:
           "border border-ink/[0.06] bg-ink/[0.03] text-fg-subtle shadow-sm hover:border-ink/15 hover:text-fg-muted data-[state=on]:border-[var(--accent)] data-[state=on]:bg-[var(--accent-subtle)] data-[state=on]:text-fg",
-        // An item inside a segmented tray (TASK-61; the tray is ToggleGroup variant="segmented").
+        // An item inside a segmented tray (the tray is ToggleGroup variant="segmented").
         // Radius 3px = the tray's 6px minus its 2px padding and 1px border, so the corners nest.
         segmented:
           "rounded-[3px] text-fg-subtle hover:bg-ink/[0.05] hover:text-fg-muted data-[state=on]:bg-ink/10 data-[state=on]:text-fg",

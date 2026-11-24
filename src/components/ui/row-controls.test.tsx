@@ -1,4 +1,4 @@
-// TASK-103.4 batches A and B: the row controls moved into components/ui keep the classes their call sites had.
+// The row controls in components/ui keep the classes their call sites had.
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 import { BreadcrumbItem } from "./breadcrumb-item"
@@ -85,8 +85,8 @@ describe("TextLink without an underline", () => {
 })
 
 describe("TreeRowButton", () => {
-  // No ring on the label: the row draws it on its own box (TREE_ROW_FOCUS, TASK-120).
-  // The vertical padding follows Density (TASK-128): py-1.5 on Comfortable, as LeftPanel drew it.
+  // No ring on the label: the row draws it on its own box (TREE_ROW_FOCUS).
+  // The vertical padding follows Density: py-1.5 on Comfortable, as LeftPanel drew it.
   it("draws a project label as LeftPanel did (PANEL_ROW_LABEL's box, name PANEL_ROW_TEXT), with no ring of its own", () => {
     render(<TreeRowButton level="project" className="flex-1 min-w-0" icon={<i data-testid="icon" />}>Launch</TreeRowButton>)
     expect(set(button().className)).toEqual(set("flex-1 min-w-0 flex items-center gap-2 py-[var(--density-py-row,0.375rem)] text-left rounded outline-none"))

@@ -37,7 +37,7 @@ export function SyncTab() {
     try {
       const result = await syncNow();
       switch (result.status) {
-        case "ok": setSynced(true); break; // said in the row, where Sync now was pressed (TASK-96)
+        case "ok": setSynced(true); break; // said in the row, where Sync now was pressed
         case "offline": toast.error("Could not reach the server. Your changes are saved locally."); break;
         case "conflict": toast.info("Resolve the sync conflict, then use Sync now again."); break;
         case "limit": toast.error(result.message); break;

@@ -1,4 +1,4 @@
-// Keyboard labels that match the user's platform (TASK-13): ⌘ on macOS,
+// Keyboard labels that match the user's platform: ⌘ on macOS,
 // Ctrl elsewhere. Chrome's own shortcut strings ("Alt+Shift+S") are turned
 // into the same style so every list reads alike.
 

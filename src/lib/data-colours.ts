@@ -1,5 +1,5 @@
 /**
- * Colours that are data, not style (TASK-103.5). They stay literal on purpose, so the guard
+ * Colours that are data, not style. They stay literal on purpose, so the guard
  * (components/ui/ui-layering.test.ts, DATA_COLOURS) lists this file with the reason for each:
  * no theme or accent change may alter them.
  */

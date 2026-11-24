@@ -19,7 +19,7 @@ const WATCHED_KEYS = [
 ] as const
 
 // The limit is a lasting state (the header shows "Sync paused" until a push
-// lands, TASK-9). Only the moment sync becomes paused also gets a toast.
+// lands). Only the moment sync becomes paused also gets a toast.
 function applyLimitNotice(value: unknown, announce: boolean) {
   const notice = parseLimitNotice(value)
   const wasPaused = useSyncStore.getState().limit !== null
@@ -38,7 +38,7 @@ function showBillingResult(result: unknown) {
   if (result && typeof result === "object" && "outcome" in result) {
     const outcome = (result as { outcome: unknown }).outcome
     if (outcome === "success") {
-      // One id: the plan tab replaces it with the plan once confirmed (TASK-96).
+      // One id: the plan tab replaces it with the plan once confirmed.
       toast.success("Payment received", { id: BILLING_TOAST_ID, description: "Confirming your plan…" })
     } else if (outcome === "cancel") {
       toast("Checkout cancelled")
@@ -63,7 +63,7 @@ function applyPushPending(pending: unknown) {
 // toast instead of the onboarding inline banner.
 function showSessionExpired(expired: unknown) {
   if (expired !== true) return
-  // The sign-in dialog opens over the workspace (TASK-79) and says the same in
+  // The sign-in dialog opens over the workspace and says the same in
   // its own note, which also clears the flag: no toast on top of it.
   if (location.hash.replace(/^#/, "") === SIGN_IN_ROUTE) return
   toast.error("Your session expired", {

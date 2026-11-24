@@ -76,7 +76,7 @@ describe("Settings › Spaces", () => {
     render(<SpacesTab />)
     const name = screen.getByLabelText("Name")
     expect(name).toHaveValue("Work")
-    expect(name).toHaveAttribute("placeholder", "e.g. Work") // TASK-36
+    expect(name).toHaveAttribute("placeholder", "e.g. Work")
     expect(screen.queryByRole("button", { name: "Save changes" })).not.toBeInTheDocument()
     await user.clear(name)
     await user.type(name, "Office{Enter}")
@@ -109,7 +109,7 @@ describe("Settings › Spaces", () => {
     await user.click(screen.getByRole("button", { name: "Delete space…" }))
     const confirm = screen.getByRole("button", { name: "Delete space" })
     expect(confirm).toBeDisabled()
-    // One line carries the instruction (TASK-84); the field never shows the name itself (TASK-36).
+    // One line carries the instruction; the field never shows the name itself.
     expect(screen.getByRole("alertdialog")).toHaveAccessibleDescription("Type Home to delete it.")
     expect(screen.getByLabelText(/to confirm/)).not.toHaveAttribute("placeholder")
     await user.type(screen.getByLabelText(/to confirm/), "Hom")
@@ -121,7 +121,7 @@ describe("Settings › Spaces", () => {
     await waitFor(() => expect(window.location.hash).toBe("#/settings/spaces"))
   })
 
-  it("deletes the only space too, and undo selects it again (TASK-37)", async () => {
+  it("deletes the only space too, and undo selects it again", async () => {
     yjs.setSpaces([yjs.getSpaces()[1]])
     useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces(), activeSpaceId: "work" })
     window.history.replaceState(null, "", "#/settings/spaces/work")

@@ -10,7 +10,7 @@ export default defineConfig({
     // Two projects in one gate: the jsdom unit/component tests, and the few
     // checks that need a real rendering engine (`*.browser.test.tsx`, e.g. the
     // colour-contrast guard: oklch relative colours, color-mix and composited
-    // fills only resolve in a browser). TASK-68.
+    // fills only resolve in a browser).
     projects: [
       {
         extends: true,

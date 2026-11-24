@@ -286,7 +286,7 @@ describe("applyDragEnd", () => {
     expect(outcome).toMatchObject({ saved: { alsoIn: ["S1 › P1 › C2 › G3"], closed: [] } })
   })
 
-  it("closes a dragged-in open tab when 'Close after dragging a tab in' is on; Undo takes the save back and reopens it (TASK-60)", async () => {
+  it("closes a dragged-in open tab when 'Close after dragging a tab in' is on; Undo takes the save back and reopens it", async () => {
     vi.mocked(chrome.storage.local.get).mockImplementation((async (key: string) => (key === "flextab_close_after_drag" ? { [key]: true } : {})) as never)
     const tab = { id: 11, windowId: 4, index: 2, url: "https://z.com", title: "Z", favIconUrl: "" } as chrome.tabs.Tab
     vi.mocked(chrome.tabs.get).mockResolvedValueOnce(tab)
@@ -390,7 +390,7 @@ describe("applyDragEnd", () => {
   })
 })
 
-describe("dragging a project or a category (TASK-59)", () => {
+describe("dragging a project or a category", () => {
   const cat = (id: string) => ({ id, name: id.toUpperCase(), order: 0, groups: [] })
   beforeEach(() => {
     yjs.setSpaces([
@@ -447,7 +447,7 @@ describe("dragging a project or a category (TASK-59)", () => {
   })
 })
 
-describe("reordering a project or a category by drag (TASK-64)", () => {
+describe("reordering a project or a category by drag", () => {
   const cat = (id: string) => ({ id, name: id.toUpperCase(), order: 0, groups: [] })
   beforeEach(() => {
     yjs.setSpaces([
@@ -493,13 +493,13 @@ describe("reordering a project or a category by drag (TASK-64)", () => {
     expect(applyContainerDrop(project, "proj-drop:h:p2", "after")).toBeNull() // Test is already below Games
   })
 
-  it("still moves a category dropped on a category of another project (TASK-59)", () => {
+  it("still moves a category dropped on a category of another project", () => {
     const moved = applyContainerDrop(category, "cat-drop:h:p2:c4")!
     expect(moved.message).toBe("Moved “C1” to Hobby › Games")
   })
 })
 
-describe("indexes are shown positions, even when stored order differs (TASK-64)", () => {
+describe("indexes are shown positions, even when stored order differs", () => {
   const shownGroups = () => orderedGroups(yjs.getSpaces()[0].projects[0].categories[0].groups).map((g) => g.id).join("")
   const seed = (groups: any[]) => {
     yjs.setSpaces([{ id: "s", name: "S", order: 0, projects: [{ id: "p", name: "P", order: 0, categories: [{ id: "c", name: "C", order: 0, groups }] }] }])
@@ -538,7 +538,7 @@ describe("indexes are shown positions, even when stored order differs (TASK-64)"
   })
 })
 
-describe("reordering spaces by drag in the rail (TASK-66)", () => {
+describe("reordering spaces by drag in the rail", () => {
   beforeEach(() => {
     yjs.setSpaces([
       { id: "a", name: "Alpha", order: 0, projects: [] },

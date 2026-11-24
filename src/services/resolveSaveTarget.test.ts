@@ -77,7 +77,7 @@ describe("resolveSaveTargetIds (select-existing)", () => {
   });
 });
 
-describe("ensureSaveTargetPath (default path down to Unsorted, TASK-20)", () => {
+describe("ensureSaveTargetPath (default path down to Unsorted)", () => {
   const groupsOf = (spaceId: string) => yjs.getSpaces().find((s) => s.id === spaceId)!.projects[0].categories[0].groups;
 
   it("saves into the preferred category's Unsorted, never into a user group", () => {

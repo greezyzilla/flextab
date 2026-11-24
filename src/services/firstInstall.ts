@@ -2,7 +2,7 @@ import * as yjs from "~src/lib/yjsDoc"
 import { seedDefaultWorkspace } from "~src/lib/defaultPath"
 
 /**
- * The first-install workspace (TASK-127). The background runs this once, on
+ * The first-install workspace. The background runs this once, on
  * onInstalled "install", so a single writer seeds: pages never do. Seeds only a
  * workspace that is absent, never one that is stored (even empty), unreadable,
  * or missing while sync history remains. True when it seeded.

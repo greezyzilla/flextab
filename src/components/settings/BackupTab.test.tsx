@@ -42,7 +42,7 @@ describe("version history recovery", () => {
     vi.mocked(pullAndOverwrite).mockResolvedValue(true);
   });
 
-  it("says which version was kept when a sync conflict was resolved (TASK-67)", async () => {
+  it("says which version was kept when a sync conflict was resolved", async () => {
     vi.mocked(apiListSnapshots).mockResolvedValue([
       { ...snapshot, revision: 44, kind: "" },
       { ...snapshot, revision: 43, kind: "before_resolution" },
@@ -102,7 +102,7 @@ describe("version history recovery", () => {
     expect(apiListSnapshots).toHaveBeenCalledTimes(1);
     expect(screen.queryByText(/^Restored/)).not.toBeInTheDocument();
     await act(async () => { finishPull(true); });
-    // Says what came back (TASK-96).
+    // Says what came back.
     expect(await screen.findByText(/^Restored v42\. \d+ tabs? in \d+ spaces?\.$/)).toBeInTheDocument();
     expect(apiListSnapshots).toHaveBeenCalledTimes(2);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -229,7 +229,7 @@ function upload(contents: string, name = "backup.json") {
 
 const BACKUP = '[{"id":"new","name":"Imported","projects":[{"id":"p","name":"P","categories":[{"id":"c","name":"C","groups":[{"id":"g","name":"G","tabs":[{"id":"t","url":"https://a.example/","title":"A","favicon":""}]}]}]}]}]';
 
-describe("workspace import (TASK-12)", () => {
+describe("workspace import", () => {
   it.each([
     ["malformed JSON", "{ not JSON"],
     ["text with no links", "not JSON"],

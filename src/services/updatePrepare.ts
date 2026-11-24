@@ -1,5 +1,5 @@
 /**
- * The page side of an update (TASK-113, see services/updateFlow.ts). Before the
+ * The page side of an update (see services/updateFlow.ts). Before the
  * background reloads the extension into a new version, it asks every open
  * FlexTab page to finish what it is writing; the page answers once it has.
  */

@@ -1,7 +1,7 @@
 import type { GroupColor } from "~src/types";
 
 /**
- * The optional group colours (TASK-18): the nine colours people already know
+ * The optional group colours: the nine colours people already know
  * from Chrome's tab groups, the same ids as chrome.tabGroups.Color. Each is a
  * theme token in style.css (`--group-<id>`), set per theme.
  */

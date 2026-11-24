@@ -1,4 +1,4 @@
-// Plan-limit state for sync (TASK-9). A rejected push leaves the server behind
+// Plan-limit state for sync. A rejected push leaves the server behind
 // the device until the user removes tabs or upgrades, so the rejection is kept
 // in storage (the background worker can't render UI) and shown as a lasting
 // "Sync paused" state, not a one-off toast. Cleared when a push lands.
@@ -61,7 +61,7 @@ export function limitSummary(notice: SyncLimitNotice, tabs?: number, neverSynced
   if (notice.limit === "max_tabs_total" && notice.cap !== undefined) {
     const count = tabs ?? notice.got ?? notice.cap
     const over = count - notice.cap
-    // An account that never received a tab (TASK-33) must not read as "again":
+    // An account that never received a tab must not read as "again":
     // a second device would find it empty and think the tabs were lost.
     if (over > 0 && neverSynced) return `Nothing synced yet. ${count} of ${notice.cap} tabs. Remove ${over} to sync, or upgrade.`
     return over > 0

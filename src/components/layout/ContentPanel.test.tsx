@@ -25,7 +25,7 @@ const setup = () => {
 }
 
 describe("empty states create in place", () => {
-  it("with no spaces shows the clean slate, no location row, and names the first space in place (TASK-37, TASK-98)", async () => {
+  it("with no spaces shows the clean slate, no location row, and names the first space in place", async () => {
     yjs.setSpaces([])
     useSavedSpacesStore.setState({ savedSpaces: [], activeSpaceId: null })
     const user = setup()
@@ -35,7 +35,7 @@ describe("empty states create in place", () => {
     expect(screen.queryByRole("button", { name: "Save all tabs" })).not.toBeInTheDocument()
     await user.click(screen.getByRole("textbox", { name: "New space name" }))
     await user.keyboard("Studio{Enter}")
-    // It opens on its General › Uncategorized, not on "no projects yet" (TASK-98).
+    // It opens on its General › Uncategorized, not on "no projects yet".
     expect(await screen.findByRole("navigation", { name: "Location" })).toHaveTextContent(/Studio.*General.*Uncategorized/)
     expect(screen.queryByText("Studio has no projects yet")).toBeNull()
     const [space] = yjs.getSpaces()
@@ -43,7 +43,7 @@ describe("empty states create in place", () => {
     expect(useSavedSpacesStore.getState().activeSpaceId).toBe(space.id)
   })
 
-  it("with no spaces, Alt+N opens this New space field, focused (TASK-81)", async () => {
+  it("with no spaces, Alt+N opens this New space field, focused", async () => {
     yjs.setSpaces([])
     useSavedSpacesStore.setState({ savedSpaces: [], activeSpaceId: null })
     const user = setup()
@@ -54,7 +54,7 @@ describe("empty states create in place", () => {
     expect(screen.queryByText(/Enter to create/)).toBeNull()
     await user.keyboard("Atelier{Enter}")
     expect(yjs.getSpaces()[0].name).toBe("Atelier")
-    // No second empty state: the new space opens on its category (TASK-98).
+    // No second empty state: the new space opens on its category.
     expect(screen.queryByText("Atelier has no projects yet")).toBeNull()
     expect(useSavedSpacesStore.getState().activeCategoryId).toBe(yjs.getSpaces()[0].projects[0].categories[0].id)
   })
@@ -102,7 +102,7 @@ describe("empty states create in place", () => {
     expect(screen.getByRole("button", { name: "Actions for Reading" })).toBeInTheDocument()
   })
 
-  it("a group's reorder grip is on its mark in its header, not in a gutter; Unsorted has none (TASK-121)", () => {
+  it("a group's reorder grip is on its mark in its header, not in a gutter; Unsorted has none", () => {
     withGroups()
     setup()
     const grip = screen.getByRole("button", { name: "Reorder Reading" })
@@ -136,7 +136,7 @@ describe("empty states create in place", () => {
     expect(screen.getByText("2 groups · 1 unsorted")).toBeInTheDocument()
   })
 
-  it("the new group name row draws the neutral inline frame, with the hint read out instead of an extra line (TASK-62)", async () => {
+  it("the new group name row draws the neutral inline frame, with the hint read out instead of an extra line", async () => {
     withGroups()
     const user = setup()
     await user.click(screen.getByRole("button", { name: "New group in Research" }))
@@ -148,7 +148,7 @@ describe("empty states create in place", () => {
     expect(frame.className).not.toMatch(/accent/)
   })
 
-  it("Unsorted's header ends at its own edge: no blank slot after open-all, none at all when empty (TASK-56)", () => {
+  it("Unsorted's header ends at its own edge: no blank slot after open-all, none at all when empty", () => {
     const at = (tabs: { id: string; url: string; title: string; favicon: string; order: number }[]) => {
       yjs.setSpaces([{ id: "s", name: "Work", order: 0, projects: [{ id: "p", name: "Site", order: 0, categories: [
         { id: "c", name: "Research", order: 0, groups: [
@@ -183,7 +183,7 @@ describe("empty states create in place", () => {
     expect(groupNames()).toHaveLength(2)
   })
 
-  it("names the save-page keys as set in Chrome, and says nothing when they were cleared (TASK-13)", async () => {
+  it("names the save-page keys as set in Chrome, and says nothing when they were cleared", async () => {
     vi.mocked(chrome.commands.getAll).mockResolvedValueOnce([{ name: "save-page", shortcut: "" }] as never)
     yjs.setSpaces([{ id: "s", name: "Work", order: 0, projects: [{ id: "p", name: "Site", order: 0, categories: [{ id: "c", name: "Research", order: 0, groups: [] }] }] }])
     useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces(), activeSpaceId: "s", activeProjectId: "p", activeCategoryId: "c", expandedProjectIds: ["p"] })
@@ -193,7 +193,7 @@ describe("empty states create in place", () => {
     expect(screen.queryByText(/on any page to save it/)).not.toBeInTheDocument()
   })
 
-  it("guides a first run from the empty section, and leaves saving to the header's one Save all tabs (TASK-7)", async () => {
+  it("guides a first run from the empty section, and leaves saving to the header's one Save all tabs", async () => {
     yjs.setSpaces([{ id: "s", name: "Work", order: 0, projects: [{ id: "p", name: "Site", order: 0, categories: [
       { id: "c", name: "Research", order: 0, groups: [] },
       { id: "c2", name: "Design", order: 1, groups: [] },
@@ -236,7 +236,7 @@ describe("empty states create in place", () => {
   })
 })
 
-describe("content header tools (TASK-61)", () => {
+describe("content header tools", () => {
   it("the List/Grid toggle is one radio group in the segmented tray, and switches the layout", async () => {
     yjs.setSpaces([{ id: "s", name: "Work", order: 0, projects: [{ id: "p", name: "Site", order: 0, categories: [
       { id: "c", name: "Research", order: 0, groups: [
@@ -268,7 +268,7 @@ describe("content header tools (TASK-61)", () => {
   })
 })
 
-describe("saved tab card: update to the open page (TASK-72)", () => {
+describe("saved tab card: update to the open page", () => {
   it("marks the card whose open tab moved on and updates it in place from ⋯", async () => {
     yjs.setSpaces([{ id: "s", name: "Work", order: 0, projects: [{ id: "p", name: "Site", order: 0, categories: [
       { id: "c", name: "Research", order: 0, groups: [
@@ -286,14 +286,14 @@ describe("saved tab card: update to the open page (TASK-72)", () => {
     const changeBadge = (to: string) => (_: string, el: Element | null) => el?.tagName === "DIV" && new RegExp(`^→\\s*${to}$`).test(el.textContent ?? "")
     const badge = await screen.findByText(changeBadge("Episode 02"))
     expect(screen.queryByText(changeBadge("Episode 04"))).not.toBeInTheDocument()
-    // It explains itself in the app tooltip, not a native title (TASK-69).
+    // It explains itself in the app tooltip, not a native title.
     await withResizeObserver(async () => {
       await user.hover(badge)
       expect(await screen.findByRole("tooltip", {}, { timeout: 2000 })).toHaveTextContent("Open tab is on Episode 02")
       await user.unhover(badge)
     })
     expect(screen.queryByRole("button", { name: /^Update / })).not.toBeInTheDocument()
-    // Screen readers get the same state with the card link (TASK-93); the other card has none.
+    // Screen readers get the same state with the card link; the other card has none.
     expect(screen.getByRole("link", { name: "Open Show (Episode 01)" })).toHaveAccessibleDescription("Open tab is on Episode 02.")
     expect(screen.getByRole("link", { name: "Open Other (Episode 04)" })).not.toHaveAttribute("aria-describedby")
     // The action lives in ⋯ only.
@@ -309,7 +309,7 @@ describe("saved tab card: update to the open page (TASK-72)", () => {
   })
 })
 
-describe("saved tab card: duplicate state for assistive tech (TASK-93)", () => {
+describe("saved tab card: duplicate state for assistive tech", () => {
   it.each([["ribbon", true], ["icon", true], ["off", false]] as const)("with the %s mark, the duplicate is %s read with the card link", async (mark, said) => {
     yjs.setSpaces([{ id: "s", name: "Work", order: 0, projects: [{ id: "p", name: "Site", order: 0, categories: [
       { id: "c", name: "Research", order: 0, groups: [

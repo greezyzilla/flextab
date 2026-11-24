@@ -9,7 +9,7 @@ import { setSpaces } from "~src/lib/yjsDoc";
 import { syncActiveSelection, useActiveGroups } from "~src/store/useSavedSpacesStore";
 import { openOrFocus } from "~src/services/openTab";
 
-// The preview opens in these tests; its arrow needs a ResizeObserver (TASK-69).
+// The preview opens in these tests; its arrow needs a ResizeObserver.
 stubResizeObserver();
 
 // The title and link measure themselves with Range rects, which jsdom lacks.
@@ -65,7 +65,7 @@ afterEach(() => {
   useSettingsStore.setState({ tabPreview: "hover" });
 });
 
-describe("saved tab preview: Hold Alt (TASK-80)", () => {
+describe("saved tab preview: Hold Alt", () => {
   beforeEach(() => useSettingsStore.setState({ tabPreview: "alt" }));
 
   it("stays shut while the pointer crosses the card, opens at once while Alt is held, and closes on release", () => {
@@ -133,7 +133,7 @@ describe("saved tab preview: Hold Alt (TASK-80)", () => {
   });
 });
 
-describe("saved tab preview: On hover stays as before (TASK-80 AC #1)", () => {
+describe("saved tab preview: On hover", () => {
   it("opens on keyboard focus without Alt, and leaves Alt+click to the browser", () => {
     focusVisible(true);
     const link = setup();

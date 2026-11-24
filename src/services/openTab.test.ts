@@ -30,7 +30,7 @@ describe("openInCurrentWindow", () => {
   })
 })
 
-// --- TASK-31: Open all as a browser tab group ---
+// --- Open all as a browser tab group ---
 
 type Chromeish = Record<string, any>
 const c = chrome as unknown as Chromeish
@@ -61,7 +61,7 @@ afterEach(() => {
 
 const look = { title: "Reading", color: "red" as const }
 
-describe("openGroupTabs (TASK-31)", () => {
+describe("openGroupTabs", () => {
   it("asks inside the click and opens the tabs here as one named, coloured tab group", async () => {
     withTabGroups()
     const pending = openGroupTabs(["https://a.com", "https://b.com"], "here", look, true)
@@ -138,7 +138,7 @@ describe("openGroupTabs (TASK-31)", () => {
   })
 })
 
-describe("groupOpenedTabs / permission helpers (TASK-31)", () => {
+describe("groupOpenedTabs / permission helpers", () => {
   it("does nothing without tabs or without the tabGroups API", async () => {
     withTabGroups()
     expect(await groupOpenedTabs({ tabIds: [] }, look)).toBe(false)

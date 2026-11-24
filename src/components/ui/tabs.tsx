@@ -4,7 +4,7 @@ import * as TabsPrimitive from "@radix-ui/react-tabs"
 import { cn } from "~src/lib/utils"
 
 /**
- * Tabs (TASK-103.6). Its one use is Settings › Spaces, so these defaults are that look: the list
+ * Tabs. Its one use is Settings › Spaces, so these defaults are that look: the list
  * above its panel (gap-7), a left-aligned row of triggers that wraps, on a bottom hairline; a
  * trigger caps at 12rem so a long space name truncates; the panel itself takes no focus ring.
  */

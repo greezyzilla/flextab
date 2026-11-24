@@ -90,7 +90,7 @@ describe("captureTabs", () => {
     expect([project.name, project.categories[0].name, project.categories[0].groups[0].name]).toEqual(["General", "Uncategorized", "Unsorted"])
   })
 
-  it("creates a Personal space when the workspace has none, and reuses it (TASK-37)", async () => {
+  it("creates a Personal space when the workspace has none, and reuses it", async () => {
     yjs.setSpaces([])
     const first = receipt(await captureTabs([{ url: "https://b.com" }], { spaceId: "", projectId: "", categoryId: "" }))
     const second = receipt(await captureTabs([{ url: "https://c.com" }], { spaceId: "", projectId: "", categoryId: "" }))
@@ -125,7 +125,7 @@ describe("undo and change", () => {
     expect(chrome.tabs.create).toHaveBeenCalledWith({ windowId: 1, index: 2, url: "https://b.com", active: false })
   })
 
-  it("undo reopens the closed tab even when saving the removal fails (TASK-91)", async () => {
+  it("undo reopens the closed tab even when saving the removal fails", async () => {
     const r = await captureTabs([{ url: "https://q.com", title: "Q" }], { spaceId: "s", projectId: "p", categoryId: "c" })
     if (isCaptureFailure(r)) throw new Error("capture failed")
     // Only the workspace write fails; other writes (the store's own) go through.
@@ -185,7 +185,7 @@ describe("closing and reopening tabs", () => {
     await reopenTabs([])
   })
 
-  // TASK-90: a window emptied by closing its tabs one by one is gone for every Undo.
+  // A window emptied by closing its tabs one by one is gone for every Undo.
   const windowsAlive = (alive: number[]) =>
     vi.mocked(chrome.tabs.create).mockImplementation((async (p: chrome.tabs.CreateProperties) => {
       if (p.windowId !== undefined && !alive.includes(p.windowId)) throw new Error("No window")
@@ -229,7 +229,7 @@ describe("closing and reopening tabs", () => {
     expect(chrome.windows.create).toHaveBeenCalledWith({ url: ["https://a.com", "https://b.com"] })
   })
 
-  // TASK-91 side finding: [A, B, D] stays open; A and B close in some order and come back in some order.
+  // [A, B, D] stays open; A and B close in some order and come back in some order.
   it.each([
     ["A then B", "A then B"], ["A then B", "B then A"], ["B then A", "A then B"], ["B then A", "B then A"],
   ])("puts tabs back in their places in a window that still exists (closed %s, undone %s)", async (closeOrder, undoOrder) => {
@@ -266,7 +266,7 @@ describe("closing and reopening tabs", () => {
     expect(closed.every((c) => typeof c.seq === "number")).toBe(true)
   })
 
-  it("keeps a tab whose window still exists in that window, untouched (TASK-90)", async () => {
+  it("keeps a tab whose window still exists in that window, untouched", async () => {
     windowsAlive([24])
     await reopenTabs([{ windowId: 24, index: 2, url: "https://c.com" }])
     expect(chrome.tabs.create).toHaveBeenCalledWith({ windowId: 24, index: 2, url: "https://c.com", active: false })
@@ -280,11 +280,11 @@ describe("defaults and settings", () => {
     expect(defaultDestination(spaces, [{ spaceId: "s", projectId: "p", categoryId: "c", groupId: "g" }])).toMatchObject({ categoryId: "c", groupId: "g" })
     expect(defaultDestination(spaces, [{ spaceId: "s", projectId: "p", categoryId: "c2", groupId: "gone" }])).toEqual({ spaceId: "s", projectId: "p", categoryId: "c2", groupId: undefined })
     expect(defaultDestination(spaces, [{ spaceId: "x", projectId: "p", categoryId: "c" }])).toEqual({ spaceId: "s", projectId: "p", categoryId: "c", groupId: undefined })
-    // No space at all: empty ids, and the save itself creates the space (TASK-37).
+    // No space at all: empty ids, and the save itself creates the space.
     expect(defaultDestination([], [])).toEqual({ spaceId: "", projectId: "", categoryId: "", groupId: undefined })
   })
 
-  // TASK-75: the "suddenly saved to Unsorted" report. Before, the newest
+  // The "suddenly saved to Unsorted" report. Before, the newest
   // recent whose category still existed won, even when its group was gone or
   // had moved, so the save went to that category's Unsorted.
   it("follows a moved group, and skips a deleted one for an older recent whose group still exists", () => {
@@ -326,7 +326,7 @@ describe("defaults and settings", () => {
     expect(windowGroupName()).toMatch(/^Window /)
   })
 
-  it("keeps one 'close after saving' switch per way of saving, off until set (TASK-60)", async () => {
+  it("keeps one 'close after saving' switch per way of saving, off until set", async () => {
     for (const kind of ["drag", "window", "saveAll", "popup"] as const) expect(await loadCloseAfter(kind)).toBe(false)
     // The window shortcut used to follow Save all's switch: kept until set on its own.
     await saveCloseAfterSave(true)

@@ -4,7 +4,7 @@ import { inPreviewOrder, useContainerPreview } from "./useContainerPreview"
 const list = [{ id: "a" }, { id: "b" }, { id: "c" }]
 const ids = (l: { id: string }[]) => l.map((x) => x.id).join("")
 
-describe("container preview order (TASK-92)", () => {
+describe("container preview order", () => {
   it("moves the dragged item next to its neighbour, on the side shown", () => {
     expect(ids(inPreviewOrder(list, "project", { kind: "project", id: "a", next: "c", edge: "after" }))).toBe("bca")
     expect(ids(inPreviewOrder(list, "project", { kind: "project", id: "a", next: "c", edge: "before" }))).toBe("bac")

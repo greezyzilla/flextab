@@ -1,4 +1,4 @@
-// "Show in FlexTab" (TASK-14): take the workspace to where something lives,
+// "Show in FlexTab": take the workspace to where something lives,
 // the way a person would walk there: the space, its project (opened in the
 // sidebar), the category's section, then point at the tab or group.
 
@@ -32,7 +32,7 @@ export function revealInWorkspace(target: RevealTarget): void {
 }
 
 /**
- * "Open in FlexTab" from the toolbar popup (TASK-75): the popup can't drive
+ * "Open in FlexTab" from the toolbar popup: the popup can't drive
  * the dashboard's stores, so it leaves the target for one FlexTab tab and
  * brings that tab forward. The tab it names reveals the target and clears it.
  */

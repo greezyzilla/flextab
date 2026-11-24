@@ -1,11 +1,38 @@
-# FlexTab extension
+# FlexTab
 
-A Plasmo browser extension for organizing tabs into spaces, projects, and groups.
+Your tabs, finally organized.
 
-## Local setup
+FlexTab is a browser extension that turns the new tab page into a quiet home for
+the tabs you mean to come back to. Save what is open, sort it into spaces,
+projects and groups, and reopen a whole set of tabs when you return to the work.
 
-Use the pinned Node runtime and its bundled npm. npm is the supported package
-manager; `package-lock.json` is the dependency lockfile.
+**Website:** [flextabmanager.com](https://flextabmanager.com)
+
+## What it does
+
+- **New tab workspace.** Your saved tabs live on the new tab page, next to the
+  tabs that are open right now.
+- **Organized by the work.** Space > Project > Category > Group > Tab. Drag open
+  tabs into a group, rearrange anything, open a whole group at once.
+- **Quick access popup.** Save the current tab or window from the toolbar
+  without opening the new tab page.
+- **Local first.** Everything works without an account and stays in your browser.
+- **Optional sync.** Sign in to keep your workspace in sync across devices, with
+  version history to roll back to.
+
+FlexTab is free to start. Paid plans raise the saved tab limit; see the website
+for current plans.
+
+## Privacy and terms
+
+- [Privacy policy](PRIVACY.md)
+- [Terms of service](TERMS.md)
+
+Questions and data-deletion requests: support@flextabmanager.com
+
+## Development
+
+Built with [Plasmo](https://www.plasmo.com/), React, Zustand and Tailwind CSS.
 
 ```bash
 nvm install
@@ -18,36 +45,24 @@ npm run dev
 Load `build/chrome-mv3-dev` as an unpacked extension in Chrome. The development
 API defaults to localhost; configure `.env.development` for your backend.
 
-`.nvmrc`, `package.json` `devEngines`, and `packageManager` pin Node 24.14.0 / npm
-11.9.0. npm validates `devEngines` before install, CI, and run commands. Update
-these together when changing the toolchain, then re-run a clean install, tests,
-and production ZIP build. Use `devEngines`, not `engines.node`: Parcel also reads
-`engines` to infer the bundle target, while this extension must target browsers.
-See [npm devEngines](https://docs.npmjs.com/cli/v11/configuring-npm/package-json/#devengines)
-and [Parcel targets](https://parceljs.org/features/targets/).
+The toolchain is pinned to Node 24.14.0 / npm 11.9.0 through `.nvmrc`,
+`package.json` `devEngines` and `packageManager`. Change them together. Use
+`devEngines`, not `engines.node`: Parcel reads `engines` to infer the bundle
+target, and this extension must target browsers.
 
-## Verification and production build
+### Verify and build
 
 ```bash
 npm run typecheck
 npm run test:coverage -- --run
-# Set both variables to the deployed backend; values enter the public bundle.
 export PLASMO_PUBLIC_API_URL=https://api.example.com
 export PLASMO_PUBLIC_API_HOST='https://api.example.com/*'
-npm run build:zip -- --channel=stable   # or --channel=beta, see RELEASING.md
+npm run build:zip -- --channel=stable
 ```
 
-Output: `build/chrome-mv3-prod.zip`. `.env.production` may supply these values for
-local builds; CI injects them explicitly and does not require an untracked env
-file. Never put secrets in `PLASMO_PUBLIC_*` variables.
+Output: `build/chrome-mv3-prod.zip`. `PLASMO_PUBLIC_*` values end up in the
+public bundle, so never put secrets in them.
 
-PRs and pushes to `main` run the shared verification workflow: pinned runtime,
-`npm ci`, typecheck, all regression tests with coverage gates, production ZIP
-build, and artifact upload. CI
-uses `api.example.invalid` so its artifact is only for build verification.
-
-See [the quality gate contract](docs/quality-gates.md) for scope, measured baseline,
-uncovered-code limits, stricter critical-file gates, and remaining test gaps.
-
-For release versions, repository configuration, and manual Web Store submission,
-see [RELEASING.md](RELEASING.md).
+- Quality gates and coverage limits: [docs/quality-gates.md](docs/quality-gates.md)
+- Versions, releases and store submission: [RELEASING.md](RELEASING.md)
+- Building from source for store review: [SOURCE_BUILD.md](SOURCE_BUILD.md)

@@ -7,7 +7,7 @@ import { hasClippedText } from "~src/lib/displayUrl"
 import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip"
 
 // Forced colours (Windows contrast themes) drop backgrounds and shadows, so a filled variant with no
-// border would be a bare label (TASK-100). It gets a 1px edge in a system colour there, drawn as an
+// border would be a bare label. It gets a 1px edge in a system colour there, drawn as an
 // inset outline so the button keeps its size; normal colours never see it.
 // Arbitrary properties: tailwind-merge (cn) drops `outline` next to `outline-1`, which left no edge.
 const FORCED_EDGE = "forced-colors:[outline:1px_solid_ButtonText] forced-colors:[outline-offset:-1px] forced-colors:disabled:[outline-color:GrayText]"
@@ -24,7 +24,7 @@ const buttonVariants = cva(
           `bg-destructive text-destructive-foreground shadow-sm hover:brightness-90 ${FORCED_EDGE}`,
         // A page control that opens a destructive flow ("Delete space…"). Its shape, not
         // only its hue, sets it apart from the accent fill, so it still reads as danger
-        // when the accent itself is red (TASK-49).
+        // when the accent itself is red.
         danger:
           "border border-danger/70 bg-danger/[0.08] text-danger hover:border-danger/90 hover:bg-danger/[0.14]",
         outline:
@@ -33,10 +33,10 @@ const buttonVariants = cva(
         secondary: `bg-ink/[0.08] text-fg hover:bg-ink/[0.13] ${FORCED_EDGE}`,
         ghost:
           "border border-ink/10 text-fg-muted hover:border-ink/25 hover:bg-ink/[0.04] hover:text-ink",
-        // An action set in text: accent text so it reads as something to press, at rest too (TASK-103.2).
+        // An action set in text: accent text so it reads as something to press, at rest too.
         link: "text-fg-accent underline-offset-4 hover:underline",
         // App chrome (the header's "Sign in to sync", the sync status, the panel footer's Shortcuts):
-        // regular weight, no edge, a faint fill and fg text on hover (TASK-103.4).
+        // regular weight, no edge, a faint fill and fg text on hover.
         quiet: "font-normal text-fg-muted hover:bg-ink/[0.06] hover:text-fg",
       },
       size: {
@@ -102,7 +102,7 @@ const iconButtonVariants = cva(
     variants: {
       variant: {
         default: "text-fg-subtle hover:bg-ink/10 hover:text-fg data-[state=open]:bg-ink/10 data-[state=open]:text-fg",
-        // Hover firms to fg, not fg-muted: one step up from fg-subtle read as no change (TASK-103.4).
+        // Hover firms to fg, not fg-muted: one step up from fg-subtle read as no change.
         subtle: "text-fg-subtle hover:text-fg",
       },
       danger: { true: "", false: "" },
@@ -124,7 +124,7 @@ export interface IconButtonProps
     VariantProps<typeof iconButtonVariants> {
   asChild?: boolean
   /**
-   * What the button does, shown in the app Tooltip (TASK-53: icon buttons never
+   * What the button does, shown in the app Tooltip (icon buttons never
    * use a native `title`). Short, without the object ("More actions"); the
    * `aria-label` stays the full name ("Actions for Launch").
    */
@@ -156,7 +156,7 @@ export const IconTooltip = React.forwardRef<
   Omit<React.ComponentPropsWithoutRef<typeof TooltipTrigger>, "content" | "asChild"> & {
     content: React.ReactNode
     side?: IconButtonProps["tooltipSide"]
-    /** Asked each time the tooltip would open; false keeps it shut (e.g. only when text is cut, TASK-54). */
+    /** Asked each time the tooltip would open; false keeps it shut (e.g. only when text is cut). */
     when?: () => boolean
   }
 >(({ content, side, when, children, onFocus, onPointerMove, onBlur, ...triggerProps }, ref) => {
@@ -183,7 +183,7 @@ export const IconTooltip = React.forwardRef<
 IconTooltip.displayName = "IconTooltip"
 
 /**
- * The app Tooltip for text that may be cut (TASK-69): it opens only while the
+ * The app Tooltip for text that may be cut: it opens only while the
  * trigger, or a `[data-clip]` inside it, is actually clipped, so a name that
  * fits never pops a copy of itself.
  */

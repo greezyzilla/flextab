@@ -45,7 +45,7 @@ describe('useSettingsStore', () => {
     } finally { vi.mocked(chrome.storage.local.get).mockImplementation(read); }
   });
 
-  it("adopts an accent picked on another page, so open pages repaint and never write the old one back (TASK-107)", async () => {
+  it("adopts an accent picked on another page, so open pages repaint and never write the old one back", async () => {
     const read = vi.mocked(chrome.storage.local.get).getMockImplementation()!;
     const value = JSON.stringify({ state: { ...useSettingsStore.getState(), hue: 145, appIcon: 'blue', lastModified: 1 }, version: 2 });
     vi.mocked(chrome.storage.local.get).mockImplementation(async () => ({ 'flextab-settings': value }));

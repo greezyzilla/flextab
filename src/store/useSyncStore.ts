@@ -23,15 +23,15 @@ interface SyncState {
   // survives a reload; cleared once the data converges. Takes visual priority
   // over `dirty` on the indicator.
   conflictPending: boolean
-  // The server refused the last push over a plan limit (TASK-9). Sync stays
+  // The server refused the last push over a plan limit. Sync stays
   // paused until a push lands, so this is a lasting state, not a toast.
   // Mirrors chrome.storage (services/syncLimit) via useBackgroundNotices.
   limit: SyncLimitNotice | null
-  // The browser took away FlexTab's access to its server (TASK-112): the API's
+  // The browser took away FlexTab's access to its server: the API's
   // host permission, or Firefox's data collection consent. Sync is off until it is back.
   apiAccess: boolean
   setApiAccess: (apiAccess: boolean) => void
-  // The server refused this version as too old (TASK-114): sync waits for the update.
+  // The server refused this version as too old: sync waits for the update.
   updateRequired: boolean
   setUpdateRequired: (updateRequired: boolean) => void
   setStatus: (status: SyncStatus) => void

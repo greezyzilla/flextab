@@ -47,7 +47,7 @@ describe("Icon", () => {
 /**
  * The standard's gate (docs/icon-standard.md): an icon in FlexTab is drawn
  * only through Icon. A Lucide glyph rendered straight, or a hand-drawn <svg>,
- * brings back the drift TASK-76 removed.
+ * brings back the drift this standard removed.
  */
 describe("icon standard", () => {
   const SRC = join(__dirname, "../..")

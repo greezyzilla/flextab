@@ -19,7 +19,7 @@ const tree = (): SavedSpace[] => [
 
 const press = (key: string, shift = false, metaKey = true) =>
   document.dispatchEvent(new KeyboardEvent("keydown", { key, metaKey, shiftKey: shift, bubbles: true }))
-// The letters fire on their own (TASK-13): Chrome keeps Ctrl/⌘+N for windows.
+// The letters fire on their own: Chrome keeps Ctrl/⌘+N for windows.
 const letter = (key: string, shift = false) => press(key, shift, false)
 const spaces = () => yjs.getSpaces()
 
@@ -64,7 +64,7 @@ describe("keyboard shortcuts follow the destination policy", () => {
     expect(project.categories[0].groups).toHaveLength(0)
   })
 
-  it("N with no spaces creates the default space and opens the name row there (TASK-37)", () => {
+  it("N with no spaces creates the default space and opens the name row there", () => {
     yjs.setSpaces([])
     useSavedSpacesStore.setState({ activeSpaceId: null, activeProjectId: null, activeCategoryId: null })
     letter("n")
@@ -75,7 +75,7 @@ describe("keyboard shortcuts follow the destination policy", () => {
     expect(useUIStore.getState().namingGroupIn).toBe(space.projects[0].categories[0].id)
   })
 
-  it("does nothing behind an open modal (TASK-47)", () => {
+  it("does nothing behind an open modal", () => {
     const modal = document.createElement("div")
     modal.setAttribute("data-modal", "")
     const button = document.createElement("button")
@@ -109,7 +109,7 @@ describe("keyboard shortcuts follow the destination policy", () => {
     input.remove()
   })
 
-  it("Alt+N (Option+N on macOS, a dead key) asks for a new space, writes nothing and swallows the dead key (TASK-81)", () => {
+  it("Alt+N (Option+N on macOS, a dead key) asks for a new space, writes nothing and swallows the dead key", () => {
     const optionN = new KeyboardEvent("keydown", { key: "Dead", code: "KeyN", altKey: true, bubbles: true, cancelable: true })
     document.dispatchEvent(optionN)
     expect(optionN.defaultPrevented).toBe(true)
@@ -122,7 +122,7 @@ describe("keyboard shortcuts follow the destination policy", () => {
     expect(useUIStore.getState().creating).toBeNull()
   })
 
-  it("leaves Alt+Shift+N, Cmd+Alt+N and Alt+N in a field or behind a modal alone (TASK-81)", () => {
+  it("leaves Alt+Shift+N, Cmd+Alt+N and Alt+N in a field or behind a modal alone", () => {
     document.dispatchEvent(new KeyboardEvent("keydown", { key: "N", code: "KeyN", altKey: true, shiftKey: true, bubbles: true }))
     document.dispatchEvent(new KeyboardEvent("keydown", { key: "n", code: "KeyN", altKey: true, metaKey: true, bubbles: true }))
     const input = document.createElement("input")

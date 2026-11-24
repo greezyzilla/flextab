@@ -4,7 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "~src/lib/utils"
 
 /**
- * A chip (TASK-103.4): a small rounded button that picks one of a few (Recent places, "Which saved
+ * A chip: a small rounded button that picks one of a few (Recent places, "Which saved
  * episode?") or starts something (the empty workspace's starters). Pass `selected` when it picks:
  * it then says so to assistive tech (aria-pressed) and the chosen one is drawn per surface:
  *   dialog — an edged chip, the chosen one in the accent (12px).

@@ -58,7 +58,7 @@ export function AppShell() {
   } = useUIStore()
   const inSettings = isSettingsRoute(useRoute())
   // With no spaces the tree panel has nothing to show, so the clean slate
-  // spans from the rail to Opened Tabs (TASK-98).
+  // spans from the rail to Opened Tabs.
   const noSpaces = useSavedSpacesStore((s) => s.savedSpaces.length === 0)
 
   return (

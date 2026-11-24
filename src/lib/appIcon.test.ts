@@ -8,7 +8,7 @@ const hueOf = ([r, g, b]: Uint8ClampedArray) => {
   return Math.round(h * 60)
 }
 
-describe("app icon (TASK-107)", () => {
+describe("app icon", () => {
   it("gives back the icon unchanged at the default accent", () => {
     const blue = px(37, 99, 235, 255, 20, 60, 160, 255)
     const copy = new Uint8ClampedArray(blue)
@@ -41,7 +41,7 @@ describe("app icon (TASK-107)", () => {
   })
 })
 
-describe("tab icon copy (TASK-107)", () => {
+describe("tab icon copy", () => {
   it("is shown by boot/look.js from the start when it was drawn for this look, and the blue file kept for later", async () => {
     const { readFileSync } = await import("node:fs")
     const { resolve } = await import("node:path")

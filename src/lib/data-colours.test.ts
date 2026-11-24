@@ -1,4 +1,4 @@
-// TASK-103.5: the data colours moved into lib/data-colours.ts keep the exact values their call sites had.
+// The data colours moved into lib/data-colours.ts keep the exact values their call sites had.
 import { describe, expect, it } from "vitest"
 import { HUE_SPECTRUM, PROVIDER_BRAND, SPACE_COLOURS, hueColour, spaceColour } from "./data-colours"
 import { SPACE_COLORS, SPACE_COLOR_NAMES } from "~src/components/settings/SpacesTab"

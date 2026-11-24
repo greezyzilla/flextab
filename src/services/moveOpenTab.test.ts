@@ -11,7 +11,7 @@ beforeEach(() => {
   windows.create.mockResolvedValue({})
 })
 
-describe("where a dropped open tab lands (TASK-73)", () => {
+describe("where a dropped open tab lands", () => {
   it("inside one window counts the final index after the tab left its old place", () => {
     expect(finalIndex({ windowId: 1, index: 1 }, { windowId: 1, index: 4 })).toBe(3)
     expect(finalIndex({ windowId: 1, index: 3 }, { windowId: 1, index: 0 })).toBe(0)
@@ -31,7 +31,7 @@ describe("where a dropped open tab lands (TASK-73)", () => {
   })
 })
 
-describe("moving an open tab (TASK-73)", () => {
+describe("moving an open tab", () => {
   it("moves it to the other window, and Undo puts it back at its old index", async () => {
     const undo = await moveOpenTab(7, { windowId: 1, index: 2 }, { windowId: 2, index: 0 })
     expect(tabs.move).toHaveBeenCalledWith(7, { windowId: 2, index: 0 })
@@ -70,7 +70,7 @@ describe("moving an open tab (TASK-73)", () => {
   })
 })
 
-describe("the lists while an open tab is dragged (TASK-73)", () => {
+describe("the lists while an open tab is dragged", () => {
   const t = (id: number, windowId: number, index: number) => ({ id, windowId, index, url: `https://${id}.example` }) as chrome.tabs.Tab
   const windows = [{ id: 1, tabs: [t(1, 1, 0), t(2, 1, 1), t(3, 1, 2)] }, { id: 2, tabs: [t(4, 2, 0), t(5, 2, 1)] }]
   const ids = (ws: typeof windows) => ws.map((w) => (w.tabs ?? []).map((x) => x.id))
@@ -94,7 +94,7 @@ describe("the lists while an open tab is dragged (TASK-73)", () => {
   })
 })
 
-describe("moving an open tab into a new window (TASK-94)", () => {
+describe("moving an open tab into a new window", () => {
   it("gives the tab a window of its own, and Undo puts it back where it was", async () => {
     vi.mocked(chrome.windows.create).mockResolvedValueOnce({ id: 77 } as never)
     const undo = await moveOpenTabToNewWindow(5, { windowId: 9, index: 2 })

@@ -1,11 +1,11 @@
-// Gate for docs/ui-layering.md (TASK-103.1): every look flows token -> shared component
+// Gate for docs/ui-layering.md: every look flows token -> shared component
 // (components/ui) -> variant. A call site only places a component; it never styles it.
 //
 // A. A component imported from components/ui receives a class that is not placement.
 // B. A raw colour or arbitrary px/text/radius value in a .ts or .tsx outside components/ui.
 // C. A native <button>, <input>, <select> or <textarea> outside components/ui.
 //
-// DEBT is today's findings, grouped by the subtask that clears them. It only shrinks: a new finding
+// DEBT holds findings allowed to remain, grouped by kind. It only shrinks: a new finding
 // fails, and so does a cleared finding whose entry was not lowered.
 import { readdirSync, readFileSync, statSync } from "node:fs"
 import { join, relative, resolve } from "node:path"
@@ -18,7 +18,7 @@ const GUIDE = "Looks live in components/ui variants; a call site only places a c
 
 /**
  * Classes that place a component inside its parent: its behaviour as a flex or grid item, and
- * positioning, and a width cap in % of the parent (how much of its row it may take, TASK-103.6).
+ * positioning, and a width cap in % of the parent (how much of its row it may take).
  * Width filling (w-full) and margins are not here: filling is the component's own prop or default,
  * and spacing between siblings is the parent's gap.
  */
@@ -125,21 +125,21 @@ export function scan(file: string, code: string): Finding[] {
   return found
 }
 
-/** Which subtask clears a finding. */
-function clearedBy(key: string) {
-  if (key === "B") return "TASK-103.5"
-  if (key === "C <button>") return "TASK-103.4"
-  if (key.startsWith("C ")) return "TASK-103.3"
+/** Which kind of finding this is, for grouping DEBT. */
+function groupOf(key: string) {
+  if (key === "B") return "raw values"
+  if (key === "C <button>") return "native buttons"
+  if (key.startsWith("C ")) return "native fields"
   const tag = key.slice(2)
-  if (tag === "Button" || tag === "IconButton") return "TASK-103.2"
-  if (tag === "Input" || tag.startsWith("Select")) return "TASK-103.3"
-  return "TASK-103.6"
+  if (tag === "Button" || tag === "IconButton") return "button looks"
+  if (tag === "Input" || tag.startsWith("Select")) return "field looks"
+  return "call-site looks"
 }
 
 type Debt = Record<string, Record<string, Record<string, number>>>
 
 /**
- * Colours that are data, not style (TASK-103.5, TASK-104): literal on purpose, so no theme or accent
+ * Colours that are data, not style: literal on purpose, so no theme or accent
  * change alters them. They live only in these files, which rule B skips, each with its reason.
  */
 const DATA_COLOURS: Record<string, string> = {
@@ -149,7 +149,7 @@ const DATA_COLOURS: Record<string, string> = {
     "the browser toolbar icon's badge, drawn on a canvas outside any page, where CSS tokens do not exist",
 }
 
-/** Today's findings (fe dev 4f80647), by the subtask that clears them. Only ever lower or remove an entry. */
+/** Findings allowed to remain, grouped by kind. Only ever lower or remove an entry. */
 const DEBT: Debt = {
 }
 
@@ -164,8 +164,8 @@ function sources(dir: string): string[] {
 function tally(findings: Finding[]): Debt {
   const out: Debt = {}
   for (const f of findings) {
-    const task = (out[clearedBy(f.key)] ??= {})
-    const file = (task[f.file] ??= {})
+    const group = (out[groupOf(f.key)] ??= {})
+    const file = (group[f.file] ??= {})
     file[f.key] = (file[f.key] ?? 0) + 1
   }
   return out

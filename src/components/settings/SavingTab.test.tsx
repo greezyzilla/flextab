@@ -14,7 +14,7 @@ beforeEach(() => {
   vi.mocked(chrome.storage.local.set).mockImplementation((async (items: Record<string, unknown>) => { Object.assign(disk, items) }) as never)
 })
 
-describe("Settings › Saving (TASK-60)", () => {
+describe("Settings › Saving", () => {
   it("shows one switch per way of saving, reads what's stored, and saves a change", async () => {
     const user = userEvent.setup()
     render(<SavingTab />)
@@ -32,7 +32,7 @@ describe("Settings › Saving (TASK-60)", () => {
     expect(disk.flextab_close_after_window).toBe(false)
   })
 
-  it("turns Remember where I last saved off, which forgets the list (TASK-75)", async () => {
+  it("turns Remember where I last saved off, which forgets the list", async () => {
     const user = userEvent.setup()
     disk.flextab_recent_destinations = [{ spaceId: "s", projectId: "p", categoryId: "c" }]
     vi.mocked(chrome.storage.local.remove).mockImplementation((async (key: string) => { delete disk[key] }) as never)

@@ -1,4 +1,4 @@
-// The workspace with no spaces (TASK-98, "a clean slate"). Nobody lands here on
+// The workspace with no spaces ("a clean slate"). Nobody lands here on
 // first install (the seed gives Personal › General › Uncategorized); it is the
 // moment after someone deletes their last space while tidying up, or a
 // workspace that came back empty. So it reads as "all clear" on purpose and
@@ -102,7 +102,7 @@ function CreateRow({ autoFocus }: { autoFocus: boolean }) {
 }
 
 /**
- * Zero spaces. `request` is the Alt+N counter (TASK-81): each press remounts
+ * Zero spaces. `request` is the Alt+N counter: each press remounts
  * the field focused.
  */
 export function EmptyWorkspace({ request }: { request: number }) {

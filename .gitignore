@@ -38,3 +38,9 @@ dist/
 DECISIONS.md
 SHADCN_MIGRATION.md
 SYNC_CONFLICT.md
+BACKLOG.md
+PRODUCT.md
+
+# local AI tooling — never tracked
+.claude/
+.grok/

@@ -79,7 +79,7 @@ describe("drawMarkedIcon", () => {
     expect(ops.filter(([op]) => op === "arc")).toEqual([["arc", 24, 24, 10, 0, 6.283], ["arc", 24, 24, 8, 0, 6.283]])
   })
 
-  // The glyphs, square by square, in the disc's box (TASK-78: never crooked).
+  // The glyphs, square by square, in the disc's box (never crooked).
   it("draws a check, an exclamation and a cross, each centred in the disc", () => {
     const pictures = Object.fromEntries((["saved", "failed", "unsavable"] as ToolbarMark[]).flatMap((mark) => ICON_SIZES.map((size) => {
       ops = []
@@ -184,12 +184,24 @@ describe("drawMarkedIcon", () => {
 describe("markedIconImages", () => {
   it("draws the manifest's own icon at every toolbar size, once per worker and mark", async () => {
     expect(await markedIconImages("saved")).toEqual({ 16: { drawnAt: 16 }, 32: { drawnAt: 32 } })
-    expect(vi.mocked(fetch).mock.calls.map(([url]) => url)).toEqual(ICON_SIZES.map((s) => `chrome-extension://test//icon${s}.plasmo.png`))
+    expect(vi.mocked(fetch).mock.calls.map(([url]) => url)).toEqual(ICON_SIZES.map((s) => `chrome-extension://test/icon${s}.plasmo.png`))
     expect(close).toHaveBeenCalledTimes(2)
     await markedIconImages("saved")
     expect(fetch).toHaveBeenCalledTimes(2)
     await markedIconImages("failed")
     expect(fetch).toHaveBeenCalledTimes(4)
+  })
+
+  it("fetches the icon files by a path Firefox's getURL resolves too", async () => {
+    // Firefox keeps a leading slash and nests the extension URL inside itself.
+    const firefoxGetURL = (path: string) => `moz-extension://test/${path.startsWith("/") ? `moz-extension://test${path}` : path}`
+    vi.mocked(chrome.runtime.getURL).mockImplementation(firefoxGetURL)
+    try {
+      await markedIconImages(null)
+      expect(vi.mocked(fetch).mock.calls.map(([url]) => url)).toEqual(ICON_SIZES.map((s) => `moz-extension://test/icon${s}.plasmo.png`))
+    } finally {
+      vi.mocked(chrome.runtime.getURL).mockImplementation((path: string) => `chrome-extension://test/${path}`)
+    }
   })
 
   it("tries again after a failed draw", async () => {

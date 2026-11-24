@@ -35,7 +35,7 @@ describe("SyncConflictModal", () => {
     useSyncConflict.getState().close()
   })
 
-  it("offers only upload or start empty when the account is empty (TASK-11)", () => {
+  it("offers only upload or start empty when the account is empty", () => {
     useSyncConflict.getState().open([], [space("kept", ["A", "B"])])
     render(<SyncConflictModal />)
     expect(screen.getByRole("alertdialog")).toHaveTextContent("tabs from an earlier sign-in")
@@ -80,7 +80,7 @@ describe("SyncConflictModal", () => {
     useSyncConflict.getState().close()
   })
 
-  it("says before applying when a choice uploads more tabs than the plan syncs (TASK-9)", () => {
+  it("says before applying when a choice uploads more tabs than the plan syncs", () => {
     usePlanStore.setState({ status: { plan: "free", limits: { max_tabs_total: 2, max_tree_bytes: 0, max_snapshots: 0 }, usage: { total_tabs: 0, tree_bytes: 0, snapshots: 0 } } as PlanStatus })
     useSyncConflict.getState().open([space("account", ["A"])], [space("device", ["B", "C"])])
     render(<SyncConflictModal />)

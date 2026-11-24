@@ -15,7 +15,7 @@ let inFlight: Promise<void> | null = null
 
 /**
  * The plan's tab cap, so the workspace can show usage in context and warn
- * before a bulk save crosses it (TASK-9). Settings › Plan still loads its own
+ * before a bulk save crosses it. Settings › Plan still loads its own
  * copy for the full breakdown.
  */
 export const usePlanStore = create<PlanState>((set) => ({

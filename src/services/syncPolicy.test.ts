@@ -24,14 +24,14 @@ describe("automatic sync policy", () => {
     delete disk.flextab_sync_hydrated;
     expect(await automaticPushAllowed()).toBe(false);
   });
-  it("asks the worker to upload now, and tolerates storage failure (TASK-33)", async () => {
+  it("asks the worker to upload now, and tolerates storage failure", async () => {
     vi.mocked(chrome.storage.local.set).mockResolvedValue(undefined);
     await requestPush();
     expect(chrome.storage.local.set).toHaveBeenCalledWith({ [PUSH_REQUEST_KEY]: expect.any(Number) });
     vi.mocked(chrome.storage.local.set).mockRejectedValueOnce(new Error("no ctx"));
     await expect(requestPush()).resolves.toBeUndefined();
   });
-  it("stores, reads and clears the resolution mark, tolerating storage failure (TASK-67)", async () => {
+  it("stores, reads and clears the resolution mark, tolerating storage failure", async () => {
     const disk: Record<string, unknown> = {};
     vi.mocked(chrome.storage.local.set).mockImplementation(async (items: any) => { Object.assign(disk, items); });
     vi.mocked(chrome.storage.local.get).mockImplementation(async (key: any) => ({ [key]: disk[key] }));

@@ -15,7 +15,7 @@ import { Modal, ModalBody, ModalFooter, ModalHeader, ModalLink } from "~src/comp
 import { Disclosure } from "~src/components/ui/disclosure"
 
 type Side = "server" | "local"
-/** A choice: one side, or both versions of a tab's address (TASK-29). */
+/** A choice: one side, or both versions of a tab's address. */
 type Choice = Side | "both"
 const SIDE_NAME: Record<Side, string> = { local: "This device", server: "Your account" }
 const SIDE_POSSESSIVE: Record<Side, string> = { local: "this device's", server: "your account's" }
@@ -38,7 +38,7 @@ function split(choices: Record<string, Choice>, conflicts: Conflict[]) {
   return { resolutions, keepBoth: conflicts.filter((c) => choices[c.key] === "both") }
 }
 
-/** What the user is choosing between, in plain words (TASK-29). */
+/** What the user is choosing between, in plain words. */
 function describe(c: Conflict, level: Level, base: ReturnType<typeof locate>): { lead: string; options: Option[] } {
   const what = LEVEL_LABEL[level].toLowerCase()
   if (c.kind === "field") {
@@ -66,7 +66,7 @@ function describe(c: Conflict, level: Level, base: ReturnType<typeof locate>): {
   }
 }
 
-/** What the keeping side did, moves first (TASK-59): "moved it to Work", "moved “Test” into it". */
+/** What the keeping side did, moves first: "moved it to Work", "moved “Test” into it". */
 function deleteEditSummary(c: Conflict, baseNode: Parameters<typeof editSummary>[0], edited: Parameters<typeof editSummary>[1], level: Level): string {
   const edits = editSummary(baseNode, edited, level)
   const moves = [
@@ -95,7 +95,7 @@ function MergedList({ title, changes }: { title: string; changes: Change[] }) {
 // merged by itself is listed, each conflict shows the base and both sides, and
 // nothing is chosen for the user. Nothing is written until Apply. "Pause sync
 // and decide later" keeps local data and pauses sync; the header sync indicator
-// reopens it (TASK-10).
+// reopens it.
 export function MergeConflictModal() {
   const { pending, conflicts, base, server, local } = useMergeConflict()
   const [choices, setChoices] = useState<Record<string, Choice>>({})
@@ -202,7 +202,7 @@ export function MergeConflictModal() {
             const { resolutions, keepBoth } = split(choices, conflicts)
             resolveMergeConflicts(resolutions, keepBoth.map((c) => c.key))
             reset()
-            // The modal is gone, so the result goes to a toast (TASK-96).
+            // The modal is gone, so the result goes to a toast.
             toast.success("Conflicts resolved", { description: `${plural(conflicts.length, "choice")} kept. Syncing to your account.` })
           },
         }} />

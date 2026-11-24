@@ -12,7 +12,7 @@ import { Modal, ModalHeader } from "~src/components/ui/modal"
 import { ApiError, apiForgotPassword, apiGetSignInOptions, apiRegister, apiResendVerification } from "~src/services/api"
 import { requestApiAccess } from "~src/services/apiAccess"
 
-// Signing in sends the email to the server, which needs the browser's OK first (TASK-112).
+// Signing in sends the email to the server, which needs the browser's OK first.
 const NO_ACCESS = "Allow FlexTab to reach its server to sign in."
 import { SESSION_EXPIRED_KEY } from "~src/services/api"
 import { OAUTH_PENDING_KEY, OAUTH_PROVIDERS, type OAuthProvider } from "~src/services/oauthLogin"
@@ -84,7 +84,7 @@ type Step =
   | { kind: "offer" }
   | { kind: "waiting"; provider: Provider; tabId: number }
   | { kind: "closed"; provider: Provider }
-  // created: the account was just made here (TASK-96: that is a finished moment, the
+  // created: the account was just made here (that is a finished moment, the
   // link only turns sync on); a sign-in that is not verified yet comes back without it.
   | { kind: "check"; reason: "verify" | "reset"; email: string; created?: boolean }
   | { kind: "forgot" }
@@ -95,7 +95,7 @@ const PROVIDER_NAME: Record<Provider, string> = { google: "Google", github: "Git
 const RESEND_SECONDS = 60
 
 /**
- * Sign-in (TASK-7), revamped as "turn on sync" (TASK-79). Reached only from
+ * Sign-in, revamped as "turn on sync". Reached only from
  * inside the app (the sync badge, the rail, the popup), by someone already
  * using FlexTab on this device. So it opens over their own workspace and
  * speaks in their numbers, and it carries the whole journey: the offer, the
@@ -107,7 +107,7 @@ const RESEND_SECONDS = 60
  * from the existing dialogs.
  */
 export function OnboardingScreen({ onBack }: {
-  /** Back to the workspace: sign-in is a place you visit, never a wall (TASK-7). */
+  /** Back to the workspace: sign-in is a place you visit, never a wall. */
   onBack: () => void
 }) {
   const { loginWithGoogle, loginWithGithub, loginWithGitlab, loginWithDiscord, loginWithEmail, isAuthenticated, user } = useAuthStore()
@@ -391,7 +391,7 @@ function StepHead({ tile, title, children }: { tile?: React.ReactNode; title: st
 }
 
 function Tile({ tone, children, spinning = false }: { tone: "accent" | "success" | "neutral"; children: React.ReactNode; spinning?: boolean }) {
-  // A success tile marks a finished moment: it settles in once (TASK-96, style.css ft-done-tile).
+  // A success tile marks a finished moment: it settles in once (style.css ft-done-tile).
   const look = tone === "success" ? "ft-done-tile bg-success/15 text-success" : tone === "neutral" ? "bg-ink/10 text-fg-muted" : "text-[var(--accent-text)]"
   return (
     <span className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${look}`} style={tone === "accent" ? { backgroundColor: "var(--accent-subtle)" } : undefined}>

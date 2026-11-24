@@ -20,7 +20,7 @@ beforeEach(() => {
   useAuthStore.setState({ isAuthenticated: true, user: { id: "u", name: "Me", email: "me@example.com", avatar: "", provider: "email", has_password: true } })
 })
 
-describe("Sign-in & security: sign-in methods (TASK-8)", () => {
+describe("Sign-in & security: sign-in methods", () => {
   it("tells a password-only account it has one way in, and offers linking", async () => {
     vi.mocked(apiListIdentities).mockResolvedValue({ identities: [], has_password: true })
     render(<SecurityTab />)
@@ -35,7 +35,7 @@ describe("Sign-in & security: sign-in methods (TASK-8)", () => {
     expect(screen.queryByRole("note")).not.toBeInTheDocument()
   })
 
-  it("draws every provider as the same row, linked or not, so linking never reshapes the list (TASK-41)", async () => {
+  it("draws every provider as the same row, linked or not, so linking never reshapes the list", async () => {
     vi.mocked(apiListIdentities).mockResolvedValue({ identities: [{ provider: "google", email: "me@example.com" }], has_password: false } as never)
     render(<SecurityTab />)
     const unlink = await screen.findByRole("button", { name: "Unlink Google" })
@@ -47,7 +47,7 @@ describe("Sign-in & security: sign-in methods (TASK-8)", () => {
     expect(within(githubRow).getByText("Not linked")).toBeInTheDocument()
   })
 
-  it("holds one placeholder row per provider while the list loads (TASK-41)", async () => {
+  it("holds one placeholder row per provider while the list loads", async () => {
     vi.mocked(apiListIdentities).mockReturnValue(new Promise(() => {}))
     render(<SecurityTab />)
     const loading = screen.getByRole("status", { name: "Loading sign-in methods" })
@@ -55,7 +55,7 @@ describe("Sign-in & security: sign-in methods (TASK-8)", () => {
     expect(within(loading).queryByText("Loading…")).not.toBeInTheDocument()
   })
 
-  it("sizes the placeholder to the providers the server offers once it said which (TASK-79)", async () => {
+  it("sizes the placeholder to the providers the server offers once it said which", async () => {
     vi.mocked(apiListIdentities).mockReturnValue(new Promise(() => {}))
     vi.mocked(apiGetAuthProviders).mockResolvedValueOnce(["google", "github", "gitlab", "discord"])
     render(<SecurityTab />)
@@ -63,7 +63,7 @@ describe("Sign-in & security: sign-in methods (TASK-8)", () => {
     await waitFor(() => expect(loading.querySelectorAll("[data-placeholder]")).toHaveLength(4))
   })
 
-  it("warns a password-only account from the first frame, using what /api/me sent (TASK-41)", async () => {
+  it("warns a password-only account from the first frame, using what /api/me sent", async () => {
     useAuthStore.setState({ user: { id: "u", name: "Me", email: "me@example.com", avatar: "", provider: "email", has_password: true, identities: [] } })
     vi.mocked(apiListIdentities).mockReturnValue(new Promise(() => {}))
     render(<SecurityTab />)
@@ -97,10 +97,10 @@ describe("Sign-in & security: sign-in methods (TASK-8)", () => {
     expect(screen.queryByRole("button", { name: "Link GitHub" })).not.toBeInTheDocument()
   })
 
-  it("ends with a danger zone that opens account deletion (TASK-17)", async () => {
+  it("ends with a danger zone that opens account deletion", async () => {
     render(<SecurityTab />)
     const zone = screen.getByRole("region", { name: "Danger zone" })
-    // A red-tinted outline, not a red fill: it stays apart from a red accent fill (TASK-49).
+    // A red-tinted outline, not a red fill: it stays apart from a red accent fill.
     expect(within(zone).getByRole("button", { name: "Delete account…" })).toHaveClass("text-danger")
     expect(within(zone).getByRole("button", { name: "Delete account…" })).not.toHaveClass("bg-destructive")
     fireEvent.click(within(zone).getByRole("button", { name: "Delete account…" }))
@@ -159,7 +159,7 @@ describe("Sign-in & security: sign-in methods (TASK-8)", () => {
   })
 })
 
-describe("Account topics: input labels and placeholders (TASK-36)", () => {
+describe("Account topics: input labels and placeholders", () => {
   it("names the display name field from its visible label, filled or empty, with an example placeholder", async () => {
     vi.mocked(apiListIdentities).mockResolvedValue({ identities: [], has_password: true })
     render(<ProfileTab />)
@@ -180,7 +180,7 @@ describe("Account topics: input labels and placeholders (TASK-36)", () => {
   })
 })
 
-describe("Change password: forgot the current one (TASK-87)", () => {
+describe("Change password: forgot the current one", () => {
   it("sends the account a reset link from beside the field, and says where it went", async () => {
     vi.mocked(apiListIdentities).mockResolvedValue({ identities: [{ provider: "google", email: "me@example.com" }], has_password: true } as never)
     render(<SecurityTab />)

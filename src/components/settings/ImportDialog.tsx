@@ -13,7 +13,7 @@ type Mode = "add" | "replace"
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`
 
 /**
- * Preview an import before anything is written (TASK-12): what the file holds,
+ * Preview an import before anything is written: what the file holds,
  * what was left out, what it does to the plan's sync cap, and whether it adds
  * beside the workspace (the default) or replaces it (FlexTab backups only:
  * that is a restore).

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Every external GitHub Action is pinned to a full commit SHA (TASK-116). A tag
+ * Every external GitHub Action is pinned to a full commit SHA. A tag
  * like @v4 can be moved to new code by whoever controls the action; a SHA cannot.
  * Local workflows (./...) are ours and need no pin.
  *

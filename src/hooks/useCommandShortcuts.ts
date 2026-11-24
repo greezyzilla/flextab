@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 
 /**
- * The extension's commands as Chrome has them set now (TASK-13). People can
+ * The extension's commands as Chrome has them set now. People can
  * change or clear them at chrome://extensions/shortcuts, so anything that
  * names a command's keys reads them here instead of the suggested default.
  * Returns name → shortcut ("" when cleared); empty until Chrome answers.

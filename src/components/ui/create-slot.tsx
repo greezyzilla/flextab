@@ -7,7 +7,7 @@ import { inlineEditFrame } from "~src/components/ui/input"
 import { cn } from "~src/lib/utils"
 
 /**
- * A "create here" slot (TASK-62, shared in TASK-103.4): it opens a name field instead of selecting,
+ * A "create here" slot: it opens a name field instead of selecting,
  * so it differs from the rows around it by shape, not colour — a dashed outline (the app's "empty
  * slot / add here" language, like the rail's Add space), muted text, a + and an ellipsis (more input
  * follows). Its geometry matches the row that replaces it, so naming moves nothing. `size` is the
@@ -21,7 +21,7 @@ const createSlotVariants = cva(
   {
     variants: {
       size: {
-        // The tree rows' density padding minus the 1px border, so the slot is as tall as a row (TASK-128).
+        // The tree rows' density padding minus the 1px border, so the slot is as tall as a row.
         sidebar: "gap-2 rounded-md py-[calc(var(--density-py-row,0.375rem)_-_1px)] pl-[27px] pr-[7px] font-sans text-item focus-visible:ring-1 focus-visible:ring-ring",
         dialog: "gap-2 rounded-md px-[7px] py-[3px] text-xs focus-visible:ring-1 focus-visible:ring-ring",
         panel: "min-h-9 gap-3 rounded-popup-item px-[7px] text-popup focus-visible:ring-2 focus-visible:ring-ring",

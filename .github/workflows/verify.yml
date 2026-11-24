@@ -8,18 +8,12 @@ on:
       api-host:
         required: true
         type: string
-      # Push and PR CI stays light (TASK-116): no browser install, jsdom tests only.
+      # Push and PR CI stays light: no browser install, jsdom tests only.
       # Release workflows pass true so the browser-mode suite runs before publishing.
       browser:
         required: false
         type: boolean
         default: false
-      # The beta workflow passes the pushed beta-vX.Y.Z.N tag (TASK-118): the beta
-      # builds for Chrome and Firefox are then the release, kept as artifacts.
-      beta-tag:
-        required: false
-        type: string
-        default: ''
 
 permissions:
   contents: read
@@ -67,27 +61,7 @@ jobs:
         env:
           PLASMO_PUBLIC_API_URL: ${{ inputs.api-url }}
           PLASMO_PUBLIC_API_HOST: ${{ inputs.api-host }}
-      # The beta channel must build too; this fixture tag is never published.
-      # The beta channel must build too; without a beta release, a fixture tag
-      # that is never published.
-      - name: Build the beta channel
-        run: npm run build:zip -- --channel=beta --beta-tag="${BETA_TAG:-beta-v0.0.0.1}"
-        env:
-          BETA_TAG: ${{ inputs.beta-tag }}
-          PLASMO_PUBLIC_API_URL: ${{ inputs.api-url }}
-          PLASMO_PUBLIC_API_HOST: ${{ inputs.api-host }}
-      - name: Build Firefox Beta and lint it as self-hosted
-        if: ${{ inputs.beta-tag != '' }}
-        run: |
-          npm run build:zip -- --channel=beta --beta-tag="$BETA_TAG" --target=firefox-mv3
-          npm ci --prefix tools/web-ext --ignore-scripts --no-audit --no-fund
-          tools/web-ext/node_modules/.bin/web-ext lint --self-hosted --source-dir build/firefox-mv3-beta
-          node scripts/check-permissions.mjs build/firefox-mv3-beta
-        env:
-          BETA_TAG: ${{ inputs.beta-tag }}
-          PLASMO_PUBLIC_API_URL: ${{ inputs.api-url }}
-          PLASMO_PUBLIC_API_HOST: ${{ inputs.api-host }}
-      # Firefox (TASK-112): the same code built for Firefox must pass Mozilla's
+      # Firefox: the same code built for Firefox must pass Mozilla's
       # linter. web-ext lives in tools/web-ext with its own lockfile.
       - name: Build Firefox and lint it with web-ext
         run: |
@@ -96,7 +70,7 @@ jobs:
         env:
           PLASMO_PUBLIC_API_URL: ${{ inputs.api-url }}
           PLASMO_PUBLIC_API_HOST: ${{ inputs.api-host }}
-      # TASK-115: a new required permission disables FlexTab until each user
+      # A new required permission disables FlexTab until each user
       # accepts it. The built manifests are checked against permissions.lock.json.
       - name: No new required permission
         run: npm run check:permissions
@@ -108,20 +82,11 @@ jobs:
           path: build/chrome-mv3-prod.zip
           if-no-files-found: error
           retention-days: 7
-      # A release publishes exactly what was verified here (TASK-117).
+      # A release publishes exactly what was verified here.
       - if: ${{ inputs.browser }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: firefox-mv3-prod
           path: build/firefox-mv3-prod.zip
-          if-no-files-found: error
-          retention-days: 7
-      - if: ${{ inputs.beta-tag != '' }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: beta-builds
-          path: |
-            build/chrome-mv3-beta.zip
-            build/firefox-mv3-beta.zip
           if-no-files-found: error
           retention-days: 7

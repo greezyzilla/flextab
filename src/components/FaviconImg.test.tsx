@@ -5,7 +5,7 @@ import { FaviconImg } from "./FaviconImg"
 
 const globe = (img: HTMLImageElement) => img.getAttribute("src")?.startsWith("data:image/svg+xml")
 
-describe("FaviconImg: a favicon or the neutral globe, never a broken image (TASK-112)", () => {
+describe("FaviconImg: a favicon or the neutral globe, never a broken image", () => {
   it("shows a web or data favicon as it is", () => {
     const { container } = render(<FaviconImg src="https://example.com/favicon.ico" />)
     expect(container.querySelector("img")).toHaveAttribute("src", "https://example.com/favicon.ico")

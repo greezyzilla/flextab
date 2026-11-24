@@ -7,9 +7,9 @@ const FAVICON_SIZE = 16;
  * offline. The pixels come from Chrome's own favicon cache (`_favicon/`, behind
  * the `favicon` permission), which is same-origin for the extension: no request
  * to the site, no CORS check, so nothing is logged for sites that send no CORS
- * headers (TASK-52). Works in a page (Image + <canvas>) and in the background
+ * headers. Works in a page (Image + <canvas>) and in the background
  * service worker, which has no DOM (fetch + createImageBitmap + OffscreenCanvas),
- * because tabs can be captured from both (TASK-2). Without a page URL, or if
+ * because tabs can be captured from both. Without a page URL, or if
  * anything fails, the original favicon URL is kept as it is, never fetched.
  */
 export function faviconToDataUrl(favIconUrl: string, pageUrl?: string): Promise<string> {
@@ -21,7 +21,7 @@ export function faviconToDataUrl(favIconUrl: string, pageUrl?: string): Promise<
 
 /**
  * Chrome's cached icon for a web page, or null when there is no web page to ask
- * about, or no such cache: Firefox has no `_favicon/` (TASK-112), so there the
+ * about, or no such cache: Firefox has no `_favicon/`, so there the
  * tab's own favicon URL is kept and FaviconImg falls back to the globe.
  */
 export function chromeFaviconUrl(pageUrl: string | undefined): string | null {

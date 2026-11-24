@@ -18,7 +18,7 @@ beforeEach(() => {
   useSyncStore.setState({ limit: null, status: "online" })
 })
 
-describe("useBackgroundNotices: plan limit (TASK-9)", () => {
+describe("useBackgroundNotices: plan limit", () => {
   it("restores a stored limit as a lasting state without toasting again or deleting it", async () => {
     vi.mocked(chrome.storage.local.get).mockResolvedValueOnce({ flextab_limit_notice: notice } as never)
     renderHook(() => useBackgroundNotices())
@@ -47,7 +47,7 @@ describe("useBackgroundNotices: plan limit (TASK-9)", () => {
 })
 
 describe("useBackgroundNotices: session expired", () => {
-  it("toasts on the workspace, but not over the sign-in dialog that already says it (TASK-79)", async () => {
+  it("toasts on the workspace, but not over the sign-in dialog that already says it", async () => {
     vi.mocked(chrome.storage.local.get).mockResolvedValueOnce({} as never)
     renderHook(() => useBackgroundNotices())
     await waitFor(() => expect(chrome.storage.onChanged.addListener).toHaveBeenCalled())

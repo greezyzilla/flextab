@@ -11,7 +11,7 @@ const pointer = (altKey: boolean) => act(() => { window.dispatchEvent(new Pointe
 
 afterEach(() => key("keyup", { key: "Alt" }));
 
-describe("useAltHeld (TASK-80)", () => {
+describe("useAltHeld", () => {
   it("listens only when enabled", () => {
     const { result } = renderHook(() => useAltHeld(false));
     key("keydown", { key: "Alt", altKey: true });

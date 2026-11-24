@@ -8,7 +8,7 @@ import { BOOT_SKELETON_ID, PopupSkeleton } from "~src/components/PopupSkeleton"
 
 const page = (name: string) => readFileSync(resolve(__dirname, `../${name}/index.html`), "utf8")
 
-describe("page templates (TASK-107)", () => {
+describe("page templates", () => {
   it.each(["popup", "newtab"])("%s loads the boot script in <head>, as a file, before the body", (name) => {
     const html = page(name)
     const head = html.slice(0, html.indexOf("</head>"))
@@ -36,7 +36,7 @@ describe("page templates (TASK-107)", () => {
   })
 })
 
-describe("boot/look.js (TASK-107)", () => {
+describe("boot/look.js", () => {
   const root = document.documentElement
   const boot = readFileSync(resolve(__dirname, "look.js"), "utf8")
   const reset = () => { root.removeAttribute("style"); root.removeAttribute("class") }

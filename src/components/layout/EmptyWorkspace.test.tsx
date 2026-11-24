@@ -19,7 +19,7 @@ const setup = (request = 0) => {
 const field = () => screen.getByRole("textbox", { name: "New space name" })
 const state = () => useSavedSpacesStore.getState()
 
-describe("clean slate (TASK-98)", () => {
+describe("clean slate", () => {
   it("each starter creates its space in its palette colour and opens it on General › Uncategorized", async () => {
     const { user } = setup()
     for (const s of STARTERS) expect(SPACE_COLORS).toContain(s.color)

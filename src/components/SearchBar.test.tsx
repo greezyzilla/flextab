@@ -35,7 +35,7 @@ async function type(text: string) {
   return input
 }
 
-describe("SearchBar command palette (TASK-14)", () => {
+describe("SearchBar command palette", () => {
   it("groups open tabs, saved tabs and places, and never cuts results silently", async () => {
     const input = await type("docs")
     expect(input).toHaveAttribute("aria-expanded", "true")
@@ -54,7 +54,7 @@ describe("SearchBar command palette (TASK-14)", () => {
   it("Enter goes to the page; arrows move; Shift+Enter shows a saved tab in FlexTab", async () => {
     const input = await type("docs a 3")
     fireEvent.keyDown(input, { key: "Enter" })
-    // The opened tab remembers which saved tab it came from (TASK-72).
+    // The opened tab remembers which saved tab it came from.
     expect(openOrFocus).toHaveBeenCalledWith("https://a.example/3", expect.objectContaining({ tabId: expect.any(String), groupId: expect.any(String) }))
     const again = await type("docs a 3")
     expect(screen.getAllByText(/show in FlexTab/).length).toBeGreaterThan(0) // the hint names both keys
@@ -89,7 +89,7 @@ describe("SearchBar command palette (TASK-14)", () => {
     expect(screen.getByText("No results for “zzz”")).toBeInTheDocument()
   })
 
-  it("switches the theme from an Actions section (TASK-16)", async () => {
+  it("switches the theme from an Actions section", async () => {
     useSettingsStore.setState({ theme: "system" })
     const input = await type("dark")
     const actions = within(screen.getByRole("listbox", { name: "Search results" })).getByRole("group", { name: /Actions/ })

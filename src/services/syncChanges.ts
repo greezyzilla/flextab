@@ -1,4 +1,4 @@
-// What a sync merge changes, in words (TASK-29). The resolver shows this like
+// What a sync merge changes, in words. The resolver shows this like
 // `git status` shows auto-merged files: before Apply, the user can see what
 // arrives on this device and what goes to the account, not only the conflicts.
 //
@@ -138,7 +138,7 @@ export function diffTrees(from: SavedSpace[] | null, to: SavedSpace[], names?: S
     }
     if (prev.parentId !== loc.parentId) {
       if (loc.level === "tab") bucket("moved", prev, place(loc).join(" › "))
-      // A container moved as a whole (TASK-59): one line, its contents go with it.
+      // A container moved as a whole: one line, its contents go with it.
       else out.push({ kind: "moved", level: loc.level, count: 1, name: nameOf(prev.node, prev.level), path: place(prev), to: place(loc).join(" › ") })
     }
     const before = nameOf(prev.node, prev.level), after = nameOf(loc.node, loc.level)

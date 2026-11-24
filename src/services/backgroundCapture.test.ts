@@ -62,7 +62,7 @@ describe("captureFromBackground", () => {
     expect(await captureFromBackground("page", { tab })).toBe("already")
   })
 
-  it("answers a save with the tab's saved check at once, never a badge (TASK-78)", async () => {
+  it("answers a save with the tab's saved check at once, never a badge", async () => {
     const page = { id: 1, url: "https://a.example", active: true } as chrome.tabs.Tab
     vi.mocked(chrome.tabs.get).mockResolvedValue(page as never)
     await captureFromBackground("page", { tab: page })
@@ -150,7 +150,7 @@ describe("captureFromBackground", () => {
     expect(chrome.tabs.create).toHaveBeenCalledWith({ url: "chrome-extension://test/newtab.html" })
   })
 
-  // TASK-75: no place you saved to before means nothing is guessed.
+  // No place you saved to before means nothing is guessed.
   it("with no remembered place, opens the popup to ask and writes nothing", async () => {
     disk[yjs.PERSIST_KEY] = { version: 1, origin: "snapshot", data: yjs.encodeSpacesAsStorage([{ id: "s", name: "W", order: 0, projects: [] }]) }
     expect(await captureFromBackground("page", { tab: { id: 1, url: "https://a.example" } as chrome.tabs.Tab })).toBe("no-destination")
@@ -167,7 +167,7 @@ describe("captureFromBackground", () => {
     expect(chrome.action.openPopup).toHaveBeenCalled()
   })
 
-  it("saves into a new Personal space when the workspace has no spaces (TASK-37)", async () => {
+  it("saves into a new Personal space when the workspace has no spaces", async () => {
     disk[yjs.PERSIST_KEY] = { version: 1, origin: "snapshot", data: yjs.encodeSpacesAsStorage([]) }
     expect(await captureFromBackground("page", { tab: { id: 1, url: "https://a.example" } as chrome.tabs.Tab })).toBe("saved")
     expect(chrome.action.openPopup).not.toHaveBeenCalled()
@@ -195,7 +195,7 @@ describe("captureFromBackground", () => {
   })
 })
 
-describe("closing the page the popup saved when the popup closes (TASK-60)", () => {
+describe("closing the page the popup saved when the popup closes", () => {
   const connect = () => {
     registerPopupClose()
     const onConnect = vi.mocked(chrome.runtime.onConnect.addListener).mock.calls.at(-1)![0] as (port: chrome.runtime.Port) => void

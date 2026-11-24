@@ -4,7 +4,7 @@ import { unpinned } from "./check-actions-pinned.mjs"
 
 const SHA = "11d5960a326750d5838078e36cf38b85af677262"
 
-describe("unpinned (TASK-116)", () => {
+describe("unpinned", () => {
   it("passes SHA-pinned and local actions", () => {
     expect(unpinned(`steps:\n  - uses: actions/checkout@${SHA} # v4\njobs:\n  verify:\n    uses: ./.github/workflows/verify.yml\n`)).toEqual([])
   })

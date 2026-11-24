@@ -1,5 +1,5 @@
 // Destination cascade for space → project → category (+ group).
-// One policy everywhere (TASK-20): a save always lands somewhere. Missing
+// One policy everywhere: a save always lands somewhere. Missing
 // levels get default, renamable items and tabs without a chosen group go to
 // the category's Unsorted group (lib/defaultPath).
 import { ensureUnsortedPath } from "~src/lib/defaultPath";
@@ -48,7 +48,7 @@ export type SaveTargetPath = {
 };
 
 /**
- * Resolve a drop target down to a group (TASK-20): the preferred / first
+ * Resolve a drop target down to a group: the preferred / first
  * project and category, created as "General" / "Uncategorized" when a level
  * is missing, and that category's Unsorted group. Saving never dead-ends.
  * Returns null only if the space is unknown.

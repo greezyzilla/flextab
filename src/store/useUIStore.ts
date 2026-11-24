@@ -51,7 +51,7 @@ interface UIState {
   endNamingGroup: () => void
 
   /**
-   * Alt+N asks for a new space (TASK-81). Each request bumps the counter; the
+   * Alt+N asks for a new space. Each request bumps the counter; the
    * rail's Add space field answers it, or the empty workspace's "New space"
    * entry when there are no spaces yet. 0 = never asked.
    */
@@ -61,11 +61,11 @@ interface UIState {
   /** The "Save all tabs" dialog (button + keyboard shortcut). */
   saveAllOpen: boolean
   setSaveAllOpen: (open: boolean) => void
-  /** The keyboard shortcut sheet (TASK-13), opened with "?" or its footer button. */
+  /** The keyboard shortcut sheet, opened with "?" or its footer button. */
   shortcutsOpen: boolean
   setShortcutsOpen: (open: boolean) => void
   /**
-   * A tab or group to point at briefly after search revealed it (TASK-14):
+   * A tab or group to point at briefly after search revealed it:
    * it scrolls into view and is outlined for a moment. The nonce lets the
    * same item be revealed twice in a row.
    */
@@ -91,7 +91,7 @@ export const useUIStore = create<UIState>((set) => ({
 
   creating: null,
   // Creating happens in the sidebar, so open its drawer, but only while the
-  // sidebar IS a drawer (TASK-21): set at a wide width, the flag would linger
+  // sidebar IS a drawer: set at a wide width, the flag would linger
   // and pop the drawer open the moment the window is narrowed.
   startCreate: (creating) => set({ creating, ...(leftPanelIsDrawer() ? { leftDrawerOpen: true } : {}) }),
   endCreate: () => set({ creating: null }),

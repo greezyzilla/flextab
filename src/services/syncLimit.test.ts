@@ -14,7 +14,7 @@ describe("syncLimit", () => {
     const notice = { message: "m", at: 0, limit: "max_tabs_total", cap: 150, got: 190 }
     expect(limitSummary(notice)).toBe("190 of 150 tabs. Remove 40 to sync again, or upgrade.")
     expect(limitSummary(notice, 160)).toBe("160 of 150 tabs. Remove 10 to sync again, or upgrade.")
-    // An account that never received a tab is not told to sync "again" (TASK-33).
+    // An account that never received a tab is not told to sync "again".
     expect(limitSummary(notice, 160, true)).toBe("Nothing synced yet. 160 of 150 tabs. Remove 10 to sync, or upgrade.")
     expect(limitSummary(notice, 140, true)).toBe("Back within 150 tabs. Syncing again.")
     expect(limitSummary(notice, 150)).toBe("Back within 150 tabs. Syncing again.")

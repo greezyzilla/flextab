@@ -26,8 +26,8 @@ const ToggleGroup = React.forwardRef<
     ref={ref}
     className={cn(
       "flex items-center justify-center gap-1",
-      // The segmented tray shares the toolbar's edge logic with Button ghost sm
-      // (TASK-61): 32px tall, 6px radius, ink/10 border, no fill.
+      // The segmented tray shares the toolbar's edge logic with Button ghost sm:
+      // 32px tall, 6px radius, ink/10 border, no fill.
       variant === "segmented" && "h-8 gap-0.5 rounded-md border border-ink/10 p-0.5",
       arrange === "end" && "flex-nowrap justify-end gap-1.5",
       arrange === "wrap" && "flex-wrap justify-start gap-1.5",
@@ -47,7 +47,7 @@ const ToggleGroupItem = React.forwardRef<
   React.ElementRef<typeof ToggleGroupPrimitive.Item>,
   React.ComponentPropsWithoutRef<typeof ToggleGroupPrimitive.Item> &
     VariantProps<typeof toggleVariants> & {
-      /** App Tooltip for an icon-only item (TASK-61), as IconButton's `tooltip`. */
+      /** App Tooltip for an icon-only item, as IconButton's `tooltip`. */
       tooltip?: React.ReactNode
       tooltipSide?: React.ComponentPropsWithoutRef<typeof IconTooltip>["side"]
     }

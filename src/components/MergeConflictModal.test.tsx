@@ -30,7 +30,7 @@ function open() {
 
 beforeEach(() => { vi.clearAllMocks(); useMergeConflict.getState().close() })
 
-describe("MergeConflictModal (TASK-29)", () => {
+describe("MergeConflictModal", () => {
   it("shows each conflict with its type, path, base and both sides", () => {
     open()
     render(<MergeConflictModal />)
@@ -45,7 +45,7 @@ describe("MergeConflictModal (TASK-29)", () => {
     expect(within(group).getByRole("radio", { name: /Delete it/ })).toBeInTheDocument()
   })
 
-  it("names group colours as the menu does, and an uncoloured side as None (TASK-18)", () => {
+  it("names group colours as the menu does, and an uncoloured side as None", () => {
     const b = clone(base), server = clone(base), local = clone(base)
     b[0].projects[0].categories[0].groups[0].color = "blue"
     server[0].projects[0].categories[0].groups[0].color = "red"
@@ -60,7 +60,7 @@ describe("MergeConflictModal (TASK-29)", () => {
     expect(group).not.toHaveTextContent("“")
   })
 
-  it("asks where a project moved on both sides goes, and says a move survived a delete (TASK-59)", () => {
+  it("asks where a project moved on both sides goes, and says a move survived a delete", () => {
     const at = (spaceId: string | null): SavedSpace[] => ["s", "h", "e"].map((id) => ({
       id, name: { s: "Work", h: "Hobby", e: "Personal" }[id]!,
       projects: id === spaceId ? [{ id: "p2", name: "Test", categories: [] }] : [],
@@ -80,7 +80,7 @@ describe("MergeConflictModal (TASK-29)", () => {
     expect(screen.getByRole("region", { name: "Project Test" })).toHaveTextContent("Your account deleted this project. This device moved it to Personal.")
   })
 
-  it("says a container the other side deleted received a moved item (TASK-59)", () => {
+  it("says a container the other side deleted received a moved item", () => {
     const b: SavedSpace[] = [{ id: "s", name: "Work", projects: [{ id: "p2", name: "Test", categories: [] }] }, { id: "e", name: "Personal", projects: [] }]
     const server: SavedSpace[] = [clone(b[0])] // the account deleted Personal
     const local: SavedSpace[] = [{ ...clone(b[0]), projects: [] }, { id: "e", name: "Personal", projects: [clone(b[0].projects[0])] }]
@@ -126,7 +126,7 @@ describe("MergeConflictModal (TASK-29)", () => {
     expect(screen.getByText("Added “n” in Work › General › Reading › Inbox")).toBeInTheDocument()
   })
 
-  it("says that leaving without choosing pauses sync (TASK-10)", () => {
+  it("says that leaving without choosing pauses sync", () => {
     open()
     render(<MergeConflictModal />)
     expect(screen.queryByRole("button", { name: "Ignore for now" })).not.toBeInTheDocument()
@@ -147,7 +147,7 @@ describe("MergeConflictModal (TASK-29)", () => {
     expect(screen.getByText("4 tabs after apply")).toBeInTheDocument() // a twice, b, x
     fireEvent.click(screen.getByRole("button", { name: "Resolve conflicts" }))
     expect(resolve).toHaveBeenCalledWith({ [conflicts[0].key]: "local" }, [conflicts[0].key])
-    // The modal is gone, so the finished moment is a toast (TASK-96).
+    // The modal is gone, so the finished moment is a toast.
     expect(toast.success).toHaveBeenCalledWith("Conflicts resolved", { description: "1 choice kept. Syncing to your account." })
   })
 })

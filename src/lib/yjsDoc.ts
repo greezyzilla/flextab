@@ -115,7 +115,7 @@ export async function persistState(): Promise<void> {
 
 /**
  * Resolves once no persist write is in flight or queued, so an update reload
- * (TASK-113) never cuts a write in half. Starts no write of its own.
+ * never cuts a write in half. Starts no write of its own.
  */
 export async function flushPersist(): Promise<void> {
   while (persistInFlight) await persistInFlight.catch(() => {});
@@ -473,7 +473,7 @@ function rebuildYMap(obj: Record<string, unknown>): Y.Map<unknown> {
 /**
  * Put the items in the order they are shown (by `order`, then position), so
  * the indexes callers pass (from the shown, order-sorted list) match the
- * array (TASK-64). Groups and tabs can differ: a new group is stored last
+ * array. Groups and tabs can differ: a new group is stored last
  * with order -1 to show first, and a reorder then moved the wrong group.
  * Already in order (spaces, projects, categories, most lists): nothing moves.
  */
@@ -622,7 +622,7 @@ export function addTabsBatch(spaceId: string, projectId: string, categoryId: str
   });
 }
 
-/** An Unsorted group (TASK-20) exists only while it holds tabs. */
+/** An Unsorted group exists only while it holds tabs. */
 function pruneIfEmptyUnsorted(spaceId: string, projectId: string, categoryId: string, groupId: string) {
   const category = findCategory(spaceId, projectId, categoryId);
   if (!category) return;

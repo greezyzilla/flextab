@@ -8,8 +8,8 @@ import { ShellSkeletonView } from "./ShellSkeleton"
 import type { ShellShape } from "~src/lib/shellShape"
 
 /*
- * TASK-128: Density covers every list row on the new tab page, not only the saved tabs. The sidebar
- * tree (and the Settings nav, which shares its rows, TASK-82) and Opened Tabs take their vertical
+ * Density covers every list row on the new tab page, not only the saved tabs. The sidebar
+ * tree (and the Settings nav, which shares its rows) and Opened Tabs take their vertical
  * padding from --density-py-row; Comfortable keeps the old py-1.5.
  */
 
@@ -19,7 +19,7 @@ const rowPadding = (density: string) => block(density).match(/--density-py-row:\
 
 afterEach(cleanup)
 
-describe("list row density (TASK-128)", () => {
+describe("list row density", () => {
   it("defines the row padding for every density, Comfortable as before (py-1.5)", () => {
     expect(rowPadding("comfortable")).toBe("0.375")
     expect(rowPadding("cozy")).toBe("0.25")

@@ -48,7 +48,7 @@ function replaceRoute(path: string) {
  * deletion). A space is the top level of everything the user saved, so these
  * are deliberate settings, not quick actions on the rail or the sidebar.
  *
- * TASK-58: tabs over a form. One tab per space (rail order) sits right above
+ * Tabs over a form. One tab per space (rail order) sits right above
  * the settings it opens, so picking a space edits it in place; the form below
  * is the same rows as every Settings page (label, description, control).
  * Changes apply as they are made, so switching tabs never drops typed changes.
@@ -176,7 +176,7 @@ function SpaceForm({ space, index, count }: { space: SavedSpace; index: number; 
 /**
  * Deleting a space removes everything saved in it, on every synced device, so
  * it asks for the space's name before it goes. Undo stays. The last space can
- * go too (TASK-37):
+ * go too:
  * zero spaces is a valid workspace, and the next save creates the default
  * space again.
  */
@@ -199,7 +199,7 @@ function DeleteSpaceDialog({ space, open, onOpenChange }: { space: SavedSpace; o
 
   return (
     <Modal kind="alert" size="s" open={open} onOpenChange={onOpenChange}>
-      {/* One line (TASK-84): the instruction is the description. What goes is already on the page's
+      {/* One line: the instruction is the description. What goes is already on the page's
           row, and Undo stays, so the dialog does not repeat it. */}
       <ModalHeader title={`Delete “${space.name}”?`}
         description={<>Type <span className="text-fg">{space.name}</span> to delete it.</>} />

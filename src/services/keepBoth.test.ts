@@ -7,7 +7,7 @@ const space = (tabs: { id: string; url: string; title?: string }[]): SavedSpace[
   categories: [{ id: "c", name: "C", groups: [{ id: "g", name: "G", tabs: tabs.map((t, order) => ({ favicon: "", title: t.id, ...t, order })) }] }] }] }]
 const tabsOf = (t: SavedSpace[]) => t[0].projects[0].categories[0].groups[0].tabs
 
-describe("keepBoth (TASK-29)", () => {
+describe("keepBoth", () => {
   it("offers both only for a tab's address", () => {
     expect(canKeepBoth({ kind: "field", field: "url" } as Conflict, "tab")).toBe(true)
     expect(canKeepBoth({ kind: "field", field: "title" } as Conflict, "tab")).toBe(false)

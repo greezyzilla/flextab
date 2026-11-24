@@ -4,8 +4,8 @@ import { cva } from "class-variance-authority"
 import { cn } from "~src/lib/utils"
 
 /**
- * The clickable label of a sidebar tree row (TASK-103.4): the level's icon, then the name. The row
- * around it owns the fill, the text colour and the keyboard focus ring (TREE_ROW_FOCUS, TASK-120):
+ * The clickable label of a sidebar tree row: the level's icon, then the name. The row
+ * around it owns the fill, the text colour and the keyboard focus ring (TREE_ROW_FOCUS):
  * the ring is the row's own box, ⋯ included, not the label's. This is the label's box and type.
  *   project  — a top-level row: the panel's label box, name 13px medium (the Settings nav shares
  *              these through panelChrome's PANEL_ROW_LABEL and PANEL_ROW_TEXT).
@@ -15,7 +15,7 @@ import { cn } from "~src/lib/utils"
 
 /**
  * A list row's vertical padding outside the cards (sidebar tree, Settings nav, Opened Tabs): it
- * follows Settings › Appearance › Density (TASK-128). Comfortable is py-1.5; the fallback keeps that
+ * follows Settings › Appearance › Density. Comfortable is py-1.5; the fallback keeps that
  * where no density class is set.
  */
 export const DENSITY_ROW_PY = "py-[var(--density-py-row,0.375rem)]"
@@ -25,7 +25,7 @@ export const TREE_LABEL_BOX = `flex items-center gap-2 ${DENSITY_ROW_PY} text-le
 
 /**
  * On a row: its ring while its label (marked data-row-label) has keyboard focus, so the ring is the
- * row's own box, its other controls included (TASK-120 tree rows, TASK-124 Settings nav).
+ * row's own box, its other controls included (tree rows, the Settings nav).
  */
 export const TREE_ROW_FOCUS = "has-[[data-row-label]:focus-visible]:ring-1 has-[[data-row-label]:focus-visible]:ring-ring"
 

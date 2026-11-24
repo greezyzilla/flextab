@@ -19,7 +19,7 @@ describe("default path", () => {
     expect(ensureCategoryPath("nope")).toBeNull()
   })
 
-  it("ensureSpace returns the first space, or creates Personal with a fresh id (TASK-37)", () => {
+  it("ensureSpace returns the first space, or creates Personal with a fresh id", () => {
     expect(ensureSpace()).toBe("s")
     expect(yjs.getSpaces()).toHaveLength(1)
     yjs.setSpaces([])
@@ -39,7 +39,7 @@ describe("default path", () => {
     expect(ensureUnsortedPath("nope")).toBeNull()
   })
 
-  it("createSpace starts a named space with General › Uncategorized and no group, appended (TASK-98)", () => {
+  it("createSpace starts a named space with General › Uncategorized and no group, appended", () => {
     const id = createSpace("Atelier", "#8b5cf6")
     const space = yjs.getSpaces().find((s) => s.id === id)!
     expect(space).toMatchObject({ name: "Atelier", color: "#8b5cf6", order: 1 })
@@ -50,7 +50,7 @@ describe("default path", () => {
     expect("color" in yjs.getSpaces().find((s) => s.id === plain)!).toBe(false)
   })
 
-  it("the first save into a created space uses its path and adds Unsorted there (TASK-98 keeps TASK-20)", () => {
+  it("the first save into a created space uses its path and adds Unsorted there", () => {
     const id = createSpace("Atelier")
     const project = yjs.getSpaces().find((s) => s.id === id)!.projects[0]
     const path = ensureUnsortedPath(id)!

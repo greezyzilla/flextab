@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { isMac, shortcutKeys, shortcutLabel } from "./platform"
 
-describe("platform shortcut labels (TASK-13)", () => {
+describe("platform shortcut labels", () => {
   it("uses symbols on macOS and words elsewhere", () => {
     expect(shortcutLabel("Mod+K", true)).toBe("⌘K")
     expect(shortcutLabel("Mod+K", false)).toBe("Ctrl+K")

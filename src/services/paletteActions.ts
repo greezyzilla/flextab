@@ -1,4 +1,4 @@
-// Commands ⌘K can run (TASK-16): for now the theme, the way Linear, GitHub and
+// Commands ⌘K can run: for now the theme, the way Linear, GitHub and
 // VS Code expose it from their palettes. Pure: the palette renders and runs them.
 
 import type { ThemeMode } from "~src/lib/theme"

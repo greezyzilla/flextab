@@ -9,9 +9,9 @@ const badgeVariants = cva(
     variants: {
       variant: {
         // Every variant: text ≥ 4.5:1 on its own fill, in both themes, at every
-        // accent hue, on every surface a badge sits on (TASK-68; guarded by
+        // accent hue, on every surface a badge sits on (guarded by
         // src/components/contrast.browser.test.tsx). A label on the accent uses
-        // the accent-fill tokens (TASK-48), never --accent itself.
+        // the accent-fill tokens, never --accent itself.
         default:
           "border-transparent bg-[var(--accent-fill)] text-[var(--on-accent-fill)] shadow hover:brightness-[var(--accent-fill-hover)]",
         secondary:
@@ -41,7 +41,7 @@ export interface BadgeProps
 /**
  * The label sits in its own span so a constrained badge ends in "…" (an
  * ellipsis does not apply to text directly inside a flex box). Unconstrained,
- * it looks exactly as before (TASK-68).
+ * it looks exactly as before.
  */
 function Badge({ className, variant, size, children, ...props }: BadgeProps) {
   return (

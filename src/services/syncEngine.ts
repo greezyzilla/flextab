@@ -72,7 +72,7 @@ async function recomputeDirty() {
 
 const WS_RECONNECT_BASE_MS = 3000;
 // Every failed handshake is logged by Chrome itself (it can't be caught), so a
-// server that stays down costs one console error per attempt (TASK-63). Backing
+// server that stays down costs one console error per attempt. Backing
 // off to 5 minutes bounds that to about 17 attempts in the first hour per page;
 // jitter keeps several pages from retrying in step.
 const WS_RECONNECT_MAX_MS = 5 * 60_000;
@@ -135,7 +135,7 @@ function hasRealData(spaces: SavedSpace[]): boolean {
 
 let sessionHydrated = false;
 let engineRunning = false;
-// The server closed the socket as too old (TASK-114): no path reconnects it until
+// The server closed the socket as too old: no path reconnects it until
 // the engine starts again, which the page only does once the update arrived.
 let clientTooOld = false;
 let engineGeneration = 0;
@@ -178,7 +178,7 @@ let manualResolution: Promise<void> | null = null;
 // The worker uploads when the local document changes. A choice that leaves the
 // document as it is (keeping this device's tabs, or continuing past the over-cap
 // notice) changes nothing, so the worker is asked to upload now instead of
-// waiting for the 5-minute retry alarm or the next local edit (TASK-39).
+// waiting for the 5-minute retry alarm or the next local edit.
 function applyUserResolution(spaces: SavedSpace[], selectFirst = false) {
   const work = applyResolution(spaces, { selectFirst, serverConfirmed: false })
     .then((changed) => { if (!changed) return requestPush(); });
@@ -190,7 +190,7 @@ export type Reconciliation =
   | { kind: "conflict" } // guest↔account sign-in (no shared history) → coarse prompt
   | { kind: "item-conflict"; spaces: SavedSpace[]; conflicts: Conflict[] } // 3-way per-item
   | { kind: "apply"; spaces: SavedSpace[] }
-  // First sign-in uploading more tabs than the plan syncs (TASK-33): say so
+  // First sign-in uploading more tabs than the plan syncs: say so
   // before the upload instead of letting the first push end in "Sync paused".
   | { kind: "over-cap"; spaces: SavedSpace[]; tabs: number; cap: number };
 
@@ -199,9 +199,9 @@ export type Reconciliation =
  * - explicit login + BOTH sides have real tabs → conflict (SyncConflictModal)
  * - after a "keep tabs" sign-out + local tabs → conflict too, on any reconcile
  *   without a base and even into an empty account: those tabs came from an
- *   earlier sign-in (TASK-11)
+ *   earlier sign-in
  * - explicit login + local only + more tabs than the plan's cap → over-cap
- *   notice first (TASK-33); `cap` undefined (unknown) or 0 (unlimited) skips it
+ *   notice first; `cap` undefined (unknown) or 0 (unlimited) skips it
  * - server only → take server; local only → keep local; both → mergeSpacesGuest
  * Live OCC with a base uses decideReconciliation3 → merge3.
  */
@@ -289,7 +289,7 @@ async function applyResolution(
   return changed;
 }
 
-/** Wait before the one retry of a plan load that failed (TASK-33). */
+/** Wait before the one retry of a plan load that failed. */
 export const PLAN_RETRY_MS = 1000;
 async function loadPlanWithRetry() {
   await usePlanStore.getState().load();
@@ -323,7 +323,7 @@ async function reconcileState(freshLogin: boolean, manual: boolean, allowed: () 
 
   const base = await getMergeBase();
   const askBeforeUpload = await loadKeptOnSignOut();
-  // The plan's cap decides whether a first upload needs a notice (TASK-33), so
+  // The plan's cap decides whether a first upload needs a notice, so
   // it is known before deciding, not after the push is rejected.
   // load() never rejects. One retry covers a brief network blip; if the plan
   // still fails, the cap stays unknown and sync goes on as before (push →
@@ -377,7 +377,7 @@ async function reconcileState(freshLogin: boolean, manual: boolean, allowed: () 
   return "ok";
 }
 
-/** The over-cap notice was read (TASK-33): continue the first upload as before.
+/** The over-cap notice was read: continue the first upload as before.
  *  The server stays the judge of the cap, so the push is still sent; it is
  *  rejected and the lasting "Sync paused" state takes over, now expected. */
 export function acknowledgeOverCap() {
@@ -397,7 +397,7 @@ export function resolveConflict(choice: "merge" | "server" | "local") {
   if (!s || !l) return;
   void clearKeptOnSignOut(); // the kept tabs have their answer
   void clearFreshLogin();
-  // Before the doc write that triggers the upload: the account's tree it replaces stays in history (TASK-67).
+  // Before the doc write that triggers the upload: the account's tree it replaces stays in history.
   void markResolutionPush();
   // Jump to first space/group after resolving; always needs push (not server-only GET).
   applyUserResolution(resolveChoice(choice, s, l), true);
@@ -406,7 +406,7 @@ export function resolveConflict(choice: "merge" | "server" | "local") {
 /** Apply the user's per-item choices to a pending 3-way conflict. Re-runs merge3
  *  with the resolutions to produce the final tree, then enables upload; merge-base
  *  advances when the background push lands (FE-A1 / FE-B1). `keepBoth` lists
- *  tab-address conflicts (by key) where both versions stay (TASK-29): they are
+ *  tab-address conflicts (by key) where both versions stay: they are
  *  resolved to this device and the account's version is added after merge3. */
 export function resolveMergeConflicts(resolutions: Resolutions, keepBoth: string[] = []) {
   const b = pendingMergeBase, s = pendingServer, l = pendingLocal, c = pendingMergeConflicts ?? [];
@@ -415,7 +415,7 @@ export function resolveMergeConflicts(resolutions: Resolutions, keepBoth: string
   if (!s || !l) return;
   const both = new Set(keepBoth);
   const { merged } = merge3(b, s, l, { ...resolutions, ...Object.fromEntries(keepBoth.map((k) => [k, "local" as const])) });
-  // Before the doc write that triggers the upload: the account's tree it replaces stays in history (TASK-67).
+  // Before the doc write that triggers the upload: the account's tree it replaces stays in history.
   void markResolutionPush();
   applyUserResolution(addAccountCopies(merged, s, c.filter((x) => both.has(x.key))));
 }
@@ -533,7 +533,7 @@ function connectWebSocket() {
 
     ws.onclose = (event) => {
       ws = null;
-      // Too old for the server (TASK-114): no reconnect; "Update needed" takes over.
+      // Too old for the server: no reconnect; "Update needed" takes over.
       if (event?.code === CLIENT_TOO_OLD_CLOSE_CODE) {
         clientTooOld = true; // a retry already waiting finds this and stops
         void markClientTooOld(String(event.reason ?? "").split(" ")[1]);
@@ -549,7 +549,7 @@ function connectWebSocket() {
   }).catch(() => { if (automaticSyncActive()) setStatus("offline"); });
 }
 
-// Reconnect hints (TASK-63). Going offline drops the socket and the retry timer
+// Reconnect hints. Going offline drops the socket and the retry timer
 // at once, so no attempt runs while there is nothing to reach; coming back
 // online tries once, straight away, from a fresh backoff. While a retry is
 // waiting, two more signals bring it forward without resetting the backoff:

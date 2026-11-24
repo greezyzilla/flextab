@@ -3,7 +3,7 @@ import * as React from "react"
 import { cn } from "~src/lib/utils"
 
 /**
- * The shape of something still loading (TASK-106): a faint ink bar that pulses only when motion is
+ * The shape of something still loading: a faint ink bar that pulses only when motion is
  * allowed. Its size is a prop, as Radix Themes' Skeleton (`width`, `height` in px or any CSS
  * length), because a skeleton stands in for one particular thing. `line` puts the bar in a text
  * line box of that height, so a skeleton line takes the place of the text it stands for and nothing
@@ -35,7 +35,7 @@ export function Skeleton({ width, height, line, round = "sm", tone = "base", cla
 }
 
 /**
- * A region that is loading (TASK-106): announced once as a status with its `label` ("Loading your
+ * A region that is loading: announced once as a status with its `label` ("Loading your
  * workspace"), drawn in the first frame.
  */
 export const SkeletonRegion = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement> & {

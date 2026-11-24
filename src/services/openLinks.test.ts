@@ -14,7 +14,7 @@ beforeEach(() => {
   vi.mocked(chrome.storage.session.set).mockImplementation(async (items: any) => { Object.assign(session, structuredClone(items)) })
 })
 
-describe("open links (TASK-72)", () => {
+describe("open links", () => {
   it("records links and drops those of tabs that are gone", async () => {
     vi.mocked(chrome.tabs.query).mockResolvedValue([{ id: 1 }, { id: 2 }] as chrome.tabs.Tab[])
     await recordOpenLinks([[1, link("a")], [3, link("c")]])
@@ -55,7 +55,7 @@ describe("open links (TASK-72)", () => {
   })
 })
 
-describe("bestSameHostMatch (TASK-72)", () => {
+describe("bestSameHostMatch", () => {
   const space = (tabs: { id: string; url: string }[]): SavedSpace[] => [{ id: "s", name: "Work", order: 0, projects: [{ id: "p", name: "P", order: 0, categories: [{ id: "c", name: "C", order: 0, groups: [
     { id: "g", name: "Summer", order: 0, tabs: tabs.map((t, i) => ({ ...t, title: t.id, favicon: "", order: i })) },
   ] }] }] }]
@@ -89,7 +89,7 @@ describe("bestSameHostMatch (TASK-72)", () => {
   })
 })
 
-describe("updating a linked saved tab in place (TASK-72)", () => {
+describe("updating a linked saved tab in place", () => {
   const seed = () => yjs.setSpaces([{ id: "s", name: "Work", order: 0, projects: [{ id: "p", name: "P", order: 0, categories: [{ id: "c", name: "C", order: 0, groups: [
     { id: "g", name: "Summer", order: 0, tabs: [
       { id: "a", url: "https://anime.test/show/episode/1", title: "Show 1", favicon: "data:old", order: 0 },

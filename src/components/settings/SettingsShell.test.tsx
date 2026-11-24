@@ -20,7 +20,7 @@ vi.mock("./PlanTab", () => ({ PlanTab: () => <p>Plan &amp; billing content</p> }
 vi.mock("./TransactionsTab", () => ({ TransactionsTab: () => <p>Transactions content</p> }));
 vi.mock("./AccountTab", () => ({ ProfileTab: () => <p>Profile content</p>, SecurityTab: () => <p>Sign-in &amp; security content</p> }));
 
-// Signed in unless a test says otherwise: a guest's Settings has no account pages (TASK-84).
+// Signed in unless a test says otherwise: a guest's Settings has no account pages.
 beforeEach(() => { window.history.replaceState(null, "", "#/settings"); useAuthStore.setState({ isAuthenticated: true }); });
 
 // The narrow selector is ui/select (Radix); jsdom lacks the pointer-capture and scroll calls it makes.
@@ -34,7 +34,7 @@ beforeAll(() => {
 
 const selector = () => screen.getByRole("combobox", { name: "Settings section" });
 
-/** Topics made of two pages show the first one's content (TASK-84). */
+/** Topics made of two pages show the first one's content. */
 const CONTENT: Partial<Record<string, string>> = { saving: "Saving content", backup: "Sync content" };
 
 describe("compact settings navigation", () => {
@@ -67,7 +67,7 @@ describe("compact settings navigation", () => {
     expect(screen.queryByText("Backup content")).not.toBeInTheDocument();
   });
 
-  it("Escape leaves Settings, but not when a modal or menu already handled it (TASK-43)", () => {
+  it("Escape leaves Settings, but not when a modal or menu already handled it", () => {
     const back = vi.spyOn(window.history, "back").mockImplementation(() => {});
     render(<SettingsContent />);
     const handled = new KeyboardEvent("keydown", { key: "Escape", cancelable: true });
@@ -80,7 +80,7 @@ describe("compact settings navigation", () => {
     back.mockRestore();
   });
 
-  it("falls back to Theme for an unknown section, and sends links from before TASK-84 to their new topic", () => {
+  it("falls back to Theme for an unknown section, and sends links to old Settings pages to their new topic", () => {
     window.history.replaceState(null, "", "#/settings/unknown");
     const { unmount } = render(<SettingsContent />);
     expect(selector()).toHaveTextContent(SECTION_LABEL.theme);
@@ -95,7 +95,7 @@ describe("compact settings navigation", () => {
     }
   });
 
-  it("groups the topics under the same headings in the nav and in the narrow selector (TASK-84)", async () => {
+  it("groups the topics under the same headings in the nav and in the narrow selector", async () => {
     const user = userEvent.setup();
     render(<><SettingsNav /><SettingsContent /></>);
     for (const group of SETTINGS_GROUPS) {
@@ -113,7 +113,7 @@ describe("compact settings navigation", () => {
     expect(screen.queryByRole("tab")).not.toBeInTheDocument();
   });
 
-  it("hides the account pages from a guest and sends a guest's link to one to Theme (TASK-84)", async () => {
+  it("hides the account pages from a guest and sends a guest's link to one to Theme", async () => {
     const user = userEvent.setup();
     useAuthStore.setState({ isAuthenticated: false });
     window.history.replaceState(null, "", "#/settings/plan");
@@ -128,7 +128,7 @@ describe("compact settings navigation", () => {
     for (const id of ACCOUNT_ONLY) expect(screen.queryByRole("option", { name: SECTION_LABEL[id] })).not.toBeInTheDocument();
   });
 
-  it("a nav item's focus ring is its row's own box, not the link's (TASK-124)", () => {
+  it("a nav item's focus ring is its row's own box, not the link's", () => {
     render(<SettingsNav />);
     const link = screen.getByRole("link", { name: SECTION_LABEL.theme });
     expect(link).toHaveAttribute("data-row-label");
@@ -136,12 +136,12 @@ describe("compact settings navigation", () => {
     expect(link.closest("li")!.className).toContain("has-[[data-row-label]:focus-visible]:ring-1");
   });
 
-  it("shows the app version under the settings nav (TASK-15)", () => {
+  it("shows the app version under the settings nav", () => {
     render(<SettingsNav />);
     expect(screen.getByText(/^FlexTab v\d/)).toBeInTheDocument();
   });
 
-  it("is navigation, not tabs: each section is a link and the open one is the current page (TASK-28)", () => {
+  it("is navigation, not tabs: each section is a link and the open one is the current page", () => {
     window.location.hash = "#/settings/backup";
     render(<SettingsNav />);
     const nav = screen.getByRole("navigation", { name: "Settings" });
@@ -153,7 +153,7 @@ describe("compact settings navigation", () => {
     expect(screen.getByRole("link", { name: "Spaces" })).not.toHaveAttribute("aria-current");
   });
 
-  it("titles the section with a level-two heading under the nav's Settings (TASK-28)", () => {
+  it("titles the section with a level-two heading under the nav's Settings", () => {
     window.location.hash = "#/settings/spaces";
     render(<SettingsContent />);
     expect(screen.getByRole("heading", { level: 2, name: "Spaces" })).toBeInTheDocument();

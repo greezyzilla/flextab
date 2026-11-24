@@ -10,7 +10,7 @@ import { cn } from "~src/lib/utils"
 import { PANEL_HEADER, PANEL_LIST, PANEL_ROW, PANEL_ROW_LABEL } from "./panelChrome"
 import { PanelFooterSkeleton, RailSkeleton, skeletonHeight } from "./ShellSkeleton"
 
-/** localStorage copies of each Settings page's skeleton markup for boot/shell.js (TASK-108), by topic. */
+/** localStorage copies of each Settings page's skeleton markup for boot/shell.js, by topic. */
 export const SETTINGS_SKELETON_STORAGE_KEY = "flextab-settings-skeleton"
 
 /** Theme, Display and Layout: the previewer sits beside the controls (SettingsContent). */
@@ -21,7 +21,7 @@ const W = [72, 96, 60, 84, 108, 66]
 const w = (i: number) => W[i % W.length]
 
 /**
- * A Settings page while the new tab loads (TASK-108): the shell AppShell draws on a Settings route,
+ * A Settings page while the new tab loads: the shell AppShell draws on a Settings route,
  * at its real widths and lines: the rail, the Settings nav, and the open page's header, cards and
  * rows in the shape the page had when it was last seen (lib/settingsShape.ts), or its topic's
  * sample. Pure, so the boot copy and React's render are the same markup.
@@ -94,7 +94,7 @@ const TABS_GAP = 28
 
 /**
  * The page's section cards, stopping once they pass the bottom of the screen. `tabs`: the Spaces
- * page's strip of space tabs above them, one chip per space (TASK-125), drawn in the room recorded
+ * page's strip of space tabs above them, one chip per space, drawn in the room recorded
  * before the first card so the cards land where they did.
  */
 function Cards({ page, height, tabs }: { page: SettingsPageShape; height: number; tabs: number }) {
@@ -142,7 +142,7 @@ function Cards({ page, height, tabs }: { page: SettingsPageShape; height: number
 /** A SettingRow tile (label and description on the left, its control on the right) or another row's box. */
 function Row({ row, i }: { row: SettingsRowShape; i: number }) {
   if (row.tile === false) return <Skeleton width="100%" height={row.height} round="lg" tone="faint" />
-  // Arranged as SettingRow is (ft-setting-tile-skel, TASK-123): label over control until the row has
+  // Arranged as SettingRow is (ft-setting-tile-skel): label over control until the row has
   // 34rem, then side by side. The name bars never pass the room the control leaves them.
   return (
     <div className="rounded-lg bg-row" style={{ padding: TILE_PADDING }}>

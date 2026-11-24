@@ -29,7 +29,7 @@ const page: SettingsPageShape = {
 beforeEach(() => { document.documentElement.classList.add("density-comfortable") })
 afterEach(() => { cleanup(); localStorage.clear(); window.location.hash = ""; document.body.innerHTML = ""; document.documentElement.classList.remove("density-comfortable") })
 
-describe("the Settings page's loading shell (TASK-108)", () => {
+describe("the Settings page's loading shell", () => {
   it("draws the Settings nav for the user's groups with the open topic lit, and the page's cards and rows", () => {
     storeSettingsShape("display", page, true)
     const { container } = render(<SettingsSkeleton route="/settings/display" />)
@@ -51,7 +51,7 @@ describe("the Settings page's loading shell (TASK-108)", () => {
     expect(container.querySelectorAll(".mx-2.pl-1")).toHaveLength(6)
   })
 
-  it("the Spaces page draws its tab strip in the room before its first card, one chip per space (TASK-125)", () => {
+  it("the Spaces page draws its tab strip in the room before its first card, one chip per space", () => {
     localStorage.setItem("flextab-shell-shape", JSON.stringify({ spaces: 3, projects: [], active: null, content: null, windows: [] }))
     const spacesPage: SettingsPageShape = { ...page, cards: [{ ...page.cards[0], gapBefore: 77 }, page.cards[1]] }
     storeSettingsShape("spaces", spacesPage, true)

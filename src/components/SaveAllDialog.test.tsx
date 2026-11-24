@@ -79,7 +79,7 @@ describe("SaveAllDialog", () => {
     expect(screen.getByRole("button", { name: "Save 0 tabs" })).toBeDisabled()
   })
 
-  it("says before saving when it crosses the plan's sync cap, and still saves (TASK-9)", async () => {
+  it("says before saving when it crosses the plan's sync cap, and still saves", async () => {
     useAuthStore.setState({ isAuthenticated: true })
     usePlanStore.setState({ status: { plan: "free", limits: { max_tabs_total: 2 }, usage: { total_tabs: 0, tree_bytes: 0, snapshots: 0 } } as unknown as PlanStatus })
     render(<SaveAllDialog />)
@@ -93,7 +93,7 @@ describe("SaveAllDialog", () => {
     usePlanStore.setState({ status: null })
   })
 
-  it("saves with no spaces into a new Personal space (TASK-37)", async () => {
+  it("saves with no spaces into a new Personal space", async () => {
     yjs.setSpaces([])
     useSavedSpacesStore.setState({ savedSpaces: [], activeSpaceId: null, activeProjectId: null, activeCategoryId: null })
     render(<SaveAllDialog />)

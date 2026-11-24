@@ -11,13 +11,13 @@ export interface SavedTab {
 /**
  * Group metadata, stored in the API's existing group `config` field.
  * `kind: "unsorted"` marks the one system group per category that holds tabs
- * saved without a chosen group (TASK-20).
+ * saved without a chosen group.
  */
 export interface GroupConfig {
   kind?: "unsorted";
 }
 
-/** An optional group colour (TASK-18), the nine of Chrome's tab groups. */
+/** An optional group colour, the nine of Chrome's tab groups. */
 export type GroupColor = "grey" | "blue" | "red" | "yellow" | "green" | "pink" | "purple" | "cyan" | "orange";
 
 export interface SavedGroup {

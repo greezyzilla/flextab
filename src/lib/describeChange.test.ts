@@ -3,7 +3,7 @@ import { describeChange, stripSiteSuffix } from "./describeChange"
 
 const t = (title: string, url = "https://a.test/x") => ({ title, url })
 
-describe("describeChange (TASK-72)", () => {
+describe("describeChange", () => {
   it("names the show and the episode change, dropping shared site boilerplate", () => {
     expect(describeChange(
       t("Kusuriya no Hitorigoto Season 2 (Episode 01) Subtitle Indonesia - AnimeStream"),

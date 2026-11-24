@@ -1,4 +1,4 @@
-// The marks on the toolbar icon (TASK-78): every state the FlexTab button shows
+// The marks on the toolbar icon: every state the FlexTab button shows
 // is drawn into the icon itself, never as a browser badge, whose box, padding
 // and font the browser fixes (too big, and out of proportion with the icon).
 //
@@ -91,7 +91,7 @@ export function defaultIconPaths(): Record<string, string> {
 const drawn = new Map<string, Promise<Record<number, ImageData>>>()
 
 /**
- * The icon at every toolbar size, in the accent when the look asks for it (TASK-107), with `mark`
+ * The icon at every toolbar size, in the accent when the look asks for it, with `mark`
  * on it or none (the resting icon). Drawn once per worker per mark and look, retried after a failure.
  */
 export function markedIconImages(mark: ToolbarMark | null, look?: AppIconLook): Promise<Record<number, ImageData>> {
@@ -102,7 +102,9 @@ export function markedIconImages(mark: ToolbarMark | null, look?: AppIconLook): 
   const drawing = (async () => {
     const paths = defaultIconPaths()
     return Object.fromEntries(await Promise.all(ICON_SIZES.map(async (size) => {
-      let bitmap = await createImageBitmap(await (await fetch(chrome.runtime.getURL(paths[size]))).blob())
+      // getURL gets the path without its leading slash: Chrome drops it, but Firefox keeps it and
+      // nests the extension URL inside itself, so the fetch fails and the icon is never drawn.
+      let bitmap = await createImageBitmap(await (await fetch(chrome.runtime.getURL(paths[size].replace(/^\//, "")))).blob())
       try {
         if (tinted) {
           const recoloured = await createImageBitmap(drawTintedIcon(bitmap, size, tinted))

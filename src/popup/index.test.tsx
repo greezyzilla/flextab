@@ -21,7 +21,7 @@ const groups = (cat = 0) => yjs.getSpaces()[0].projects[0].categories[cat].group
 const storedGroups = (cat = 0) => yjs.decodeSpacesFromStorage(disk[yjs.PERSIST_KEY])[0].projects[0].categories[cat].groups;
 // The one quiet alternative, or the group itself to change it.
 const pickAction = async (name: string | RegExp) => { fireEvent.click(await screen.findByRole("button", { name })); };
-// Opening writes nothing (TASK-75): saving is the "Save to <group>" row.
+// Opening writes nothing: saving is the "Save to <group>" row.
 const saveIt = async () => { await screen.findByText(/^Not saved|^Not in FlexTab|^Save a copy$/); await pickAction(/^Save (a copy )?to /); await screen.findByText(/^Saved to/); };
 const windowTabs = (tabs: Partial<chrome.tabs.Tab>[]) => vi.mocked(chrome.tabs.query).mockResolvedValue(tabs as chrome.tabs.Tab[]);
 
@@ -47,7 +47,7 @@ beforeEach(async () => {
   windowTabs([{ id: 1, windowId: 9, index: 0, active: true, title: "Example", url: "https://example.com" }]);
 });
 
-describe("popup widget (TASK-75)", () => {
+describe("popup widget", () => {
   it("shows recovery instead of saving when workspace storage is corrupt", async () => {
     disk[yjs.PERSIST_KEY] = [255];
     render(<Popup />);
@@ -88,7 +88,7 @@ describe("popup widget (TASK-75)", () => {
     expect(screen.getByRole("button", { name: "Save to Unsorted" })).toBeDisabled();
     await act(async () => { finish(); });
     expect(await screen.findByText(/^Saved to/)).toBeInTheDocument();
-    // One main landmark with a level-one heading (TASK-28).
+    // One main landmark with a level-one heading.
     expect(screen.getByRole("main")).toContainElement(screen.getByRole("heading", { level: 1, name: "FlexTab" }));
     expect(screen.getByLabelText("Space › Project › Category › Unsorted")).toBeInTheDocument();
     const savedId = storedGroups()[0].id;
@@ -404,7 +404,7 @@ describe("popup widget (TASK-75)", () => {
   });
 });
 
-describe("popup access (TASK-3, TASK-7)", () => {
+describe("popup access", () => {
   it("saves on a fresh signed-out install; signing in is not part of saving a page", async () => {
     useAuthStore.setState({ isAuthenticated: false });
     render(<Popup />);
@@ -428,7 +428,7 @@ describe("popup access (TASK-3, TASK-7)", () => {
 });
 
 
-describe("popup update of a saved tab that moved on (TASK-72, TASK-75)", () => {
+describe("popup update of a saved tab that moved on", () => {
   const show = (n: number, id = `t${n}`) => ({ id, url: `https://anime.test/show/episode/${n}`, title: `Show (Episode 0${n}) - AnimeStream`, favicon: "", order: 0 })
   const seed = async (extra: SavedTab[] = []) => {
     yjs.setSpaces([{ ...tree()[0], projects: [{ ...tree()[0].projects[0], categories: [{ id: "c", name: "Category", order: 0, groups: [

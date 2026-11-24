@@ -20,7 +20,7 @@ import { fieldMerge } from "./settingsSync";
 const base = { groupLayout: "grid", gridColumns: 3, density: "cozy", hue: 214, intensity: 100, titleCut: 50, linkCut: 50, linkCutScope: "all", tabPreview: "hover", iconWeight: "regular", autoSync: true } as const;
 
 describe("settings fieldMerge (field-level 3-way)", () => {
-  it("carries where titles and links are cut between devices; an account without them keeps this device's (TASK-71)", () => {
+  it("carries where titles and links are cut between devices; an account without them keeps this device's", () => {
     expect(fieldMerge(base, { ...base, titleCut: 80, linkCut: 0 }, { ...base })).toMatchObject({ titleCut: 80, linkCut: 0 })
     const { titleCut: _t, linkCut: _l, ...older } = base
     expect(fieldMerge(base, older, { ...base, titleCut: 25 })).toMatchObject({ titleCut: 25, linkCut: 50 })

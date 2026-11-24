@@ -24,7 +24,7 @@ export async function automaticPushAllowed(): Promise<boolean> {
 
 // A page asks the worker to upload now. The worker otherwise uploads only when
 // the local document changes, so a resolution that keeps the document as it is
-// (e.g. continuing past the over-cap notice, TASK-33) would wait for the
+// (e.g. continuing past the over-cap notice) would wait for the
 // 5-minute retry alarm and show a normal sync state in the meantime.
 export const PUSH_REQUEST_KEY = "flextab_push_request";
 
@@ -32,7 +32,7 @@ export async function requestPush(): Promise<void> {
   try { await chrome.storage.local.set({ [PUSH_REQUEST_KEY]: Date.now() }); } catch { /* the alarm still retries */ }
 }
 
-// The next upload is the user's answer to a sync conflict (TASK-67). The worker
+// The next upload is the user's answer to a sync conflict. The worker
 // uploads it later, so the mark is stored: the push carries `resolution: true`,
 // and the server keeps the account's tree it replaces as its own version.
 // Cleared once a push carrying it lands; a failed push keeps it for the retry.

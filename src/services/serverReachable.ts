@@ -1,5 +1,5 @@
 /**
- * "The API server just answered" signal (TASK-63).
+ * "The API server just answered" signal.
  *
  * The realtime socket backs off up to 5 minutes while the server is down, so
  * after the server comes back it can wait that long to reconnect. Any HTTP

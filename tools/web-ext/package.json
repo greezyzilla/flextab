@@ -1,7 +1,7 @@
 {
   "name": "flextab-web-ext",
   "private": true,
-  "description": "Mozilla's web-ext, kept apart from the extension's own dependency tree (TASK-112). Every package in its lockfile was published at least 7 days before it was added.",
+  "description": "Mozilla's web-ext, kept apart from the extension's own dependency tree. Every package in its lockfile was published at least 7 days before it was added.",
   "devDependencies": {
     "web-ext": "10.8.0"
   }

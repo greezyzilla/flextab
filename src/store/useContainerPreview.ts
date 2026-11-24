@@ -2,10 +2,10 @@ import { create } from "zustand"
 import type { Edge } from "~src/services/moveTo"
 
 /**
- * A project or category dragged within its own parent (TASK-92): the sibling it
+ * A project or category dragged within its own parent: the sibling it
  * would land next to, and on which side. The sidebar shows the list in that
  * order while dragging (the rows move aside, its own slot dimmed where it will
- * land), and the drop commits exactly this, as Opened Tabs does (TASK-73).
+ * land), and the drop commits exactly this, as Opened Tabs does.
  */
 export interface ContainerPreview { kind: "project" | "category"; id: string; next: string; edge: Edge }
 

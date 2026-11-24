@@ -1,5 +1,5 @@
 /**
- * What changes when a saved tab is pointed at a new page (TASK-72), said the
+ * What changes when a saved tab is pointed at a new page, said the
  * way a person reads it: "Kusuriya no Hitorigoto Season 2: Episode 01 →
  * Episode 02", not two near-identical full titles to compare in your head.
  *

@@ -4,7 +4,7 @@ import { cn } from "~src/lib/utils"
 import { Icon, type IconSize } from "~src/components/ui/icon"
 
 /**
- * The check of a finished moment (TASK-96): lucide's Check, revealed once from
+ * The check of a finished moment: lucide's Check, revealed once from
  * left to right when it mounts (style.css `ft-done-check`), so it reads as
  * written, short stroke first, and a result that just happened reads as new.
  * The same check everywhere a thing finished: a step's tile, a settings row's

@@ -11,7 +11,7 @@ export function currentDensity(): Density {
 }
 
 /**
- * The shape of each Settings page as it was last seen (TASK-108), so the loading shell draws the
+ * The shape of each Settings page as it was last seen, so the loading shell draws the
  * page that is coming instead of the workspace. Like lib/shellShape: sizes and counts only, never a
  * label or a value.
  *

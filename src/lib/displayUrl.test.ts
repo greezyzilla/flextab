@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { fitLink, fitMiddle, fitTail, hasClippedText, splitDisplayUrl } from "./displayUrl"
 
-describe("splitDisplayUrl (TASK-54)", () => {
+describe("splitDisplayUrl", () => {
   it("splits host and the rest, which together are the URL without its scheme", () => {
     const url = "https://v18.animestream.test/anime/2873/mikata/episode/1?t=3#c"
     const parts = splitDisplayUrl(url)!
@@ -25,7 +25,7 @@ describe("splitDisplayUrl (TASK-54)", () => {
   })
 })
 
-describe("fitTail (TASK-54)", () => {
+describe("fitTail", () => {
   // 6px per character, ellipsis included.
   const suffix = (rest: string) => (i: number) => (rest.length - i) * 6
   it("keeps the rest whole when it fits", () => {
@@ -49,7 +49,7 @@ describe("fitTail (TASK-54)", () => {
   })
 })
 
-describe("fitMiddle (TASK-54 titles)", () => {
+describe("fitMiddle (titles)", () => {
   const w = (from: number, to: number) => (to - from) * 6 // 6px per character
   it("keeps a title that fits", () => {
     expect(fitMiddle("Short title", 200, w, 6)).toEqual({ text: "Short title", cut: false })
@@ -64,7 +64,7 @@ describe("fitMiddle (TASK-54 titles)", () => {
     expect(Math.abs(start.length - end.length)).toBeLessThanOrEqual(2)
     expect(r.text.length * 6).toBeLessThanOrEqual(120)
   })
-  it("puts the ellipsis where the start share says (TASK-71): 0 keeps the end, 1 the start", () => {
+  it("puts the ellipsis where the start share says: 0 keeps the end, 1 the start", () => {
     const t = "[BD] Black Clover: Mahou Tei no Ken (BD) Episode 2 Subtitle Indonesia - Kuramanime"
     const at = (share: number) => fitMiddle(t, 120, w, 6, share).text
     expect(at(0).startsWith("…")).toBe(true)
@@ -109,7 +109,7 @@ describe("hasClippedText", () => {
   })
 })
 
-describe("fitLink: which part of a link gives way (TASK-71)", () => {
+describe("fitLink: which part of a link gives way", () => {
   const w = (from: number, to: number) => (to - from) * 6 // 6px per character
   const host = "www.rat-mart.com", rest = "/blog/scam-is-a-scam", full = host + rest // 16 + 20 characters
   it("leaves a link that fits alone", () => {

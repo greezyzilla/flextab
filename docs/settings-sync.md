@@ -1,7 +1,7 @@
 # Account settings sync lifecycle
 
-DAT-17 and DAT-18, 2026-10-20. This service syncs the six account preferences (layout,
-columns, density, hue, intensity, Auto-sync), independently of workspace sync.
+This service syncs the six account preferences (layout, columns, density, hue,
+intensity, Auto-sync), independently of workspace sync.
 
 ## Session ownership
 
@@ -25,7 +25,7 @@ columns, density, hue, intensity, Auto-sync), independently of workspace sync.
 - Empty-account seeding records its base only after a successful PUT belonging
   to the same session. A stale seed acknowledgement cannot replace a newer base.
 
-## Edits while requests are pending (DAT-18)
+## Edits while requests are pending
 
 - Startup pull captures the local snapshot before waiting for the lock/GET.
   When the response arrives, fields changed since that snapshot keep their
@@ -51,10 +51,9 @@ columns, density, hue, intensity, Auto-sync), independently of workspace sync.
 ## Verification
 
 `settingsSync.integration.test.ts` exercises the real settings store and service
-with deferred API responses, auth-state changes and simulated lock queues.
-Six initial cases failed before the repair: old pulls (empty/populated), push
-GET, push acknowledgement, same-account relogin and stop during pull.
-Additional cases cover lock queues, stale retries, already-dispatched timers,
+with deferred API responses, auth-state changes and simulated lock queues. It
+covers old pulls (empty/populated), push GET, push acknowledgement, same-account
+relogin, stop during pull, lock queues, stale retries, already-dispatched timers,
 seed acknowledgement, unknown identity and same-ID profile refresh.
 
 `newtab/index.test.tsx` verifies startup after profile identity, restart on ID
@@ -62,9 +61,8 @@ change, no restart on same-ID refresh, and stop on logout/unmount.
 `useAuthStore.test.ts` verifies clearing old identity during successful and
 failed profile loads after accepting new login credentials.
 
-DAT-18 adds 11 settings service cases. Four initial cases failed before the
-repair: startup pull, edits during push GET, acknowledgement with independent
-remote changes, and local revert during PUT. Additional cases exercise
+The settings service tests cover startup pull, edits during push GET,
+acknowledgement with independent remote changes, local revert during PUT,
 acknowledgement without remote changes, queued writes without Web Locks,
 first-account seeding, edits while waiting for a lock, failed PUT with and
 without remote commit, and avoiding a redundant debounce after slow GET.
@@ -80,10 +78,10 @@ change. Token replacements not reflected in this page's auth store and stale
 competing `/me` responses remain separate lifecycle concerns. Browser Web Locks
 coordinate normal login/logout paths; environments
 without Web Locks retain the existing fallback, with generation checks but no
-cross-context serialization (the new queue only serializes settings in one
-page). The merge base and unconfirmed-field markers are in memory, not a durable
-outbox across page closure/reload. Settings still use server last-write-wins;
-this does not add cross-device revision checks. Local edit detection compares
+cross-context serialization (the queue only serializes settings in one page).
+The merge base and unconfirmed-field markers are in memory, not a durable
+outbox across page closure/reload. Settings use server last-write-wins, with no
+cross-device revision checks. Local edit detection compares
 field values at request boundaries, not a log of every intermediate gesture.
 Tests use synthetic accounts and mocked HTTP, not production sign-in or native
 multi-page browser sessions.

@@ -177,7 +177,7 @@ describe('startSyncEngine', () => {
     expect(gs.find(g => g.id === 'x')!.config).toBeUndefined();
   });
 
-  it('keeps a palette group colour from the server and drops an unknown one (TASK-18)', async () => {
+  it('keeps a palette group colour from the server and drops an unknown one', async () => {
     const srv: any = beSpace('srv', [{ id: 't1' }]);
     srv.projects[0].categories[0].groups[0].color = 'red';
     srv.projects[0].categories[0].groups.push(
@@ -232,7 +232,7 @@ describe('startSyncEngine', () => {
   });
 });
 
-describe('over-cap first sign-in (TASK-33)', () => {
+describe('over-cap first sign-in', () => {
   beforeEach(() => {
     usePlanStore.getState().clear();
     useOverCapNotice.getState().close();
@@ -269,7 +269,7 @@ describe('over-cap first sign-in (TASK-33)', () => {
     expect(useOverCapNotice.getState().pending).toBe(false);
   });
 
-  it('Got it answers a notice, not a conflict: the upload is not marked as a resolution (TASK-67)', async () => {
+  it('Got it answers a notice, not a conflict: the upload is not marked as a resolution', async () => {
     await startSyncEngine();
     await flush();
     acknowledgeOverCap();
@@ -277,7 +277,7 @@ describe('over-cap first sign-in (TASK-33)', () => {
     expect(chrome.storage.local.set).not.toHaveBeenCalledWith({ flextab_resolution_push: expect.any(Number) });
   });
 
-  it('retries a failed plan load once and still shows the notice (TASK-33 AC #5)', async () => {
+  it('retries a failed plan load once and still shows the notice', async () => {
     vi.useFakeTimers();
     try {
       (apiGetPlan as any).mockRejectedValueOnce(new Error('blip'));
@@ -370,7 +370,7 @@ describe('conflict flow', () => {
     expect(FakeWS.instances).toHaveLength(1);
   });
 
-  it('resolveConflict("local") asks the worker to upload, since the document is unchanged (TASK-39)', async () => {
+  it('resolveConflict("local") asks the worker to upload, since the document is unchanged', async () => {
     await startSyncEngine();
     await flush();
     resolveConflict('local');
@@ -379,7 +379,7 @@ describe('conflict flow', () => {
     expect(chrome.storage.local.set).toHaveBeenCalledWith({ flextab_push_request: expect.any(Number) });
   });
 
-  it.each(['merge', 'server', 'local'] as const)('resolveConflict("%s") marks the upload as a resolution (TASK-67)', async (choice) => {
+  it.each(['merge', 'server', 'local'] as const)('resolveConflict("%s") marks the upload as a resolution', async (choice) => {
     await startSyncEngine();
     await flush();
     resolveConflict(choice);
@@ -511,12 +511,12 @@ describe('realtime + lifecycle', () => {
     expect(useSyncStore.getState().status).toBe('offline');
   });
 
-  it('carries the client version and channel in the socket URL (TASK-114)', async () => {
+  it('carries the client version and channel in the socket URL', async () => {
     await connect();
     expect(FakeWS.instances[0].url).toMatch(/[?&]client_version=[^&]+&client_channel=dev/);
   });
 
-  it('records a too-old close (4426) and does not reconnect (TASK-114)', async () => {
+  it('records a too-old close (4426) and does not reconnect', async () => {
     await connect();
     vi.useFakeTimers();
     try {
@@ -528,7 +528,7 @@ describe('realtime + lifecycle', () => {
     } finally { vi.useRealTimers(); }
   });
 
-  it('records a too-old close without a reason (TASK-114)', async () => {
+  it('records a too-old close without a reason', async () => {
     await connect();
     vi.mocked(chrome.storage.local.set).mockClear();
     FakeWS.instances[0].onclose?.({ code: 4426, reason: undefined as unknown as string });
@@ -543,7 +543,7 @@ describe('realtime + lifecycle', () => {
     expect(FakeWS.instances).toHaveLength(1); // no new socket scheduled
   });
 
-  it('does not open a socket while the browser is offline, and opens one on the online event (TASK-63)', async () => {
+  it('does not open a socket while the browser is offline, and opens one on the online event', async () => {
     const onLine = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
     try {
       (apiFetch as any).mockResolvedValue({ spaces: [], revision: 1 });
@@ -558,7 +558,7 @@ describe('realtime + lifecycle', () => {
     } finally { onLine.mockRestore(); }
   });
 
-  it('drops the socket and the retry on the offline event, so nothing is attempted offline (TASK-63)', async () => {
+  it('drops the socket and the retry on the offline event, so nothing is attempted offline', async () => {
     await connect();
     vi.useFakeTimers();
     const onLine = vi.spyOn(navigator, 'onLine', 'get');
@@ -577,7 +577,7 @@ describe('realtime + lifecycle', () => {
     } finally { onLine.mockRestore(); vi.useRealTimers(); }
   });
 
-  it('backs off with jitter up to 5 minutes while the server stays unreachable (TASK-63)', async () => {
+  it('backs off with jitter up to 5 minutes while the server stays unreachable', async () => {
     await connect();
     await flush(); // let the reconcile that runs on open finish first
     vi.useFakeTimers();
@@ -600,7 +600,7 @@ describe('realtime + lifecycle', () => {
     } finally { random.mockRestore(); vi.useRealTimers(); }
   });
 
-  it('a socket that drops while the browser is offline waits for the online event, not a timer (TASK-63)', async () => {
+  it('a socket that drops while the browser is offline waits for the online event, not a timer', async () => {
     await connect();
     vi.useFakeTimers();
     const onLine = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
@@ -615,7 +615,7 @@ describe('realtime + lifecycle', () => {
     } finally { onLine.mockRestore(); vi.useRealTimers(); }
   });
 
-  it('does not open the socket if the browser went offline while the token loaded (TASK-63)', async () => {
+  it('does not open the socket if the browser went offline while the token loaded', async () => {
     (apiFetch as any).mockResolvedValue({ spaces: [], revision: 0 });
     const onLine = vi.spyOn(navigator, 'onLine', 'get');
     try {
@@ -631,7 +631,7 @@ describe('realtime + lifecycle', () => {
     } finally { onLine.mockRestore(); }
   });
 
-  it('the online event retries a waiting socket at once, from a fresh backoff (TASK-63)', async () => {
+  it('the online event retries a waiting socket at once, from a fresh backoff', async () => {
     await connect();
     await flush();
     vi.useFakeTimers();
@@ -648,7 +648,7 @@ describe('realtime + lifecycle', () => {
     } finally { vi.useRealTimers(); }
   });
 
-  it('retries a waiting socket as soon as the server answers over HTTP, once per outage (TASK-63)', async () => {
+  it('retries a waiting socket as soon as the server answers over HTTP, once per outage', async () => {
     await connect();
     await flush();
     vi.useFakeTimers();
@@ -676,7 +676,7 @@ describe('realtime + lifecycle', () => {
     } finally { vi.useRealTimers(); }
   });
 
-  it('a server answer does nothing while the socket is open or no retry is waiting (TASK-63)', async () => {
+  it('a server answer does nothing while the socket is open or no retry is waiting', async () => {
     await connect();
     noteServerResponse(200);
     await flush();
@@ -690,7 +690,7 @@ describe('realtime + lifecycle', () => {
     } finally { onLine.mockRestore(); }
   });
 
-  it('retries a waiting socket when the page becomes visible, at most every 30 s (TASK-63)', async () => {
+  it('retries a waiting socket when the page becomes visible, at most every 30 s', async () => {
     await connect();
     await flush();
     vi.useFakeTimers();
@@ -719,7 +719,7 @@ describe('realtime + lifecycle', () => {
     } finally { visibility.mockRestore(); vi.useRealTimers(); }
   });
 
-  it('network events open nothing while auto-sync is off (manual sync) (TASK-63)', async () => {
+  it('network events open nothing while auto-sync is off (manual sync)', async () => {
     useSettingsStore.setState({ autoSync: false });
     (apiFetch as any).mockResolvedValue({ spaces: [], revision: 1 });
     await startSyncEngine();
@@ -832,7 +832,7 @@ describe('syncNow', () => {
     (apiFetch as any).mockResolvedValue({ spaces: [], revision: 1 });
     (pushSync as any).mockResolvedValue({ status, message: 'Quota reached' });
     expect(await syncNow()).toEqual(status === 'limit' ? { status, message: 'Quota reached' } : { status });
-    // A limit is kept as the lasting "Sync paused" state (TASK-9).
+    // A limit is kept as the lasting "Sync paused" state.
     if (status === 'limit') expect(chrome.storage.local.set).toHaveBeenCalledWith({ flextab_limit_notice: expect.objectContaining({ message: 'Quota reached' }) });
     expect(getSpaces()).toEqual(local);
     expect(useSyncStore.getState().dirty).toBe(true);
@@ -840,7 +840,7 @@ describe('syncNow', () => {
     expect(FakeWS.instances).toHaveLength(0);
   });
 
-  it('keeps both versions of a tab address when asked (TASK-29)', async () => {
+  it('keeps both versions of a tab address when asked', async () => {
     const tab = (url: string) => ({ id: 't1', url, title: 'PR', favicon: '', order: 0 });
     const tree = (url: string) => [{ ...localSpace('s'), projects: [{ id: 'sp', name: 'P', order: 0, categories: [{ id: 'sc', name: 'C', order: 0, groups: [{ id: 'sg', name: 'G', order: 0, tabs: [tab(url)] }] }] }] }];
     const base = tree('https://x/1'), server = tree('https://x/88'), local = tree('https://x/91');
@@ -854,7 +854,7 @@ describe('syncNow', () => {
     await vi.waitFor(() => expect(getSpaces()[0].projects[0].categories[0].groups[0].tabs.map(t => t.url)).toEqual(['https://x/91', 'https://x/88']));
   });
 
-  it("marks the per-item resolution upload, so the account's version stays in history (TASK-67)", async () => {
+  it("marks the per-item resolution upload, so the account's version stays in history", async () => {
     const tab = (url: string) => ({ id: 't1', url, title: 'PR', favicon: '', order: 0 });
     const tree = (url: string) => [{ ...localSpace('s'), projects: [{ id: 'sp', name: 'P', order: 0, categories: [{ id: 'sc', name: 'C', order: 0, groups: [{ id: 'sg', name: 'G', order: 0, tabs: [tab(url)] }] }] }] }];
     const base = tree('https://x/1'), server = tree('https://x/88'), local = tree('https://x/91');
@@ -881,7 +881,7 @@ describe('syncNow', () => {
     expect(useSyncConflict.getState().pending).toBe(true);
   });
 
-  it('asks before tabs kept from an earlier sign-out go into an empty account (TASK-11)', async () => {
+  it('asks before tabs kept from an earlier sign-out go into an empty account', async () => {
     useSettingsStore.setState({ autoSync: false });
     setSpaces([localSpace('previous-account', [{ id: 'p' }])]);
     const flags: Record<string, boolean> = { flextab_fresh_login: true, flextab_kept_on_signout: true };
@@ -895,7 +895,7 @@ describe('syncNow', () => {
     expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_kept_on_signout');
   });
 
-  it('asks about kept tabs even when the fresh-login flag was lost (TASK-11)', async () => {
+  it('asks about kept tabs even when the fresh-login flag was lost', async () => {
     useSettingsStore.setState({ autoSync: false });
     setSpaces([localSpace('previous-account', [{ id: 'p' }])]);
     (chrome.storage.local.get as any).mockImplementation(async (key: string) => key === 'flextab_kept_on_signout' ? { flextab_kept_on_signout: true } : {});

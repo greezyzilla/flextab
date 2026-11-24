@@ -2,7 +2,7 @@ import { useEffect } from "react"
 import { REVEAL_REQUEST_KEY, takeRevealRequest } from "~src/services/reveal"
 
 /**
- * The dashboard side of the popup's "Open in FlexTab" (TASK-75): reveal a
+ * The dashboard side of the popup's "Open in FlexTab": reveal a
  * request addressed to this tab, whether it was left before this page loaded
  * or arrives while it is open. Waits for the workspace (`ready`) so the
  * place it points at exists.

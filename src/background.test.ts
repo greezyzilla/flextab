@@ -115,7 +115,7 @@ describe("production background push", () => {
     expect(disk.flextab_push_pending).toBeUndefined();
   });
 
-  it("keeps a plan-limit rejection until a push lands, and retries when asked to recheck (TASK-9)", async () => {
+  it("keeps a plan-limit rejection until a push lands, and retries when asked to recheck", async () => {
     await edit([space("big")]);
     vi.mocked(api.pushSync).mockResolvedValueOnce({ status: "limit", message: "total tab limit reached (190/150) on the free plan", limit: "max_tabs_total", cap: 150, got: 190 });
     await background.pushStructuredData();
@@ -128,7 +128,7 @@ describe("production background push", () => {
     expect(api.pushSync).toHaveBeenCalledTimes(2);
   });
 
-  it("uploads now when a page asks, without a new edit (TASK-33)", async () => {
+  it("uploads now when a page asks, without a new edit", async () => {
     await edit([space("first")]);
     await vi.advanceTimersByTimeAsync(5000);
     vi.mocked(api.pushSync).mockClear();
@@ -341,7 +341,7 @@ it("does not accept raw callback credentials through tabs.onUpdated", async () =
   expect(chrome.tabs.remove).not.toHaveBeenCalled();
 });
 
-describe("background push without access to the server (TASK-112)", () => {
+describe("background push without access to the server", () => {
   it("keeps the change pending while access is off and pushes once it is back", async () => {
     apiAllowed = false;
     await edit([space("kept")]);
@@ -358,7 +358,7 @@ describe("background push without access to the server (TASK-112)", () => {
   });
 });
 
-describe("background push for a version the server refused (TASK-114)", () => {
+describe("background push for a version the server refused", () => {
   it("holds the push, pending flag kept, while an update is required", async () => {
     disk.flextab_update_required = { minVersion: "0.2.0", at: 1 };
     await edit([space("kept")]);

@@ -126,14 +126,14 @@ export function parseBoundaryDrop(overId: string): BoundaryDropTarget | null {
   return null
 }
 
-// --- Dragging a project or a category (TASK-59) ---
+// --- Dragging a project or a category ---
 
 export type ContainerDrag =
   | { kind: "space"; spaceId: string }
   | { kind: "project"; spaceId: string; projectId: string }
   | { kind: "category"; spaceId: string; projectId: string; categoryId: string }
 
-/** A rail space dragged to a new place in the rail (TASK-66). */
+/** A rail space dragged to a new place in the rail. */
 export const spaceDragId = (spaceId: string) => `space-drag:${spaceId}`
 
 export const projectDragId = (spaceId: string, projectId: string) => `proj-drag:${spaceId}:${projectId}`
@@ -164,9 +164,9 @@ export function containerDropTarget(drag: ContainerDrag, overId: string): Contai
 }
 
 /**
- * A row of the same parent: dropping next to it reorders (TASK-64). A project
+ * A row of the same parent: dropping next to it reorders. A project
  * next to another project of its space; a category next to another category
- * of its project. Rows of other parents keep moving the item (TASK-59).
+ * of its project. Rows of other parents keep moving the item.
  */
 export function containerReorderTarget(drag: ContainerDrag, overId: string): string | null {
   const zone = parseBoundaryDrop(overId)
@@ -182,7 +182,7 @@ export function containerReorderTarget(drag: ContainerDrag, overId: string): str
     zone.projectId === drag.projectId && zone.categoryId !== drag.categoryId ? zone.categoryId : null
 }
 
-/** The drop zone of a project or category row next to the dragged one, in its parent (TASK-92). */
+/** The drop zone of a project or category row next to the dragged one, in its parent. */
 export function containerZone(drag: Extract<ContainerDrag, { kind: "project" | "category" }>, id: string): string {
   return drag.kind === "project" ? `proj-drop:${drag.spaceId}:${id}` : `cat-drop:${drag.spaceId}:${drag.projectId}:${id}`
 }
@@ -204,7 +204,7 @@ export function containerMeets(drag: ContainerDrag, overId: string): boolean {
 
 /**
  * Move a dropped project or category: next to a row of its own parent it is
- * reordered (`edge` says which side), elsewhere it moves (TASK-59). Returns
+ * reordered (`edge` says which side), elsewhere it moves. Returns
  * the Undo toast's text and action, or null when nothing changed.
  */
 export function applyContainerDrop(drag: ContainerDrag, overId: string, edge: Edge = "after"): { message: string; undo: () => void } | null {
@@ -253,7 +253,7 @@ async function saveOpenBrowserTab(
   groupId: string,
   order: number,
 ): Promise<OpenTabSaved> {
-  // Other places this URL is already saved, read before saving (TASK-4).
+  // Other places this URL is already saved, read before saving.
   const alsoIn = savedElsewhere(useSavedSpacesStore.getState().savedSpaces, [tab.url], groupId).map((l) => l.path)
   const favicon = await faviconToDataUrl(tab.favIconUrl || "", tab.url)
   const savedTab: SavedTab = {
@@ -310,7 +310,7 @@ export function resolveOverGroupId(spaces: SavedSpace[], overId: string): string
  * a project's categories at once), so targets are located in the tree rather
  * than assumed to be in the active category.
  *
- * A drop onto a space / project / category always lands (TASK-20): missing
+ * A drop onto a space / project / category always lands: missing
  * levels get default items and tabs go to that category's Unsorted group.
  * Returns `{ unsavable }` when an open tab isn't a savable web page (checked
  * before anything is created, so a rejected drop leaves nothing behind).

@@ -13,7 +13,7 @@ export function showUndoToast(message: string, onUndo: () => void, timeout = 500
 
 /**
  * Mount once at the app root. The toaster follows the app's own mode (System / Light / Dark), and
- * every colour comes from the theme tokens, never sonner's built-in palette (TASK-38):
+ * every colour comes from the theme tokens, never sonner's built-in palette:
  * - the description is fg-muted (>= 4.5:1 on every surface, one step below the title);
  * - the action is a text button in accent-text (>= 4.74:1 at every hue), like a Material snackbar
  *   action or Gmail's Undo. White on the accent fill measured 3.8-4.0:1.
@@ -25,7 +25,7 @@ export function Toaster() {
       theme={theme}
       position="bottom-center"
       gap={8}
-      // A success toast is a finished moment: the same self-drawing check as everywhere else (TASK-96).
+      // A success toast is a finished moment: the same self-drawing check as everywhere else.
       icons={{ success: <DoneCheck className="text-success" /> }}
       toastOptions={{
         classNames: {

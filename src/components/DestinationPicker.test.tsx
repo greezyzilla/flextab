@@ -38,7 +38,7 @@ function Panel({ start, groupLevel = true }: { start: PickerValue; groupLevel?: 
 }
 const expanded = (name: string) => screen.getByRole("button", { name }).getAttribute("aria-expanded")
 
-describe("DestinationPicker panel size (TASK-72)", () => {
+describe("DestinationPicker panel size", () => {
   it("opens only the current destination's branch; a header folds or opens its own", () => {
     render(<TooltipProvider><Panel start={{ spaceId: "sw", projectId: "pw", categoryId: "ca", groupId: "g1" }} /></TooltipProvider>)
     expect([expanded("Work"), expanded("Watch"), expanded("Anime"), expanded("Frontend"), expanded("Personal")])

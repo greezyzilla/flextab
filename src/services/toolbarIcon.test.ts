@@ -178,7 +178,7 @@ describe("installToolbarIcon", () => {
     listener<(i: { tabId: number }) => void>(chrome.tabs.onActivated)({ tabId: 6 })
   })
 
-  it("repaints a tab whenever it navigates, a reload included, in front or behind; not for other changes (TASK-107)", async () => {
+  it("repaints a tab whenever it navigates, a reload included, in front or behind; not for other changes", async () => {
     const onUpdated = listener<(id: number, c: chrome.tabs.TabChangeInfo, t: chrome.tabs.Tab) => void>(chrome.tabs.onUpdated)
     await vi.waitFor(() => expect(iconOf(1)).toBe("saved"))
     vi.mocked(chrome.action.setIcon).mockClear()
@@ -194,7 +194,7 @@ describe("installToolbarIcon", () => {
     expect(chrome.action.setIcon).not.toHaveBeenCalled()
   })
 
-  it("keeps the default icon, the one a cleared tab falls back to, in the app icon's look (TASK-107)", async () => {
+  it("keeps the default icon, the one a cleared tab falls back to, in the app icon's look", async () => {
     const defaults = () => (vi.mocked(chrome.action.setIcon).mock.calls as unknown as [Record<string, unknown>][]).filter(([d]) => d.tabId === undefined).map(([d]) => d)
     await vi.waitFor(() => expect(defaults().at(-1)).toEqual({ path: PLAIN }))
     const onChanged = listener<(c: Record<string, { newValue?: unknown }>, area: string) => void>(chrome.storage.onChanged)
@@ -220,7 +220,7 @@ describe("installToolbarIcon", () => {
     await vi.waitFor(() => expect(iconOf(1)).toBe("plain"))
   })
 
-  it("repaints in the accent when the app icon's look changes, and back to the manifest blue (TASK-107)", async () => {
+  it("repaints in the accent when the app icon's look changes, and back to the manifest blue", async () => {
     const onChanged = listener<(c: Record<string, { newValue?: unknown }>, area: string) => void>(chrome.storage.onChanged)
     vi.mocked(chrome.tabs.query).mockResolvedValue([tab(2, "https://height.app/")] as never)
     const green = { hue: 145, intensity: 100, appIcon: "accent" }

@@ -5,7 +5,7 @@ import { useRevealRequests } from "~src/hooks/useRevealRequests"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 import { useUIStore } from "~src/store/useUIStore"
 
-// The popup's "Open in FlexTab" (TASK-75).
+// The popup's "Open in FlexTab".
 const target = { spaceId: "s2", projectId: "p2", categoryId: "c2", flash: { kind: "tab" as const, id: "t9" } }
 const page = "chrome-extension://test/newtab.html"
 

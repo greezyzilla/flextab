@@ -4,7 +4,7 @@ import { Check } from "lucide-react"
 import { Icon } from "~src/components/ui/icon"
 
 /**
- * The popup's 44px tile for the page in front (TASK-103.5): its favicon at 22px (an <img> child is
+ * The popup's 44px tile for the page in front: its favicon at 22px (an <img> child is
  * sized here, whatever its own default) or a state icon, on a faint square. `done` adds the green
  * check on the corner: the page is saved.
  */

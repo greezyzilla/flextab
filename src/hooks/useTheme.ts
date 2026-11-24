@@ -8,7 +8,7 @@ import { APP_ICON_STORAGE_KEY, applyAppIconFavicon } from '~src/lib/appIcon';
  * from --hue / --intensity in style.css via HSL, so this hook only writes those
  * numbers (lib/theme.ts applyAppearance). Each change is mirrored to localStorage
  * so the next page paints it before its first render (the boot script), and the
- * app icon's look to chrome.storage for the toolbar button (TASK-107).
+ * app icon's look to chrome.storage for the toolbar button.
  */
 export function useTheme() {
   // The store loads from chrome.storage after the first render; until then it holds the defaults.

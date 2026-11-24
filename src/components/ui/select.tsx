@@ -13,7 +13,7 @@ const SelectGroup = SelectPrimitive.Group
 const SelectValue = SelectPrimitive.Value
 
 /**
- * The one chevron of a dropdown (TASK-103.3): 14px in the colour of the text it sits with, like every
+ * The one chevron of a dropdown: 14px in the colour of the text it sits with, like every
  * other chevron in the app; no extra fade, which left it under 3:1 (2.4 dark, 2.1 light). The trigger
  * and the menu's scroll arrows draw the same mark, so the arrows never outshine the options.
  */
@@ -28,7 +28,7 @@ const SelectTrigger = React.forwardRef<
     className={cn(
       // A dropdown picks a choice, so its trigger is a resting choice button exactly (toggle outline/sm: 32px,
       // 12px medium, fg-subtle -> fg-muted on hover, ink/6 edge, ink/3 fill, 8px corners, the same focus ring);
-      // the chosen look lives on the chosen option in the menu (TASK-84).
+      // the chosen look lives on the chosen option in the menu.
       toggleVariants({ variant: "outline", size: "sm" }),
       // While its menu is open, focus is in the menu, so the trigger keeps its hover look instead of a
       // focus ring: it stays visibly tied to the menu below it (as an IconButton that opens a menu does).
@@ -95,7 +95,7 @@ const SelectContent = React.forwardRef<
       className={cn(
         // When portaled into a Dialog (via `container`), z-50 is enough inside that stacking
         // context. Callers that portal to body while a Dialog is open should pass container.
-        // Same family as its trigger (TASK-84): the trigger's 8px corner (rounded-lg) and ink/6 edge.
+        // Same family as its trigger: the trigger's 8px corner (rounded-lg) and ink/6 edge.
         "relative z-50 max-h-72 min-w-[8rem] overflow-hidden rounded-lg border border-ink/[0.06] bg-black-800 text-fg shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-[--radix-select-content-transform-origin]",
         position === "popper" &&
           // The panel itself (border included) is at least the trigger's width, so their edges line up.
@@ -128,7 +128,7 @@ const SelectLabel = React.forwardRef<
   <SelectPrimitive.Label
     ref={ref}
     // A group heading reads like the Settings nav's: an 11px caption above its options, quieter than
-    // they are, on the options' text edge (TASK-103.3).
+    // they are, on the options' text edge.
     className={cn("px-2 pb-1 pt-2 font-sans text-caption font-medium uppercase tracking-wider text-fg-subtle", className)}
     {...props}
   />
@@ -142,7 +142,7 @@ const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      // An option reads like a choice button (TASK-84): 12px medium, fg-subtle at rest, ink/5 + fg-muted while
+      // An option reads like a choice button: 12px medium, fg-subtle at rest, ink/5 + fg-muted while
       // pointed at, the chosen one exactly like the chosen button: accent wash, accent edge (an inset 1px ring,
       // so the row keeps its height), fg. rounded-sm nests in the panel's rounded-lg + p-1; pl-2 puts the
       // text on the trigger's text edge.

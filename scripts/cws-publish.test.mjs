@@ -5,7 +5,7 @@ import { REQUIRED_ENV, missingEnv, publishStaged } from "./cws-publish.mjs"
 const env = { CWS_CLIENT_ID: "id", CWS_CLIENT_SECRET: "secret", CWS_REFRESH_TOKEN: "refresh", CWS_PUBLISHER_ID: "pub", CWS_ITEM_ID: "item" }
 const answer = (status, body) => ({ ok: status < 300, status, json: async () => body })
 
-describe("Chrome Web Store staged publish (TASK-117)", () => {
+describe("Chrome Web Store staged publish", () => {
   it("names every missing secret", () => {
     expect(missingEnv({})).toEqual(REQUIRED_ENV)
     expect(missingEnv(env)).toEqual([])

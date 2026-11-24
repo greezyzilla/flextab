@@ -49,7 +49,7 @@ describe('faviconToDataUrl', () => {
     expect(await faviconToDataUrl('data:image/png;base64,x', PAGE)).toBe('data:image/png;base64,x');
   });
 
-  it("converts Chrome's cached icon, never the site's own URL (no CORS request, TASK-52)", async () => {
+  it("converts Chrome's cached icon, never the site's own URL (no CORS request)", async () => {
     expect(await faviconToDataUrl('http://x/favicon.ico', PAGE)).toBe('data:image/webp;base64,CONV');
     expect(loaded).toEqual([CHROME_ICON]);
   });
@@ -99,7 +99,7 @@ describe('faviconToDataUrl in a service worker (no Image/DOM)', () => {
   });
 });
 
-describe('favicons in Firefox, which has no _favicon cache (TASK-112)', () => {
+describe('favicons in Firefox, which has no _favicon cache', () => {
   afterEach(() => { delete (chrome.runtime as unknown as Record<string, unknown>).getBrowserInfo })
 
   it('keeps the tab\'s own favicon URL instead of asking a cache that does not exist', async () => {

@@ -51,7 +51,7 @@ const RETRY_ALARM = "flextab_push_retry";
 void getDeviceId();
 
 // =====================================================================
-// Capture from anywhere (TASK-2): keyboard commands + right-click menu
+// Capture from anywhere: keyboard commands + right-click menu
 // =====================================================================
 
 registerPopupClose();
@@ -157,10 +157,10 @@ export function pushStructuredData(): Promise<void> {
 
 async function pushLatestStructuredData() {
   if (!await automaticPushAllowed()) return;
-  // Access taken away in the browser (TASK-112): the pending flag stays, and the
+  // Access taken away in the browser: the pending flag stays, and the
   // push runs again once access is back (permissions.onAdded below).
   if (!await hasApiAccess()) return;
-  // The server refused this version (TASK-114): wait for the update, pending flag kept.
+  // The server refused this version: wait for the update, pending flag kept.
   if (await readUpdateRequired()) return;
   const tokens = await loadTokens();
   if (!tokens) return;
@@ -199,7 +199,7 @@ async function pushLatestStructuredData() {
       await recordLandedSnapshot(spaces as SavedSpace[], localAtAttempt as SavedSpace[]);
     },
     // Plan-limit rejection: keep a notice the new-tab shows as "Sync paused"
-    // until a push lands (TASK-9), since the background worker can't render UI.
+    // until a push lands, since the background worker can't render UI.
     (message, detail) => saveLimitNotice(message, detail),
     automaticPushAllowed,
   );
@@ -244,7 +244,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
     void chrome.storage.local.remove(LIMIT_RECHECK_KEY);
     void pushStructuredData();
   }
-  // A page asked for an upload now (TASK-33): its resolution left the document
+  // A page asked for an upload now: its resolution left the document
   // unchanged, so no persist below would trigger one.
   if (changes[PUSH_REQUEST_KEY]?.newValue) {
     void chrome.storage.local.remove(PUSH_REQUEST_KEY);
@@ -261,7 +261,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
   syncTimer = setTimeout(() => { syncTimer = null; void pushStructuredData(); }, SYNC_DEBOUNCE_MS);
 });
 
-// Install, update and browser-update each run their own steps (TASK-113).
+// Install, update and browser-update each run their own steps.
 chrome.runtime.onInstalled.addListener((details) => {
   void runInstallSteps(details.reason, {
     deviceId: getDeviceId,
@@ -276,7 +276,7 @@ chrome.runtime.onStartup.addListener(doInitialPush);
 chrome.permissions?.onAdded?.addListener(() => { void pushStructuredData(); });
 
 // A new version is applied when no one is using FlexTab, after every write has
-// finished (TASK-113, services/updateFlow.ts).
+// finished (services/updateFlow.ts).
 installUpdateRequired();
 installUpdateFlow({
   flushBackground: async () => { await Promise.allSettled([pushInFlight ?? Promise.resolve(), waitForTokenRefresh()]); },

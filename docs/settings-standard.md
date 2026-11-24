@@ -1,4 +1,4 @@
-# Settings standard (TASK-84)
+# Settings standard
 
 Settings is one product surface. Every sub-setting speaks the same design
 language, so a user who learned one page reads every other page without
@@ -70,8 +70,8 @@ tile gap `--density-gap-group` x 5/3, tile padding `--density-py-tab` x 1.75 by
    `info` for information, `warning` only when something is wrong or needs
    action.
 10. Approved exceptions, nothing else:
-    - the Spaces tab strip above its form (TASK-58);
-    - the Appearance preview beside Theme, Display and Layout (TASK-30), shown
+    - the Spaces tab strip above its form;
+    - the Appearance preview beside Theme, Display and Layout, shown
       only at 1440px and wider, capped at 24rem; narrower, it is hidden and the
       controls start at the top;
     - the plan cards on Plan & billing: one per tier side by side, each a tile

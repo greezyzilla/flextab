@@ -6,7 +6,7 @@ interface DraggedTabGroupProps {
 }
 
 /**
- * A dragged group (TASK-65) travels as a copy of its own card, the size it is
+ * A dragged group travels as a copy of its own card, the size it is
  * on the page, lifted with a shadow: the UI benchmark showed dragged items and
  * containers as themselves at their own size, never re-laid out. The copy is
  * the card's DOM as rendered when the drag starts (header, tabs, colour), so

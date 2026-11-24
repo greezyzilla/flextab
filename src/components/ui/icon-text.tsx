@@ -4,7 +4,7 @@ import type { ReactNode } from "react"
 import { Icon } from "~src/components/ui/icon"
 
 /**
- * A line of fine print led by an icon (TASK-103.6; the sign-in page's privacy promise): 12px subtle
+ * A line of fine print led by an icon (the sign-in page's privacy promise): 12px subtle
  * text on a relaxed line, the 14px icon nudged 1px down so it sits on the first line's text.
  */
 export function IconText({ icon, children }: { icon: LucideIcon; children: ReactNode }) {

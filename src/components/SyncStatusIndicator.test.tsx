@@ -15,7 +15,7 @@ vi.mock("~src/services/api", async (orig) => ({ ...(await orig<object>()), apiGe
 const { syncNow } = vi.hoisted(() => ({ syncNow: vi.fn(async () => ({ status: "conflict" })) }))
 vi.mock("~src/services/syncEngine", () => ({ syncNow }))
 
-// `synced`: tabs the account already holds on the server (0 = it never received any, TASK-33).
+// `synced`: tabs the account already holds on the server (0 = it never received any).
 const plan = (cap: number, synced = 120) => ({ plan: "free", limits: { max_tabs_total: cap, max_tree_bytes: 0, max_snapshots: 0 }, usage: { total_tabs: synced, tree_bytes: 0, snapshots: 0 } }) as PlanStatus
 const withTabs = (n: number): SavedSpace[] => [{ id: "s", name: "Work", order: 0, projects: [{ id: "p", name: "P", order: 0, categories: [{ id: "c", name: "C", order: 0,
   groups: [{ id: "g", name: "G", order: 0, tabs: Array.from({ length: n }, (_, i) => ({ id: `t${i}`, url: `https://${i}.example/`, title: `${i}`, favicon: "", order: i })) }] }] }] }]
@@ -29,7 +29,7 @@ beforeEach(() => {
 })
 
 describe("SyncStatusIndicator", () => {
-  it("is the labelled way in to sign-in while signed out (TASK-7)", async () => {
+  it("is the labelled way in to sign-in while signed out", async () => {
     useAuthStore.setState({ isAuthenticated: false })
     render(<TooltipProvider><SyncStatusIndicator /></TooltipProvider>)
     await userEvent.click(screen.getByRole("button", { name: "Sign in to sync" }))
@@ -42,7 +42,7 @@ describe("SyncStatusIndicator", () => {
     expect(screen.queryByRole("button", { name: "Sign in to sync" })).not.toBeInTheDocument()
   })
 
-  it("is a keyboard-reachable button that opens the status, usage and sync settings (TASK-10)", async () => {
+  it("is a keyboard-reachable button that opens the status, usage and sync settings", async () => {
     useAuthStore.setState({ isAuthenticated: true, user: { id: "u1" } as never })
     render(<TooltipProvider><SyncStatusIndicator /></TooltipProvider>)
     await waitFor(() => expect(usePlanStore.getState().status).not.toBeNull())
@@ -63,7 +63,7 @@ describe("SyncStatusIndicator", () => {
     expect(screen.getByRole("button", { name: "Sync status: Connected, 130 of 150 tabs" })).toBeInTheDocument()
   })
 
-  it("says nothing synced yet when the paused account never received a tab (TASK-33)", async () => {
+  it("says nothing synced yet when the paused account never received a tab", async () => {
     getPlan.mockResolvedValue(plan(150, 0))
     useAuthStore.setState({ isAuthenticated: true, user: { id: "u1" } as never })
     useSyncStore.setState({ status: "error", limit: { message: "m", at: 0, limit: "max_tabs_total", cap: 150, got: 200 } })
@@ -73,7 +73,7 @@ describe("SyncStatusIndicator", () => {
     expect(await screen.findByText("Nothing synced yet. 200 of 150 tabs. Remove 50 to sync, or upgrade. Everything stays on this device.")).toBeInTheDocument()
   })
 
-  it("says Sync paused in words over the limit, with what to remove and See plan (TASK-9)", async () => {
+  it("says Sync paused in words over the limit, with what to remove and See plan", async () => {
     useAuthStore.setState({ isAuthenticated: true, user: { id: "u1" } as never })
     useSyncStore.setState({ status: "error", limit: { message: "m", at: 0, limit: "max_tabs_total", cap: 150, got: 190 } })
     useSavedSpacesStore.setState({ savedSpaces: withTabs(170) })
@@ -86,7 +86,7 @@ describe("SyncStatusIndicator", () => {
     await waitFor(() => expect(window.location.hash).toBe("#/settings/plan"))
   })
 
-  it("names a paused conflict in words and reopens the resolver from the popover (TASK-10)", async () => {
+  it("names a paused conflict in words and reopens the resolver from the popover", async () => {
     useAuthStore.setState({ isAuthenticated: true, user: { id: "u1" } as never })
     useSyncStore.setState({ status: "paused", conflictPending: true })
     useSavedSpacesStore.setState({ savedSpaces: withTabs(130) })
@@ -102,7 +102,7 @@ describe("SyncStatusIndicator", () => {
   })
 })
 
-describe("SyncStatusIndicator when the browser took away access (TASK-112)", () => {
+describe("SyncStatusIndicator when the browser took away access", () => {
   const c = chrome as unknown as Record<string, unknown>
   afterEach(() => {
     useSyncStore.setState({ apiAccess: true })
@@ -133,7 +133,7 @@ describe("SyncStatusIndicator when the browser took away access (TASK-112)", () 
   })
 })
 
-describe("SyncStatusIndicator when the server refused this version (TASK-114)", () => {
+describe("SyncStatusIndicator when the server refused this version", () => {
   const runtime = chrome.runtime as unknown as Record<string, unknown>
   afterEach(() => {
     useSyncStore.setState({ updateRequired: false, apiAccess: true })

@@ -2,7 +2,7 @@ import { create } from "zustand"
 import type { SortPreview } from "~src/services/sortPreview"
 
 /**
- * A saved tab or group being dragged into another container (TASK-64): the
+ * A saved tab or group being dragged into another container: the
  * lists render as if it were already there, so the rows make room live, as
  * they do within one list. Null when the drag stays in its own list (dnd-kit's
  * sortable shows that) or is over anything else.

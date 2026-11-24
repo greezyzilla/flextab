@@ -511,7 +511,7 @@ describe('settings request serialization and recovery', () => {
   });
 });
 
-describe('settings changes survive a reload before they are pushed (TASK-113)', () => {
+describe('settings changes survive a reload before they are pushed', () => {
   let disk: Record<string, unknown>;
 
   beforeEach(() => {
@@ -590,7 +590,7 @@ describe('settings changes survive a reload before they are pushed (TASK-113)', 
   });
 });
 
-describe('the stored settings merge base when it cannot be used (TASK-113)', () => {
+describe('the stored settings merge base when it cannot be used', () => {
   it.each([
     ['unreadable storage', () => { throw new Error('disk') }],
     ['a record without a base', () => ({ [sync.SETTINGS_SYNC_STATE_KEY]: { userId: 'A', base: null, unconfirmed: [] } })],

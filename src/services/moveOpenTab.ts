@@ -1,6 +1,6 @@
 /**
- * Moving an open tab to another place in the browser from Opened Tabs
- * (TASK-73): another window, or another spot in its own.
+ * Moving an open tab to another place in the browser from Opened Tabs:
+ * another window, or another spot in its own.
  */
 
 /** Drop zone ids in Opened Tabs: a tab row (land beside it) and a window header (land at its end). */
@@ -30,7 +30,7 @@ export function isNoMove(from: TabPlace, slot: TabPlace): boolean {
   return from.windowId === slot.windowId && finalIndex(from, slot) === from.index
 }
 
-/** A dragged open tab shown where it would land (TASK-73). `label` names the window ("Window 2"). */
+/** A dragged open tab shown where it would land. `label` names the window ("Window 2"). */
 export interface OpenTabPreview { tabId: number; from: TabPlace; slot: TabPlace; label: string }
 
 /**
@@ -75,7 +75,7 @@ export async function moveOpenTab(tabId: number, from: TabPlace, slot: TabPlace)
 }
 
 /**
- * Move an open tab into a new window of its own (TASK-94, the non-drag move).
+ * Move an open tab into a new window of its own (the non-drag move).
  * Undo puts it back where it was; Chrome closes the emptied new window itself.
  */
 export async function moveOpenTabToNewWindow(tabId: number, from: TabPlace): Promise<(() => Promise<void>) | null> {

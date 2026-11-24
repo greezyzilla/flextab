@@ -22,7 +22,7 @@ beforeEach(() => {
   vi.mocked(chrome.storage.local.remove).mockImplementation((async (key: string) => { delete stored[key] }) as never)
 })
 
-describe("Remember where I last saved (TASK-75)", () => {
+describe("Remember where I last saved", () => {
   it("is on until turned off; off drops the list, remembers nothing and returns nothing", async () => {
     expect(await loadRememberDestinations()).toBe(true)
     await rememberDestination(t("a"))
