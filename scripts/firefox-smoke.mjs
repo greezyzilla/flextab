@@ -43,13 +43,16 @@ writeFileSync(join(profile, "user.js"), [
 // --- a minimal WebDriver BiDi client (Node's global WebSocket) ---
 const port = 9300 + Math.floor(Math.random() * 600)
 const ff = spawn(firefoxBin, ["--headless", "--profile", profile, `--remote-debugging-port=${port}`, "--no-remote"], {
-  stdio: ["ignore", "ignore", "pipe"],
+  stdio: ["ignore", "pipe", "pipe"],
   // Lets the test open moz-extension:// pages from the browser window, which plain BiDi refuses.
   env: { ...process.env, MOZ_REMOTE_ALLOW_SYSTEM_ACCESS: "1" },
 })
 await new Promise((ok, fail) => {
   const timer = setTimeout(() => fail(new Error("Firefox did not start")), 30000)
-  ff.stderr.on("data", (d) => { if (String(d).includes("WebDriver BiDi listening")) { clearTimeout(timer); ok() } })
+  // Firefox 160 prints this line on stdout; earlier versions printed it on stderr.
+  const ready = (d) => { if (String(d).includes("WebDriver BiDi listening")) { clearTimeout(timer); ok() } }
+  ff.stdout.on("data", ready)
+  ff.stderr.on("data", ready)
 })
 const ws = new WebSocket(`ws://127.0.0.1:${port}/session`)
 await new Promise((ok, fail) => { ws.onopen = ok; ws.onerror = fail })
