@@ -14,7 +14,7 @@ import { describe, expect, it } from "vitest"
 
 const SRC = resolve(__dirname, "../..")
 const UI = "components/ui/"
-const GUIDE = "Looks live in components/ui variants; a call site only places a component. See flextab-fe/docs/ui-layering.md."
+const GUIDE = "Looks live in components/ui variants; a call site only places a component. See flextab/docs/ui-layering.md."
 
 /**
  * Classes that place a component inside its parent: its behaviour as a flex or grid item, and

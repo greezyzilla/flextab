@@ -29,7 +29,7 @@ export const GECKO_IDS = {
  * fixed address, because GitHub's releases/latest skips pre-releases. Stable
  * Firefox updates through AMO (listed) and carries no update_url.
  */
-export const BETA_UPDATE_URL = "https://github.com/greezyzilla/flextab-fe/releases/download/firefox-beta/updates.json"
+export const BETA_UPDATE_URL = "https://github.com/greezyzilla/flextab/releases/download/firefox-beta/updates.json"
 
 const BETA_NAME = "FlexTab Beta"
 const BETA_TAG = /^beta-v(\d+)\.(\d+)\.(\d+)\.(\d+)$/
