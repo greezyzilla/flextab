@@ -1,7 +1,7 @@
 {
   "name": "flextab",
   "displayName": "FlexTab",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Organize your tabs into spaces, projects, and groups. A beautiful new tab page that keeps your browsing life in order.",
   "author": "GreezyZilla",
   "scripts": {
