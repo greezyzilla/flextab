@@ -5,15 +5,28 @@ export interface SavedTab {
   url: string;
   title: string;
   favicon: string;
-  description?: string;
   order?: number;
 }
+
+/**
+ * Group metadata, stored in the API's existing group `config` field.
+ * `kind: "unsorted"` marks the one system group per category that holds tabs
+ * saved without a chosen group (TASK-20).
+ */
+export interface GroupConfig {
+  kind?: "unsorted";
+}
+
+/** An optional group colour (TASK-18), the nine of Chrome's tab groups. */
+export type GroupColor = "grey" | "blue" | "red" | "yellow" | "green" | "pink" | "purple" | "cyan" | "orange";
 
 export interface SavedGroup {
   id: string;
   name: string;
   tabs: SavedTab[];
   order?: number;
+  config?: GroupConfig;
+  color?: GroupColor;
 }
 
 export interface SavedCategory {
@@ -33,6 +46,9 @@ export interface SavedProject {
 export interface SavedSpace {
   id: string;
   name: string;
+  icon?: string;
+  color?: string;
+  abbreviation?: string;
   projects: SavedProject[];
   order?: number;
 }

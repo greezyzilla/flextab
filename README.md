@@ -1,33 +1,53 @@
-This is a [Plasmo extension](https://docs.plasmo.com/) project bootstrapped with [`plasmo init`](https://www.npmjs.com/package/plasmo).
+# FlexTab extension
 
-## Getting Started
+A Plasmo browser extension for organizing tabs into spaces, projects, and groups.
 
-First, run the development server:
+## Local setup
+
+Use the pinned Node runtime and its bundled npm. npm is the supported package
+manager; `package-lock.json` is the dependency lockfile.
 
 ```bash
-pnpm dev
-# or
+nvm install
+nvm use
+npm ci
+cp .env.example .env.development
 npm run dev
 ```
 
-Open your browser and load the appropriate development build. For example, if you are developing for the chrome browser, using manifest v3, use: `build/chrome-mv3-dev`.
+Load `build/chrome-mv3-dev` as an unpacked extension in Chrome. The development
+API defaults to localhost; configure `.env.development` for your backend.
 
-You can start editing the popup by modifying `popup.tsx`. It should auto-update as you make changes. To add an options page, simply add a `options.tsx` file to the root of the project, with a react component default exported. Likewise to add a content page, add a `content.ts` file to the root of the project, importing some module and do some logic, then reload the extension on your browser.
+`.nvmrc`, `package.json` `devEngines`, and `packageManager` pin Node 24.14.0 / npm
+11.9.0. npm validates `devEngines` before install, CI, and run commands. Update
+these together when changing the toolchain, then re-run a clean install, tests,
+and production ZIP build. Use `devEngines`, not `engines.node`: Parcel also reads
+`engines` to infer the bundle target, while this extension must target browsers.
+See [npm devEngines](https://docs.npmjs.com/cli/v11/configuring-npm/package-json/#devengines)
+and [Parcel targets](https://parceljs.org/features/targets/).
 
-For further guidance, [visit our Documentation](https://docs.plasmo.com/)
-
-## Making production build
-
-Run the following:
+## Verification and production build
 
 ```bash
-pnpm build
-# or
-npm run build
+npm run typecheck
+npm run test:coverage -- --run
+# Set both variables to the deployed backend; values enter the public bundle.
+export PLASMO_PUBLIC_API_URL=https://api.example.com
+export PLASMO_PUBLIC_API_HOST='https://api.example.com/*'
+npm run build:zip -- --channel=stable   # or --channel=beta, see RELEASING.md
 ```
 
-This should create a production bundle for your extension, ready to be zipped and published to the stores.
+Output: `build/chrome-mv3-prod.zip`. `.env.production` may supply these values for
+local builds; CI injects them explicitly and does not require an untracked env
+file. Never put secrets in `PLASMO_PUBLIC_*` variables.
 
-## Submit to the webstores
+PRs and pushes to `main` run the shared verification workflow: pinned runtime,
+`npm ci`, typecheck, all regression tests with coverage gates, production ZIP
+build, and artifact upload. CI
+uses `api.example.invalid` so its artifact is only for build verification.
 
-The easiest way to deploy your Plasmo extension is to use the built-in [bpp](https://bpp.browser.market) GitHub action. Prior to using this action however, make sure to build your extension and upload the first version to the store to establish the basic credentials. Then, simply follow [this setup instruction](https://docs.plasmo.com/framework/workflows/submit) and you should be on your way for automated submission!
+See [the quality gate contract](docs/quality-gates.md) for scope, measured baseline,
+uncovered-code limits, stricter critical-file gates, and remaining test gaps.
+
+For release versions, repository configuration, and manual Web Store submission,
+see [RELEASING.md](RELEASING.md).

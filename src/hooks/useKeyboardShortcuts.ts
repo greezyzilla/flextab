@@ -1,0 +1,111 @@
+import { useEffect } from "react";
+import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
+import type { SaveTabsTarget } from "~src/services/saveTabsAsGroup";
+import { ensureCategoryPath, ensureSpace } from "~src/lib/defaultPath";
+import { useUIStore } from "~src/store/useUIStore";
+import { isInsideModal } from "~src/components/ui/modal";
+
+/**
+ * Run `action` against the current category, following the same rule as
+ * every other save path (TASK-20): if the active space has no project or
+ * category yet, the default ones are created so the shortcut always works.
+ * With no space selected it uses the first one, or creates the default space
+ * when there are none (TASK-37).
+ */
+export function withActiveCategory(action: (target: SaveTabsTarget) => void): void {
+  const state = useSavedSpacesStore.getState();
+  if (!state.activeSpaceId) state.setActiveSpace(ensureSpace());
+  const { activeSpaceId, activeProjectId, activeCategoryId } = useSavedSpacesStore.getState();
+  const path = ensureCategoryPath(activeSpaceId!, { projectId: activeProjectId, categoryId: activeCategoryId });
+  if (path) action(path);
+}
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  const tag = target.tagName.toLowerCase();
+  if (tag === "input" || tag === "textarea" || tag === "select") return true;
+  if (target.isContentEditable) return true;
+  return false;
+}
+
+export function useKeyboardShortcuts() {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      // Skip if user is typing in an input / textarea / contenteditable
+      if (isEditableTarget(e.target)) return;
+      // A modal owns the keyboard: page shortcuts never act behind it (TASK-47).
+      if (isInsideModal(e.target)) return;
+
+      const mod = e.metaKey || e.ctrlKey;
+
+      // Delete / Backspace when nothing focused — no-op for safety
+      if (e.key === "Delete" || e.key === "Backspace") {
+        e.preventDefault();
+        return;
+      }
+
+      // Single keys, only while not typing (the check above), like Gmail and
+      // GitHub. Ctrl/⌘+N and Ctrl/⌘+Shift+N were used before, but Chrome keeps
+      // those for new and incognito windows and never hands them to the page.
+      const plain = !mod && !e.altKey
+
+      // "?" — the shortcut sheet.
+      if (plain && e.key === "?") {
+        e.preventDefault();
+        useUIStore.getState().setShortcutsOpen(true);
+        return;
+      }
+
+      // "/" — search (⌘K / Ctrl+K also works; SearchBar owns that one).
+      if (plain && e.key === "/") {
+        e.preventDefault();
+        document.querySelector<HTMLInputElement>("[data-search-input]")?.focus();
+        return;
+      }
+
+      // Shift+N — new project in the active space, named first like every
+      // other way of creating one (no "New Project" node).
+      if (plain && e.shiftKey && e.key.toLowerCase() === "n") {
+        e.preventDefault();
+        const { activeSpaceId, savedSpaces } = useSavedSpacesStore.getState();
+        if (!activeSpaceId || !savedSpaces.some(s => s.id === activeSpaceId)) return;
+        useUIStore.getState().startCreate({ kind: "project", spaceId: activeSpaceId });
+        return;
+      }
+
+      // N — new group in the current category.
+      if (plain && !e.shiftKey && e.key.toLowerCase() === "n") {
+        e.preventDefault();
+        // Same as "+ New group": name it first, it is created at the top.
+        withActiveCategory(({ projectId, categoryId }) => {
+          const state = useSavedSpacesStore.getState();
+          if (state.activeProjectId !== projectId) state.setActiveProject(projectId);
+          state.setActiveCategory(categoryId);
+          useUIStore.getState().startNamingGroup(categoryId);
+        });
+        return;
+      }
+
+      // Alt+N (Option+N on macOS) — new space, the third of the N family
+      // (N group, Shift+N project). Matched by key position: on macOS
+      // Option+N is a dead key (e.key "Dead", it would type ˜), and
+      // preventDefault keeps that dead-key state from reaching any field.
+      if (!mod && e.altKey && !e.shiftKey && e.code === "KeyN") {
+        e.preventDefault();
+        useUIStore.getState().requestSpaceNaming();
+        return;
+      }
+
+      // Ctrl+Shift+S / Cmd+Shift+S — "Save all tabs" (preview, scope, destination)
+      if (mod && e.shiftKey && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        useUIStore.getState().setSaveAllOpen(true);
+        return;
+      }
+
+    };
+
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, []);
+}

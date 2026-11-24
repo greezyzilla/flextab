@@ -1,0 +1,64 @@
+name: Extension CI
+on:
+  pull_request:
+  push:
+    branches: [main, dev]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: extension-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Light by design (TASK-116): about two minutes, no browser install. The
+  # browser-mode suite runs locally (npm run test:browser) and in release workflows.
+  verify:
+    uses: ./.github/workflows/verify.yml
+    with:
+      # CI artifacts use a non-routable fixture and are never published.
+      # Manual submit requires real repository variables instead.
+      api-url: https://api.example.invalid
+      api-host: https://api.example.invalid/*
+
+  conventions:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+      - name: External actions are pinned to commit SHAs
+        run: node scripts/check-actions-pinned.mjs
+      - name: Commit range
+        id: range
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: |
+          if [ "$EVENT" = "pull_request" ]; then
+            range="$PR_BASE..$PR_HEAD"
+          elif [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            range="$BEFORE..$AFTER"
+          else
+            # A new branch: every commit it adds over main.
+            range="origin/main..$AFTER"
+          fi
+          echo "range=$range" >> "$GITHUB_OUTPUT"
+      - name: Commits are Conventional Commits
+        run: node scripts/check-commits.mjs --range="$RANGE"
+        env:
+          RANGE: ${{ steps.range.outputs.range }}
+      # TASK-115: the recorded required permissions change only with the manifest.
+      - name: permissions.lock.json changes only with the manifest
+        run: node scripts/check-permissions.mjs --lock-commits="$RANGE"
+        env:
+          RANGE: ${{ steps.range.outputs.range }}

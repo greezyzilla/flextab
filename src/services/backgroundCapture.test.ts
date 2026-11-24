@@ -1,0 +1,234 @@
+import { beforeEach, describe, expect, it, vi } from "vitest"
+import * as yjs from "~src/lib/yjsDoc"
+import type { SavedSpace } from "~src/types"
+import { resetWorkerHydration } from "./capture"
+import {
+  captureFromBackground, registerCaptureMenus, menuKind, commandKind, registerPopupClose,
+  MENU_SAVE_PAGE, MENU_SAVE_LINK, MENU_SAVE_WINDOW,
+} from "./backgroundCapture"
+
+const { loadTokens } = vi.hoisted(() => ({ loadTokens: vi.fn(async () => ({ access_token: "t" }) as unknown) }))
+vi.mock("~src/services/api", () => ({ loadTokens }))
+vi.mock("~src/utils/favicon", () => ({ faviconToDataUrl: vi.fn(async (u: string) => u) }))
+vi.mock("~src/services/toolbarMarks", () => ({ markedIconImages: vi.fn(async (mark: string) => ({ mark })), defaultIconPaths: vi.fn(() => ({ 16: "/plain.png" })) }))
+/** The mark the toolbar icon of `tabId` shows last, or "plain". */
+const iconOf = (tabId: number) => {
+  const call = vi.mocked(chrome.action.setIcon).mock.calls.map(([d]) => d as { tabId: number; imageData?: { mark: string } }).filter((d) => d.tabId === tabId).at(-1)
+  return call && (call.imageData?.mark ?? "plain")
+}
+
+const tree = (): SavedSpace[] => [{
+  id: "s", name: "Work", order: 0,
+  projects: [{ id: "p", name: "Site", order: 0, categories: [{ id: "c", name: "Research", order: 0, groups: [
+    { id: "g", name: "Reading", order: 0, tabs: [] },
+  ] }] }],
+}]
+let disk: Record<string, unknown>
+const stored = () => yjs.decodeSpacesFromStorage(disk[yjs.PERSIST_KEY])[0].projects[0].categories[0].groups
+
+beforeEach(async () => {
+  vi.clearAllMocks()
+  vi.useRealTimers()
+  disk = {}
+  vi.mocked(chrome.storage.local.get).mockImplementation((async (key: string) => (key in disk ? { [key]: disk[key] } : {})) as never)
+  vi.mocked(chrome.storage.local.set).mockImplementation((async (items: Record<string, unknown>) => { Object.assign(disk, structuredClone(items)) }) as never)
+  vi.mocked(chrome.storage.local.remove).mockImplementation((async (key: string) => { delete disk[key] }) as never)
+  await yjs.clearState()
+  disk[yjs.PERSIST_KEY] = { version: 1, origin: "snapshot", data: yjs.encodeSpacesAsStorage(tree()) }
+  disk.flextab_recent_destinations = [{ spaceId: "s", projectId: "p", categoryId: "c", groupId: "g" }]
+  resetWorkerHydration()
+  loadTokens.mockResolvedValue({ access_token: "t" })
+})
+
+describe("menus and commands", () => {
+  it("registers page, link and window entries and maps ids", () => {
+    registerCaptureMenus()
+    expect(vi.mocked(chrome.contextMenus.create).mock.calls.map(c => (c[0] as { id: string }).id))
+      .toEqual([MENU_SAVE_PAGE, MENU_SAVE_LINK, MENU_SAVE_WINDOW])
+    expect(menuKind(MENU_SAVE_LINK)).toBe("link")
+    expect(menuKind("other")).toBeNull()
+    expect(commandKind("save-page")).toBe("page")
+    expect(commandKind("save-window")).toBe("window")
+    expect(commandKind("x")).toBeNull()
+  })
+})
+
+describe("captureFromBackground", () => {
+  it("saves the page into the last group and stores a receipt for the popup", async () => {
+    const tab = { id: 1, windowId: 3, url: "https://a.example", title: "A" } as chrome.tabs.Tab
+    expect(await captureFromBackground("page", { tab })).toBe("saved")
+    expect(stored()[0].tabs.map(t => t.url)).toEqual(["https://a.example"])
+    expect(disk.flextab_last_capture).toMatchObject({ target: { groupId: "g" }, closed: [] })
+    expect(await captureFromBackground("page", { tab })).toBe("already")
+  })
+
+  it("answers a save with the tab's saved check at once, never a badge (TASK-78)", async () => {
+    const page = { id: 1, url: "https://a.example", active: true } as chrome.tabs.Tab
+    vi.mocked(chrome.tabs.get).mockResolvedValue(page as never)
+    await captureFromBackground("page", { tab: page })
+    expect(iconOf(1)).toBe("saved")
+    expect(chrome.action.setTitle).toHaveBeenLastCalledWith({ tabId: 1, title: "FlexTab: Saved in Work › Site › Research › Reading" })
+    vi.mocked(chrome.action.setIcon).mockClear()
+    expect(await captureFromBackground("page", { tab: page })).toBe("already")
+    expect(iconOf(1)).toBe("saved")
+    expect(chrome.action.setBadgeText).not.toHaveBeenCalled()
+  })
+
+  it("answers on the front tab when the event names none", async () => {
+    vi.mocked(chrome.tabs.query).mockResolvedValue([{ id: 7, url: "https://a.example" }] as never)
+    vi.mocked(chrome.tabs.get).mockResolvedValue({ id: 7, url: "https://a.example" } as never)
+    await captureFromBackground("page", {})
+    expect(chrome.tabs.query).toHaveBeenCalledWith({ active: true, lastFocusedWindow: true })
+    expect(iconOf(7)).toBe("saved")
+  })
+
+  it("answers nowhere when no tab is in front", async () => {
+    vi.mocked(chrome.tabs.query).mockResolvedValue([] as never)
+    await captureFromBackground("page", { tab: { url: "chrome://settings" } as chrome.tabs.Tab })
+    expect(chrome.action.setIcon).not.toHaveBeenCalled()
+  })
+
+  it("saves a link with its URL as the title fallback", async () => {
+    expect(await captureFromBackground("link", { linkUrl: "https://b.example" })).toBe("saved")
+    expect(stored()[0].tabs[0]).toMatchObject({ url: "https://b.example", title: "https://b.example" })
+    expect(await captureFromBackground("link", {})).toBe("unsavable")
+  })
+
+  it("saves a window as its own group and closes it when that's switched on", async () => {
+    disk.flextab_close_after_save = true
+    const tabs = [
+      { id: 1, windowId: 3, index: 0, url: "https://a.example" },
+      { id: 2, windowId: 3, index: 1, url: "https://b.example", pinned: true },
+      { id: 3, windowId: 3, index: 2, url: "chrome-extension://x/newtab.html" },
+    ] as chrome.tabs.Tab[]
+    vi.mocked(chrome.tabs.query).mockResolvedValue(tabs)
+    expect(await captureFromBackground("window", { tab: tabs[0] })).toBe("saved")
+    const groups = stored()
+    expect(groups).toHaveLength(2)
+    expect(groups[1].name).toMatch(/^Window /)
+    expect(groups[1].tabs.map(t => t.url)).toEqual(["https://a.example", "https://b.example"])
+    expect(chrome.tabs.remove).toHaveBeenCalledWith([1])
+    expect((disk.flextab_last_capture as { closed: unknown[] }).closed).toHaveLength(1)
+  })
+
+  it("closes the saved page when 'close after saving from the popup' is on; a link never closes anything", async () => {
+    disk.flextab_close_after_popup = true
+    const page = { id: 7, windowId: 3, index: 1, url: "https://p.example" } as chrome.tabs.Tab
+    vi.mocked(chrome.tabs.query).mockResolvedValue([page, { id: 8, windowId: 3, index: 0, url: "https://q.example" } as chrome.tabs.Tab])
+    expect(await captureFromBackground("page", { tab: page })).toBe("saved")
+    expect(chrome.tabs.remove).toHaveBeenCalledWith([7])
+    vi.mocked(chrome.tabs.remove).mockClear()
+    expect(await captureFromBackground("link", { linkUrl: "https://l.example", tab: page })).toBe("saved")
+    expect(chrome.tabs.remove).not.toHaveBeenCalled()
+  })
+
+  it("a window follows its own switch once set, not Save all's", async () => {
+    disk.flextab_close_after_save = true
+    disk.flextab_close_after_window = false
+    const tabs = [{ id: 1, windowId: 3, index: 0, url: "https://a.example" }] as chrome.tabs.Tab[]
+    vi.mocked(chrome.tabs.query).mockResolvedValue(tabs)
+    expect(await captureFromBackground("window", { tab: tabs[0] })).toBe("saved")
+    expect(chrome.tabs.remove).not.toHaveBeenCalled()
+  })
+
+  it("uses the active tab / current window when the event has no tab", async () => {
+    vi.mocked(chrome.tabs.query).mockResolvedValue([{ id: 1, url: "https://c.example" }] as chrome.tabs.Tab[])
+    expect(await captureFromBackground("page", {})).toBe("saved")
+    expect(await captureFromBackground("window", {})).toBe("saved")
+    expect(chrome.tabs.query).toHaveBeenCalledWith({ currentWindow: true })
+  })
+
+  it("marks an unsavable page on the icon and writes nothing", async () => {
+    expect(await captureFromBackground("page", { tab: { id: 1, url: "chrome://settings" } as chrome.tabs.Tab })).toBe("unsavable")
+    expect(iconOf(1)).toBe("unsavable")
+    expect(chrome.action.setTitle).toHaveBeenLastCalledWith({ tabId: 1, title: "FlexTab: this page can't be saved" })
+  })
+
+  it("opens FlexTab instead of saving before the first new tab has created the workspace", async () => {
+    delete disk[yjs.PERSIST_KEY]
+    expect(await captureFromBackground("page", { tab: { id: 1, url: "https://a.example" } as chrome.tabs.Tab })).toBe("no-workspace")
+    expect(chrome.tabs.create).toHaveBeenCalledWith({ url: "chrome-extension://test/newtab.html" })
+  })
+
+  // TASK-75: no place you saved to before means nothing is guessed.
+  it("with no remembered place, opens the popup to ask and writes nothing", async () => {
+    disk[yjs.PERSIST_KEY] = { version: 1, origin: "snapshot", data: yjs.encodeSpacesAsStorage([{ id: "s", name: "W", order: 0, projects: [] }]) }
+    expect(await captureFromBackground("page", { tab: { id: 1, url: "https://a.example" } as chrome.tabs.Tab })).toBe("no-destination")
+    expect(chrome.action.openPopup).toHaveBeenCalled()
+    expect(yjs.getSpaces()[0].projects).toEqual([])
+  })
+
+  it("with Remember where I last saved off, asks even with a remembered place, and hands a link to the popup", async () => {
+    disk.flextab_remember_destinations = false
+    expect(await captureFromBackground("link", { linkUrl: "https://l.example", linkText: "L" })).toBe("no-destination")
+    expect(chrome.storage.session.set).toHaveBeenCalledWith({ flextab_popup_subject: expect.objectContaining({ url: "https://l.example", title: "L" }) })
+    await captureFromBackground("link", { linkUrl: "https://m.example" })
+    expect(chrome.storage.session.set).toHaveBeenLastCalledWith({ flextab_popup_subject: expect.objectContaining({ url: "https://m.example", title: "https://m.example" }) })
+    expect(chrome.action.openPopup).toHaveBeenCalled()
+  })
+
+  it("saves into a new Personal space when the workspace has no spaces (TASK-37)", async () => {
+    disk[yjs.PERSIST_KEY] = { version: 1, origin: "snapshot", data: yjs.encodeSpacesAsStorage([]) }
+    expect(await captureFromBackground("page", { tab: { id: 1, url: "https://a.example" } as chrome.tabs.Tab })).toBe("saved")
+    expect(chrome.action.openPopup).not.toHaveBeenCalled()
+    const [space] = yjs.getSpaces()
+    expect(space.name).toBe("Personal")
+    expect(space.projects[0].name).toBe("General")
+    expect(space.projects[0].categories[0].name).toBe("Uncategorized")
+    expect(space.projects[0].categories[0].groups[0].tabs.map(t => t.url)).toEqual(["https://a.example"])
+  })
+
+  it("an unsavable page in an empty workspace creates no space", async () => {
+    disk[yjs.PERSIST_KEY] = { version: 1, origin: "snapshot", data: yjs.encodeSpacesAsStorage([]) }
+    expect(await captureFromBackground("page", { tab: { id: 1, url: "chrome://settings" } as chrome.tabs.Tab })).toBe("unsavable")
+    expect(yjs.getSpaces()).toEqual([])
+  })
+
+  it("marks a refused write on the icon", async () => {
+    vi.mocked(chrome.storage.local.set).mockImplementation((async (items: Record<string, unknown>) => {
+      if (yjs.PERSIST_KEY in items) throw new Error("quota")
+      Object.assign(disk, items)
+    }) as never)
+    expect(await captureFromBackground("page", { tab: { id: 1, url: "https://a.example" } as chrome.tabs.Tab })).toBe("failed")
+    expect(iconOf(1)).toBe("failed")
+    expect(chrome.action.setTitle).toHaveBeenLastCalledWith({ tabId: 1, title: "FlexTab: couldn't save to this device" })
+  })
+})
+
+describe("closing the page the popup saved when the popup closes (TASK-60)", () => {
+  const connect = () => {
+    registerPopupClose()
+    const onConnect = vi.mocked(chrome.runtime.onConnect.addListener).mock.calls.at(-1)![0] as (port: chrome.runtime.Port) => void
+    let onMessage!: (m: unknown) => void, onDisconnect!: () => void
+    const port = { name: "flextab-close-on-popup-close", onMessage: { addListener: (f: typeof onMessage) => { onMessage = f } }, onDisconnect: { addListener: (f: typeof onDisconnect) => { onDisconnect = f } } }
+    onConnect(port as unknown as chrome.runtime.Port)
+    return { send: (m: unknown) => onMessage(m), close: () => onDisconnect() }
+  }
+
+  it("closes the named tab when the popup goes, not after Undo cleared it, and ignores other ports", async () => {
+    vi.mocked(chrome.tabs.get).mockResolvedValue({ id: 5, windowId: 2, index: 0, url: "https://x.example" } as chrome.tabs.Tab)
+    vi.mocked(chrome.tabs.query).mockResolvedValue([{ id: 5 }, { id: 6 }] as chrome.tabs.Tab[])
+    const a = connect()
+    a.send({ close: 5 })
+    a.close()
+    await vi.waitFor(() => expect(chrome.tabs.remove).toHaveBeenCalledWith([5]))
+    vi.mocked(chrome.tabs.remove).mockClear()
+    const b = connect()
+    b.send({ close: 5 })
+    b.send({ close: null })
+    b.close()
+    await new Promise((r) => setTimeout(r, 0))
+    expect(chrome.tabs.remove).not.toHaveBeenCalled()
+    // Another port's name is not ours.
+    registerPopupClose()
+    const onConnect = vi.mocked(chrome.runtime.onConnect.addListener).mock.calls.at(-1)![0] as (port: chrome.runtime.Port) => void
+    expect(() => onConnect({ name: "other" } as chrome.runtime.Port)).not.toThrow()
+    // A tab already gone is fine.
+    vi.mocked(chrome.tabs.get).mockRejectedValue(new Error("gone"))
+    const c = connect()
+    c.send({ close: 9 })
+    c.close()
+    await new Promise((r) => setTimeout(r, 0))
+    expect(chrome.tabs.remove).not.toHaveBeenCalled()
+  })
+})

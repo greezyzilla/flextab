@@ -1,12 +1,13 @@
 {
-  "extends": "plasmo/templates/tsconfig.base",
+  "extends": "plasmo/templates/tsconfig.base.json",
   "exclude": [
     "node_modules"
   ],
   "include": [
     ".plasmo/index.d.ts",
-    "./**/*.ts",
-    "./**/*.tsx"
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "*.ts"
   ],
   "compilerOptions": {
     "jsx": "react-jsx",
@@ -15,6 +16,12 @@
         "./*"
       ]
     },
-    "baseUrl": "."
+    "baseUrl": ".",
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "types": ["chrome", "node"],
+    "resolveJsonModule": true
   }
 }

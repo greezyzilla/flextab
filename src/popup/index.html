@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>__plasmo_static_index_title__</title>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/x-icon" href="/assets/favicon.ico" />
+    <!-- TASK-107: puts the stored mode and look on <html> before the first paint. Its own file:
+         MV3 pages run no inline scripts. Paths are relative to .plasmo/, where Plasmo writes the page. -->
+    <script src="../src/boot/look.js"></script>
+  </head>
+  <body>
+    <!-- The popup's skeleton as static markup (components/PopupSkeleton.tsx, kept equal by
+         src/boot/templates.test.ts), shown until the popup's first commit removes it. -->
+    <div id="boot-skeleton" aria-hidden="true"><main class="flex w-80 flex-col gap-3.5 bg-black-900 p-4 font-sans text-fg"><section class="flex flex-col gap-3.5"><div class="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3"><span class="relative grid h-11 w-11 place-items-center rounded-popup-tile bg-ink/[0.06] [&amp;&gt;img]:h-[22px] [&amp;&gt;img]:w-[22px]"></span><div class="min-w-0"><span aria-hidden="true" class="flex items-center" style="height:24px"><span aria-hidden="true" class="block shrink-0 motion-safe:animate-pulse bg-ink/[0.07] rounded" style="width:72%;height:14px"></span></span><div class="mt-0.5"><span aria-hidden="true" class="flex items-center" style="height:18px"><span aria-hidden="true" class="block shrink-0 motion-safe:animate-pulse bg-ink/[0.05] rounded" style="width:48%;height:10px"></span></span></div></div></div><div class="overflow-hidden rounded-popup bg-ink/[0.04]"><div aria-hidden="true" class="grid min-h-11 w-full grid-cols-[20px_minmax(0,1fr)] items-center gap-x-3 px-3 py-[11px]"><span aria-hidden="true" class="block shrink-0 motion-safe:animate-pulse bg-ink/[0.07] rounded-md" style="width:20px;height:20px"></span><span aria-hidden="true" class="flex items-center" style="height:22px"><span aria-hidden="true" class="block shrink-0 motion-safe:animate-pulse bg-ink/[0.07] rounded" style="width:55%;height:12px"></span></span></div></div></section></main></div>
+  </body>
+</html>
