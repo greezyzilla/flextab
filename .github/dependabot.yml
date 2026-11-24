@@ -3,6 +3,8 @@
 # caught before it reaches us (the 2026 npm worm). PRs go to dev, where work lands.
 # Security updates (alerts on dev, the default branch) come as one grouped PR per
 # ecosystem too. They skip the cooldown, so check each with malscan before merging.
+# Monthly version updates carry minor and patch only: a major version can break,
+# so it is done on purpose as its own task, never inside the monthly batch.
 version: 2
 updates:
   - package-ecosystem: npm
@@ -12,9 +14,13 @@ updates:
       interval: monthly
     cooldown:
       default-days: 7
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       npm:
         patterns: ["*"]
+        update-types: ["minor", "patch"]
       npm-security:
         applies-to: security-updates
         patterns: ["*"]
@@ -30,9 +36,13 @@ updates:
       interval: monthly
     cooldown:
       default-days: 7
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       actions:
         patterns: ["*"]
+        update-types: ["minor", "patch"]
       actions-security:
         applies-to: security-updates
         patterns: ["*"]
