@@ -6,6 +6,23 @@ afterEach(() => {
   cleanup();
 });
 
+// jsdom has no matchMedia, every browser does. Without it, code that reads a media query from a
+// timer (RightPanel's skeleton save, 300 ms) throws whenever a test runs long enough, which fails
+// the run with an unhandled error. Default: no query matches. A test that needs a layout stubs
+// its own (vi.stubGlobal or assignment), which takes precedence.
+if (typeof window !== 'undefined' && !window.matchMedia) {
+  window.matchMedia = ((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener() {},
+    removeListener() {},
+    addEventListener() {},
+    removeEventListener() {},
+    dispatchEvent: () => false,
+  })) as unknown as typeof window.matchMedia;
+}
+
 global.chrome = {
   tabs: {
     create: vi.fn(),
