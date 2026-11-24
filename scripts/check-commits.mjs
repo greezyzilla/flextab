@@ -6,7 +6,7 @@
  *   node scripts/check-commits.mjs --range=<from>..<to>     CI: each commit in a push or PR
  *   node scripts/check-commits.mjs --message-file=<path>    the commit-msg hook (.githooks)
  *
- * History is never rewritten, so the commits made before this check are listed
+ * The commits made before this check keep their messages, so they are listed
  * in EXEMPT instead of fixed.
  */
 import { execFileSync } from "node:child_process"
@@ -21,11 +21,11 @@ const GIT_WRITTEN = /^(Merge |Revert ")/
 
 /** Commits from before this check, kept as they are. */
 export const EXEMPT = new Set([
-  "9790b1e788b05aafc7653e241fe194a5235c1024",
-  "5a44ec8fe3ec1aa7169d7677fe5ad4855ed79189",
-  "ab5701fe9bd3a7992f1e786e47a4c27c0fbbe8cc",
-  "f077dec1deb82c45d519ebd483afb8d25c78ba8b",
-  "854fafb1d990fbc1a138ccc00fb94357bd5aafca",
+  "59ccd80baf838e60562771de84a718be63350680",
+  "20045cfee16bc0635d3213d0a41265d2190ab73a",
+  "cd79629067e6dea94dbf7a24a205d26a1333a845",
+  "83eb6242919476d45ec578761b4606dce9f94722",
+  "3289f47ac356c63b700f862fbc6765c27a4b1f01",
   "e198eb073fa82b491ff62ef88005fc420e8dda53",
 ])
 
