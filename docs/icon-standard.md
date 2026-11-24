@@ -1,19 +1,15 @@
 # Icon standard
 
-Status: **built** (2026-11-18, TASK-76). `src/components/ui/icon.tsx` is the only way FlexTab draws
-an icon. `src/components/ui/icon.test.tsx` fails when:
+`src/components/ui/icon.tsx` is the only way FlexTab draws an icon. `src/components/ui/icon.test.tsx`
+fails when:
 - a component renders a Lucide glyph without going through `Icon`;
 - a component draws its own `<svg>` outside the allowed non-icon drawings.
 
-The map the decisions came from (every meaning, how it was drawn, the glyph chosen) is the review
-page "FlexTab Icon Map" (tools/review/tk76/icon-map.html).
-
 ## 1. One set
 
-Every icon is a [Lucide](https://lucide.dev) glyph from the project's `lucide-react`. Lucide was
-already the most used source, and every hand-drawn SVG had a Lucide equivalent.
+Every icon is a [Lucide](https://lucide.dev) glyph from the project's `lucide-react`.
 
-Three drawings are not icons and stay as they are:
+Three drawings are not icons and are drawn as they are:
 - a space's letter avatar (`SpaceAvatar`);
 - brand logos: FlexTab, plus Google, GitHub, GitLab and Discord on sign-in;
 - non-icon shapes: a tooltip's arrow, the spring-load progress ring, and the filled indicator dots
@@ -67,7 +63,7 @@ The weight is synced with the other appearance settings (`iconWeight`).
 | Save a page | `BookmarkPlus` |
 | Open all tabs of a group (opens pages in the browser) | `SquareArrowOutUpRight` |
 | Open in FlexTab | `AppWindow` |
-| Move an open tab to another window (TASK-94) | `ArrowRightLeft` |
+| Move an open tab to another window | `ArrowRightLeft` |
 | Drag to reorder | `GripVertical` |
 | Expand or collapse | `ChevronRight`, turned down when open |
 | Open a dropdown | `ChevronDown` |
@@ -81,9 +77,9 @@ The weight is synced with the other appearance settings (`iconWeight`).
 | Email (a link was sent) | `Mail` |
 | Navigation menu / Opened Tabs panel | `Menu` / `PanelRight` |
 | List / Grid view | `List` / `LayoutGrid` |
-| Settings topics (TASK-84) | Spaces `Boxes`, Saving `Bookmark`, Opening `MousePointerClick`, Theme `Palette`, Display `Type`, Layout `PanelsTopLeft`, Sync `Cloud`, Backup `History`, Profile `User`, Sign-in & security `KeyRound`, Plan & billing `Gauge` |
-| Settings sections (TASK-84, header box) | Colour and shape `SwatchBook`, Defaults `RotateCcw`, Text and icons `CaseSensitive`, Long titles and links `Link2`, Motion `Wind`, Groups `Layers` (Group), Duplicate tabs `TriangleAlert` (Duplicate), Opening `MousePointerClick` (Opening), Saving and closing `BookmarkPlus` (Save a page), Where saves go `FolderInput` (choose another group), Sync `RefreshCw` (syncing), Export and import `ArrowDownUp`, Version history `Clock`, Signed in as `AtSign`, Name `TextCursorInput`, This device `Laptop`, Sign-in methods `LogIn`, Devices `MonitorSmartphone`, Danger zone `ShieldAlert`, Plan `CreditCard`, Subscription `CalendarClock` (when the plan renews or ends), Usage `ChartNoAxesColumn`, Payment history `Receipt`, Details (a space) `SlidersHorizontal` |
-| More about a setting (info mark beside a row label, TASK-84) | `Info` |
+| Settings topics | Spaces `Boxes`, Saving `Bookmark`, Opening `MousePointerClick`, Theme `Palette`, Display `Type`, Layout `PanelsTopLeft`, Sync `Cloud`, Backup `History`, Profile `User`, Sign-in & security `KeyRound`, Plan & billing `Gauge` |
+| Settings sections (header box) | Colour and shape `SwatchBook`, Defaults `RotateCcw`, Text and icons `CaseSensitive`, Long titles and links `Link2`, Motion `Wind`, Groups `Layers` (Group), Duplicate tabs `TriangleAlert` (Duplicate), Opening `MousePointerClick` (Opening), Saving and closing `BookmarkPlus` (Save a page), Where saves go `FolderInput` (choose another group), Sync `RefreshCw` (syncing), Export and import `ArrowDownUp`, Version history `Clock`, Signed in as `AtSign`, Name `TextCursorInput`, This device `Laptop`, Sign-in methods `LogIn`, Devices `MonitorSmartphone`, Danger zone `ShieldAlert`, Plan `CreditCard`, Subscription `CalendarClock` (when the plan renews or ends), Usage `ChartNoAxesColumn`, Payment history `Receipt`, Details (a space) `SlidersHorizontal` |
+| More about a setting (info mark beside a row label) | `Info` |
 
 `Layers` means Group only. Settings › Spaces is `Boxes`, so the two never share a shape. `Boxes` also marks the "Pick a space" empty state, where there is no space avatar to draw.
 

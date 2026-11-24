@@ -1,6 +1,6 @@
 # Extension quality gates
 
-QA-01 contract, reviewed 2026-10-19. Run with pinned Node 24.14.0/npm 11.9.0:
+Run with pinned Node 24.14.0/npm 11.9.0:
 
 ```sh
 npm ci
@@ -14,7 +14,7 @@ npm run build:zip -- --channel=stable
 
 ## Where each suite runs
 
-CI stays light so a push answers in about two minutes (TASK-116): the browser
+CI stays light so a push answers in about two minutes: the browser
 install and browser-mode tests run locally and before anything is published.
 
 | Check | Push to main/dev, PR (`ci.yml`) | Release (`release.yml` → `verify.yml` with `browser: true`) | Locally |
@@ -31,8 +31,8 @@ install and browser-mode tests run locally and before anything is published.
 | Conventional Commits | yes, each commit in the push or PR (`check-commits.mjs`) | n/a | `commit-msg` hook after `npm run setup-hooks` |
 
 The coverage numbers are the same with or without the browser project: it
-measures none of the covered files. The commit check lists the six commits made
-before it in `EXEMPT`, because history is never rewritten.
+measures none of the covered files. The commits made before the commit check
+existed are listed in `EXEMPT` (`scripts/check-commits.mjs`).
 
 Dependencies update through Dependabot (`.github/dependabot.yml`): monthly, one
 grouped PR per ecosystem (npm, GitHub Actions) to `dev`, and only for versions
@@ -51,8 +51,8 @@ does not establish GitHub branch protection; repository settings are separate.
 suite (everything except `*.browser.test.*`). `browser` runs
 `src/**/*.browser.test.{ts,tsx}` in headless Chromium through Vitest browser
 mode (`@vitest/browser` + Playwright), for checks jsdom cannot make. The first
-is the colour-contrast guard (`src/components/contrast.browser.test.tsx`,
-TASK-68): every Badge variant and every duplicate-mark tone stays at or above
+is the colour-contrast guard (`src/components/contrast.browser.test.tsx`):
+every Badge variant and every duplicate-mark tone stays at or above
 4.5:1 against what it sits on, in light and dark, at every accent hue (step 10)
 x colour intensity (step 25) x group tint, on the page, a panel, and tab rows at
 rest and hovered on plain, Unsorted and every group colour's card. It needs a
@@ -62,42 +62,28 @@ translucent fills. Chromium is installed only when `verify.yml` runs with
 
 ## Typecheck scope
 
-TypeScript 5.9.3 is pinned in package.json/package-lock.json. It can parse the
-string-named export in the installed Vite React plugin declaration that 5.3.3
-could not parse. Source, tests and root TypeScript configuration are checked.
-Plasmo asset declarations come from the installed base config; generated
-`.plasmo`, build outputs and local build environment files are not required.
-The existing Plasmo strictness/skipLibCheck settings are unchanged. This gate
-is not a claim that the project enables TypeScript strict mode.
+TypeScript 5.9.3 is pinned in package.json/package-lock.json; it parses the
+string-named export in the installed Vite React plugin declaration. Source,
+tests and root TypeScript configuration are checked. Plasmo asset declarations
+come from the installed base config; generated `.plasmo`, build outputs and
+local build environment files are not required. Plasmo's strictness and
+skipLibCheck settings apply. This gate is not a claim that the project enables
+TypeScript strict mode.
 
-## Coverage contract and why it changed
+## Coverage contract
 
-The old global 99% statements/lines/functions and 90% branches were not met:
-609 tests passed, but coverage was 88.88% statements/lines, 91.32% functions and
-89.42% branches. CI did not run that gate. The comment claiming a 99.6% line
-baseline was stale.
+The denominator is the logic layers: services, stores, lib and utils. No
+production file is excluded to improve the numbers.
 
-This repair adds 11 behavior tests using the production settings store and sync
-service: guest isolation, first-account seeding, remote field adoption, local
-and remote independent edits, debounce, GET/PUT failure retries, sign-out before
-a queued push, and stopping timers/subscriptions. Account settings sync
-had 100% statements/lines/functions and 97.82% branches at the QA-01 baseline.
-The subsequent [DAT-17 session repair](settings-sync.md) adds deferred-response
-and account-switch cases, plus new-tab lifecycle and login-profile tests.
+The global gate caps **uncovered counts**, using Vitest's negative threshold
+values:
 
-Clean-install baseline: 620 tests in 48 files; 90.53% statements/lines, 93.35%
-functions, 89.64% branches. The denominator remains the same logic layers:
-services, stores, lib and utils. No production file was excluded to improve it.
-
-The global gate now caps **uncovered counts**, using Vitest's negative threshold
-values. This is an explicit replacement of the unmet percentage contract:
-
-| Metric | Covered / total | Maximum uncovered |
-| --- | ---: | ---: |
-| Statements | 3136 / 3464 | 328 |
-| Lines | 3136 / 3464 | 328 |
-| Functions | 323 / 346 | 23 |
-| Branches | 1428 / 1593 | 165 |
+| Metric | Maximum uncovered |
+| --- | ---: |
+| Statements | 328 |
+| Lines | 328 |
+| Functions | 23 |
+| Branches | 165 |
 
 Adding unrelated covered code cannot dilute these gaps. Additional gates stop
 high-risk files from regressing while another file's coverage improves:
@@ -110,16 +96,16 @@ high-risk files from regressing while another file's coverage improves:
 | syncEngine | 85 / 85 / 95 / 83% |
 | oauthLogin | 96 / 96 / 100 / 93% |
 
-These are regression floors, not proof of correctness. Major remaining measured
-gaps include dragDrop (58.13% lines), settings migrations/store (72.89% lines),
-API wrappers (61.29% functions), syncEngine error/lifecycle paths (85.38% lines),
-and conflict-state recovery (81.57% lines). Review those paths when changing
-them and add behavior/failure tests rather than tests that duplicate source.
+These are regression floors, not proof of correctness. The weakest covered
+areas are dragDrop, settings migrations/store, API wrappers, syncEngine
+error/lifecycle paths and conflict-state recovery. Review those paths when
+changing them and add behavior/failure tests rather than tests that duplicate
+source.
 
 Component, hook and extension entry files are outside the coverage denominator;
-their existing tests still run. Native Chrome multi-context and PostgreSQL
-concurrency verification remain QA-02. A unit coverage percentage does not
-prove browser persistence, network behavior or production recovery.
+their tests still run. Native Chrome multi-context and PostgreSQL concurrency
+are not verified by this suite. A unit coverage percentage does not prove
+browser persistence, network behavior or production recovery.
 
 ## Updating a gate
 

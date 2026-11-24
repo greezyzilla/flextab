@@ -1,10 +1,8 @@
 # Modal standard
 
-Status: **built** (2026-11-10): `src/components/ui/modal.tsx` (TASK-43), every modal migrated
-(TASK-42, 44, 45, 46). `src/components/ui/modal-gate.test.ts` fails if a component outside `ui/`
-builds a modal from the raw dialog primitives. The narrow-screen drawer is exempt: it is a side
-sheet, not a modal. The audit that motivated it is
-backlog doc-1 "Modal audit 2026-11-10". Its rule ids (S1–S11) and root causes (R1–R6) are cited below.
+`src/components/ui/modal.tsx` is the one modal family. `src/components/ui/modal-gate.test.ts` fails
+if a component outside `ui/` builds a modal from the raw dialog primitives. The narrow-screen drawer
+is exempt: it is a side sheet, not a modal.
 
 Sources: Atlassian *Modal dialog*, Primer (GitHub) *Dialog*, Carbon (IBM) *Modal*, and the W3C APG
 *Dialog (Modal)* pattern. Where they disagree, the choice is stated.
@@ -33,10 +31,12 @@ A modal never opens another modal (Atlassian).
 | Click outside | closes, **unless a field was edited** (Primer) | never closes |
 | Cancel in footer | when the dialog has a primary action | always, except the forced decision below |
 
-**Forced decision.** The sync choice and merge conflicts cannot simply be cancelled. They still get
-a non-destructive way out ("Decide later": sync stays paused), so a person is never trapped (S6).
+**Forced decision.** The sign-in sync choice and merge conflicts cannot simply be cancelled. Merge
+conflicts still get a non-destructive way out ("Pause sync and decide later": sync stays paused), so
+a person is never trapped. The sign-in sync choice has no paused state to fall back to, so it stays
+a forced choice with no exit; it gets the standard's focus and a primary that names the choice.
 
-Both kinds share everything else in this document: anatomy, sizes, spacing, type and buttons (S11).
+Both kinds share everything else in this document: anatomy, sizes, spacing, type and buttons.
 
 ## 3. Anatomy
 
@@ -51,11 +51,11 @@ Both kinds share everything else in this document: anatomy, sizes, spacing, type
 └────────────────────────────────────────────┘
 ```
 
-- The **body scrolls** when the modal outgrows 85vh. Header and footer stay put (S7).
+- The **body scrolls** when the modal outgrows 85vh. Header and footer stay put.
 - **One exception: a long choice list keeps its own bounded box.** The destination picker keeps its
-  border and max height (as it is today), so the options above it and the footer stay in view. The
-  sample showed that letting the picker grow with the body loses its boundary (Common Region). The
-  list then blends into the options around it, and the modal becomes very tall (decision D4).
+  border and max height, so the options above it and the footer stay in view. Letting the picker
+  grow with the body loses its boundary (Common Region): the list blends into the options around
+  it, and the modal becomes very tall.
 - The **footer start** holds at most one escape hatch or helper action (Download backup, See plan,
   Export JSON, Decide later) or a status line ("3 of 5 chosen"). Primer allows secondary actions on
   the left.
@@ -70,9 +70,8 @@ Both kinds share everything else in this document: anatomy, sizes, spacing, type
 
 - Max height is 85vh. Past that, the body scrolls.
 - Below 640px viewport width, every size is `100vw − 32px` wide (16px safe area, Primer).
-- **Open decision D1:** Primer makes dialogs with inputs full-screen on narrow screens. FlexTab's
-  narrow case is a small window, not a phone. Proposal: do not go full-screen; the 16px safe area
-  is enough.
+- No full-screen on narrow screens. Primer makes dialogs with inputs full-screen there, but
+  FlexTab's narrow case is a small window, not a phone, so the 16px safe area is enough.
 
 ## 5. Spacing (one rhythm)
 
@@ -87,7 +86,7 @@ Both kinds share everything else in this document: anatomy, sizes, spacing, type
 | Between footer buttons | 8px |
 | Close X | 28px target, top 14px, right 14px, vertically centred on the title's first line; the title reserves 32px on the right |
 
-Call sites pass **no spacing classes**. The primitive owns them (R2).
+Call sites pass **no spacing classes**. The primitive owns them.
 
 ## 6. Type
 
@@ -100,31 +99,30 @@ Call sites pass **no spacing classes**. The primitive owns them (R2).
 | Note or warning | the existing `role="note"` box, 12px |
 | Footer status | 12px `text-fg-subtle` |
 
-There is one title size for both kinds (R1). `<Label>` is never used as option text (R6).
+There is one title size for both kinds. `<Label>` is never used as option text.
 
 ## 7. Footer and buttons
 
-- Right-aligned, in the order **[Cancel] [Primary]**. At most one primary (S3).
-- All footer buttons are size `default` (h36, 14px), in both kinds (R3).
-- **Cancel** is the `secondary` variant everywhere (R4), except in a `quiet` footer (below).
+- Right-aligned, in the order **[Cancel] [Primary]**. At most one primary.
+- All footer buttons are size `default` (h36, 14px), in both kinds.
+- **Cancel** is the `secondary` variant everywhere, except in a `quiet` footer (below).
 - **Primary** is `default` (accent), or `destructive` when it deletes, removes or replaces. A
   destructive primary also leads with a warning icon (`TriangleAlert`), so a primary that changes
-  tone with the choice still shows the change when the accent hue is red (TASK-49). The page
+  tone with the choice still shows the change when the accent hue is red. The page
   control that opens a destructive flow ("Delete space…") is the `danger` variant (red text on a
   red tint), not a red fill.
-- **Quiet footer** (`ModalFooter quiet`) for a step that leaves rather than goes ahead (Sign out,
-  TASK-84): the primary is `secondary` (neutral) instead of the accent, Cancel is `ghost` so the two
+- **Quiet footer** (`ModalFooter quiet`) for a step that leaves rather than goes ahead (Sign out):
+  the primary is `secondary` (neutral) instead of the accent, Cancel is `ghost` so the two
   neutral buttons differ by shape, and the primary holds one width (`min-w-28`) so Cancel never
   moves when the primary turns destructive.
 - A typed confirmation is one line: the description is the instruction ("Type <name> to delete
   it.") and the field has no visible label or placeholder of its own, only an `aria-label`
-  (TASK-84 KISS: no line that only explains another line).
+  (no line that only explains another line).
 - Every red in a modal (destructive primary, an inline error) follows
   `docs/danger-standard.md`.
 - The footer-start action is `link` styled, with its underline visible at rest. It must not read as
   a heading.
-- The footer never stacks vertically (R4, Sign out). If it overflows, buttons wrap with the primary
-  last.
+- The footer never stacks vertically. If it overflows, buttons wrap with the primary last.
 
 **Labels.**
 - The primary is a verb plus an object that repeats the title: "Delete group", "Save 3 tabs",
@@ -144,7 +142,7 @@ Focus on open, first rule that applies:
 3. Otherwise the primary.
 
 Rules for every modal:
-- Focus never starts outside the modal (S5, sync choice today).
+- Focus never starts outside the modal.
 - Tab is trapped inside.
 - Esc runs Cancel.
 - On close, focus returns to the trigger. If the trigger is gone (a deleted row), it goes to that
@@ -154,8 +152,8 @@ Rules for every modal:
 
 ## 9. Implementation shape
 
-One `Modal` primitive over Radix Dialog and AlertDialog. It replaces direct use of `DialogContent`,
-`AlertDialogContent` and `ConfirmDialog` layout props.
+One `Modal` primitive over Radix Dialog and AlertDialog. Components never build a modal from
+`DialogContent` or `AlertDialogContent` directly.
 
 ```tsx
 <Modal kind="dialog" | "alert" size="s" | "m" | "l" open onOpenChange initialFocus="cancel" dirty={edited}>
@@ -166,38 +164,4 @@ One `Modal` primitive over Radix Dialog and AlertDialog. It replaces direct use 
 </Modal>
 ```
 
-Gates:
-- A unit test asserts every modal renders through `Modal`.
-- `tools/ui-shots/modals.cjs` must report the §5 gaps, the §6 sizes and the §8 focus target for
-  every modal, in light and dark.
-
-## 10. The 16 modals under this standard
-
-| Modal | Kind | Size | Primary (label, tone) | Focus on open | Notable change |
-|---|---|---|---|---|---|
-| Choose what to keep (sync choice) | alert, forced | L | follows the choice: "Merge both" / "Keep my account's" / "Keep this device's"; destructive when it removes tabs | selected option | focus inside; "Decide later" only if D2 says yes |
-| Resolve sync conflicts | alert, forced | L | "Resolve conflicts" | first option | "Pause sync and decide later" moves to footer start; the chosen-count moves up beside "Choose for all" |
-| Import | dialog | M | "Add N tabs" / "Replace workspace" (destructive) | selected radio | description is what the file holds, not its name |
-| Version preview | dialog | M | "Restore version" | Close X | the same workspace tree as the sign-in choice (`WorkspaceTree`), in its own bounded box; Cancel added |
-| Restore version? | alert | S | "Restore version" | Cancel | body at most 2 sentences; footer start "Export JSON" |
-| Sign out of FlexTab? | alert | M | "Sign out", quiet footer; destructive (same label) when Remove is chosen | Cancel | one line + Keep / Remove; consent tick only when changes have not synced; "Download backup" at footer start only for Remove (TASK-84) |
-| Delete your account? | alert | M | "Delete account" (destructive) | email field | "Type <email> to delete it for good." + field + one tick "Also remove tabs from this device"; "Download backup" only when ticked (TASK-84) |
-| Save all tabs | dialog | M | "Save N tabs" | destination search | option text at 14px; drop the "This window (0 tabs)" choice when it is empty (TASK-42) |
-| Save window as a group (was "Save Session") | dialog | M | "Save group" | name field | drop the duplicate destination line |
-| Move tab / Move group / Save tab | dialog | M | "Move tab" / "Move group" / "Save tab" | search field | none beyond the primitive; picker keeps its own box |
-| Delete group? | alert | S | "Delete group" (destructive) | Cancel | none beyond the primitive |
-| Delete project? / Delete category? | alert | S | "Delete project" / "Delete category" (destructive) | Cancel | specific label |
-| Delete "Work"? (space) | alert | S | "Delete space" (destructive) | name field | "Type <name> to delete it." + field; what goes is on the page row and Undo stays (TASK-84) |
-| Keyboard shortcuts | dialog, passive | M | none | the dialog itself (`initialFocus="dialog"`): nothing is highlighted before use | description at 14px |
-| Your plan syncs up to N tabs | alert | S | "Got it" | primary | "See plan" moves to footer start |
-| Sign in / turn on sync (TASK-79) | dialog | L | "Continue with Google" | primary (Google, the fastest path, ahead of the email field) | two panes with no footer: the offer (title, the person's own counts, trust) on the accent side, the actions on the other; the action pane turns into waiting, tab-closed and done in place. Click outside closes unless a field was edited |
-
-## 11. Open decisions
-
-- **D1** ~~Narrow screens.~~ Decided 2026-11-10: no full-screen; every size is `100vw − 32px` wide below 640px.
-- **D2** ~~Sync choice "Decide later".~~ Decided 2026-11-10: it stays a forced choice with no exit. The
-  sign-in choice has no paused state to fall back to (merge conflicts do, through
-  `dismissMergeConflicts`), and adding one is new sync behaviour, out of this standard's scope. The
-  sync choice gets the standard's focus and a primary that names the choice.
-- **D3** ~~Alert buttons grow from h32/12px to h36/14px.~~ Accepted with the sample.
-- **D4** ~~The picker grows with the body.~~ Rejected after the sample: the picker keeps its bounded box (§3).
+Gate: `modal-gate.test.ts` asserts every modal renders through `Modal`.
