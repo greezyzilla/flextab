@@ -160,8 +160,11 @@ describe("contrast guard", () => {
     expect(probes.length).toBe((VARIANTS.length + TONES.length * 2) * (2 + 2 * (2 + GROUP_COLORS.length * 2)));
   });
 
+  // Each sweep measures every probe at every hue x intensity x tint: about 8 s on a laptop and
+  // about twice that on a GitHub runner, past Vitest's default 15 s.
+  const SWEEP_TIMEOUT = 60_000;
   for (const theme of ["light", "dark"] as const) {
-    it(`keeps every mark >= ${MIN}:1 in ${theme}, at every hue x intensity x group tint`, () => {
+    it(`keeps every mark >= ${MIN}:1 in ${theme}, at every hue x intensity x group tint`, { timeout: SWEEP_TIMEOUT }, () => {
       expect(probes.length, "nothing to measure").toBeGreaterThan(0);
       const root = document.documentElement;
       root.classList.toggle("light", theme === "light");
