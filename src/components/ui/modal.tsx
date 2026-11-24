@@ -92,10 +92,12 @@ export function Modal({
   const contentProps = {
     "data-modal": "",
     className: cn(
-      "fixed left-1/2 top-1/2 z-[100] -translate-x-1/2 -translate-y-1/2",
+      // Centred by margin, not transform: the open/close animation owns transform, and a
+      // translate here would be overwritten mid-animation (the modal flew in from the bottom right).
+      "fixed inset-0 z-[100] m-auto h-fit",
       SIZE[size], "max-w-[calc(100vw-32px)] max-h-[85vh] flex flex-col gap-4 p-5",
       "rounded-xl border border-ink/10 bg-black-900 text-fg font-sans shadow-[0_18px_50px_-16px_rgba(0,0,0,0.6)] outline-none",
-      "duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+      "duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom-4 data-[state=open]:slide-in-from-bottom-4",
     ),
     onOpenAutoFocus: (e: Event) => {
       e.preventDefault()
