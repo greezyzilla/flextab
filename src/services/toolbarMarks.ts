@@ -102,7 +102,9 @@ export function markedIconImages(mark: ToolbarMark | null, look?: AppIconLook): 
   const drawing = (async () => {
     const paths = defaultIconPaths()
     return Object.fromEntries(await Promise.all(ICON_SIZES.map(async (size) => {
-      let bitmap = await createImageBitmap(await (await fetch(chrome.runtime.getURL(paths[size]))).blob())
+      // getURL gets the path without its leading slash: Chrome drops it, but Firefox keeps it and
+      // nests the extension URL inside itself, so the fetch fails and the icon is never drawn.
+      let bitmap = await createImageBitmap(await (await fetch(chrome.runtime.getURL(paths[size].replace(/^\//, "")))).blob())
       try {
         if (tinted) {
           const recoloured = await createImageBitmap(drawTintedIcon(bitmap, size, tinted))
