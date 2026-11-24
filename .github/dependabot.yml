@@ -17,9 +17,9 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
-      # 0.x: a minor bump is a rewrite of the Chrome types, so it is a task of its own.
+      # Even patch releases of the Chrome types change signatures the tests mock,
+      # so upgrading them is a task of its own, never part of the monthly batch.
       - dependency-name: "@types/chrome"
-        update-types: ["version-update:semver-minor"]
     groups:
       npm:
         patterns: ["*"]
