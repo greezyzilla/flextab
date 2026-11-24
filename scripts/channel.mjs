@@ -3,7 +3,9 @@
  * package.json, and the build lands in build/<target>-prod.
  *
  * Plasmo reads the channel through the `$FLEXTAB_*` placeholders in package.json
- * `manifest`; stable sets the Firefox add-on id.
+ * `manifest`; stable sets the Firefox add-on id. An unset placeholder is dropped:
+ * `$FLEXTAB_EXT_NAME` is set only by .env.development, so `plasmo dev` builds
+ * "FlexTab Dev" and stable keeps package.json's name.
  *
  * Pure functions only, so the tests can cover the plan without a build.
  */

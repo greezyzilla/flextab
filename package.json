@@ -92,6 +92,7 @@
     "vitest": "^3.2.4"
   },
   "manifest": {
+    "name": "$FLEXTAB_EXT_NAME",
     "browser_specific_settings": {
       "gecko": {
         "id": "$FLEXTAB_GECKO_ID",

@@ -64,10 +64,12 @@ describe("the stable build", () => {
 })
 
 describe("package.json manifest placeholders", () => {
-  it("has a placeholder for every value the channel sets", () => {
+  it("has a placeholder for every value the channel sets, plus the dev build's name", () => {
     const placeholders = JSON.stringify(pkg.manifest).match(/"\$FLEXTAB_\w+"/g).map((s) => s.slice(2, -1))
     const used = new Set(Object.keys(channelPlan("stable").env).filter((k) => k.startsWith("FLEXTAB_")))
-    expect(new Set(placeholders)).toEqual(used)
+    // FLEXTAB_EXT_NAME comes from .env.development ("FlexTab Dev"); stable leaves it unset.
+    expect(new Set(placeholders)).toEqual(new Set([...used, "FLEXTAB_EXT_NAME"]))
+    expect(channelPlan("stable").env).not.toHaveProperty("FLEXTAB_EXT_NAME")
   })
 })
 
