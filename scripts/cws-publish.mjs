@@ -1,17 +1,16 @@
 #!/usr/bin/env node
 /**
  * Uploads a zip to an existing Chrome Web Store item and submits it for review.
- * Stable uses a STAGED publish: after approval it waits for the
+ * It submits a STAGED publish by default: after approval it waits for the
  * developer to press Publish in the dashboard, so a release never goes live
- * before the backend it needs is deployed. Beta uses --publish=default:
- * live for the testers as soon as it is approved, since pushing the
- * beta tag was already the deliberate step. Chrome Web Store API v2, no dependencies.
+ * before the backend it needs is deployed. --publish=default goes live as soon
+ * as it is approved. Chrome Web Store API v2, no dependencies.
  *
  *   CWS_CLIENT_ID=… CWS_CLIENT_SECRET=… CWS_REFRESH_TOKEN=… CWS_PUBLISHER_ID=… CWS_ITEM_ID=… \
  *     node scripts/cws-publish.mjs build/chrome-mv3-prod.zip [--publish=staged|default]
  *
- * The API cannot create an item: the first version of each item (FlexTab,
- * FlexTab Beta) is uploaded once by hand in the Developer Dashboard.
+ * The API cannot create an item: its first version is uploaded once by hand in
+ * the Developer Dashboard.
  */
 import { readFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"

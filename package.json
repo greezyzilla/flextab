@@ -9,14 +9,13 @@
     "check-env": "node scripts/check-env.mjs",
     "build": "npm run check-env && node scripts/build.mjs",
     "build:zip": "npm run check-env && node scripts/build.mjs --zip",
-    "release:beta": "node scripts/release-beta.mjs",
     "package": "plasmo package",
     "test": "vitest",
     "typecheck": "tsc --noEmit --incremental false",
     "test:ui": "vitest --ui",
     "test:browser": "vitest run --project browser",
     "setup-hooks": "git config core.hooksPath .githooks",
-    "check:permissions": "node scripts/check-permissions.mjs build/chrome-mv3-prod build/chrome-mv3-beta build/firefox-mv3-prod",
+    "check:permissions": "node scripts/check-permissions.mjs build/chrome-mv3-prod build/firefox-mv3-prod",
     "test:firefox": "node scripts/firefox-smoke.mjs",
     "lint:firefox": "npm ci --prefix tools/web-ext --ignore-scripts --no-audit --no-fund && tools/web-ext/node_modules/.bin/web-ext lint --source-dir build/firefox-mv3-prod",
     "test:coverage": "vitest --coverage"
@@ -93,13 +92,9 @@
     "vitest": "^3.2.4"
   },
   "manifest": {
-    "name": "$FLEXTAB_EXT_NAME",
-    "version": "$FLEXTAB_EXT_VERSION",
-    "version_name": "$FLEXTAB_EXT_VERSION_NAME",
     "browser_specific_settings": {
       "gecko": {
         "id": "$FLEXTAB_GECKO_ID",
-        "update_url": "$FLEXTAB_GECKO_UPDATE_URL",
         "strict_min_version": "140.0",
         "data_collection_permissions": {
           "required": ["none"],

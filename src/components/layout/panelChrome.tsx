@@ -55,9 +55,8 @@ export function PanelFooter({ start }: { start?: ReactNode }) {
 }
 
 /**
- * The version people see: the manifest's version_name when the build has one (a
- * beta build reads "0.1.0 Beta 7"), else its version. Outside the
- * extension (tests) it falls back to package.json.
+ * The version people see: the manifest's version_name when the build has one,
+ * else its version. Outside the extension (tests) it falls back to package.json.
  */
 function versionText(): string {
   const manifest = typeof chrome !== "undefined" ? chrome.runtime?.getManifest?.() : undefined

@@ -7,7 +7,7 @@
  * for in context (as tab groups does). permissions.lock.json records what is
  * required today; this checks the BUILT manifests against it.
  *
- *   node scripts/check-permissions.mjs build/chrome-mv3-prod build/chrome-mv3-beta build/firefox-mv3-prod
+ *   node scripts/check-permissions.mjs build/chrome-mv3-prod build/firefox-mv3-prod
  *       fails on any required permission, host, content script match or
  *       Firefox required data that the lock does not list; removals pass
  *   node scripts/check-permissions.mjs --lock-commits=<from>..<to>

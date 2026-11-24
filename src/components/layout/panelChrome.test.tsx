@@ -16,10 +16,10 @@ function withManifest(manifest: Partial<chrome.runtime.Manifest>) {
 }
 
 describe("AppVersion", () => {
-  it("shows a beta build's version name", () => {
-    withManifest({ version: "0.1.0.7", version_name: "0.1.0 Beta 7" })
+  it("shows the manifest's version name when it has one", () => {
+    withManifest({ version: "0.1.0", version_name: "0.1.0 Preview" })
     render(<AppVersion />)
-    expect(screen.getByText("FlexTab v0.1.0 Beta 7")).toBeInTheDocument()
+    expect(screen.getByText("FlexTab v0.1.0 Preview")).toBeInTheDocument()
   })
 
   it("shows a stable build's version, which has no version name", () => {

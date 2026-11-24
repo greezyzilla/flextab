@@ -20,7 +20,7 @@ export const CLIENT_TOO_OLD = "client_too_old"
 /** The live sync socket's close code for the same answer (4000-4999 are the application's own). */
 export const CLIENT_TOO_OLD_CLOSE_CODE = 4426
 
-/** The manifest version: X.Y.Z for stable, X.Y.Z.N for beta. */
+/** The manifest version (X.Y.Z). */
 export function clientVersion(): string {
   try {
     return chrome.runtime.getManifest().version
@@ -29,7 +29,7 @@ export function clientVersion(): string {
   }
 }
 
-/** stable or beta, set by scripts/build.mjs; dev for `plasmo dev`. */
+/** stable, set by scripts/build.mjs; dev for `plasmo dev`. */
 export function clientChannel(): string {
   return process.env.PLASMO_PUBLIC_FLEXTAB_CHANNEL || "dev"
 }

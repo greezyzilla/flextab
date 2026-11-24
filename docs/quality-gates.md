@@ -22,7 +22,7 @@ install and browser-mode tests run locally and before anything is published.
 | Typecheck | yes | yes | `npm run typecheck` |
 | jsdom unit tests + coverage gates | yes (`--project unit`) | yes | `npm run test:coverage -- --run` |
 | Browser-mode tests (Chromium) | no | yes (`browser: true`) | `npm run test:browser` |
-| Stable and beta builds | yes | yes | `npm run build -- --channel=...` |
+| Stable build | yes | yes | `npm run build -- --channel=stable` |
 | Firefox build + `web-ext lint` | yes | yes | `npm run lint:firefox` |
 | No new required permission (built manifests vs `permissions.lock.json`) | yes | yes | `npm run check:permissions` |
 | `permissions.lock.json` changes only with the manifest | yes, each commit | n/a | `node scripts/check-permissions.mjs --lock-commits=<range>` |

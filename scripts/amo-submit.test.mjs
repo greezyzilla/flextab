@@ -23,12 +23,3 @@ describe("AMO listed submission", () => {
     expect(signEnv({ AMO_JWT_ISSUER: "issuer", AMO_JWT_SECRET: "secret", PATH: "/bin" })).toMatchObject({ WEB_EXT_API_KEY: "issuer", WEB_EXT_API_SECRET: "secret", PATH: "/bin" })
   })
 })
-
-describe("AMO unlisted signing for beta", () => {
-  it("waits for the automatic signing, so the signed .xpi comes back", () => {
-    const args = signArgs({ channel: "unlisted", sourceDir: "/b/ff", sourceArchive: "/tmp/src.zip", artifactsDir: "/tmp/a" })
-    expect(args).toContain("--channel=unlisted")
-    expect(args).toContain("--upload-source-code=/tmp/src.zip")
-    expect(args).not.toContain("--approval-timeout=0")
-  })
-})

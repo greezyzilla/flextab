@@ -7,7 +7,7 @@
 #   review it waits for you to press Publish (deploy the backend it needs first);
 # - AMO: submitted as a listed version with its source code.
 # A store step without its secrets is skipped with a notice; the tag and the
-# GitHub Release still happen. Beta (beta-v* tags) has its own workflow, never here.
+# GitHub Release still happen.
 name: Release
 on:
   push:
