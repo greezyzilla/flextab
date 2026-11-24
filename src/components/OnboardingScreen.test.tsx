@@ -125,6 +125,9 @@ describe("sign-in screen", () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
       render(<OnboardingScreen onBack={vi.fn()} />)
       await ready()
+      // The modal enables its own pointer events on a later render that a timer
+      // schedules; with fake timers that timer has to run before typing.
+      await act(async () => { await vi.advanceTimersByTimeAsync(0) })
       await user.type(screen.getByLabelText("Email"), "me@own-domain.test")
       await user.type(screen.getByLabelText("Password"), "password1")
       await user.click(screen.getByRole("button", { name: "Sign in" }))
