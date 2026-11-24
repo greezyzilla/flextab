@@ -50,7 +50,7 @@ function SortableGroup({ group, location, layout, gridColumns }: {
 
   return (
     <div ref={setNodeRef} style={style} className="relative">
-      {/* The grip is in the group's header, on its mark (TASK-121). */}
+      {/* The grip is in the group's header, on its mark. */}
       <TabGroup group={group} location={location} layout={layout} gridColumns={gridColumns} dragHandle={{ ...attributes, ...listeners }} />
     </div>
   );
@@ -113,7 +113,7 @@ function InlineCreate({ label, placeholder, inputLabel, startEditing = false, on
   };
   // Both states take the same 36px row, so swapping button ↔ input doesn't
   // shift the centred block. Enter/Esc is read to screen readers, not
-  // printed, like every other create field (TASK-62).
+  // printed, like every other create field.
   return (
     <div className="flex w-64 flex-col items-center">
       <div className="flex h-9 w-full items-center justify-center">
@@ -162,7 +162,7 @@ function NewGroupRow({ categoryName, onCommit, onCancel }: {
     <div className="flex flex-col rounded-card border border-ink/[0.08] bg-ink/[0.015]" style={{ padding: 'var(--density-p-group)' }}>
       {/* The group header's own row (min-h 26px, px-tab), with the inline frame's
           padding cancelled by negative margins: the name sits where the new
-          group's name will be (TASK-62). */}
+          group's name will be. */}
       <div className="flex items-center min-h-group-head" style={{ paddingInline: 'var(--density-px-tab)' }}>
         <div className={`flex flex-1 min-w-0 items-center gap-2.5 -ml-1.5 pl-1.5 pr-1.5 -my-1 py-1 text-item font-medium ${inlineEditFrame}`}>
           <span className="w-5 flex justify-center shrink-0"><GroupIcon size="sm" className="text-fg-subtle" /></span>
@@ -192,7 +192,7 @@ function NewGroupRow({ categoryName, onCommit, onCancel }: {
  * The row inside an empty category (no groups yet). The drop zone is the whole
  * section (CategorySection), so a tab or group dropped anywhere on it, header
  * included, lands here; this row shows where. While the whole workspace is
- * still empty (first run, TASK-7) it is also the guidance: where to drag from
+ * still empty (first run) it is also the guidance: where to drag from
  * and the shortcut. Its save action is the header's Save all tabs, already in
  * view, so the row draws no second one. It goes away by itself once anything
  * is saved, so it needs no dismiss.
@@ -223,7 +223,7 @@ function EmptySectionDrop({ isOver }: { isOver: boolean }) {
 }
 
 /** A category's header bar: its name, counts and the one place to create a
- *  group. Also drawn by the Appearance previewer (TASK-30), so the preview is
+ *  group. Also drawn by the Appearance previewer, so the preview is
  *  the real header, not a copy of it. */
 export function CategoryHeader({ id, name, counts, isCurrent = false, onNewGroup, dropTarget = false }: {
   id: string; name: string; counts: string; isCurrent?: boolean; onNewGroup?: () => void;
@@ -233,7 +233,7 @@ export function CategoryHeader({ id, name, counts, isCurrent = false, onNewGroup
   return (
       <div className="sticky top-0 z-20 bg-black-900 h-12 px-6 flex items-center justify-between gap-3 border-b border-ink/[0.12]"
         style={dropTarget ? { backgroundImage: 'linear-gradient(var(--accent-subtle), var(--accent-subtle))' } : undefined}>
-        {/* h2 under the panel's h1 (the space); groups are h3 (TASK-28). */}
+        {/* h2 under the panel's h1 (the space); groups are h3. */}
         <h2 id={`section-${id}`} className={`flex items-center gap-2 min-w-0 font-sans text-base ${isCurrent ? 'text-fg' : 'text-fg'}`}>
           <CategoryIcon size="md" />
           <span className="truncate font-semibold">{name}</span>
@@ -258,7 +258,7 @@ function CategorySection({ space, project, category, layout, gridColumns, isCurr
   // Unsorted (if any) is first and fixed; the user's groups follow, sortable.
   const unsorted = findUnsorted(category);
   const ownGroups = orderedGroups(category.groups).filter(g => !isUnsortedGroup(g));
-  // A group dragged in from another category shows here while dragging (TASK-64).
+  // A group dragged in from another category shows here while dragging.
   const preview = useSortPreview(s => s.preview);
   const groups = withPreview(ownGroups, category.id, "group", preview);
   // An empty category takes drops on its whole section, header included, not
@@ -370,13 +370,13 @@ function Breadcrumb({ space, project, category, onProject, onCategory }: {
 }
 
 export function ContentPanel() {
-  useWatchMovedTabs(); // TASK-72: which saved tabs' open tabs moved on
+  useWatchMovedTabs(); // which saved tabs' open tabs moved on
   const activeSpace = useActiveSpace();
   const activeProject = useActiveProject();
   const activeCategory = useActiveCategory();
   const { setActiveCategory, setActiveProject, addSavedProject, addSavedCategory, toggleExpandedProject } = useSavedSpacesStore();
   const noSpaces = useSavedSpacesStore((s) => s.savedSpaces.length === 0);
-  // Alt+N with no spaces opens this page's "New space" field (TASK-81).
+  // Alt+N with no spaces opens this page's "New space" field.
   const spaceNamingRequest = useUIStore((s) => s.spaceNamingRequest);
   const { groupLayout, setGroupLayout, gridColumns } = useSettingsStore();
   const { scrollTarget, setSaveAllOpen } = useUIStore();
@@ -402,8 +402,8 @@ export function ContentPanel() {
         section.offsetTop >= container.scrollTop &&
         section.offsetTop + headerHeight <= container.scrollTop + container.clientHeight;
       if (visible) {
-        // No scroll happens, so the section at the top stays the current one
-        // (TASK-23): the breadcrumb and save target follow what is pinned at
+        // No scroll happens, so the section at the top stays the current one:
+        // the breadcrumb and save target follow what is pinned at
         // the top, not the just-created section further down.
         const top = sectionAtTop(container);
         if (top && top !== useSavedSpacesStore.getState().activeCategoryId) useSavedSpacesStore.getState().setActiveCategory(top);
@@ -443,8 +443,8 @@ export function ContentPanel() {
 
   let body: React.ReactNode;
   if (noSpaces) {
-    // Zero spaces is a valid workspace (TASK-37): a clean slate that offers
-    // the next space (TASK-98).
+    // Zero spaces is a valid workspace: a clean slate that offers
+    // the next space.
     body = <EmptyWorkspace request={spaceNamingRequest} />;
   } else if (!activeSpace) {
     body = <LevelEmptyState icon={<Icon icon={Boxes} size="xl" />} title="Pick a space" body="Spaces keep your tabs apart, like Work and Personal. Pick one on the left." />;
@@ -513,7 +513,7 @@ export function ContentPanel() {
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden min-h-0">
       {/* Location header. With no spaces there is no location and no tool to
-          show, so the row goes and the clean slate takes its height (TASK-98). */}
+          show, so the row goes and the clean slate takes its height. */}
       {!noSpaces && <div className="flex justify-between items-center gap-3 h-14 px-6 border-b border-line shrink-0">
         <Breadcrumb
           space={activeSpace}

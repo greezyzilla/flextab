@@ -79,7 +79,7 @@ describe("drawMarkedIcon", () => {
     expect(ops.filter(([op]) => op === "arc")).toEqual([["arc", 24, 24, 10, 0, 6.283], ["arc", 24, 24, 8, 0, 6.283]])
   })
 
-  // The glyphs, square by square, in the disc's box (TASK-78: never crooked).
+  // The glyphs, square by square, in the disc's box (never crooked).
   it("draws a check, an exclamation and a cross, each centred in the disc", () => {
     const pictures = Object.fromEntries((["saved", "failed", "unsavable"] as ToolbarMark[]).flatMap((mark) => ICON_SIZES.map((size) => {
       ops = []

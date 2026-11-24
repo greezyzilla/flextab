@@ -3,7 +3,7 @@ import { PageTile } from "~src/components/ui/page-tile"
 import { Skeleton } from "~src/components/ui/skeleton"
 
 /**
- * The popup while it reads the page (TASK-106, TASK-107): the same box, tile, sentence and detail
+ * The popup while it reads the page: the same box, tile, sentence and detail
  * lines and action row as the popup's own loading state, at the same places. Its static markup is
  * the body of popup.html (src/popup/index.html, kept equal by a test), so the first frame shows it
  * before the app's script has loaded; the popup removes it in its first commit, before that paints.

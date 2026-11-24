@@ -15,7 +15,7 @@ export function Kbd({ shortcut, className }: { shortcut: string; className?: str
 }
 
 /**
- * Shows a control's keyboard shortcut where the control is (TASK-13): people
+ * Shows a control's keyboard shortcut where the control is: people
  * learn a shortcut while using the button, not from a list they never open.
  */
 export function ShortcutTooltip({ label, shortcut, side = "bottom", children }: {
@@ -25,7 +25,7 @@ export function ShortcutTooltip({ label, shortcut, side = "bottom", children }: 
     <Tooltip>
       <TooltipTrigger asChild>{children}</TooltipTrigger>
       {/* The label and its keys 8px apart on their own row: TooltipContent puts its children in a text
-          span, so a gap on the tooltip box would not reach them (TASK-119). */}
+          span, so a gap on the tooltip box would not reach them. */}
       <TooltipContent side={side}>
         <span data-slot="shortcut-tip" className="inline-flex flex-wrap items-center gap-2">
           {label}

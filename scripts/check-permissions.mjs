@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * A release must not add a required permission by accident (TASK-115). When an
+ * A release must not add a required permission by accident. When an
  * update asks for a new required permission or host, Chrome disables FlexTab
  * until the user accepts it (Firefox holds the update back the same way), which
  * looks like FlexTab broke. New capabilities use optional permissions, asked

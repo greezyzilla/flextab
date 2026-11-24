@@ -7,7 +7,7 @@ import type { DuplicateCorner, DuplicateLabel, DuplicateTone } from "~src/store/
 /** What both marks say on hover. */
 export const DUPLICATE_TIP = "This address is in this group more than once";
 
-/** Duplicate mark colours (TASK-68): soft ribbon fill + text, and the icon. */
+/** Duplicate mark colours: soft ribbon fill + text, and the icon. */
 export const DUPLICATE_TONE = {
   caution: { ribbon: "bg-caution/[0.10] text-caution", icon: "text-caution" },
   accent: { ribbon: "bg-[color-mix(in_srgb,var(--accent-subtle)_50%,transparent)] text-fg-accent", icon: "text-fg-accent" },
@@ -15,7 +15,7 @@ export const DUPLICATE_TONE = {
 } as const;
 
 /**
- * A ribbon across one top corner of a saved tab row (TASK-68). It sits in a
+ * A ribbon across one top corner of a saved tab row. It sits in a
  * clip box of its own, so the row itself stays unclipped (menus and rings
  * still show). The row must be `relative` and carry `group`.
  * `copies`: how many tabs in the group share this address.
@@ -28,8 +28,8 @@ export function DuplicateRibbon({ copies, tone, corner, label }: { copies: numbe
           corner with "⋯": it steps aside while "⋯" is hovered, focused or
           open, so the button and its focus ring sit on the plain row. */}
       {/* The tooltip anchors to this upright corner box, the part of the ribbon
-          you can see; the rotated band's own box sticks out past the row
-          (TASK-69). Pointer events still come from the band inside. It lines
+          you can see; the rotated band's own box sticks out past the row.
+Pointer events still come from the band inside. It lines
           up with the row's own edge, so it grows into the card, never past it. */}
       <Tooltip>
       <TooltipTrigger asChild>
@@ -48,7 +48,7 @@ export function DuplicateRibbon({ copies, tone, corner, label }: { copies: numbe
   );
 }
 
-/** A warning triangle on the favicon's bottom-right corner (TASK-68). Goes inside the `relative` favicon slot of a `group` row. */
+/** A warning triangle on the favicon's bottom-right corner. Goes inside the `relative` favicon slot of a `group` row. */
 export function DuplicateIcon({ tone }: { tone: DuplicateTone }) {
   return (
     // Below, so the arrow reaches the triangle straight from under it; above,

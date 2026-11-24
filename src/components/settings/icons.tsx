@@ -1,7 +1,7 @@
 import { Bookmark, Boxes, Cloud, Gauge, History, KeyRound, LayoutGrid, List, MousePointerClick, Palette, PanelsTopLeft, Type, User } from "lucide-react"
 import { Icon } from "~src/components/ui/icon"
 
-/** Settings › topic icons (TASK-76, TASK-84): one Lucide glyph per topic, nav size. */
+/** Settings › topic icons: one Lucide glyph per topic, nav size. */
 export const SpacesIcon = () => <Icon icon={Boxes} size="sm" />
 export const SavingIcon = () => <Icon icon={Bookmark} size="sm" />
 export const OpeningIcon = () => <Icon icon={MousePointerClick} size="sm" />

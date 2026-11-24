@@ -192,7 +192,7 @@ describe("syncChanges edge cases", () => {
   })
 })
 
-describe("container moves (TASK-59)", () => {
+describe("container moves", () => {
   const spaces = (where: "Hobby" | "Personal"): SavedSpace[] => [
     { id: "h", name: "Hobby", projects: where === "Hobby" ? [{ id: "p", name: "Test", categories: [] }] : [] },
     { id: "e", name: "Personal", projects: where === "Personal" ? [{ id: "p", name: "Test", categories: [] }] : [] },

@@ -1,5 +1,5 @@
 /**
- * "Update needed" (TASK-114). When the server answers that this version is below
+ * "Update needed". When the server answers that this version is below
  * its minimum, utils/http records UPDATE_REQUIRED_KEY. From then on:
  * - the background asks the browser for an update (installUpdateRequired), and
  *   holds every push, pending flag kept, so it does not keep knocking;

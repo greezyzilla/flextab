@@ -45,7 +45,7 @@ beforeEach(() => {
   ;(chrome.tabs as unknown as { getCurrent: () => Promise<chrome.tabs.Tab> }).getCurrent = vi.fn(async () => tabs[0])
 })
 
-describe("an open tab dragged in Opened Tabs (TASK-73)", () => {
+describe("an open tab dragged in Opened Tabs", () => {
   it("shows the tab where it would land, the rows around it making room", async () => {
     useOpenTabPreview.getState().show({ tabId: 20, from: { windowId: 10, index: 0 }, slot: { windowId: 9, index: 2 }, label: "Window 1" })
     renderPanel()
@@ -58,7 +58,7 @@ describe("an open tab dragged in Opened Tabs (TASK-73)", () => {
   })
 })
 
-describe("Opened Tabs rows follow Density (TASK-128)", () => {
+describe("Opened Tabs rows follow Density", () => {
   it("takes the rows' padding from the density setting; the window header keeps its 56px line, level with the location header", async () => {
     renderPanel()
     await waitFor(() => expect(row("News")).toBeTruthy())
@@ -69,8 +69,8 @@ describe("Opened Tabs rows follow Density (TASK-128)", () => {
   })
 })
 
-describe("Opened Tabs rows (TASK-60)", () => {
-  it("leaves out the tab FlexTab runs in; a page that can't be saved can't be saved, but can be moved (TASK-73)", async () => {
+describe("Opened Tabs rows", () => {
+  it("leaves out the tab FlexTab runs in; a page that can't be saved can't be saved, but can be moved", async () => {
     renderPanel()
     // The tab this page runs in is gone; another FlexTab page stays listed.
     await waitFor(() => expect(screen.getAllByRole("button", { name: "Go to Settings · Theme" })).toHaveLength(1))
@@ -164,7 +164,7 @@ describe("Opened Tabs rows (TASK-60)", () => {
   })
 })
 
-describe("moving an open tab without dragging (TASK-94)", () => {
+describe("moving an open tab without dragging", () => {
   it("offers the other windows, then a new one, and moves the tab to the end of the one picked, with Undo", async () => {
     vi.mocked(chrome.tabs.query).mockResolvedValue(tabs as never)
     const user = userEvent.setup()

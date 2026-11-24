@@ -7,7 +7,7 @@ import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 
 afterEach(() => vi.useRealTimers())
 
-describe("useFlash / revealInWorkspace (TASK-14)", () => {
+describe("useFlash / revealInWorkspace", () => {
   it("outlines only the revealed item for a moment, after the scroll settles", () => {
     vi.useFakeTimers()
     const el = document.createElement("div"); el.scrollIntoView = vi.fn()

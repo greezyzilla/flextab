@@ -1,4 +1,4 @@
-# FlexTab Beta releases (TASK-118), for the internal testers. A beta is cut by
+# FlexTab Beta releases, for the internal testers. A beta is cut by
 # pushing a tag made by `npm run release:beta` on dev (beta-vX.Y.Z.N: the last
 # stable version plus the commits since it). Every push of such a tag:
 #   1. validate: refuses a wrong format, a commit not on dev, or a version not

@@ -30,12 +30,12 @@ export interface User {
 // Guest mode lets users try the app fully (local-only) before signing in.
 // Persisted to chrome.storage.local so it survives reloads and syncs across tabs
 // via the onChanged listener below. Auth always wins: signing in clears it.
-// Guest mode is gone (TASK-7): the workspace is always local, an account only
+// Guest mode is gone: the workspace is always local, an account only
 // adds sync. The old flag is removed once so it does not linger in storage.
 const LEGACY_GUEST_MODE_KEY = "flextab_guest_mode";
 
 /**
- * The signed-in account's profile, kept on this device (TASK-105) so the new tab and the popup open
+ * The signed-in account's profile, kept on this device so the new tab and the popup open
  * from it at once instead of waiting for /api/me. Written on every /api/me, removed on sign-out,
  * account delete and a new login, so it always belongs to the stored tokens.
  */
@@ -74,12 +74,12 @@ interface AuthState {
   handleAuthCallback: (tokens: TokenData, alreadyStored?: boolean) => Promise<void>;
   /**
    * Sign out. "keep" leaves this device's workspace in place as a local-only
-   * workspace (TASK-7): the next sign-in, to any account, reconciles it through
+   * workspace: the next sign-in, to any account, reconciles it through
    * the same guest→account path as a first login. "remove" also deletes it.
    */
   logout: (choice: { localData: "keep" | "remove" }) => Promise<void>;
   /**
-   * Delete the account and its cloud data (TASK-17), then leave this device
+   * Delete the account and its cloud data, then leave this device
    * signed out like a sign-out does, keeping or removing its tabs as chosen.
    */
   deleteAccount: (email: string, choice: { localData: "keep" | "remove" }) => Promise<void>;
@@ -132,7 +132,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   initialize: async () => {
     const tokens = await loadTokens();
     if (tokens) {
-      // Local-first (TASK-105): with the profile stored on this device, open from it at once and
+      // Local-first: with the profile stored on this device, open from it at once and
       // refresh it from /api/me in the background. Only the first open after a sign-in waits.
       const stored = await loadStoredUser();
       set(stored ? { isAuthenticated: true, user: stored, isLoading: false } : { isAuthenticated: true });

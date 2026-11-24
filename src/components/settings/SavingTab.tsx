@@ -6,7 +6,7 @@ import { loadRememberDestinations, saveRememberDestinations } from "~src/lib/rec
 import { SettingRow, SettingsPage, SettingsSection } from "./shared";
 
 /**
- * Settings › Saving (TASK-60): whether saving a tab also closes it, one switch
+ * Settings › Saving: whether saving a tab also closes it, one switch
  * per way of saving, because the same person wants different things from
  * each. All off until turned on; every close can be undone.
  */
@@ -52,7 +52,7 @@ export function SavingTab() {
         </SettingRow>
       ))}
       </SettingsSection>
-      {/* TASK-75: where a save goes when you don't pick. */}
+      {/* Where a save goes when you don't pick. */}
       <SettingsSection title="Where saves go" icon={FolderInput} subtitle="Where a saved tab lands.">
       <SettingRow
         label="Remember where I last saved"

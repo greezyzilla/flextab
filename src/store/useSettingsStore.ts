@@ -8,12 +8,12 @@ import { DEFAULT_APPEARANCE, readStoredThemeMode, type AppIcon, type ThemeMode }
 export type GroupLayout = 'list' | 'grid';
 export type Density = 'compact' | 'cozy' | 'comfortable';
 export type FontKey = 'inter' | 'system' | 'rounded' | 'serif' | 'mono';
-/** How a tab saved twice in the same group is marked (TASK-68). */
+/** How a tab saved twice in the same group is marked. */
 export type DuplicateMark = 'ribbon' | 'icon' | 'off';
 export type DuplicateTone = 'caution' | 'accent' | 'neutral';
 export type DuplicateCorner = 'right' | 'left';
 export type DuplicateLabel = 'dupe' | 'count';
-/** When a cut saved tab shows its full title and link (TASK-80): as you point, or only while Alt is held. */
+/** When a cut saved tab shows its full title and link: as you point, or only while Alt is held. */
 export type TabPreview = 'hover' | 'alt';
 
 /** UI font options (system stacks — nothing bundled). Maps to --font-sans in useTheme. */
@@ -62,15 +62,15 @@ export const APPEARANCE_DEFAULTS = {
   theme: 'system' as ThemeMode, // follow the OS; Light/Dark force one (device-only, not synced)
   groupLayout: 'grid' as GroupLayout, // groups side by side: more of the workspace in one look
   gridColumns: 2,
-  // density, hue, intensity, groupTint (0-100 coloured group tint, TASK-18), radius (px, drives
-  // --radius), reduceMotion, fontFamily, uiScale (0.8-1.2) and appIcon (TASK-107): one source with
+  // density, hue, intensity, groupTint (0-100 coloured group tint), radius (px, drives
+  // --radius), reduceMotion, fontFamily, uiScale (0.8-1.2) and appIcon: one source with
   // the look the loading pages paint before the store loads (lib/theme.ts).
   ...DEFAULT_APPEARANCE,
-  titleCut: 50,        // 0-100, where "…" sits in a cut saved tab title (TASK-71)
-  linkCut: 50,         // 0-100, where "…" sits in a cut saved tab link (TASK-71)
-  linkCutScope: 'all' as LinkCutScope, // which part of the link is cut: all, site or path (TASK-71)
-  tabPreview: 'hover' as TabPreview, // full title + link of a cut tab: on hover, or only while Alt is held (TASK-80)
-  iconWeight: 'regular' as IconWeight, // stroke of every icon: thin 1.5, regular 1.75, bold 2 (TASK-76)
+  titleCut: 50,        // 0-100, where "…" sits in a cut saved tab title
+  linkCut: 50,         // 0-100, where "…" sits in a cut saved tab link
+  linkCutScope: 'all' as LinkCutScope, // which part of the link is cut: all, site or path
+  tabPreview: 'hover' as TabPreview, // full title + link of a cut tab: on hover, or only while Alt is held
+  iconWeight: 'regular' as IconWeight, // stroke of every icon: thin 1.5, regular 1.75, bold 2
   duplicateMark: 'ribbon' as DuplicateMark,
   duplicateTone: 'caution' as DuplicateTone,
   duplicateCorner: 'right' as DuplicateCorner,  // ribbon only
@@ -84,23 +84,23 @@ interface SettingsState {
   density: Density;
   hue: number;         // 0-360, accent hue
   intensity: number;   // 0-100, overall colour strength (0 = grayscale)
-  groupTint: number;   // 0-100, coloured group card tint (TASK-18)
+  groupTint: number;   // 0-100, coloured group card tint
   radius: number;      // 0-16 px, UI corner roundness
   reduceMotion: boolean;
   fontFamily: FontKey;
   uiScale: number;     // 0.8-1.2 whole-UI zoom
-  appIcon: AppIcon;    // the app icon in the accent, or the manifest blue (TASK-107)
+  appIcon: AppIcon;    // the app icon in the accent, or the manifest blue
   titleCut: number;    // 0-100, "…" position in a cut saved tab title: 0 keeps the end, 100 the start
   linkCut: number;     // 0-100, the same for a saved tab link
   linkCutScope: LinkCutScope; // which part of the link gives way first
   tabPreview: TabPreview;      // when a cut tab's full title and link show
-  iconWeight: IconWeight;      // stroke weight of every icon (TASK-76)
+  iconWeight: IconWeight;      // stroke weight of every icon
   duplicateMark: DuplicateMark;
   duplicateTone: DuplicateTone;
   duplicateCorner: DuplicateCorner;
   duplicateLabel: DuplicateLabel;
   autoSync: boolean;
-  /** Open all gives a group back as a browser tab group (TASK-31). Device-only:
+  /** Open all gives a group back as a browser tab group. Device-only:
    *  the `tabGroups` permission it needs is per browser, so it is not synced to
    *  the account and Reset appearance leaves it alone. */
   openAsTabGroups: boolean;
@@ -206,7 +206,7 @@ export const useSettingsStore = create<SettingsState>()(
 );
 
 // Keep every setting consistent across open extension pages: the automatic-sync
-// preference, and the look (TASK-107), so an accent picked in one tab repaints the
+// preference, and the look, so an accent picked in one tab repaints the
 // others at once, and a page left open never writes its old values back over a
 // newer choice. Rehydrate from the current durable record rather than re-saving an
 // old event; a page's own write matches its state and changes nothing.

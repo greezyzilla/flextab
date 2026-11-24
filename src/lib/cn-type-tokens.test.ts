@@ -1,4 +1,4 @@
-// TASK-103.5: cn() knows the type tokens in tailwind.config.js fontSize, so it merges them as sizes.
+// cn() knows the type tokens in tailwind.config.js fontSize, so it merges them as sizes.
 import { describe, expect, it } from "vitest"
 import { cn } from "./utils"
 

@@ -36,7 +36,7 @@ export function DestinationPicker({ value, onChange, maxHeightClass, groupLevel 
   /** The list's height cap; by default the dialog's (max-h-60) or the popup's (216px). */
   maxHeightClass?: string
   groupLevel?: boolean
-  /** "panel": the popup's sizes and a folding tree (TASK-72). Dialogs keep "default". */
+  /** "panel": the popup's sizes and a folding tree. Dialogs keep "default". */
   size?: "default" | "panel"
 }) {
   const panel = size === "panel"
@@ -83,7 +83,7 @@ export function DestinationPicker({ value, onChange, maxHeightClass, groupLevel 
     const space = store.savedSpaces.find((s) => s.id === spaceId)
     const id = uuidv7()
     store.addSavedProject(spaceId, { id, name, categories: [], order: space?.projects.length ?? 0 })
-    // One name per action (TASK-20): no chained category prompt. The new
+    // One name per action: no chained category prompt. The new
     // project gets the default category so it is a valid destination at once.
     setCreating(null)
     const path = ensureCategoryPath(spaceId, { projectId: id })
@@ -99,7 +99,7 @@ export function DestinationPicker({ value, onChange, maxHeightClass, groupLevel 
     onChange({ spaceId, projectId, categoryId: id })
   }
 
-  // No spaces (TASK-37): nothing to find or pick, so no search field and no
+  // No spaces: nothing to find or pick, so no search field and no
   // list box. One line says where the save goes instead.
   if (savedSpaces.length === 0) {
     return <p className="text-xs text-fg-subtle">No spaces yet. Saving creates a space named {DEFAULT_SPACE_NAME}.</p>
@@ -352,9 +352,9 @@ const PANEL = {
 /** One selectable row (a radio, visually a list item). */
 export function Choice({ name, indentClass, indent, selected, icon, label, trailing, onSelect }: {
   name: string; indentClass: string; selected: boolean; icon: React.ReactNode; label: string
-  /** Panel size (TASK-72): the row's left inset in px, 15px text, neutral selection. */
+  /** Panel size: the row's left inset in px, 15px text, neutral selection. */
   indent?: number
-  /** A mark after the label, e.g. the group's colour (TASK-18). */
+  /** A mark after the label, e.g. the group's colour. */
   trailing?: React.ReactNode
   onSelect: () => void
 }) {
@@ -403,7 +403,7 @@ export function Choice({ name, indentClass, indent, selected, icon, label, trail
  * slot's own padding is subtracted from the indent so its + still sits in the
  * icon column of the items it would create (7px + the 1px border = 8px).
  * With its py-0.5 wrapper it is as tall as a Choice row (2 + 1 + 3 = 6px a
- * side), so the name row that replaces it keeps the list still (TASK-62).
+ * side), so the name row that replaces it keeps the list still.
  */
 function CreateChoice({ indentClass, indent, iconSize, label, ariaLabel, onClick }: {
   indentClass: string; indent?: number; iconSize: IconSize; label: string; ariaLabel: string; onClick: () => void
@@ -468,7 +468,7 @@ function NameRow({ indentClass, indent, icon, label, placeholder, onCommit, onCa
   }
   return (
     // The Choice row's own box (indent, pr-3, py-1.5, text-xs) drawn as the
-    // inline field, so the name sits in the label column (TASK-62).
+    // inline field, so the name sits in the label column.
     <div className={`flex items-center gap-2 ${indentClass} pr-3 py-1.5 text-xs text-fg ${inlineEditFrame}`}>
       {icon}
       {field}

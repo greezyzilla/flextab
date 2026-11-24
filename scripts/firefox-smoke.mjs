@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Firefox smoke test (TASK-112): drives the installed Firefox through WebDriver
+ * Firefox smoke test: drives the installed Firefox through WebDriver
  * BiDi, with no dependency, and checks what the unit tests cannot: the build
  * really runs in Firefox. Local and before a release only (it needs Firefox).
  *
@@ -14,7 +14,7 @@
  * Checks: the new tab page and the popup render; both shortcuts are registered;
  * the tab grouping API is there; revoking the API host permission turns sync to
  * "Sync off"; an update applied while FlexTab pages are open brings them back on
- * the new version (Firefox closes every extension tab on reload, TASK-113).
+ * the new version (Firefox closes every extension tab on reload).
  */
 import { spawn } from "node:child_process"
 import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
@@ -139,7 +139,7 @@ try {
   for (let i = 0; i < 30 && !back; i++) { back = (await textOf(extUrl("newtab.html"), "/^Sync off$/", 1)) === null; if (!back) await sleep(200) }
   check("allowing access again clears Sync off", back === true)
 
-  // An update while FlexTab pages are open (TASK-113): a newer version on disk,
+  // An update while FlexTab pages are open: a newer version on disk,
   // the browser's update notice (the ready flag), then the user switches away.
   manifest.version = manifest.version.split(".").map((n, i, all) => (i === all.length - 1 ? String(Number(n) + 1) : n)).join(".")
   if (manifest.version_name) manifest.version_name = `${manifest.version_name} (smoke update)`

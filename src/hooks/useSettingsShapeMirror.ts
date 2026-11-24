@@ -4,7 +4,7 @@ import { currentDensity, measureSettingsPage, storeSettingsShape } from "~src/li
 import { storeSettingsSkeletonMarkup } from "~src/components/layout/SettingsSkeleton";
 
 /**
- * Keeps the loading shell's copy of the open Settings page current (TASK-108): its shape
+ * Keeps the loading shell's copy of the open Settings page current: its shape
  * (lib/settingsShape.ts) and its skeleton markup for boot/shell.js, written once the page settles
  * and again whenever it changes size (a list arrives, a row wraps, the density changes).
  */

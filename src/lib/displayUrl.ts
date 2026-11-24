@@ -1,5 +1,5 @@
 /**
- * Splits a web URL for display as host + the rest (TASK-54), so the rest can
+ * Splits a web URL for display as host + the rest, so the rest can
  * be cut from its start and its end (episode, slug, id) stays visible.
  * Host and rest together are exactly what the card showed before
  * (the URL without its http(s):// scheme). A local file splits as "file://"
@@ -44,8 +44,8 @@ const isHigh = (c: number) => c >= 0xd800 && c <= 0xdbff
 const isLow = (c: number) => c >= 0xdc00 && c <= 0xdfff
 
 /**
- * `text` cut to fit `width` (TASK-54, the user's call for titles): as many
- * characters as fit around a "…". `startShare` is where the "…" sits (TASK-71):
+ * `text` cut to fit `width` (the user's call for titles): as many
+ * characters as fit around a "…". `startShare` is where the "…" sits:
  * the share of the kept characters taken from the start, 0.5 = the middle
  * (start and end kept evenly), 0 = only the end kept, 1 = only the start kept.
  * Cuts never split a surrogate pair, and spaces at the cut are dropped so the
@@ -79,14 +79,14 @@ export function hasClippedText(el: Element | null): boolean {
   return [...el.querySelectorAll<HTMLElement>("[data-clip]")].some((n) => n.dataset.cut === "true" || n.scrollWidth > n.clientWidth + 1)
 }
 
-/** Which part of a link gives way first when it is cut (TASK-71, Settings › Appearance › Link cut). */
+/** Which part of a link gives way first when it is cut (Settings › Appearance › Link cut). */
 export type LinkCutScope = "all" | "site" | "path"
 
-/** The most of the line a site keeps while only the path is cut (TASK-54), so the path always has room. */
+/** The most of the line a site keeps while only the path is cut, so the path always has room. */
 export const SITE_MAX_SHARE = 0.6
 
 /**
- * A link (`host` + `rest`) cut to fit `width` (TASK-71). `share` is where the
+ * A link (`host` + `rest`) cut to fit `width`. `share` is where the
  * "…" sits (0 keeps the end, 1 the start). `scope` is the part cut:
  * - "path": the site stays whole and only the path is cut, while the site
  *   takes no more than SITE_MAX_SHARE of the line;

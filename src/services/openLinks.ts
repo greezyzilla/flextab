@@ -4,7 +4,7 @@ import { faviconToDataUrl } from "~src/utils/favicon"
 import type { SavedSpace, SavedTab } from "~src/types"
 
 /**
- * Which saved tab a browser tab was opened from (TASK-72).
+ * Which saved tab a browser tab was opened from.
  *
  * When FlexTab opens a saved tab (card click, Open all, the ⌘K palette) it
  * records "browser tab N came from saved tab T at location L". The browser tab
@@ -103,7 +103,7 @@ export function restoreLinkedTab(link: OpenLink, before: SavedTab): void {
 const segments = (url: string) => { try { return new URL(url).pathname.split("/").filter(Boolean) } catch { return [] } }
 
 /**
- * The one saved tab this page most likely continues (TASK-72), for a page not
+ * The one saved tab this page most likely continues, for a page not
  * opened from FlexTab: same host, and the address shares most of its path
  * with the saved one ("/anime/2711/ore-dake/episode/1" vs ".../episode/3").
  * Null unless a single saved tab clearly wins, so a guess is never offered
@@ -118,7 +118,7 @@ export function bestSameHostMatch(spaces: SavedSpace[], url: string | undefined)
 /**
  * Saved tabs this page looks like the next step of (same host, the same path
  * up to the episode), most alike first. Two or more equally alike means "one of
- * these, but which?": the only time the popup offers picking one (TASK-72).
+ * these, but which?": the only time the popup offers picking one.
  */
 export function continuationTabs(spaces: SavedSpace[], url: string | undefined): Array<{ link: OpenLink; tab: SavedTab; path: string }> {
   return continuations(spaces, url).map((c) => c.hit)

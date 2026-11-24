@@ -10,7 +10,7 @@ import { installUpdatePrepareListener } from "./updatePrepare"
 
 type Listener = (message: unknown, sender: unknown, sendResponse: (r: unknown) => void) => boolean | undefined
 
-describe("the page answers an update only after its writes are done (TASK-113)", () => {
+describe("the page answers an update only after its writes are done", () => {
   let listener: Listener
 
   beforeEach(() => {

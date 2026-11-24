@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest"
 import { clearKeptOnSignOut, KEPT_ON_SIGNOUT_KEY, loadKeptOnSignOut, markKeptOnSignOut } from "./keptWorkspace"
 
-describe("keptWorkspace marker (TASK-11)", () => {
+describe("keptWorkspace marker", () => {
   it("round-trips through storage", async () => {
     vi.mocked(chrome.storage.local.get).mockResolvedValueOnce({ [KEPT_ON_SIGNOUT_KEY]: true } as any)
     expect(await loadKeptOnSignOut()).toBe(true)

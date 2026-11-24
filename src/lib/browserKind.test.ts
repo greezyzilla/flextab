@@ -10,7 +10,7 @@ afterEach(() => {
   delete c.commands
 })
 
-describe("browserKind (TASK-112)", () => {
+describe("browserKind", () => {
   it("is Chrome without runtime.getBrowserInfo, Firefox with it", () => {
     expect(isFirefox()).toBe(false)
     expect(browserName()).toBe("Chrome")

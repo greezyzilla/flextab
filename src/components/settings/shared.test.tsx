@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react"
 import { Cloud } from "lucide-react"
 import { SettingRow, SettingsSection } from "./shared"
 
-describe("SettingRow in a card (TASK-122)", () => {
+describe("SettingRow in a card", () => {
   it("a message in the control column adds no width to it, so the label keeps its column", () => {
     render(
       <SettingsSection title="Export and import" icon={Cloud} subtitle="Move your tabs.">

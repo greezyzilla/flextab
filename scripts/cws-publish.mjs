@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
  * Uploads a zip to an existing Chrome Web Store item and submits it for review.
- * Stable uses a STAGED publish (TASK-117): after approval it waits for the
+ * Stable uses a STAGED publish: after approval it waits for the
  * developer to press Publish in the dashboard, so a release never goes live
- * before the backend it needs is deployed. Beta uses --publish=default
- * (TASK-118): live for the testers as soon as it is approved, since pushing the
+ * before the backend it needs is deployed. Beta uses --publish=default:
+ * live for the testers as soon as it is approved, since pushing the
  * beta tag was already the deliberate step. Chrome Web Store API v2, no dependencies.
  *
  *   CWS_CLIENT_ID=… CWS_CLIENT_SECRET=… CWS_REFRESH_TOKEN=… CWS_PUBLISHER_ID=… CWS_ITEM_ID=… \

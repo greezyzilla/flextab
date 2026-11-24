@@ -21,7 +21,7 @@ beforeEach(() => {
 })
 afterEach(() => { cleanup(); localStorage.clear(); vi.unstubAllGlobals(); wide = true; document.body.innerHTML = "" })
 
-describe("the new tab's boot skeleton (TASK-107)", () => {
+describe("the new tab's boot skeleton", () => {
   it("keeps the markup React draws for the stored shape and this layout", () => {
     storeShellShape(shape)
     storeShellSkeletonMarkup()
@@ -51,7 +51,7 @@ describe("the new tab's boot skeleton (TASK-107)", () => {
   })
 })
 
-describe("the skeleton's panel footer (TASK-109)", () => {
+describe("the skeleton's panel footer", () => {
   it("is drawn like PanelFooter: the version line on the left, Shortcuts on the right", () => {
     const { container } = render(<ShellSkeletonView shape={shape} leftInline rightInline />)
     const footer = Array.from(container.querySelectorAll("div.border-t")).find(el => el.className.includes("justify-between"))!

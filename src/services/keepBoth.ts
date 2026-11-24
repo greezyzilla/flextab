@@ -1,5 +1,5 @@
-// "Keep both" for a tab whose address changed differently on both sides
-// (TASK-29). Two addresses are two pages, so both can stay: the merged tree
+// "Keep both" for a tab whose address changed differently on both sides.
+// Two addresses are two pages, so both can stay: the merged tree
 // keeps this device's tab and gains the account's version right after it, as
 // a new tab with its own id so the next sync does not see the same conflict.
 //

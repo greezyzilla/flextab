@@ -1,4 +1,4 @@
-// What ⌘K finds (TASK-14): open tabs, saved tabs and places (spaces,
+// What ⌘K finds: open tabs, saved tabs and places (spaces,
 // projects, categories, groups), each ranked the same way. Pure: the palette
 // renders these lists and decides how many to show.
 

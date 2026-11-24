@@ -3,7 +3,7 @@ import * as React from "react"
 import { cn } from "~src/lib/utils"
 
 /**
- * A small outlined word beside a row's title that states a fact about it (TASK-103.5; Search's
+ * A small outlined word beside a row's title that states a fact about it (Search's
  * "Open" and "Current"): 11px on an 18px line in a hairline box, the height of a Kbd cap, so it
  * lines up with the key hints in the same list. Not a control and not a count.
  */

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import { REQUIRED_ENV, missingEnv, signArgs, signEnv, sourceArchiveArgs } from "./amo-submit.mjs"
 
-describe("AMO listed submission (TASK-117)", () => {
+describe("AMO listed submission", () => {
   it("names every missing secret", () => {
     expect(missingEnv({})).toEqual(REQUIRED_ENV)
   })
@@ -24,7 +24,7 @@ describe("AMO listed submission (TASK-117)", () => {
   })
 })
 
-describe("AMO unlisted signing for beta (TASK-118)", () => {
+describe("AMO unlisted signing for beta", () => {
   it("waits for the automatic signing, so the signed .xpi comes back", () => {
     const args = signArgs({ channel: "unlisted", sourceDir: "/b/ff", sourceArchive: "/tmp/src.zip", artifactsDir: "/tmp/a" })
     expect(args).toContain("--channel=unlisted")

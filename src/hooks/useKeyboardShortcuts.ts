@@ -7,10 +7,10 @@ import { isInsideModal } from "~src/components/ui/modal";
 
 /**
  * Run `action` against the current category, following the same rule as
- * every other save path (TASK-20): if the active space has no project or
+ * every other save path: if the active space has no project or
  * category yet, the default ones are created so the shortcut always works.
  * With no space selected it uses the first one, or creates the default space
- * when there are none (TASK-37).
+ * when there are none.
  */
 export function withActiveCategory(action: (target: SaveTabsTarget) => void): void {
   const state = useSavedSpacesStore.getState();
@@ -33,7 +33,7 @@ export function useKeyboardShortcuts() {
     const handler = (e: KeyboardEvent) => {
       // Skip if user is typing in an input / textarea / contenteditable
       if (isEditableTarget(e.target)) return;
-      // A modal owns the keyboard: page shortcuts never act behind it (TASK-47).
+      // A modal owns the keyboard: page shortcuts never act behind it.
       if (isInsideModal(e.target)) return;
 
       const mod = e.metaKey || e.ctrlKey;

@@ -9,7 +9,7 @@ import { useOverCapNotice } from "~src/store/useOverCapNotice"
 import { acknowledgeOverCap } from "~src/services/syncEngine"
 import { navigate } from "~src/lib/route"
 
-describe("OverCapNotice (TASK-33)", () => {
+describe("OverCapNotice", () => {
   beforeEach(() => { vi.clearAllMocks(); useOverCapNotice.getState().close() })
 
   it("renders nothing until a first upload is over the cap", () => {

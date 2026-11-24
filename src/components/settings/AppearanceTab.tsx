@@ -15,16 +15,16 @@ import type { LinkCutScope } from "~src/lib/displayUrl";
 import type { TabPreview } from "~src/store/useSettingsStore";
 import { isMac } from "~src/lib/platform";
 
-/** What each Link cut scope does, shown under its choice (TASK-71). */
+/** What each Link cut scope does, shown under its choice. */
 const LINK_CUT_SCOPE_NOTE: Record<LinkCutScope, string> = {
   all: "The whole link is shortened as one.",
   site: "Only the site is shortened, so the path stays whole. If the path alone doesn't fit, the whole link is shortened.",
   path: "Only the path is shortened, so the site stays whole. If the site alone doesn't fit, the whole link is shortened.",
 };
 
-/** Alt is Option on macOS (TASK-80). */
+/** Alt is Option on macOS. */
 const ALT_KEY = isMac() ? "Option" : "Alt";
-/** When a cut tab's full title and link show, said under the choice (TASK-80). */
+/** When a cut tab's full title and link show, said under the choice. */
 const TAB_PREVIEW_NOTE: Record<TabPreview, string> = {
   hover: "Pointing at a cut tab shows its full title and link.",
   alt: `Hold ${ALT_KEY} while pointing at a cut tab, or while it has keyboard focus, to see its full title and link.`,
@@ -61,7 +61,7 @@ export function HueSlider({ value, onChange, ...controlProps }: { value: number;
 }
 
 /**
- * Appearance (TASK-84): Theme, Display and Layout are three topics in the
+ * Appearance: Theme, Display and Layout are three topics in the
  * Settings nav. "Reset appearance" resets all three, so each of them ends with
  * it as an ordinary setting row (one Settings language, no page-only parts).
  */
@@ -172,7 +172,7 @@ export function DisplayTab() {
       <SettingsSection title="Text and icons" icon={CaseSensitive} subtitle="Typeface, size and icon lines.">
         <SettingRow label="Font" description="The typeface used across the app.">
           {(controlProps) => (
-            // A list that will keep growing is a dropdown, not a row of buttons (TASK-84).
+            // A list that will keep growing is a dropdown, not a row of buttons.
             <Select value={fontFamily} onValueChange={(v) => setFontFamily(v as FontKey)}>
               <SelectTrigger {...controlProps}>
                 <SelectValue />
@@ -186,7 +186,7 @@ export function DisplayTab() {
           )}
         </SettingRow>
 
-        {/* Every icon is drawn through Icon (TASK-76), so one weight reaches them all. */}
+        {/* Every icon is drawn through Icon, so one weight reaches them all. */}
         <SettingRow label="Icon weight" description="How thick the lines of every icon are.">
           {(controlProps) => (
             <ToggleGroup<IconWeight>
@@ -214,7 +214,7 @@ export function DisplayTab() {
       </SettingsSection>
 
       <SettingsSection title="Long titles and links" icon={Link2} subtitle="How cut titles and links are shortened and shown.">
-        {/* Where a long saved tab title or link is cut (TASK-71): the value is
+        {/* Where a long saved tab title or link is cut: the value is
             where the "…" sits, so its thumb sits where the cut does. */}
         <SettingRow label="Title cut" description="Where a long tab title is shortened. 0% keeps its end, 100% keeps its start.">
           {(controlProps) => (
@@ -250,7 +250,7 @@ export function DisplayTab() {
           )}
         </SettingRow>
 
-        {/* The preview of a cut tab, on hover or only on demand (TASK-80). */}
+        {/* The preview of a cut tab, on hover or only on demand. */}
         <SettingRow label="Full title and link" description={TAB_PREVIEW_NOTE[tabPreview]}>
           {(controlProps) => (
             <ToggleGroup<TabPreview>
@@ -412,13 +412,13 @@ export function LayoutTab() {
 }
 
 /**
- * Settings › Workspace › Saving & opening, last section (TASK-84): what
+ * Settings › Workspace › Saving & opening, last section: what
  * opening saved tabs does.
  * Moved out of Theme, where a behaviour sat among colours.
  */
 export function OpeningTab() {
   const { openAsTabGroups, setOpenAsTabGroups } = useSettingsStore();
-  // TASK-31. Turning it on asks for `tabGroups` right in this click (Chrome
+  // Turning it on asks for `tabGroups` right in this click (Chrome
   // needs the gesture) and only sticks when granted; off gives it back.
   const changeOpenAsTabGroups = (on: boolean) => {
     if (!on) { setOpenAsTabGroups(false); void releaseTabGroups(); return; }

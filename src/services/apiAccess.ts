@@ -1,5 +1,5 @@
 /**
- * Whether FlexTab may reach its server (TASK-112). Two things can take that away
+ * Whether FlexTab may reach its server. Two things can take that away
  * after install, and either one stops sync without an error worth showing:
  * - the host permission for the API: Firefox and Chrome both let the user turn a
  *   site's access off for an extension;

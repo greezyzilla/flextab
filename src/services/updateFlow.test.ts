@@ -42,8 +42,8 @@ beforeEach(() => {
 const ready = () => { disk[UPDATE_READY_KEY] = { version: "0.1.0.8", at: 1 } }
 const deps = () => ({ flushBackground: vi.fn(async () => {}), reload: vi.fn() })
 
-describe("installSteps (TASK-113)", () => {
-  it("seeds the first workspace, then runs the shared setup, on a first install (TASK-127)", () => {
+describe("installSteps", () => {
+  it("seeds the first workspace, then runs the shared setup, on a first install", () => {
     expect(installSteps("install")).toEqual(["deviceId", "seed", "menus", "initialPush"])
   })
 
@@ -56,7 +56,7 @@ describe("installSteps (TASK-113)", () => {
     expect(installSteps("chrome_update")).not.toContain("restoreTabs")
   })
 
-  it.each(["update", "chrome_update", "shared_module_update"])("never seeds on %s (TASK-127)", reason => {
+  it.each(["update", "chrome_update", "shared_module_update"])("never seeds on %s", reason => {
     expect(installSteps(reason)).not.toContain("seed")
   })
 
@@ -243,7 +243,7 @@ describe("installUpdateFlow", () => {
   })
 })
 
-describe("installing at once when the user asks (TASK-114)", () => {
+describe("installing at once when the user asks", () => {
   it("applies with FlexTab in front once the user asked, and the restore forgets the request", async () => {
     ready()
     disk[UPDATE_FORCE_KEY] = true

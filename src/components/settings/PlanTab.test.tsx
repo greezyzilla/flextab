@@ -83,7 +83,7 @@ describe("checkout availability feedback", () => {
   );
 });
 
-describe("a paid checkout coming back (TASK-96)", () => {
+describe("a paid checkout coming back", () => {
   const LIMITS = { max_tabs_total: 150, max_tree_bytes: 524288, max_snapshots: 10 };
   const result = (outcome: string) => vi.mocked(chrome.storage.local.get).mockImplementationOnce(((_k: unknown, cb?: (r: object) => void) => {
     const r = { flextab_billing_result: { outcome } }; if (cb) cb(r); return Promise.resolve(r);
@@ -106,7 +106,7 @@ describe("a paid checkout coming back (TASK-96)", () => {
   });
 });
 
-describe("confirming a payment when the page opens after checkout (TASK-101)", () => {
+describe("confirming a payment when the page opens after checkout", () => {
   const LIMITS = { max_tabs_total: 150, max_tree_bytes: 524288, max_snapshots: 10 };
   const FREE = { plan: "free", limits: LIMITS, usage: { total_tabs: 0, tree_bytes: 0, snapshots: 0 } };
   const PLUS = { plan: "plus", limits: { ...LIMITS, max_tabs_total: 2000 }, usage: { total_tabs: 0, tree_bytes: 0, snapshots: 0 } };

@@ -123,7 +123,7 @@ describe("merge3 — true conflicts", () => {
   });
 });
 
-describe("merge3 — group colour (TASK-18)", () => {
+describe("merge3 — group colour", () => {
   const coloured = (id: string, name: string, color?: SavedGroup["color"]): SavedGroup => ({ ...grp(id, name), ...(color ? { color } : {}) });
 
   it("a colour set on this device survives a server change elsewhere", () => {
@@ -236,10 +236,10 @@ describe("merge3 — resolutions (per-item overrides)", () => {
   });
 });
 
-// --- moves (TASK-59) ---
+// --- moves ---
 // A move is "gone from one parent, present under another". Merged per parent it
 // used to come out twice, and the server rejects a tree with a duplicate id.
-describe("merge3 — moves across parents (TASK-59)", () => {
+describe("merge3 — moves across parents", () => {
   const t1 = tab("t1", "One"), t2 = tab("t2", "Two");
   const project = (tabs = [t1], name = "Test") => prj("P", name, [cat("Pc", "C", [grp("Pg", "G", tabs)])]);
   const tree = (where: "A" | "B" | "C" | null, p = project()) => [
@@ -398,10 +398,10 @@ describe("merge3 — moves across parents (TASK-59)", () => {
   });
 });
 
-// --- order (TASK-64) ---
+// --- order ---
 // Order is never a conflict, but a reorder must survive a merge: lists used to
 // come out in the account's order, dropping this device's reorder.
-describe("merge3 — order (TASK-64)", () => {
+describe("merge3 — order", () => {
   const g = (id: string, order = 0) => ({ ...grp(id, id.toUpperCase()), order });
   const at = (...ids: string[]) => wrap(ids.map((id, i) => g(id, i)));
   const order = (spaces: SavedSpace[]) => groupsOf(spaces).map((x) => x.id).join("");

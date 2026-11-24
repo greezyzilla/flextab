@@ -3,7 +3,7 @@ import * as React from "react"
 import { cn } from "~src/lib/utils"
 
 /**
- * A colour to pick (TASK-103.4): the accent hue presets and a space's colour. A 16px dot filled with
+ * A colour to pick: the accent hue presets and a space's colour. A 16px dot filled with
  * `color`; the chosen one gets a 2px ink/70 ring and grows a little, and it says so to assistive tech
  * (aria-pressed). `label` names the colour ("Blue"), since the dot alone has no text.
  */

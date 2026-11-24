@@ -7,7 +7,7 @@ import { browserName, openShortcutSettings } from "~src/lib/browserKind"
 
 // The page's own shortcuts. They work while the new tab is focused and you
 // are not typing; letters were chosen because Chrome keeps Ctrl/⌘+N for
-// itself (TASK-13).
+// itself.
 const IN_FLEXTAB: { label: string; keys: string[] }[] = [
   { label: "Search tabs, groups and spaces", keys: ["/", "Mod+K"] },
   { label: "New group in this category", keys: ["N"] },

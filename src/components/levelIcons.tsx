@@ -3,12 +3,12 @@ import { Folder, Inbox, Layers, ListTree } from "lucide-react"
 import { Icon, type IconSize } from "~src/components/ui/icon"
 
 /**
- * One distinct shape per organisational level (TASK-1, option B), used
+ * One distinct shape per organisational level (option B), used
  * everywhere the level appears (sidebar, breadcrumb, sections, destination
  * picker) so a level is recognisable by shape, never by colour alone
  * (WCAG 1.4.1). Labels stay visible next to every icon (icons alone are
  * ambiguous). Space = its avatar (same letters/colour as the rail);
- * Tab = its favicon. Drawn through Icon (TASK-76): `size` is from its scale.
+ * Tab = its favicon. Drawn through Icon: `size` is from its scale.
  */
 type IconProps = { size?: IconSize; className?: string }
 
@@ -27,7 +27,7 @@ export function GroupIcon({ size = "sm", className }: IconProps) {
 }
 
 /**
- * Unsorted (TASK-20) is the system's tray for tabs saved without a group:
+ * Unsorted is the system's tray for tabs saved without a group:
  * a tray shape, not a dashed one (dashed means "empty / create" in this app).
  */
 export function UnsortedIcon({ size = "sm", className }: IconProps) {

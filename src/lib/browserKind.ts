@@ -1,5 +1,5 @@
 /**
- * Which browser runs FlexTab (TASK-112). Firefox is the one with
+ * Which browser runs FlexTab. Firefox is the one with
  * runtime.getBrowserInfo; Chrome and the Chromium browsers (Edge, Brave, Opera)
  * do not have it. Checked at run time, so `plasmo dev` needs no build flag.
  */

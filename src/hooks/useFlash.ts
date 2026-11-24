@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { useUIStore } from "~src/store/useUIStore"
 
 /**
- * Point at a tab or group that search revealed (TASK-14): once the section
+ * Point at a tab or group that search revealed: once the section
  * scroll settles, bring it to the middle of the view and outline it for a
  * moment. Returns the element ref to attach and whether to show the outline.
  */

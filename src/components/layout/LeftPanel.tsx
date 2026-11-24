@@ -35,15 +35,15 @@ import { CreateSlot } from "~src/components/ui/create-slot";
  * not by colour. It starts where project rows start (the chevron column) and
  * its + sits in the project icon column (1px border + 23px = 24px). It is
  * as tall as a project row (1px border + 5px = the rows' 6px padding), so
- * the name row that replaces it doesn't move anything (TASK-62). New
+ * the name row that replaces it doesn't move anything. New
  * categories have one affordance of their own: the + on each project row.
  */
 function NewProjectSlot({ onClick }: { onClick: () => void }) {
   return (
     // No top margin of its own: the last project block's mb-1 spaces it like a
     // row, so the slot, the name row that replaces it and the project it
-    // creates all sit at the same y (TASK-62; mt-3 made the field jump 8px).
-    // The tree rows' box (mx-2, TASK-120): the slot's edges are the rows' edges; its + stays 28px in.
+    // creates all sit at the same y (mt-3 made the field jump 8px).
+    // The tree rows' box (mx-2): the slot's edges are the rows' edges; its + stays 28px in.
     <div className="mx-2">
       <ShortcutTooltip label="New project" shortcut="Shift+N">
       <CreateSlot size="sidebar" onClick={onClick}>New project</CreateSlot>
@@ -71,10 +71,10 @@ function CreateRow({ kind, onCommit, onCancel }: {
     if (commit && name) onCommit(name); else onCancel();
   };
   const project = kind === "project";
-  // TASK-62: the name sits in the label column and the row is as tall as the
+  // The name sits in the label column and the row is as tall as the
   // rows around it. A new project replaces the "New project…" slot, so its
   // frame IS the slot's box (mx-2, the tree rows' box; icon 28px in, the density row padding =
-  // the slot's 1px border + its padding): the dashed edge turns solid in place (TASK-120). A new
+  // the slot's 1px border + its padding): the dashed edge turns solid in place. A new
   // category is inserted by the project's +, so its frame is the category row's box
   // (mx-2, pl-7 + the density row padding), the same shape as a selected category.
   return (
@@ -105,7 +105,7 @@ function CreateRow({ kind, onCommit, onCancel }: {
 
 export function LeftPanel() {
   // A project or category dragged within its parent: the list shows the new order,
-  // the dragged row dimmed in its slot (TASK-92, as Opened Tabs does since TASK-73).
+  // the dragged row dimmed in its slot (as Opened Tabs does).
   const containerPreview = useContainerPreview((s) => s.preview);
   const activeDrag = useDndContext().active;
   const dragging = typeof activeDrag?.id === "string" ? parseContainerDrag(activeDrag.id) : null;
@@ -123,7 +123,7 @@ export function LeftPanel() {
 
   const currentSpace = savedSpaces.find(s => s.id === activeSpaceId);
 
-  // "Move to…" for a project or a category (TASK-59), with Undo like a delete.
+  // "Move to…" for a project or a category, with Undo like a delete.
   const [moving, setMoving] = useState<
     | { kind: "project"; project: SavedProject }
     | { kind: "category"; project: SavedProject; category: SavedCategory }
@@ -238,7 +238,7 @@ export function LeftPanel() {
   };
 
   /**
-   * Arrow keys in the project/category tree (TASK-5), the usual tree pattern:
+   * Arrow keys in the project/category tree, the usual tree pattern:
    * Up/Down move between rows, Right expands a project (or enters its first
    * category), Left collapses it (or goes from a category back to its
    * project), Home/End jump to the first/last row. Enter on a project
@@ -290,15 +290,15 @@ export function LeftPanel() {
           onClose={() => setMoving(null)}
         />
       )}
-      {/* The space is this panel's title (TASK-15), where Settings shows
+      {/* The space is this panel's title, where Settings shows
           "Settings": the logo already sits in the rail, the version lives in
           Settings. Its ⋯ is the same "actions for this thing" as every row's;
-          deleting a space stays in Settings › Spaces (TASK-27). pr-3 keeps
+          deleting a space stays in Settings › Spaces. pr-3 keeps
           the ⋯ in the tree rows' trailing slot column. */}
       <div className={PANEL_HEADER}>
         {currentSpace && renamingId === currentSpace.id ? (
           // The frame's padding is cancelled by an equal negative margin, so the
-          // title neither moves nor changes the header's height (TASK-62).
+          // title neither moves nor changes the header's height.
           <div className={`flex flex-1 min-w-0 -ml-2 pl-2 -my-1 py-1 text-2xl ${inlineEditFrame}`}>
             <Input variant="inline" ref={renameRef} type="text" value={renameValue}
               aria-label="Space name"
@@ -353,7 +353,7 @@ export function LeftPanel() {
                       </IconButton>
 
                       {renamingId === project.id ? (
-                        // Same label box as the name button below, icon kept, so the text doesn't move (TASK-62).
+                        // Same label box as the name button below, icon kept, so the text doesn't move.
                         <div className={`flex-1 min-w-0 flex items-center gap-2 ${DENSITY_ROW_PY} text-item font-medium`}>
                           <ProjectIcon size="sm" className="text-fg-subtle" />
                           <Input variant="inline" ref={renameRef} type="text" value={renameValue}
@@ -383,7 +383,7 @@ export function LeftPanel() {
                         </TreeRowButton>
                       )}
 
-                      {/* A project is a header row (TASK-5): its primary action
+                      {/* A project is a header row: its primary action
                           ("+" new category) and its ⋯ are always visible, ⋯
                           outermost in the slot column. */}
                       <ActionSlot>
@@ -402,7 +402,7 @@ export function LeftPanel() {
                         items={[
                           { label: "Rename", onSelect: () => startRename(project.id, project.name), takesFocus: true },
                           { label: "Move to…", onSelect: () => setMoving({ kind: "project", project }) },
-                          // The keyboard path for order (TASK-64), as Settings › Spaces has up/down.
+                          // The keyboard path for order, as Settings › Spaces has up/down.
                           { label: "Move up", onSelect: () => shiftProject(currentSpace.id, project.id, -1), disabled: projectIndex === 0 },
                           { label: "Move down", onSelect: () => shiftProject(currentSpace.id, project.id, 1), disabled: projectIndex === currentSpace.projects.length - 1 },
                           { label: "Delete", onSelect: () => requestDeleteProject(project), danger: true, separatorBefore: true },
@@ -426,7 +426,7 @@ export function LeftPanel() {
                             dimmed={categoryDragged}
                           >
                             {renamingId === category.id ? (
-                              // The category row's own box (mx-2 + pl-7 + density row padding), so the name stays put (TASK-62).
+                              // The category row's own box (mx-2 + pl-7 + density row padding), so the name stays put.
                               <div className={`flex items-center gap-1 mx-2 ${PANEL_ROW_END} text-fg ${inlineEditFrame}`}>
                                 <div className={`flex-1 min-w-0 flex items-center gap-2 pl-7 pr-1 ${DENSITY_ROW_PY} text-item`}>
                                   <CategoryIcon size="xs" />
@@ -514,7 +514,7 @@ export function LeftPanel() {
           </>
         ) : savedSpaces.length > 0 ? (
           <div className="text-fg-subtle font-sans text-xs p-8 text-center">Select a space</div>
-        ) : null /* No spaces (TASK-37): nothing to select; the workspace offers New space. */}
+        ) : null /* No spaces: nothing to select; the workspace offers New space. */}
       </nav>
 
       <PanelFooter start={<AppVersion />} />
@@ -524,8 +524,8 @@ export function LeftPanel() {
 }
 
 /**
- * A project's or category's level icon doubles as its drag handle on hover
- * (TASK-59), as a saved tab's favicon does: no extra gutter, the row keeps its
+ * A project's or category's level icon doubles as its drag handle on hover,
+ * as a saved tab's favicon does: no extra gutter, the row keeps its
  * shape. Pointer only and hidden from assistive tech: the keyboard path is the
  * row's ⋯ › Move to…. A plain click on it does nothing (the row's own click
  * would otherwise toggle or open it).
@@ -553,7 +553,7 @@ function IconDragHandle({ id, label, reveal, conceal, children }: {
   );
 }
 
-/** A drop zone's highlight, unless the drop there reorders (then the list shows the new order instead, TASK-92). */
+/** A drop zone's highlight, unless the drop there reorders (then the list shows the new order instead). */
 function useZoneHighlight(id: string) {
   const { setNodeRef, isOver } = useDroppable({ id });
   const reorders = useDropIndicator((s) => s.zone === id);

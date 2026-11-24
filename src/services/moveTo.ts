@@ -29,7 +29,7 @@ export function resolvePickedGroup(target: PickerValue): string | null {
   return ensureUnsortedGroup(target)
 }
 
-/** Move a saved tab to the picked group (TASK-5, the non-drag alternative). */
+/** Move a saved tab to the picked group (the non-drag alternative). */
 export function moveTabTo(from: GroupLocation & { groupId: string }, tabId: string, target: PickerValue): void {
   const groupId = resolvePickedGroup(target)
   if (!groupId || groupId === from.groupId) return
@@ -42,7 +42,7 @@ export function moveTabTo(from: GroupLocation & { groupId: string }, tabId: stri
   }
 }
 
-/** Move a group to the picked category (TASK-5, the non-drag alternative). */
+/** Move a group to the picked category (the non-drag alternative). */
 export function moveGroupTo(from: GroupLocation, groupId: string, target: PickerValue): void {
   if (!findCategory(target)) return
   if (from.spaceId === target.spaceId && from.projectId === target.projectId && from.categoryId === target.categoryId) return
@@ -58,7 +58,7 @@ function neighbourId(list: { id: string }[], id: string): string | null {
 }
 
 /**
- * Move a project to the end of another space (TASK-59). If it was the open
+ * Move a project to the end of another space. If it was the open
  * project, the one next to it opens instead, so the view stays in this space.
  * Returns an undo that puts it back at its old position, or null when nothing
  * moved (same space, or the project or the space is gone).
@@ -85,7 +85,7 @@ export function moveProjectTo(fromSpaceId: string, projectId: string, toSpaceId:
 }
 
 /**
- * Move a category to the end of another project, in any space (TASK-59). If it
+ * Move a category to the end of another project, in any space. If it
  * was the open category, the one next to it opens instead. Returns an undo, or
  * null when nothing moved.
  */
@@ -123,7 +123,7 @@ export function describeContainerTarget(t: ContainerTarget): string {
   return [space?.name, project?.name].filter(Boolean).join(" › ")
 }
 
-// --- Order within a parent (TASK-64) ---
+// --- Order within a parent ---
 
 export type Edge = "before" | "after"
 
@@ -153,19 +153,19 @@ function reorderWithin(list: { id: string }[] | undefined, id: string, to: (from
   return () => apply(index, from)
 }
 
-/** "Move up" / "Move down" for a project (TASK-64): one place, nothing at either end. */
+/** "Move up" / "Move down" for a project: one place, nothing at either end. */
 export function shiftProject(spaceId: string, projectId: string, by: -1 | 1): boolean {
   return !!reorderWithin(projectsOf(spaceId), projectId, (i) => i + by,
     (a, b) => useSavedSpacesStore.getState().reorderProjects(spaceId, a, b))
 }
 
-/** "Move up" / "Move down" for a category within its project (TASK-64). */
+/** "Move up" / "Move down" for a category within its project. */
 export function shiftCategory(spaceId: string, projectId: string, categoryId: string, by: -1 | 1): boolean {
   return !!reorderWithin(categoriesOf(spaceId, projectId), categoryId, (i) => i + by,
     (a, b) => useSavedSpacesStore.getState().reorderCategories(spaceId, projectId, a, b))
 }
 
-/** Drop a project before/after another one in the same space (TASK-64). Returns an undo, or null when nothing changed. */
+/** Drop a project before/after another one in the same space. Returns an undo, or null when nothing changed. */
 export function placeProject(spaceId: string, projectId: string, targetId: string, edge: Edge): (() => void) | null {
   const list = projectsOf(spaceId)
   const target = list?.findIndex((p) => p.id === targetId) ?? -1
@@ -174,7 +174,7 @@ export function placeProject(spaceId: string, projectId: string, targetId: strin
     (a, b) => useSavedSpacesStore.getState().reorderProjects(spaceId, a, b))
 }
 
-/** Drop a rail space before/after another one (TASK-66). Returns an undo, or null when nothing changed. */
+/** Drop a rail space before/after another one. Returns an undo, or null when nothing changed. */
 export function placeSpace(spaceId: string, targetId: string, edge: Edge): (() => void) | null {
   const list = useSavedSpacesStore.getState().savedSpaces
   const target = list.findIndex((s) => s.id === targetId)
@@ -183,7 +183,7 @@ export function placeSpace(spaceId: string, targetId: string, edge: Edge): (() =
     (a, b) => useSavedSpacesStore.getState().reorderSpaces(a, b))
 }
 
-/** Drop a category before/after another one in the same project (TASK-64). Returns an undo, or null when nothing changed. */
+/** Drop a category before/after another one in the same project. Returns an undo, or null when nothing changed. */
 export function placeCategory(spaceId: string, projectId: string, categoryId: string, targetId: string, edge: Edge): (() => void) | null {
   const list = categoriesOf(spaceId, projectId)
   const target = list?.findIndex((c) => c.id === targetId) ?? -1

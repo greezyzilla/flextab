@@ -67,7 +67,7 @@ describe('new-tab account settings lifecycle', () => {
   });
 });
 
-describe('local-first first run (TASK-7)', () => {
+describe('local-first first run', () => {
   it('opens a fresh signed-out install straight into the workspace', () => {
     window.history.replaceState(null, '', '#/');
     useAuthStore.setState({ isAuthenticated: false, user: null });
@@ -86,7 +86,7 @@ describe('local-first first run (TASK-7)', () => {
 });
 
 describe('sync engine lifecycle', () => {
-  it('restarts once the signed-in identity settles, so the first reconcile is not lost (TASK-11)', () => {
+  it('restarts once the signed-in identity settles, so the first reconcile is not lost', () => {
     settings.autoSync = true;
     useAuthStore.setState({ isAuthenticated: true, user: null });
     render(<NewTabPage />);

@@ -44,7 +44,7 @@ const space = (id: string, tabs: number): SavedSpace => ({
     tabs: Array.from({ length: tabs }, (_, i) => ({ id: `${id}t${i}`, title: "t", url: "https://example.com", favicon: "", order: i })) }] }] }],
 }) as SavedSpace
 
-describe("sign-in screen (TASK-7)", () => {
+describe("sign-in screen", () => {
   it("leads with a neutral heading and the one-click providers, email after", async () => {
     render(<OnboardingScreen onBack={vi.fn()} />)
     await ready()
@@ -68,14 +68,14 @@ describe("sign-in screen (TASK-7)", () => {
     expect(screen.getByLabelText("Email")).toHaveAttribute("aria-describedby", "signin-error")
   })
 
-  it("shows an example email and a password instruction as placeholders (TASK-36)", async () => {
+  it("shows an example email and a password instruction as placeholders", async () => {
     render(<OnboardingScreen onBack={vi.fn()} />)
     await ready()
     expect(screen.getByLabelText("Email")).toHaveAttribute("placeholder", "you@example.com")
     expect(screen.getByLabelText("Password")).toHaveAttribute("placeholder", "Enter your password")
   })
 
-  it("offers email sign-up and reset only when the server can send the link (TASK-79)", async () => {
+  it("offers email sign-up and reset only when the server can send the link", async () => {
     vi.mocked(apiGetSignInOptions).mockResolvedValueOnce({ providers: ["google"], emailSignup: false })
     const { unmount } = render(<OnboardingScreen onBack={vi.fn()} />)
     await screen.findByRole("button", { name: /Continue with Google/ })
@@ -88,7 +88,7 @@ describe("sign-in screen (TASK-7)", () => {
     expect(screen.getByRole("button", { name: "Forgot password?" })).toBeInTheDocument()
   })
 
-  it("creates an account with any email, then waits for its link and signs in by itself (TASK-79)", async () => {
+  it("creates an account with any email, then waits for its link and signs in by itself", async () => {
     const user = userEvent.setup()
     render(<OnboardingScreen onBack={vi.fn()} />)
     await ready()
@@ -98,7 +98,7 @@ describe("sign-in screen (TASK-7)", () => {
     await user.type(screen.getByLabelText("Password"), "password1")
     await user.click(screen.getByRole("button", { name: "Create account" }))
     expect(apiRegister).toHaveBeenCalledWith("me@own-domain.test", "password1")
-    // Just created: a finished moment (TASK-96), and what is left to do.
+    // Just created: a finished moment, and what is left to do.
     expect(await screen.findByText("Account created")).toBeInTheDocument()
     expect(screen.queryByText("Check your email")).not.toBeInTheDocument()
     expect(screen.getByText("me@own-domain.test")).toBeInTheDocument()
@@ -118,7 +118,7 @@ describe("sign-in screen (TASK-7)", () => {
     expect(screen.getByLabelText("Email")).toHaveValue("me@own-domain.test")
   })
 
-  it("sends an unverified sign-in back to its link, and resends it after the wait (TASK-79)", async () => {
+  it("sends an unverified sign-in back to its link, and resends it after the wait", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     try {
       loginWithEmail.mockRejectedValueOnce(new ApiError(403, "Verify your email", "email_unverified"))
@@ -144,7 +144,7 @@ describe("sign-in screen (TASK-7)", () => {
     }
   })
 
-  it("resets a forgotten password by email, with the typed address (TASK-79)", async () => {
+  it("resets a forgotten password by email, with the typed address", async () => {
     const user = userEvent.setup()
     render(<OnboardingScreen onBack={vi.fn()} />)
     await ready()
@@ -162,7 +162,7 @@ describe("sign-in screen (TASK-7)", () => {
     expect(screen.getByRole("button", { name: "Sign in" })).toBeInTheDocument()
   })
 
-  it("draws the actions all at once when the options are known, so nothing moves in later (TASK-79)", async () => {
+  it("draws the actions all at once when the options are known, so nothing moves in later", async () => {
     let answer: (v: { providers: string[]; emailSignup: boolean }) => void = () => {}
     vi.mocked(apiGetSignInOptions).mockReturnValueOnce(new Promise(r => { answer = r }))
     render(<OnboardingScreen onBack={vi.fn()} />)
@@ -176,7 +176,7 @@ describe("sign-in screen (TASK-7)", () => {
     expect(screen.getByRole("alert")).toBeEmptyDOMElement()
   })
 
-  it("offers sync in the person's own numbers, with the privacy promise (TASK-79)", async () => {
+  it("offers sync in the person's own numbers, with the privacy promise", async () => {
     useSavedSpacesStore.setState({ savedSpaces: [space("a", 2), space("b", 1)] })
     render(<OnboardingScreen onBack={vi.fn()} />)
     await ready()
@@ -184,13 +184,13 @@ describe("sign-in screen (TASK-7)", () => {
     expect(screen.getByText("We never read or sell your browsing.")).toBeInTheDocument()
   })
 
-  it("offers sync without numbers to an empty workspace (TASK-79)", async () => {
+  it("offers sync without numbers to an empty workspace", async () => {
     render(<OnboardingScreen onBack={vi.fn()} />)
     await ready()
     expect(screen.getByRole("dialog")).toHaveTextContent("Open your tabs on any computer.")
   })
 
-  it("offers GitLab and Discord when the server has them, as one row of named marks past two providers (TASK-79)", async () => {
+  it("offers GitLab and Discord when the server has them, as one row of named marks past two providers", async () => {
     const loginWithGitlab = vi.fn(), loginWithDiscord = vi.fn()
     useAuthStore.setState({ loginWithGitlab, loginWithDiscord })
     vi.mocked(apiGetSignInOptions).mockResolvedValueOnce({ providers: ["discord", "google", "gitlab", "github"], emailSignup: true })
@@ -207,7 +207,7 @@ describe("sign-in screen (TASK-7)", () => {
     expect(loginWithDiscord).toHaveBeenCalledOnce()
   })
 
-  it("keeps full buttons with their names for two providers or fewer (TASK-79)", async () => {
+  it("keeps full buttons with their names for two providers or fewer", async () => {
     vi.mocked(apiGetSignInOptions).mockResolvedValueOnce({ providers: ["gitlab", "google"], emailSignup: false })
     render(<OnboardingScreen onBack={vi.fn()} />)
     expect((await ready()).textContent).toBe("Continue with Google")
@@ -215,7 +215,7 @@ describe("sign-in screen (TASK-7)", () => {
     expect(screen.queryByRole("button", { name: /Continue with (GitHub|Discord)/ })).not.toBeInTheDocument()
   })
 
-  it("waits on the provider's tab, can bring it back, and can stop (TASK-79)", async () => {
+  it("waits on the provider's tab, can bring it back, and can stop", async () => {
     resolve(chrome.storage.session.get, { [OAUTH_PENDING_KEY]: { tabId: 7 } })
     resolve(chrome.tabs.update, { windowId: 3 })
     resolve(chrome.tabs.remove, undefined)
@@ -234,7 +234,7 @@ describe("sign-in screen (TASK-7)", () => {
     resolve(chrome.storage.session.get, {})
   })
 
-  it("says so when the provider's tab is closed without signing in, and can try again (TASK-79)", async () => {
+  it("says so when the provider's tab is closed without signing in, and can try again", async () => {
     resolve(chrome.storage.session.get, { [OAUTH_PENDING_KEY]: { tabId: 7 } })
     const user = userEvent.setup()
     render(<OnboardingScreen onBack={vi.fn()} />)
@@ -251,7 +251,7 @@ describe("sign-in screen (TASK-7)", () => {
     resolve(chrome.storage.session.get, {})
   })
 
-  it("shows the result and the next computer once signed in, then goes back to the tabs (TASK-79)", async () => {
+  it("shows the result and the next computer once signed in, then goes back to the tabs", async () => {
     useSettingsStore.setState({ autoSync: true })
     useSavedSpacesStore.setState({ savedSpaces: [space("a", 2)] })
     const onBack = vi.fn()
@@ -267,7 +267,7 @@ describe("sign-in screen (TASK-7)", () => {
     expect(onBack).toHaveBeenCalledOnce()
   })
 
-  it("says auto-sync is off instead of claiming a backup (TASK-79)", async () => {
+  it("says auto-sync is off instead of claiming a backup", async () => {
     useSettingsStore.setState({ autoSync: false })
     render(<OnboardingScreen onBack={vi.fn()} />)
     await ready()
@@ -277,7 +277,7 @@ describe("sign-in screen (TASK-7)", () => {
     useSettingsStore.setState({ autoSync: true })
   })
 
-  it("goes straight back to the tabs when already signed in (TASK-79)", () => {
+  it("goes straight back to the tabs when already signed in", () => {
     useAuthStore.setState({ isAuthenticated: true })
     const onBack = vi.fn()
     render(<OnboardingScreen onBack={onBack} />)
@@ -285,14 +285,14 @@ describe("sign-in screen (TASK-7)", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
   })
 
-  it("steps aside while the sync choice is open (TASK-79)", () => {
+  it("steps aside while the sync choice is open", () => {
     useSyncConflict.setState({ pending: true })
     render(<OnboardingScreen onBack={vi.fn()} />)
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
   })
 })
 
-describe("sign-in asks the browser for access to the server first (TASK-112)", () => {
+describe("sign-in asks the browser for access to the server first", () => {
   const c = chrome as unknown as Record<string, unknown>
   afterEach(() => { delete c.permissions })
 

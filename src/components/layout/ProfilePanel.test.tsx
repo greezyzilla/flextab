@@ -9,7 +9,7 @@ import { DragOverlayContent } from "~src/components/dnd/DragOverlayContent"
 import * as yjs from "~src/lib/yjsDoc"
 import { useUIStore } from "~src/store/useUIStore"
 
-// TASK-66: rail spaces reorder by drag; a click still switches.
+// Rail spaces reorder by drag; a click still switches.
 const spaces = [
   { id: "a", name: "Alpha", order: 0, projects: [] },
   { id: "b", name: "Beta", order: 1, projects: [], color: "#ff0000" },
@@ -26,7 +26,7 @@ const renderRail = (onDragStart = vi.fn()) => {
   return onDragStart
 }
 
-describe("rail spaces (TASK-66)", () => {
+describe("rail spaces", () => {
   it("a click, or a press that barely moves, switches space without dragging", () => {
     const onDragStart = renderRail()
     const beta = screen.getByRole("button", { name: "Switch to Beta" })
@@ -76,13 +76,13 @@ describe("rail spaces (TASK-66)", () => {
   })
 })
 
-describe("Add space by keyboard (TASK-81)", () => {
+describe("Add space by keyboard", () => {
   it("Alt+N opens the rail's name field, focused; Enter creates and selects the space, Esc creates nothing", () => {
     renderRail()
     act(() => useUIStore.getState().requestSpaceNaming())
     const field = screen.getByRole("textbox", { name: "New space name" })
     expect(field).toHaveFocus()
-    // Enter/Esc is read to screen readers, never printed (TASK-62).
+    // Enter/Esc is read to screen readers, never printed.
     expect(field).toHaveAttribute("aria-description", "Enter to create, Escape to cancel")
     expect(screen.queryByText(/Enter to create/)).toBeNull()
     fireEvent.keyDown(field, { key: "Escape" })
@@ -94,7 +94,7 @@ describe("Add space by keyboard (TASK-81)", () => {
     fireEvent.keyDown(again, { key: "Enter" })
     const created = useSavedSpacesStore.getState().savedSpaces.find(s => s.name === "Gamma")
     expect(created).toBeTruthy()
-    // Opens on its General › Uncategorized, ready to save (TASK-98).
+    // Opens on its General › Uncategorized, ready to save.
     const { activeSpaceId, activeProjectId, activeCategoryId } = useSavedSpacesStore.getState()
     expect(activeSpaceId).toBe(created!.id)
     expect(created!.projects.map(p => p.name)).toEqual(["General"])

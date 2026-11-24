@@ -1,5 +1,5 @@
 /**
- * How a new version reaches open FlexTab pages (TASK-113). Background only.
+ * How a new version reaches open FlexTab pages. Background only.
  *
  * The browser downloads an update on its own schedule. With an
  * onUpdateAvailable listener it waits for us to apply it, which we do only:
@@ -18,7 +18,7 @@
  */
 /** Sent to every open FlexTab page before the reload; see services/updatePrepare.ts. */
 export const PREPARE_UPDATE_MESSAGE = "flextab:prepare-update"
-/** A page asks the background to install the waiting update even with FlexTab in front (TASK-114). */
+/** A page asks the background to install the waiting update even with FlexTab in front. */
 export const APPLY_UPDATE_NOW_MESSAGE = "flextab:apply-update-now"
 /** Set by that message: the next ready update applies without waiting for a safe moment. */
 export const UPDATE_FORCE_KEY = "flextab_update_force"

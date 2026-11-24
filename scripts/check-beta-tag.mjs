@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * The beta workflow's first job (TASK-118): refuse a pushed beta tag before
+ * The beta workflow's first job: refuse a pushed beta tag before
  * anything is built when its format is wrong, its commit is not on dev, or its
  * version is not above every earlier beta tag (scripts/channel.mjs).
  *

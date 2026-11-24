@@ -5,7 +5,7 @@ import { TooltipProvider } from "./tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./dropdown-menu";
 import { stubResizeObserver } from "~src/test/stubResizeObserver";
 
-// Tooltips open in these tests; their arrow needs a ResizeObserver (TASK-69).
+// Tooltips open in these tests; their arrow needs a ResizeObserver.
 stubResizeObserver();
 
 // jsdom has no focus heuristics, so each test says whether the focus is a keyboard one.
@@ -26,7 +26,7 @@ const renderButton = () => render(
 const button = () => screen.getByRole("button", { name: "Actions for Launch" });
 const tooltipShown = () => screen.queryByRole("tooltip") !== null;
 
-describe("IconButton tooltip (TASK-53)", () => {
+describe("IconButton tooltip", () => {
   afterEach(() => vi.restoreAllMocks());
 
   it("renders no tooltip wrapper and no native title without the prop", () => {
@@ -52,7 +52,7 @@ describe("IconButton tooltip (TASK-53)", () => {
     expect(tooltipShown()).toBe(true);
   });
 
-  it("IconTooltip opens only while `when` says so (a card shows its full title only when cut, TASK-54)", async () => {
+  it("IconTooltip opens only while `when` says so (a card shows its full title only when cut)", async () => {
     focusVisible(true);
     let clipped = false;
     render(
@@ -78,7 +78,7 @@ describe("IconButton tooltip (TASK-53)", () => {
   });
 });
 
-describe("ClippedTooltip (TASK-69)", () => {
+describe("ClippedTooltip", () => {
   afterEach(() => vi.restoreAllMocks());
 
   // jsdom lays nothing out, so each test sets how wide the text is against its box.
@@ -133,7 +133,7 @@ describe("ClippedTooltip (TASK-69)", () => {
   });
 });
 
-describe("forced colours edge (TASK-100)", () => {
+describe("forced colours edge", () => {
   // Forced colours drop backgrounds; a filled variant keeps its shape only through this outline.
   // tailwind-merge once dropped `outline` next to `outline-1`, leaving outline-style none: lock the
   // classes as they reach the DOM, after cn().
@@ -150,7 +150,7 @@ describe("forced colours edge (TASK-100)", () => {
   });
 });
 
-describe("link variant and inline size (TASK-103.2)", () => {
+describe("link variant and inline size", () => {
   // Looks live in the variant, so every link button reads as an action without call-site classes.
   it("a link reads as an action at rest: accent text from the variant", () => {
     render(<Button variant="link">Sync settings</Button>);
@@ -164,7 +164,7 @@ describe("link variant and inline size (TASK-103.2)", () => {
   });
 });
 
-describe("looks that used to be call-site classes (TASK-103.2)", () => {
+describe("looks that used to be call-site classes", () => {
   it("a link carries no side padding at any size, so it lines up with the text around it", () => {
     render(<Button variant="link" size="sm">Sync settings</Button>);
     const cls = screen.getByRole("button", { name: "Sync settings" }).className;

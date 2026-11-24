@@ -1,4 +1,4 @@
-// Shared capture service (TASK-2): the one write path for "save these open
+// Shared capture service: the one write path for "save these open
 // tabs" from the popup, the new tab page and the background service worker
 // (keyboard command, right-click menu). It writes straight to the Yjs doc of
 // whatever context it runs in and persists before returning, so a caller can
@@ -16,8 +16,8 @@ export type ChromeTabLike = { id?: number; url?: string; title?: string; favIcon
 
 /**
  * Where to capture. Project/category may be empty: missing levels get the
- * default items (TASK-20). An empty space id means the first space, or a new
- * "Personal" one when the workspace has none (TASK-37). Group: an existing one, a new named one, or —
+ * default items. An empty space id means the first space, or a new
+ * "Personal" one when the workspace has none. Group: an existing one, a new named one, or —
  * when neither is given (or the group is gone) — the category's Unsorted.
  */
 export type CaptureDestination = {
@@ -29,7 +29,7 @@ export type CaptureDestination = {
   newGroupName?: string
 }
 
-/** A closed browser tab, enough to reopen it. `seq` orders closes (TASK-90); tabs closed before it existed have none. */
+/** A closed browser tab, enough to reopen it. `seq` orders closes; tabs closed before it existed have none. */
 export type ClosedTab = { windowId: number; index: number; url: string; seq?: number }
 
 /** What a capture did, enough to Undo it or move it (Change). */
@@ -43,7 +43,7 @@ export type CaptureReceipt = {
   duplicates: number
   /** Tabs skipped because they aren't savable web pages. */
   skipped: number
-  /** Other places the saved URLs already existed in (TASK-4), as "Space › … › Group". */
+  /** Other places the saved URLs already existed in, as "Space › … › Group". */
   alsoIn?: string[]
   /** Browser tabs closed after saving ("Close after saving"), for Undo to reopen. */
   closed: ClosedTab[]
@@ -97,7 +97,7 @@ export async function captureTabs(
   const already = new Set((existing?.tabs ?? []).map((t) => normalizeUrl(t.url)))
   const fresh = opts.dedupe ? savable.filter((t) => !already.has(normalizeUrl(t.url!))) : savable
   const duplicates = savable.length - fresh.length
-  // Before writing, so the copy saved now isn't counted (TASK-4).
+  // Before writing, so the copy saved now isn't counted.
   const alsoIn = savedElsewhere(yjs.getSpaces(), fresh.map((t) => t.url), existing?.id).map((l) => l.path)
 
   const converted = await toSavedTabs(fresh)
@@ -160,7 +160,7 @@ function detach(receipt: CaptureReceipt): SavedTab[] {
 
 /**
  * Undo: remove what was saved and reopen any tabs that were closed. The tabs come
- * back first (TASK-91): a storage write that fails or stalls must never leave a
+ * back first: a storage write that fails or stalls must never leave a
  * closed tab closed. The removal is already in the doc, so a later write keeps it.
  */
 export async function undoCapture(receipt: CaptureReceipt): Promise<void> {
@@ -210,7 +210,7 @@ export async function closeSavedTabs(tabs: ChromeTabLike[]): Promise<ClosedTab[]
 }
 
 // ---------------------------------------------------------------------------
-// Undo of closes (TASK-90)
+// Undo of closes
 // ---------------------------------------------------------------------------
 //
 // Closing a window's tabs one by one closes the window with the last one, so
@@ -310,7 +310,7 @@ export async function reopenTabs(closed: ClosedTab[]): Promise<void> {
 
 /**
  * Why a destination was suggested, so the popup can say it the way a person
- * would ("Last saved to"), not present a guess as a decision (TASK-75):
+ * would ("Last saved to"), not present a guess as a decision:
  * - recentGroup: the group you last saved into (wherever it lives now);
  * - recentCategory: that group is gone; the category you last saved into;
  * - current: nothing remembered; where FlexTab was last open;
@@ -323,7 +323,7 @@ export type DestinationSource = "recentGroup" | "recentCategory" | "current" | "
  * still exists, wherever it moved), else the last category saved into and its
  * Unsorted, else the preferred/first space's category (created by default if
  * missing) and its Unsorted. With no space at all the ids are empty and the
- * save itself creates the default space (TASK-37).
+ * save itself creates the default space.
  */
 export function suggestDestination(
   spaces: SavedSpace[],
@@ -332,7 +332,7 @@ export function suggestDestination(
 ): { destination: CaptureDestination; from: DestinationSource } {
   // The newest remembered group that still exists, wherever it lives now (a
   // moved group keeps its id). Only when none does: the newest remembered
-  // category that exists, which then means its Unsorted (TASK-75).
+  // category that exists, which then means its Unsorted.
   for (const r of recent) {
     const found = r.groupId ? findGroup(spaces, r.groupId) : null
     if (found) return { destination: found, from: "recentGroup" }
@@ -380,7 +380,7 @@ export function windowGroupName(): string {
 export const CLOSE_AFTER_SAVE_KEY = "flextab_close_after_save"
 
 /**
- * Settings › Saving › Saving and closing (TASK-60): one switch per way of saving, each
+ * Settings › Saving › Saving and closing: one switch per way of saving, each
  * off until the person turns it on.
  * - drag: an open tab dragged into the workspace, and the Save button on an open tab;
  * - window: "Save this window as a group", and the window shortcut / right-click;
@@ -415,7 +415,7 @@ export async function saveCloseAfter(kind: CloseAfter, value: boolean): Promise<
 }
 
 /**
- * A link the right-click menu couldn't place without asking (TASK-75): the
+ * A link the right-click menu couldn't place without asking: the
  * popup opens on it instead of the current page. Session-only, short-lived.
  */
 export const POPUP_SUBJECT_KEY = "flextab_popup_subject"

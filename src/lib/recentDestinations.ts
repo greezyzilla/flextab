@@ -13,7 +13,7 @@ export const RECENT_DESTINATIONS_KEY = "flextab_recent_destinations"
 export const MAX_RECENT_DESTINATIONS = 3
 
 /**
- * Settings › Saving: "Remember where I last saved" (TASK-75), on until turned
+ * Settings › Saving: "Remember where I last saved", on until turned
  * off. Off: nothing is remembered (the list is dropped), so nothing is
  * suggested and every save asks where. Per device, like the list itself.
  */

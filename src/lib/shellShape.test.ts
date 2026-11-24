@@ -20,7 +20,7 @@ const spaces = [
   { id: "s2", name: "Home", order: 1, projects: [] },
 ] as unknown as SavedSpace[];
 
-describe("shell shape (TASK-106)", () => {
+describe("shell shape", () => {
   const state = { savedSpaces: spaces, activeSpaceId: "s1", activeProjectId: "p1", activeCategoryId: "c1", expandedProjectIds: ["p1"] };
 
   it("keeps counts and choices only: spaces, open projects, group badges, the selection, Unsorted, groups and tabs", () => {
@@ -60,7 +60,7 @@ describe("shell shape (TASK-106)", () => {
   });
 });
 
-describe("fitToScreen (TASK-106)", () => {
+describe("fitToScreen", () => {
   const big = {
     spaces: 3,
     projects: [{ open: true, categories: Array(40).fill(1) }, { open: true, categories: [1] }],

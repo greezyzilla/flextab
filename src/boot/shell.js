@@ -1,10 +1,10 @@
-// The new tab's shell before its script runs (TASK-107): a classic script right after the empty
+// The new tab's shell before its script runs: a classic script right after the empty
 // #boot-skeleton in newtab.html, so it runs before the first paint. It puts in the markup the app
 // last rendered for this workspace (ShellSkeleton storeShellSkeletonMarkup), when this window has
 // the layout and screen height it was drawn for; otherwise the page shows the themed surface
 // until React draws the skeleton. React removes this copy in its first commit.
-// On a Settings route it puts in that Settings page's own copy instead (TASK-108,
-// SettingsSkeleton storeSettingsSkeletonMarkup); a page with no copy shows the themed surface.
+// On a Settings route it puts in that Settings page's own copy instead (SettingsSkeleton
+// storeSettingsSkeletonMarkup); a page with no copy shows the themed surface.
 ;(function () {
   var host = document.getElementById("boot-skeleton")
   if (!host) return

@@ -7,7 +7,7 @@ import { stubResizeObserver } from "~src/test/stubResizeObserver"
 
 stubResizeObserver()
 
-describe("ShortcutTooltip (TASK-119)", () => {
+describe("ShortcutTooltip", () => {
   it("puts the label and its keys in one row with a gap, inside the tooltip's text", async () => {
     render(<TooltipProvider delayDuration={0}><ShortcutTooltip label="New project" shortcut="Shift+N"><button>New project…</button></ShortcutTooltip></TooltipProvider>)
     await userEvent.setup().hover(screen.getByRole("button"))

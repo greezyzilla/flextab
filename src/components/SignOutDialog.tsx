@@ -13,10 +13,10 @@ const CHOICES: { id: LocalData; label: string; detail: string }[] = [
 ];
 
 /**
- * Sign out (TASK-7). The workspace is local-first, so signing out keeps this
+ * Sign out. The workspace is local-first, so signing out keeps this
  * device's tabs by default; removing them is a deliberate second choice that
  * keeps the backup download, and asks for explicit consent only when changes
- * that never reached the account would be lost (TASK-84: one line, two choices,
+ * that never reached the account would be lost (one line, two choices,
  * two buttons; the confirm carries the danger).
  */
 export function SignOutDialog({ open, onOpenChange }: {

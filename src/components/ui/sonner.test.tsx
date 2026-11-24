@@ -12,7 +12,7 @@ beforeAll(() => vi.stubGlobal("matchMedia", (query: string) => ({
 
 afterEach(() => { act(() => toast.dismiss()); useSettingsStore.setState({ theme: "system" }) })
 
-describe("Toaster (TASK-38)", () => {
+describe("Toaster", () => {
   it.each(["light", "dark", "system"] as const)("follows the app's %s mode", async (mode) => {
     useSettingsStore.setState({ theme: mode })
     render(<Toaster />)

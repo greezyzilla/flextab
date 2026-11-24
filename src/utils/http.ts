@@ -1,5 +1,5 @@
 /**
- * The one way FlexTab talks to its server (TASK-114). Every service calls
+ * The one way FlexTab talks to its server. Every service calls
  * `http()` instead of `fetch`, so whatever every request needs is added here,
  * once, and whatever every response can mean is caught here, once:
  *

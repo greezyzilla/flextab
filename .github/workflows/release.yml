@@ -1,4 +1,4 @@
-# Stable releases (TASK-117). release-please keeps one Release PR on main up to
+# Stable releases. release-please keeps one Release PR on main up to
 # date (next version + CHANGELOG.md) from the Conventional Commits there.
 # Merging that PR is the one deliberate release step: it tags vX.Y.Z and makes
 # the GitHub Release; only then is anything built, once, and published:
@@ -7,7 +7,7 @@
 #   review it waits for you to press Publish (deploy the backend it needs first);
 # - AMO: submitted as a listed version with its source code.
 # A store step without its secrets is skipped with a notice; the tag and the
-# GitHub Release still happen. Beta (beta-v* tags) is TASK-118, never here.
+# GitHub Release still happen. Beta (beta-v* tags) has its own workflow, never here.
 name: Release
 on:
   push:

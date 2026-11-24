@@ -78,7 +78,7 @@ describe('complete persisted workspace signature', () => {
     expect(spacesSignature(a)).toBe(spacesSignature(y.decodeSpacesFromStorage(y.encodeSpacesAsStorage(a))));
   });
 
-  it('detects and applies a group colour (TASK-18), set and cleared', () => {
+  it('detects and applies a group colour, set and cleared', () => {
     const before = y.getSpaces();
     const coloured = structuredClone(before);
     coloured[0].projects[0].categories[0].groups[0].color = 'pink';

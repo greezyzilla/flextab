@@ -4,7 +4,7 @@ import { BETA_UPDATE_URL, betaTagProblem, channelPlan } from "./channel.mjs"
 import { PUBLISH_TYPES, publishStaged } from "./cws-publish.mjs"
 import { updatesJson } from "./firefox-updates.mjs"
 
-describe("a pushed beta tag (TASK-118)", () => {
+describe("a pushed beta tag", () => {
   const betaTags = ["beta-v0.1.0.3", "beta-v0.1.0.7"]
 
   it("may be released when well formed, on dev and above every earlier beta", () => {
@@ -24,7 +24,7 @@ describe("a pushed beta tag (TASK-118)", () => {
   })
 })
 
-describe("Firefox Beta updates itself from a fixed address (TASK-118)", () => {
+describe("Firefox Beta updates itself from a fixed address", () => {
   it("only the beta build carries update_url, pointing at the permanent firefox-beta release", () => {
     expect(channelPlan("beta", { betaTag: "beta-v0.1.0.7" }).env.FLEXTAB_GECKO_UPDATE_URL).toBe(BETA_UPDATE_URL)
     expect(channelPlan("stable").env).not.toHaveProperty("FLEXTAB_GECKO_UPDATE_URL")
@@ -38,7 +38,7 @@ describe("Firefox Beta updates itself from a fixed address (TASK-118)", () => {
   })
 })
 
-describe("Chrome Web Store publish mode (TASK-118)", () => {
+describe("Chrome Web Store publish mode", () => {
   it("submits beta as a default publish: live for testers once approved", async () => {
     const bodies = []
     const request = vi.fn(async (url, init) => {

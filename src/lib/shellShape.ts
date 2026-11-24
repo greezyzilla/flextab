@@ -2,7 +2,7 @@ import type { SavedSpace } from "~src/types";
 import { findUnsorted, isUnsortedGroup, orderedGroups } from "~src/lib/defaultPath";
 
 /**
- * The shape of the new tab as it was last seen (TASK-106): counts and choices only, never a name,
+ * The shape of the new tab as it was last seen: counts and choices only, never a name,
  * address or title. The workspace store is async (chrome.storage), so the loading shell reads this
  * copy from localStorage before the first render and draws the user's own layout: as many spaces,
  * projects (open or closed), categories, Unsorted trays, groups, tabs and windows as there were,

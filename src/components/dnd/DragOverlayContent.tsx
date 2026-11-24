@@ -20,7 +20,7 @@ interface DragOverlayContentProps {
   draggedGroup: SavedGroup | null;
   draggedTab: chrome.tabs.Tab | null;
   draggedSavedTab: SavedTab | null;
-  /** A dragged space, project or category (TASK-59, TASK-66): its kind and name. */
+  /** A dragged space, project or category: its kind and name. */
   draggedContainer?: { kind: "space" | "project" | "category"; spaceId?: string; name: string } | null;
 }
 
@@ -32,12 +32,12 @@ function groupColorOf(spaces: SavedSpace[], groupId: string | null): GroupColor 
 }
 
 export function DragOverlayContent({ activeId, draggedGroup, draggedTab, draggedSavedTab, draggedContainer }: DragOverlayContentProps) {
-  // A dragged tab takes the colour of the group it is over (TASK-18), as a tab
+  // A dragged tab takes the colour of the group it is over, as a tab
   // dragged into a Chrome tab group takes that group's colour: the card shows
   // where it will land. Over an uncoloured group it stays neutral + accent.
   const { over } = useDndContext();
   const spaces = useSavedSpacesStore((s) => s.savedSpaces);
-  // Shown in another group already (TASK-64): over its own slot there, the tint follows that group.
+  // Shown in another group already: over its own slot there, the tint follows that group.
   const preview = useSortPreview((s) => s.preview);
   const overGroupId = preview?.kind === "tab" ? preview.to : over ? resolveOverGroupId(spaces, String(over.id)) : null;
   const overColor = draggedGroup || !over ? undefined : groupColorOf(spaces, overGroupId);
@@ -47,7 +47,7 @@ export function DragOverlayContent({ activeId, draggedGroup, draggedTab, dragged
   // rides below-right of the pointer (the overlay starts at the small icon
   // handle), so the rail space or row under the pointer stays visible with
   // its drop highlight.
-  // A rail space (TASK-66) travels as a copy of its own avatar, at its size,
+  // A rail space travels as a copy of its own avatar, at its size,
   // lifted with a shadow, as dragged items look in the UI references. The
   // avatar's fill is translucent, so the copy sits on the page colour.
   if (activeId && draggedContainer?.kind === "space") {
@@ -109,7 +109,7 @@ export function DragOverlayContent({ activeId, draggedGroup, draggedTab, dragged
   return null;
 }
 
-/** An open tab's name and address as its Opened Tabs row prints them (TASK-95). */
+/** An open tab's name and address as its Opened Tabs row prints them. */
 function OpenTabText({ tab }: { tab: chrome.tabs.Tab }) {
   const { name, address } = openTabRowText(tab)
   return (
@@ -120,7 +120,7 @@ function OpenTabText({ tab }: { tab: chrome.tabs.Tab }) {
   )
 }
 
-/** A saved tab's title and address as its row prints them, with the user's Title and Link cut (TASK-95). */
+/** A saved tab's title and address as its row prints them, with the user's Title and Link cut. */
 function SavedTabText({ tab }: { tab: SavedTab }) {
   const titleCut = useSettingsStore((s) => s.titleCut)
   const linkCut = useSettingsStore((s) => s.linkCut)

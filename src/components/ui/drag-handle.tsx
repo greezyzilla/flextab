@@ -6,7 +6,7 @@ import { cn } from "~src/lib/utils"
 
 /**
  * The grip that takes a row's favicon slot while the row is hovered or the grip is focused
- * (TASK-103.4; tabs in a group, tabs in Opened tabs). It sits over the 20px icon slot, hidden until
+ * (tabs in a group, tabs in Opened tabs). It sits over the 20px icon slot, hidden until
  * its row's hover group (`reveal`, e.g. "group-hover/tab:opacity-100") or keyboard focus shows it.
  * The grip has no fill of its own: the favicon after it hides itself while it shows (the row's hover
  * group and peer-focus-visible), so the grip always sits on the row's own surface, resting, hovered,

@@ -59,10 +59,10 @@ describe("a FlexTab page in Opened Tabs", () => {
     expect(flexTabPageText(`${ext}/newtab.html#/`).name).toBe("New tab")
     expect(flexTabPageText(`${ext}/newtab.html`).name).toBe("New tab")
     expect(flexTabPageText(`${ext}/newtab.html#/settings/saving`).name).toBe("Settings · Saving & opening")
-    expect(flexTabPageText(`${ext}/newtab.html#/settings/sync`).name).toBe("Settings · Sync & backup") // a link from before TASK-84
+    expect(flexTabPageText(`${ext}/newtab.html#/settings/sync`).name).toBe("Settings · Sync & backup") // a link to an old Settings page
     expect(flexTabPageText(`${ext}/newtab.html#/settings/spaces/s1`).name).toBe("Settings · Spaces")
-    expect(flexTabPageText(`${ext}/newtab.html#/settings`).name).toBe("Settings · Theme") // where Settings opens (TASK-84)
-    expect(flexTabPageText(`${ext}/newtab.html#/settings/account`).name).toBe("Settings · Profile") // a link from before TASK-84
+    expect(flexTabPageText(`${ext}/newtab.html#/settings`).name).toBe("Settings · Theme") // where Settings opens
+    expect(flexTabPageText(`${ext}/newtab.html#/settings/account`).name).toBe("Settings · Profile") // a link to an old Settings page
     expect(flexTabPageText(`${ext}/newtab.html#/signin`).name).toBe("Sign in")
     expect(flexTabPageText(`${ext}/options.html`).name).toBe("Settings")
     expect(flexTabPageText(`${ext}/popup.html`).name).toBe("Popup")
@@ -70,7 +70,7 @@ describe("a FlexTab page in Opened Tabs", () => {
   })
 })
 
-describe("a row's text, FlexTab pages included (TASK-95)", () => {
+describe("a row's text, FlexTab pages included", () => {
   it("names the new tab page as FlexTab and any other page as openTabText does", () => {
     expect(isFlexTabPage(undefined)).toBe(false)
     expect(isFlexTabPage("chrome://newtab/")).toBe(true)

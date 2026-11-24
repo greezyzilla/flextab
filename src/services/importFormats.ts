@@ -1,4 +1,4 @@
-// Import from where users come from (TASK-12): a FlexTab backup, a bookmarks
+// Import from where users come from: a FlexTab backup, a bookmarks
 // export (the Netscape HTML every browser and most tab managers write), or a
 // OneTab export (`url | title` lines). Files are untrusted: only http(s)
 // links are kept (no `javascript:` bookmarklets), and stored icons are

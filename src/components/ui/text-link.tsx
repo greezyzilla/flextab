@@ -4,7 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "~src/lib/utils"
 
 /**
- * An action set as underlined text (TASK-103.4): "Forgot password?", "Back to sign in", a modal
+ * An action set as underlined text: "Forgot password?", "Back to sign in", a modal
  * footer's "Download backup". The underline shows at rest, so it reads as something to press, and
  * hovering firms the text to fg. By default it takes the size and colour of the sentence it sits in;
  * `tone` and `size` set them when it stands alone. For an accent action, use Button variant="link".

@@ -1,4 +1,4 @@
-// Default path (TASK-20): saving a tab must always work in one action, so the
+// Default path: saving a tab must always work in one action, so the
 // system carries the structure. Missing levels above the tabs are created as
 // ordinary, renamable items; the level that holds tabs gets the one special
 // group per category, "Unsorted" (tabs saved without a chosen group). Works on
@@ -16,9 +16,9 @@ export const UNSORTED_NAME = "Unsorted"
 export type CategoryPath = { spaceId: string; projectId: string; categoryId: string }
 
 /**
- * The first-install workspace: Personal › General › Uncategorized (TASK-20/TASK-24
+ * The first-install workspace: Personal › General › Uncategorized (these
  * names, so "General" only ever names a project). Only the background calls this,
- * once, on install (TASK-127): two pages seeding with their own ids would merge
+ * once, on install: two pages seeding with their own ids would merge
  * into two "Personal" spaces. Does nothing when the doc already has a space.
  */
 export function seedDefaultWorkspace(): boolean {
@@ -42,7 +42,7 @@ export function findUnsorted(category: Pick<SavedCategory, "groups"> | undefined
 }
 
 /**
- * The space to save into when none was chosen (TASK-37): the first space, or
+ * The space to save into when none was chosen: the first space, or
  * a new "Personal" space when the workspace has none. Zero spaces is a valid
  * state, so a save creates the space instead of failing. The id is always new,
  * never the first-install seed id, so a space deleted and synced away is not
@@ -57,10 +57,10 @@ export function ensureSpace(): string {
 }
 
 /**
- * A space someone names (TASK-98): it starts with General › Uncategorized, the
+ * A space someone names: it starts with General › Uncategorized, the
  * same shape as the first-install seed, so the next screen is a category ready
  * to save into, not a second empty state. No group: Unsorted only exists while
- * it holds tabs (TASK-20), and it appears with the first saved tab. One
+ * it holds tabs, and it appears with the first saved tab. One
  * transaction, so the space never exists without its path. Returns the id.
  */
 export function createSpace(name: string, color?: string): string {

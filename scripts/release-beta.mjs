@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * `npm run release:beta`: cuts a FlexTab Beta release in one command (TASK-111).
+ * `npm run release:beta`: cuts a FlexTab Beta release in one command.
  *
  *   1. checks: on dev, clean working tree, a stable tag vX.Y.Z in the history,
  *      commits since it, and a version above the last beta tag

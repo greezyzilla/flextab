@@ -6,10 +6,10 @@ export interface SnapshotInfo {
   created_at: string;
   space_count: number;
   tab_count: number;
-  // "before_resolution": the account's tabs kept when a sync conflict was resolved (TASK-67).
+  // "before_resolution": the account's tabs kept when a sync conflict was resolved.
   // "" or missing (older servers): an ordinary synced state.
   kind?: string;
-  // A small version's shape for the preview skeleton (TASK-106): per space, the tab count of each
+  // A small version's shape for the preview skeleton: per space, the tab count of each
   // group holding tabs. Sent only for versions the preview opens fully; missing on older servers.
   shape?: number[][];
 }

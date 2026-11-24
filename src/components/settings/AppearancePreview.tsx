@@ -9,13 +9,13 @@ import { TooltipProvider } from "~src/components/ui/tooltip"
 import { useSettingsStore } from "~src/store/useSettingsStore"
 import type { SavedGroup, SavedTab } from "~src/types"
 
-// The Appearance previewer (TASK-30): a miniature of the workspace with a fixed
+// The Appearance previewer: a miniature of the workspace with a fixed
 // sample, the same for every account, so an empty or brand-new workspace
 // previews every control too. Everything in it is a real component (the search
 // field, the Save all tabs button, the category header, TabGroup's look-only
 // `preview` variant), styled by the live theme tokens, never the person's data.
 const tab = (id: string, title: string, host: string, path = "/"): SavedTab => ({ id: `appearance-preview-${id}`, title, url: `https://${host}${path}`, favicon: "", order: 0 })
-// The first two are long, so Title cut and Link cut show on them (TASK-71).
+// The first two are long, so Title cut and Link cut show on them.
 const RESEARCH_TABS = [
   tab("b", "[BD] Black Clover: Mahou Tei no Ken (BD) Episode 2 Subtitle Indonesia - Kuramanime", "v20.kuramanime.ing", "/anime/4116/black-clover-mahou-tei-no-ken/episode/2"),
   tab("c", "[FLEX-413] Billing retries fail when the card is replaced in the middle of a cycle - Jira", "acme.atlassian.net", "/jira/software/projects/FLEX/boards/7?selectedIssue=FLEX-413"),
@@ -23,7 +23,7 @@ const RESEARCH_TABS = [
   tab("f", "Pull request #91", "github.com"), tab("g", "Invoice #2291", "stripe.com"),
 ]
 // Uncoloured, as most groups are: the reference the coloured one is judged against.
-// The same address twice, so the Duplicate tabs setting shows on the sample (TASK-68).
+// The same address twice, so the Duplicate tabs setting shows on the sample.
 const INBOX: SavedGroup = { id: "appearance-preview-inbox", name: "Inbox", order: 0, tabs: [tab("a", "Kickoff deck", "docs.google.com"), tab("a2", "Kickoff deck", "docs.google.com")] }
 const research = (count: number): SavedGroup => ({ id: "appearance-preview-research", name: "Research", color: "blue", order: 1, tabs: RESEARCH_TABS.slice(0, count) })
 const LOCATION = { spaceId: "appearance-preview", projectId: "appearance-preview", categoryId: "appearance-preview" }
@@ -73,7 +73,7 @@ export function AppearancePreview() {
         {/* Its own providers: self-contained wherever Appearance renders. */}
         <TooltipProvider>
           <div className="flex items-center gap-2 px-6 py-3 border-b border-line">
-            {/* The header's own field, read-only (TASK-57): a preview reuses the real component. */}
+            {/* The header's own field, read-only: a preview reuses the real component. */}
             <SearchField type="text" placeholder={searchPlaceholder()} aria-label="Search (preview)" boxClassName="min-w-0 flex-1" readOnly />
             <Button variant="secondary" size="sm">Save all tabs</Button>
           </div>

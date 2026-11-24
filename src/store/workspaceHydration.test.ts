@@ -42,7 +42,7 @@ async function seedFromBackground() {
 
 const stored = (yjs: typeof import("~src/lib/yjsDoc")) => yjs.decodeSpacesFromStorage(disk[yjs.PERSIST_KEY]);
 
-describe("first install has one writer (TASK-127)", () => {
+describe("first install has one writer", () => {
   it("ends with one Personal space when several pages open before the seed", async () => {
     const newTab = await page();
     const popup = await page();

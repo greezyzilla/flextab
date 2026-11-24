@@ -128,7 +128,7 @@ describe('project / category / group mutations', () => {
   });
 });
 
-describe('group colour (TASK-18)', () => {
+describe('group colour', () => {
   it('round-trips through setSpaces / getSpaces and drops unknown values', () => {
     const t = tree();
     t[0].projects[0].categories[0].groups[0].color = 'pink';
@@ -243,7 +243,7 @@ describe('binary state + persistence', () => {
     expect(setCalls).toBe(2)
   });
 
-  it('flushPersist waits for the write in flight and its trailing write, and starts none itself (TASK-113)', async () => {
+  it('flushPersist waits for the write in flight and its trailing write, and starts none itself', async () => {
     const pending: (() => void)[] = []
     ;(chrome.storage.local.set as any).mockClear().mockImplementation(() => new Promise<void>((r) => pending.push(r)))
     onTestFinished(() => { (chrome.storage.local.set as any).mockImplementation(() => Promise.resolve()) })

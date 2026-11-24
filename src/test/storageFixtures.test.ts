@@ -1,5 +1,5 @@
 /**
- * Persisted data from every released version still loads (TASK-113). Each file in
+ * Persisted data from every released version still loads. Each file in
  * fixtures/storage is what one release left in browser storage, captured by
  * scripts/capture-storage-fixture.mjs from that release's own build. This test
  * loads each one through the app's real hydration: the workspace, the UI

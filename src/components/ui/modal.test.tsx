@@ -23,7 +23,7 @@ function Harness({ kind = "dialog" as const, dirty = false, dismissible = true, 
 
 const state = () => screen.getByTestId("state").textContent
 
-describe("Modal (TASK-43)", () => {
+describe("Modal", () => {
   it("dialog: role, labelled and described, close X, footer order Cancel then primary", () => {
     render(<Harness />)
     const d = screen.getByRole("dialog", { name: "Do the thing" })
@@ -50,7 +50,7 @@ describe("Modal (TASK-43)", () => {
     expect(state()).toBe("closed")
   })
 
-  it("returns focus to what opened it (TASK-43, §8)", async () => {
+  it("returns focus to what opened it (§8)", async () => {
     function Opener() {
       const [open, setOpen] = useState(false)
       return <>
@@ -66,7 +66,7 @@ describe("Modal (TASK-43)", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: "Open it" })).toHaveFocus())
   })
 
-  it("marks itself so page shortcuts can tell a key came from inside (TASK-47)", () => {
+  it("marks itself so page shortcuts can tell a key came from inside", () => {
     render(<Harness />)
     expect(isInsideModal(screen.getByRole("button", { name: "Do it" }))).toBe(true)
     expect(isInsideModal(screen.getByText("trigger"))).toBe(false)
@@ -173,7 +173,7 @@ describe("Modal (TASK-43)", () => {
     expect(screen.getByText("Small print.")).toBeInTheDocument()
     expect(screen.getByText("5 tabs")).toBeInTheDocument()
   })
-  it("leads a destructive primary with a warning icon, so the tone change shows at any accent hue (TASK-49)", () => {
+  it("leads a destructive primary with a warning icon, so the tone change shows at any accent hue", () => {
     const d = render(<Harness tone="destructive" />)
     const button = screen.getByRole("button", { name: "Do it" })
     expect(button.querySelector("[data-modal-danger-icon]")).not.toBeNull()

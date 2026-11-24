@@ -1,4 +1,4 @@
-# Dependency updates (TASK-116): monthly, one grouped PR per ecosystem, and only
+# Dependency updates: monthly, one grouped PR per ecosystem, and only
 # versions published at least 7 days ago, so a hijacked release has time to be
 # caught before it reaches us (the 2026 npm worm). PRs go to dev, where work lands.
 version: 2

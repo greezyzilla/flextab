@@ -28,7 +28,7 @@ beforeEach(async () => {
   useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces() })
 })
 
-describe("a tab dragged into another group (TASK-64)", () => {
+describe("a tab dragged into another group", () => {
   it("goes before the tab under the pointer, or after it on its lower half", () => {
     expect(tabPreview(spaces(), "a", "y", false)).toMatchObject({ kind: "tab", from: "g1", to: "g2", beforeId: "y" })
     expect(tabPreview(spaces(), "a", "x", true)).toMatchObject({ beforeId: "y" })
@@ -75,7 +75,7 @@ describe("a tab dragged into another group (TASK-64)", () => {
   })
 })
 
-describe("a group dragged into another category (TASK-64)", () => {
+describe("a group dragged into another category", () => {
   it("goes before or after the group card under the pointer, before it over a tab inside it", () => {
     expect(groupPreview(spaces(), "g1", "g4", false)).toMatchObject({ kind: "group", from: "c1", to: "c2", beforeId: "g4" })
     expect(groupPreview(spaces(), "g1", "droppable-g3", true)).toMatchObject({ beforeId: "g4" })

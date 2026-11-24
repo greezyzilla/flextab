@@ -23,18 +23,18 @@ import { SIGN_IN_ROUTE } from "~src/lib/workspaceAccess"
  *
  * Keep these product states separate:
  * - not signed in → local device only (HardDrive), never "Offline". It is
- *   also the one global way in to sign-in (TASK-7), so it is a labelled button.
+ *   also the one global way in to sign-in, so it is a labelled button.
  * - signed in + no transport → Offline (CloudOff)
  * - signed in + auto-sync off → paused (Cloud)
  * - signed in + a conflict the user paused on → "Sync conflict" in words, and
- *   the popover reopens the resolver (TASK-10)
- * - signed in + over the plan's tab cap → "Sync paused" in words (TASK-9), so
+ *   the popover reopens the resolver
+ * - signed in + over the plan's tab cap → "Sync paused" in words, so
  *   the state never rests on colour alone; the button opens the details.
  * - signed in + the browser took away access to the server (a revoked host
  *   permission, or Firefox's data consent) → "Sync off" in words, and the
- *   popover asks for it again (TASK-112). Nothing else can happen until then.
+ *   popover asks for it again. Nothing else can happen until then.
  * - signed in + the server refused this version as too old → "Update needed"
- *   in words, and the popover checks for the update (TASK-114). It comes first:
+ *   in words, and the popover checks for the update. It comes first:
  *   allowing access would not help a version the server no longer takes.
  */
 export function SyncStatusIndicator() {

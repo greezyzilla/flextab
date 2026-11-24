@@ -49,7 +49,7 @@ describe("manual sync feedback", () => {
     expect(toast.success).not.toHaveBeenCalled();
     expect(screen.queryByText("Synced.")).not.toBeInTheDocument();
   });
-  it("says a finished sync in the row, not in a toast (TASK-96)", async () => {
+  it("says a finished sync in the row, not in a toast", async () => {
     vi.mocked(syncNow).mockResolvedValue({ status: "ok" });
     render(<SyncTab />);
     fireEvent.click(screen.getByRole("button", { name: "Sync now" }));

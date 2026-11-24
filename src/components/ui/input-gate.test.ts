@@ -1,4 +1,4 @@
-// Gate for TASK-57: every text field takes its look from ui/input.tsx (the field box: edge, fill,
+// Gate: every text field takes its look from ui/input.tsx (the field box: edge, fill,
 // radius, height, focus), so call sites only place it (width, flex, alignment, font size of an
 // inline label it replaces). A class that redraws the box at a call site is a one-off look.
 import { describe, expect, it } from "vitest"
@@ -59,7 +59,7 @@ const BOX = /(^|[\s"'`:])(border(-|\b)|bg-|rounded|shadow|ring-|outline-|h-\d|h-
 
 const tags = files(SRC).flatMap((p) => fieldTags(readFileSync(p, "utf8")).map((tag) => ({ file: relative(SRC, p), tag })))
 
-describe("text field gate (TASK-57)", () => {
+describe("text field gate", () => {
   it("finds the app's fields", () => {
     expect(tags.length).toBeGreaterThan(20)
   })

@@ -1,7 +1,7 @@
 import type { SavedSpace } from "~src/types"
 
 /**
- * One URL identity for the whole app (TASK-4): saved tabs, open tabs and
+ * One URL identity for the whole app: saved tabs, open tabs and
  * duplicate checks all compare through this. The host is lowercased (via
  * URL) and a trailing slash on the path is ignored. Query and hash are kept:
  * many apps route on them (e.g. mail clients), so dropping them would merge

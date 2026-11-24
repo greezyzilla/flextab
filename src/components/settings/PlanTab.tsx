@@ -18,11 +18,11 @@ export function PlanTab() {
   const [upgradingPlan, setUpgradingPlan] = useState<'plus' | 'pro' | null>(null);
   const [upgradeError, setUpgradeError] = useState('');
   // A payment coming back: 'pending' while polling for the new plan, 'late' when the schedule ran out
-  // before the plan changed (TASK-101).
+  // before the plan changed.
   const [confirm, setConfirm] = useState<'no' | 'pending' | 'late'>('no');
   const planRef = useRef<string | undefined>(undefined);
   // The page's own first plan load, so a payment read from storage before it lands still compares
-  // against the plan the user had, not against nothing (TASK-101).
+  // against the plan the user had, not against nothing.
   const firstLoad = useRef<Promise<string | undefined> | null>(null);
   const checkAgain = useRef<() => void>(() => {});
 
@@ -93,10 +93,10 @@ export function PlanTab() {
           planRef.current = s.plan;
           setFailed(false);
           // Confirmed once the plan changed to a paid one: a payment never ends on Free, so Free
-          // never counts as the change even when the first load failed (TASK-101).
+          // never counts as the change even when the first load failed.
           if (s.plan !== baselinePlan && s.plan !== 'free') {
             setConfirm('no');
-            // The finished moment: the plan the user now has and what it adds (TASK-96).
+            // The finished moment: the plan the user now has and what it adds.
             const cap = s.limits?.max_tabs_total ?? 0;
             toast.success(`You're on ${PLAN_NAME[s.plan] ?? s.plan}`, { id: BILLING_TOAST_ID, description: cap > 0 ? `Up to ${cap.toLocaleString('en-US')} tabs.` : 'No limit on tabs.' });
             apiGetBillingStatus().then(b => { if (!cancelled) setBilling(b); }).catch(() => { /* ok */ });
@@ -161,8 +161,8 @@ export function PlanTab() {
         : checkoutClosed ? <SettingsNotice>Paid plans open soon. Limits are generous while FlexTab is in beta.</SettingsNotice>
         : <SettingsNotice>FlexTab is in beta, so limits are generous while we're in preview.</SettingsNotice>}
     >
-      {/* Plans side by side so their limits compare line by line (TASK-84 pl2, refs-plans board: 21 of 27
-          billing pages). Each card lists its own tier's limits from the server. */}
+      {/* Plans side by side so their limits compare line by line, as most billing pages
+          do. Each card lists its own tier's limits from the server. */}
       <div role="list" aria-label="Plans" className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
         <PlanCard name="Free" price="Rp0" who="For one browser and a few groups." active={currentPlan === 'free'} limits={status?.free_limits} />
         <PlanCard
@@ -180,7 +180,7 @@ export function PlanTab() {
       </div>
     </SettingsSection>
 
-    {/* When the plan renews or ends, apart from the plan cards (TASK-84: "beda konteks"). Only when there
+    {/* When the plan renews or ends, apart from the plan cards ("beda konteks"). Only when there
         is something to say: a subscription or a granted plan; Free on its own has none. */}
     {status && (status.granted || billing?.active) && (
       <SettingsSection title="Subscription" icon={CalendarClock} subtitle="When your plan renews or ends.">
@@ -214,8 +214,8 @@ export function PlanTab() {
 }
 
 /**
- * One usage figure (TASK-84): what is counted on the left, the bar on the right with its numbers right under it.
- * An unlimited cap says "Unlimited" in the bar's place and "412 used" under it (TASK-84 u5).
+ * One usage figure: what is counted on the left, the bar on the right with its numbers right under it.
+ * An unlimited cap says "Unlimited" in the bar's place and "412 used" under it.
  */
 function UsageRow({ title, says, used, cap, format, tone }: { title: string; says: string; used: number; cap: number; format: (n: number) => string; tone?: 'quota' | 'rolling' }) {
   const unlimited = cap === 0;
@@ -233,7 +233,7 @@ function UsageRow({ title, says, used, cap, format, tone }: { title: string; say
 const PLAN_NAME: Record<string, string> = { free: "Free", plus: "Plus", pro: "Pro" };
 
 /**
- * How long the plan lasts (TASK-84): one that renews shows its date (and the card it bills); one that will end
+ * How long the plan lasts: one that renews shows its date (and the card it bills); one that will end
  * counts down; a granted plan says it was granted, with its end or "No end date".
  */
 function subscriptionLine(status: PlanStatus, billing: BillingStatus | null) {

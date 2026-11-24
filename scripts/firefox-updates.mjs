@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Writes the updates.json that installed Firefox Beta copies read through
- * gecko.update_url (TASK-118), in the format Firefox expects for self-hosted
+ * gecko.update_url, in the format Firefox expects for self-hosted
  * add-ons: the newest signed .xpi, its version and its sha256.
  *
  *   node scripts/firefox-updates.mjs --xpi=flextab-beta-0.2.0.3.xpi --version=0.2.0.3 \

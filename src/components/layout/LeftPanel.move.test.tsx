@@ -12,7 +12,7 @@ import * as yjs from "~src/lib/yjsDoc"
 import { useContainerPreview } from "~src/store/useContainerPreview"
 import { act } from "@testing-library/react"
 
-// Tooltips open in these tests; their arrow needs a ResizeObserver (TASK-69).
+// Tooltips open in these tests; their arrow needs a ResizeObserver.
 stubResizeObserver()
 
 vi.mock("~src/components/ui/sonner", () => ({ showUndoToast: vi.fn() }))
@@ -38,7 +38,7 @@ const setup = () => {
 }
 const projectsIn = (id: string) => yjs.getSpaces().find((s) => s.id === id)!.projects.map((p) => p.name)
 
-describe("Move to… for projects and categories (TASK-59)", () => {
+describe("Move to… for projects and categories", () => {
   it("moves a project to another space from its ⋯ menu, by keyboard, with Undo", async () => {
     const user = setup()
     await user.click(screen.getByRole("button", { name: "Actions for Test" }))
@@ -98,7 +98,7 @@ describe("Move to… for projects and categories (TASK-59)", () => {
     expect(useSavedSpacesStore.getState().expandedProjectIds).toEqual(["p1"]) // not toggled
   })
 
-  it("moves a project or category up and down from its ⋯ menu, disabled at either end (TASK-64)", async () => {
+  it("moves a project or category up and down from its ⋯ menu, disabled at either end", async () => {
     const user = setup()
     await user.click(screen.getByRole("button", { name: "Actions for Test" }))
     expect(await screen.findByRole("menuitem", { name: "Move up" })).toHaveAttribute("data-disabled")
@@ -113,7 +113,7 @@ describe("Move to… for projects and categories (TASK-59)", () => {
     expect(showUndoToast).not.toHaveBeenCalled()
   })
 
-  it("shows the new order while a project is dragged within its space, with no insertion line (TASK-92)", () => {
+  it("shows the new order while a project is dragged within its space, with no insertion line", () => {
     setup()
     const shown = () => [...document.querySelectorAll("nav [data-drag-handle]")].map((h) => h.getAttribute("data-drag-handle"))
     expect(shown()).toEqual(["Test", "Music", "Games"])

@@ -6,7 +6,7 @@ import { Icon } from "~src/components/ui/icon"
 import { cn } from "~src/lib/utils"
 
 /**
- * A button that opens and closes what follows it (TASK-103.4), with the chevron that turns as it does.
+ * A button that opens and closes what follows it, with the chevron that turns as it does.
  *   panel  — a branch of the popup's destination tree: a 38px full-width row; `level` sets its type
  *            (space 13px subtle, project 15px medium, category 15px), and the chevron sits in the
  *            tree's 20px column.

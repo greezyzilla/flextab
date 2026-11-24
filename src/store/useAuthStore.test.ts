@@ -25,7 +25,7 @@ beforeEach(async () => {
   useAuthStore.setState({ user: null, isAuthenticated: false, isLoading: true });
 });
 
-describe('local-first sign-out (TASK-7)', () => {
+describe('local-first sign-out', () => {
   it('initialize drops the legacy guest flag', async () => {
     await useAuthStore.getState().initialize();
     expect(chrome.storage.local.remove).toHaveBeenCalledWith(GUEST_KEY);
@@ -41,7 +41,7 @@ describe('local-first sign-out (TASK-7)', () => {
     expect(chrome.storage.local.remove).toHaveBeenCalledWith(['flextab_sync_hydrated', 'flextab_fresh_login', 'flextab_landed_snapshot', 'flextab_limit_notice', 'flextab_resolution_push']);
     expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_sync_revision');
     // No base afterwards: the next sign-in, to any account, reconciles explicitly,
-    // and must ask before these tabs go anywhere (TASK-11).
+    // and must ask before these tabs go anywhere.
     expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_merge_base');
     expect(chrome.storage.local.set).toHaveBeenCalledWith({ flextab_kept_on_signout: true });
   });
@@ -196,7 +196,7 @@ describe('sign-out authorization', () => {
   });
 });
 
-describe('delete account (TASK-17)', () => {
+describe('delete account', () => {
   it('deletes on the server, then forgets the account here and keeps the tabs when asked', async () => {
     await saveTokens(tokens());
     setSpaces([{ id: 'local', name: 'Mine', projects: [] }]);
@@ -223,7 +223,7 @@ describe('delete account (TASK-17)', () => {
   });
 });
 
-describe('optimistic start from the stored profile (TASK-105)', () => {
+describe('optimistic start from the stored profile', () => {
   const me = { id: 'u', email: 'e@x.test', name: 'Ayu', avatar: '', provider: 'google', has_password: false };
   let store: Record<string, any>;
   beforeEach(async () => {

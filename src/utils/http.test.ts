@@ -12,7 +12,7 @@ beforeEach(() => {
 })
 afterEach(() => { delete runtime.getManifest })
 
-describe("http, the one way to the server (TASK-114)", () => {
+describe("http, the one way to the server", () => {
   it("adds the client's version and channel to every request, keeping the caller's headers", async () => {
     await http("https://api.test/x", { method: "POST", headers: { Authorization: "Bearer t", "Content-Type": "application/json" } })
     expect(fetch).toHaveBeenCalledWith("https://api.test/x", {

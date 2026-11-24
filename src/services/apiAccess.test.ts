@@ -23,7 +23,7 @@ afterEach(() => {
   delete runtime.getBrowserInfo
 })
 
-describe("API access (TASK-112)", () => {
+describe("API access", () => {
   it("asks Chrome for the API host only", async () => {
     expect(accessPermissions()).toEqual({ origins: [expect.stringMatching(/\/\*$/)] })
     expect(await hasApiAccess()).toBe(true)

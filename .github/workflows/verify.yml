@@ -8,13 +8,13 @@ on:
       api-host:
         required: true
         type: string
-      # Push and PR CI stays light (TASK-116): no browser install, jsdom tests only.
+      # Push and PR CI stays light: no browser install, jsdom tests only.
       # Release workflows pass true so the browser-mode suite runs before publishing.
       browser:
         required: false
         type: boolean
         default: false
-      # The beta workflow passes the pushed beta-vX.Y.Z.N tag (TASK-118): the beta
+      # The beta workflow passes the pushed beta-vX.Y.Z.N tag: the beta
       # builds for Chrome and Firefox are then the release, kept as artifacts.
       beta-tag:
         required: false
@@ -87,7 +87,7 @@ jobs:
           BETA_TAG: ${{ inputs.beta-tag }}
           PLASMO_PUBLIC_API_URL: ${{ inputs.api-url }}
           PLASMO_PUBLIC_API_HOST: ${{ inputs.api-host }}
-      # Firefox (TASK-112): the same code built for Firefox must pass Mozilla's
+      # Firefox: the same code built for Firefox must pass Mozilla's
       # linter. web-ext lives in tools/web-ext with its own lockfile.
       - name: Build Firefox and lint it with web-ext
         run: |
@@ -96,7 +96,7 @@ jobs:
         env:
           PLASMO_PUBLIC_API_URL: ${{ inputs.api-url }}
           PLASMO_PUBLIC_API_HOST: ${{ inputs.api-host }}
-      # TASK-115: a new required permission disables FlexTab until each user
+      # A new required permission disables FlexTab until each user
       # accepts it. The built manifests are checked against permissions.lock.json.
       - name: No new required permission
         run: npm run check:permissions
@@ -108,7 +108,7 @@ jobs:
           path: build/chrome-mv3-prod.zip
           if-no-files-found: error
           retention-days: 7
-      # A release publishes exactly what was verified here (TASK-117).
+      # A release publishes exactly what was verified here.
       - if: ${{ inputs.browser }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:

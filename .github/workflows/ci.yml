@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Light by design (TASK-116): about two minutes, no browser install. The
+  # Light by design: about two minutes, no browser install. The
   # browser-mode suite runs locally (npm run test:browser) and in release workflows.
   verify:
     uses: ./.github/workflows/verify.yml
@@ -57,7 +57,7 @@ jobs:
         run: node scripts/check-commits.mjs --range="$RANGE"
         env:
           RANGE: ${{ steps.range.outputs.range }}
-      # TASK-115: the recorded required permissions change only with the manifest.
+      # The recorded required permissions change only with the manifest.
       - name: permissions.lock.json changes only with the manifest
         run: node scripts/check-permissions.mjs --lock-commits="$RANGE"
         env:

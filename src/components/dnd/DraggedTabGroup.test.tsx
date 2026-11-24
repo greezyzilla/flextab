@@ -5,7 +5,7 @@ import type { SavedGroup } from "~src/types"
 
 const group: SavedGroup = { id: "g1", name: "Radio", order: 0, tabs: [] }
 
-// TASK-65: a dragged group is a copy of its own card, never a re-laid-out summary.
+// A dragged group is a copy of its own card, never a re-laid-out summary.
 describe("DraggedTabGroup", () => {
   it("copies the group's card as rendered, inert, on the page colour, in the card's own place", () => {
     render(

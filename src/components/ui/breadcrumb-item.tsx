@@ -3,7 +3,7 @@ import * as React from "react"
 import { cn } from "~src/lib/utils"
 
 /**
- * One step of a breadcrumb trail (TASK-103.4; the content panel's project › category). Pass the
+ * One step of a breadcrumb trail (the content panel's project › category). Pass the
  * level icon and the name as children. The step you are on (`current`) is announced
  * (aria-current="location") and rests quieter; the steps above it rest at fg and firm to ink.
  * Its 4px side padding is cancelled by a margin, so its text sits on the trail's text edge.

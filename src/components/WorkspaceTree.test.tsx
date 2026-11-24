@@ -11,7 +11,7 @@ const count = (c: HTMLElement) => ({
   tabs: c.querySelectorAll("ul ul ul > li").length,
 })
 
-describe("SourceColumnSkeleton (TASK-106)", () => {
+describe("SourceColumnSkeleton", () => {
   it("draws a large version as one row per space", () => {
     const { container } = render(<SourceColumnSkeleton rows={8} label="Loading" />)
     expect(count(container)).toEqual({ spaces: 8, groups: 0, tabs: 0 })

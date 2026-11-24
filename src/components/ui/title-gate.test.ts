@@ -1,4 +1,4 @@
-// Gate for TASK-69: nothing explains itself with the browser's native `title` tooltip. Every
+// Gate: nothing explains itself with the browser's native `title` tooltip. Every
 // hover/focus explanation is the app Tooltip (IconTooltip, ClippedTooltip or a wrapping
 // <Tooltip>), so one product shows one tooltip look, size and delay. A `title` prop is allowed
 // only on the components below, where it is a heading the component renders, not a DOM attribute.

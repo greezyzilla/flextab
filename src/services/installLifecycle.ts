@@ -1,11 +1,11 @@
 /**
- * What runs when the browser installs FlexTab (TASK-113). onInstalled fires for a
+ * What runs when the browser installs FlexTab. onInstalled fires for a
  * first install, for every update of FlexTab, and when the browser itself
  * updates; each reason runs only its own steps.
  *
  * First-install-only work goes in the "install" list only, never in the shared
- * one, so an update cannot run it again. Today that is the first workspace
- * (TASK-127), seeded here by the background alone.
+ * one, so an update cannot run it again. Today that is the first workspace,
+ * seeded here by the background alone.
  */
 export type InstallStep = "deviceId" | "seed" | "menus" | "restoreTabs" | "clearUpdateRequired" | "initialPush"
 
@@ -18,7 +18,7 @@ export function installSteps(reason: string): InstallStep[] {
       return ["deviceId", "seed", "menus", "initialPush"]
     case "update":
       // Bring back the pages the update reload dropped, forget a "too old" answer
-      // meant for the previous version (TASK-114), then push what was left pending.
+      // meant for the previous version, then push what was left pending.
       return ["deviceId", "menus", "restoreTabs", "clearUpdateRequired", "initialPush"]
     default:
       // chrome_update / shared_module_update: FlexTab itself did not change.

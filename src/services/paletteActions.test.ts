@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { searchActions } from "./paletteActions"
 
-describe("palette actions (TASK-16)", () => {
+describe("palette actions", () => {
   it("finds theme commands by title or keyword and marks the one in use", () => {
     expect(searchActions("dark", "system").map((h) => h.title)).toEqual(["Use dark theme"])
     const all = searchActions("theme", "light")

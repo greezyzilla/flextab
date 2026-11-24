@@ -42,7 +42,7 @@ export function SaveSessionModal({
   // The picker can create the destination inline, so validity is "the chosen
   // category exists", read from the live tree.
   const destination = describeTarget(savedSpaces, target)
-  // No spaces at all (TASK-37): the save creates the default space.
+  // No spaces at all: the save creates the default space.
   const createsSpace = savedSpaces.length === 0
 
   const savableTabs = useMemo(
@@ -54,7 +54,7 @@ export function SaveSessionModal({
   const handleSave = useCallback(async () => {
     if (!canSave) return
     setSaving(true)
-    // Where these URLs already were, read before saving (TASK-4).
+    // Where these URLs already were, read before saving.
     const alsoIn = savedElsewhere(useSavedSpacesStore.getState().savedSpaces, savableTabs.map((t) => t.url)).map((l) => l.path)
     try {
       const into = createsSpace ? ensureCategoryPath(ensureSpace())! : target

@@ -3,8 +3,8 @@ import { fitMiddle } from "~src/lib/displayUrl"
 
 /**
  * One line of text that, when too long, is cut in the middle: its start and
- * its end stay, "…" replaces the middle (TASK-54, saved tab titles).
- * `startShare` moves the "…" (TASK-71): 0 keeps the end, 1 keeps the start.
+ * its end stay, "…" replaces the middle (saved tab titles).
+ * `startShare` moves the "…": 0 keeps the end, 1 keeps the start.
  *
  * Same measuring as TabUrl: Range rects over a hidden copy in the line's own
  * font, exact fractional widths, re-measured when the line or the text's

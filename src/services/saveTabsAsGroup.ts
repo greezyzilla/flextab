@@ -16,7 +16,7 @@ export type SaveTabsTarget = {
 };
 
 /**
- * The one rule for what can be saved (TASK-19), used by every save path:
+ * The one rule for what can be saved, used by every save path:
  * only web pages. Browser/extension pages (about:, chrome:, chrome-extension:,
  * edge:, brave:, devtools:, view-source:…), data:/blob: URLs and local file:
  * pages are skipped: they don't reopen on another device, and FlexTab's own

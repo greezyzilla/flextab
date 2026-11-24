@@ -2,7 +2,7 @@ import { afterAll, beforeAll, vi } from "vitest";
 
 /**
  * For a test file that opens app tooltips: Radix's tooltip arrow measures itself
- * with a ResizeObserver, which jsdom lacks (TASK-69). Scoped to the file, not the
+ * with a ResizeObserver, which jsdom lacks. Scoped to the file, not the
  * global setup, because components such as MiddleText and AppearancePreview take
  * a different path when ResizeObserver is missing and other tests rely on it.
  */

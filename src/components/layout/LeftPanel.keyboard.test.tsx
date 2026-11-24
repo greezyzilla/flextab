@@ -29,7 +29,7 @@ const setup = () => {
 }
 const row = (name: string) => screen.getByRole("button", { name: new RegExp(`^${name}`) })
 
-describe("sidebar tree by keyboard (TASK-5)", () => {
+describe("sidebar tree by keyboard", () => {
   it("moves with the arrow keys, expands and collapses projects", async () => {
     const user = setup()
     row("Site").focus()
@@ -90,12 +90,12 @@ describe("sidebar tree by keyboard (TASK-5)", () => {
     expect(yjs.getSpaces()[0].projects[0].categories.map((c) => c.name)).toEqual(["Research", "Design", "Admin"])
   })
 
-  it("titles the panel with the space and gives it ⋯ like every row: rename, or Settings › Spaces (TASK-15)", async () => {
+  it("titles the panel with the space and gives it ⋯ like every row: rename, or Settings › Spaces", async () => {
     const user = setup()
     expect(screen.getByRole("heading", { level: 1, name: "Work" })).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Space settings" })).not.toBeInTheDocument() // no second gear
     await user.click(screen.getByRole("button", { name: "Actions for Work" }))
-    expect(screen.queryByRole("menuitem", { name: /Delete/ })).not.toBeInTheDocument() // deleting stays in Settings (TASK-27)
+    expect(screen.queryByRole("menuitem", { name: /Delete/ })).not.toBeInTheDocument() // deleting stays in Settings
     await user.click(screen.getByRole("menuitem", { name: "Rename" }))
     const input = await screen.findByRole("textbox", { name: "Space name" })
     await user.clear(input)
@@ -107,7 +107,7 @@ describe("sidebar tree by keyboard (TASK-5)", () => {
   })
 })
 
-describe("sidebar with no space selected (TASK-37)", () => {
+describe("sidebar with no space selected", () => {
   it("asks to select a space only when there is one to select", () => {
     useSavedSpacesStore.setState({ activeSpaceId: null, activeProjectId: null, activeCategoryId: null })
     const { unmount } = render(<TooltipProvider><DndContext><LeftPanel /></DndContext></TooltipProvider>)
@@ -120,7 +120,7 @@ describe("sidebar with no space selected (TASK-37)", () => {
   })
 })
 
-describe("the workspace panel footer (TASK-109)", () => {
+describe("the workspace panel footer", () => {
   it("shows the app version, as the Settings footer does", () => {
     setup()
     expect(screen.getByText(/^FlexTab v\d/)).toBeInTheDocument()
@@ -128,7 +128,7 @@ describe("the workspace panel footer (TASK-109)", () => {
   })
 })
 
-describe("tree rows share one box (TASK-120)", () => {
+describe("tree rows share one box", () => {
   it("the focus ring is on each row's own box, not on its label, and New project sits on the same box", () => {
     useSavedSpacesStore.setState({ expandedProjectIds: ["p1"] })
     setup()

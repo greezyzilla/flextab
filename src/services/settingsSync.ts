@@ -38,7 +38,7 @@ let pending = Promise.resolve();
 const unconfirmedFields = new Set<keyof Snap>();
 
 /**
- * The merge base and the unconfirmed fields, kept on disk per account (TASK-113).
+ * The merge base and the unconfirmed fields, kept on disk per account.
  * In memory only, a reload (an extension update, a closed tab, a crash) forgot
  * which settings this device changed, and the startup pull then put the server's
  * value over a change that had not been pushed yet.

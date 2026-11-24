@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Every commit is a Conventional Commit (TASK-116), because release-please reads
+ * Every commit is a Conventional Commit, because release-please reads
  * them to pick the next stable version and write the changelog.
  *
  *   node scripts/check-commits.mjs --range=<from>..<to>     CI: each commit in a push or PR

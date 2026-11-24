@@ -1,8 +1,8 @@
 import { useEffect, useSyncExternalStore } from "react"
 
 /**
- * Whether Alt (Option on macOS) is held, for previews that open only on demand
- * (TASK-80). One set of window listeners serves every card, attached only while
+ * Whether Alt (Option on macOS) is held, for previews that open only on demand.
+ * One set of window listeners serves every card, attached only while
  * some card asks. A lost keyup (Alt+Tab away, the window losing focus) can't
  * leave it stuck: blur, a hidden page and any key or pointer event without Alt
  * reset it.

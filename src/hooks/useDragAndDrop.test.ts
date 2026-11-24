@@ -26,7 +26,7 @@ const drag = (id: string) => ({ active: { id } }) as any
 const over = (id: string, overId: string | null) => ({ active: { id }, over: overId ? { id: overId } : null }) as any
 const zone = (id: string) => ({ id, rect: { current: null }, data: { current: {} }, disabled: false, key: id, node: { current: null } })
 
-describe("dragging a project or a category (TASK-59)", () => {
+describe("dragging a project or a category", () => {
   it("names the dragged container for the overlay, moves it on drop, and offers Undo", async () => {
     const { result } = renderHook(() => useDragAndDrop())
     const id = categoryDragId("h", "p1", "c1")
@@ -95,7 +95,7 @@ describe("dragging a project or a category (TASK-59)", () => {
   })
 })
 
-describe("the insertion line while reordering (TASK-64)", () => {
+describe("the insertion line while reordering", () => {
   beforeEach(() => {
     yjs.setSpaces([{ id: "h", name: "Hobby", order: 0, projects: [
       { id: "p1", name: "Test", order: 0, categories: [{ id: "c1", name: "Music", order: 0, groups: [] }, { id: "c2", name: "Films", order: 1, groups: [] }] },
@@ -133,7 +133,7 @@ describe("the insertion line while reordering (TASK-64)", () => {
     expect(useDropIndicator.getState().zone).toBeNull()
   })
 
-  it("shows the new order while dragging, keeps it over its own row, and drops there (TASK-92)", async () => {
+  it("shows the new order while dragging, keeps it over its own row, and drops there", async () => {
     const { result } = renderHook(() => useDragAndDrop())
     const id = categoryDragId("h", "p1", "c1")
     act(() => result.current.handleDragOver(at(id, "cat-drop:h:p1:c2", 66))) // bottom half of Films
@@ -179,7 +179,7 @@ describe("the insertion line while reordering (TASK-64)", () => {
   })
 })
 
-describe("tabs and groups make room in another list while dragging (TASK-64)", () => {
+describe("tabs and groups make room in another list while dragging", () => {
   const tab = (id: string, order: number) => ({ id, url: `https://${id}.test`, title: id, favicon: "", order })
   beforeEach(() => {
     yjs.setSpaces([{ id: "h", name: "Hobby", order: 0, projects: [{ id: "p1", name: "Test", order: 0, categories: [
@@ -247,7 +247,7 @@ describe("tabs and groups make room in another list while dragging (TASK-64)", (
   })
 })
 
-describe("moving an open tab in Opened Tabs (TASK-73)", () => {
+describe("moving an open tab in Opened Tabs", () => {
   const from = { windowId: 1, index: 0, name: "Docs" }
   const row = (index: number, windowId = 2) => ({ windowId, index, label: `Window ${windowId}` })
   const at = (overId: string | null, data: object | undefined, y: number) => ({
@@ -262,7 +262,7 @@ describe("moving an open tab in Opened Tabs (TASK-73)", () => {
     vi.mocked(chrome.tabs.move).mockResolvedValue({} as any)
   })
 
-  it("shows the tab where it would land, so the rows make room; no line (TASK-73)", () => {
+  it("shows the tab where it would land, so the rows make room; no line", () => {
     const { result } = renderHook(() => useDragAndDrop())
     const shown = () => useOpenTabPreview.getState().preview
     act(() => result.current.handleDragOver(at("open-tab:9", row(1), 52))) // top half: before the row

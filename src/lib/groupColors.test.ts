@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { GROUP_COLORS, groupColorFill, groupTintEdge, groupTintSurface, isGroupColor } from "./groupColors";
 
-describe("group colours (TASK-18)", () => {
+describe("group colours", () => {
   it("are Chrome's nine tab-group colours, in Chrome's order", () => {
     expect(GROUP_COLORS.map((c) => c.id)).toEqual(["grey", "blue", "red", "yellow", "green", "pink", "purple", "cyan", "orange"]);
   });

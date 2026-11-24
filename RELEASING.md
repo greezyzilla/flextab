@@ -4,7 +4,7 @@ Runbook for cutting an extension release and uploading the ZIP to the CWS.
 
 ## Channels: FlexTab Beta and FlexTab
 
-One codebase builds two permanent, separate extension items (TASK-111, design in
+One codebase builds two permanent, separate extension items (design in
 backlog doc-2). Every build names its channel; a build without one fails.
 
 | | `--channel=stable` | `--channel=beta` |
@@ -35,7 +35,7 @@ writes `X.Y.Z.N` into `manifest.json` before zipping. The channel logic lives in
 The two items have different extension ids, so both install in one browser
 profile. The Firefox ids are permanent once uploaded to AMO.
 
-### Cutting a beta (TASK-118)
+### Cutting a beta
 
 ```bash
 npm run release:beta          # on dev: checks, builds build/chrome-mv3-beta.zip, tags
@@ -48,7 +48,7 @@ the new version is above every earlier beta tag in `dev`'s history. `X.Y.Z` is
 that stable tag and `N` the number of commits since it. It then runs check-env
 and the beta build, and only after the build succeeds creates the annotated tag
 `beta-vX.Y.Z.N`. Any failure aborts with no tag left behind. Until the first
-stable release exists (TASK-117) there is no stable tag, so no beta can be cut.
+stable release exists there is no stable tag, so no beta can be cut.
 
 Before pushing the tag, deploy every BE change the beta needs: both channels
 share the production BE, and it must keep working for the stable version too.
@@ -100,7 +100,7 @@ Pushing the tag runs `.github/workflows/beta.yml`:
 
 ## Firefox build
 
-The same code builds for Firefox with `--target=firefox-mv3` (TASK-112), for
+The same code builds for Firefox with `--target=firefox-mv3`, for
 either channel. Plasmo turns the background service worker into Firefox's event
 page; package.json `manifest.overrides.firefox` drops the Chrome-only `favicon`
 permission; `browser_specific_settings.gecko` (kept for Firefox only) sets the
@@ -133,7 +133,7 @@ token, which a real server would answer by signing out.
 When an update asks for a new required permission, host or content script
 match, Chrome disables FlexTab for every user until they accept it, and
 Firefox holds the update back the same way. To the user FlexTab simply broke.
-The rule (TASK-115):
+The rule:
 
 - A new capability uses `optional_permissions` (or `optional_host_permissions`),
   requested in context from a user gesture, and released when turned off, as
@@ -155,7 +155,7 @@ The rule (TASK-115):
 ## Versioning
 
 - **Single source of truth: `package.json` `version`**, written by release-please
-  (stable) or by the beta tag (TASK-111). Never edit it or the manifest version by hand.
+  (stable) or by the beta tag. Never edit it or the manifest version by hand.
 - **Store rule:** a version is dot-separated integers (each 0-65535), strictly
   higher than the one published. No `-beta.1` suffixes: the stores reject them.
 - **Scheme:** `0.x.y` until the public launch. release-please bumps from the
@@ -165,7 +165,7 @@ The rule (TASK-115):
   release-please skips `beta-` tags. Never create a bare four-part tag such as
   `v0.1.0.7`: release-please would read it as `0.1.0`.
 
-## Stable release (release-please, TASK-117)
+## Stable release (release-please)
 
 1. **Work reaches `main` from `dev` as a merge commit, never a squash.**
    release-please reads every Conventional Commit for the next version and the
@@ -200,7 +200,7 @@ manifest at 0.1.0; the first merged Release PR creates the first stable tag.
 ### Storage fixture (every release)
 
 Each release adds what it leaves in browser storage as a test fixture, so every
-later version is tested to load it (TASK-113). From the release's own build:
+later version is tested to load it. From the release's own build:
 
 ```bash
 node scripts/capture-storage-fixture.mjs --build=build/chrome-mv3-prod --version=X.Y.Z

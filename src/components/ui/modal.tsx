@@ -1,4 +1,4 @@
-// The one modal family (docs/modal-standard.md, TASK-43). Every modal renders through these parts,
+// The one modal family (docs/modal-standard.md). Every modal renders through these parts,
 // so anatomy, sizes, spacing, type, buttons and focus are the same everywhere. Call sites pass
 // content, never spacing classes.
 import * as React from "react"
@@ -201,7 +201,7 @@ export function ModalFooter({ start, cancel = "Cancel", cancelDisabled, primary,
   cancelDisabled?: boolean
   primary?: ModalPrimary
   /**
-   * For a step that leaves rather than goes ahead (Sign out, TASK-84): the primary is neutral, not the
+   * For a step that leaves rather than goes ahead (Sign out): the primary is neutral, not the
    * accent, Cancel is ghost so the two neutral buttons differ by shape, and the primary keeps one width
    * when it turns destructive, so Cancel never moves.
    */
@@ -222,7 +222,7 @@ export function ModalFooter({ start, cancel = "Cancel", cancelDisabled, primary,
           className={quiet ? "min-w-28" : undefined}
           data-modal-primary data-modal-tone={primary.tone ?? "primary"} disabled={primary.disabled} onClick={primary.onClick}>
           {/* A primary that turns destructive gains an icon, so the change shows even
-              when the accent is red like the destructive fill (TASK-49). */}
+              when the accent is red like the destructive fill. */}
           {primary.tone === "destructive" && <Icon icon={TriangleAlert} size="md" data-modal-danger-icon="" />}
           {primary.label}
         </Button>
@@ -264,7 +264,7 @@ export function ModalCheckbox({ checked, onCheckedChange, disabled, children }: 
 /**
  * A radio choice with a sentence of explanation, drawn as a card (§6). The chosen one is always the
  * accent, a destroying choice included: its label says what it removes and the destructive primary
- * carries the red (danger-standard §3). A second red on the card told no one anything new (TASK-84).
+ * carries the red (danger-standard §3). A second red on the card told no one anything new.
  */
 export function ModalOptionCard({ id, value, selected, title, hint, aside, disabled }: {
   id: string; value: string; selected: boolean; title: React.ReactNode; hint?: React.ReactNode

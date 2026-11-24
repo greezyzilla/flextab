@@ -4,7 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "~src/lib/utils"
 
 /**
- * A 40px round button on the left rail (TASK-103.4). One shape and one keyboard focus (a 2px ring
+ * A 40px round button on the left rail. One shape and one keyboard focus (a 2px ring
  * set off from the button) for every rail control; `look` sets its surface:
  *   solid  — Settings, Sign in: a quiet fill that firms on hover.
  *   dashed — Add space: an empty slot.

@@ -3,11 +3,11 @@ import type { GroupColor } from "~src/types"
 import { recordOpenLinks, type OpenLink } from "~src/services/openLinks"
 
 /**
- * Go to a saved URL (TASK-4): if a tab with the same URL is already open in
+ * Go to a saved URL: if a tab with the same URL is already open in
  * any window, focus that tab and its window instead of opening a copy;
  * otherwise open it in a new tab. Callers keep "always new" for
  * modifier/middle clicks by not calling this. With `link`, the browser tab is
- * remembered as opened from that saved tab (TASK-72), so it can be updated
+ * remembered as opened from that saved tab, so it can be updated
  * once the page has moved on.
  */
 export async function openOrFocus(url: string, link?: OpenLink): Promise<"focused" | "opened"> {
@@ -44,7 +44,7 @@ export async function openInNewWindow(urls: string[]): Promise<Opened> {
   return { tabIds: ids(win?.tabs ?? []), windowId: win?.id }
 }
 
-// --- Browser tab groups (TASK-31) ---
+// --- Browser tab groups ---
 //
 // "Open all" can give a saved group back as the browser's own tab group, with
 // the same name and colour. Grouping tabs needs no permission, but naming and
@@ -118,8 +118,8 @@ export async function groupOpenedTabs({ tabIds, windowId }: Opened, look: GroupL
 export interface OpenGroupResult { permission: TabGroupsPermission | "off"; grouped: boolean }
 
 /**
- * Open a saved group's tabs here or in a new window (TASK-4), as a browser tab
- * group when `asTabGroup` is on and the browser allows it (TASK-31). Call it
+ * Open a saved group's tabs here or in a new window, as a browser tab
+ * group when `asTabGroup` is on and the browser allows it. Call it
  * synchronously from the click: the permission request must go out inside the
  * gesture. The tabs open at once, without waiting for the answer, so an
  * unanswered prompt never holds them back; they are grouped once it is granted.
@@ -129,7 +129,7 @@ export function openGroupTabs(urls: string[], where: "here" | "new-window", look
   const opening = where === "here" ? openInCurrentWindow(urls) : openInNewWindow(urls)
   return (async () => {
     const [answer, opened] = await Promise.all([permission, opening])
-    // Tabs come back in the order of `urls` (TASK-72: each remembers its saved tab).
+    // Tabs come back in the order of `urls` (each remembers its saved tab).
     if (links && opened.tabIds.length === urls.length) {
       await recordOpenLinks(opened.tabIds.map((id, i) => [id, links[i]] as [number, OpenLink]))
     }

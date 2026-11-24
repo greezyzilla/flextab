@@ -25,7 +25,7 @@ describe("rank", () => {
   })
 })
 
-describe("searchAll (TASK-14)", () => {
+describe("searchAll", () => {
   it("finds saved tabs ranked, with short paths that drop the default names", () => {
     const { saved } = searchAll("react", spaces)
     expect(saved.map((h) => h.tab.title)).toEqual(["React docs", "Preact", "Linear board"])

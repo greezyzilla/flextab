@@ -21,7 +21,7 @@ afterEach(() => { delete runtime.requestUpdateCheck })
 
 const fire = (newValue: unknown, oldValue?: unknown) => changeListeners.forEach((fn) => fn({ [UPDATE_REQUIRED_KEY]: { newValue, oldValue } }, "local"))
 
-describe("Update needed (TASK-114)", () => {
+describe("Update needed", () => {
   it("reads, watches and clears the server's too-old record", async () => {
     expect(await readUpdateRequired()).toBeNull()
     disk[UPDATE_REQUIRED_KEY] = { minVersion: "0.2.0", at: 1 }
@@ -64,7 +64,7 @@ describe("Update needed (TASK-114)", () => {
   })
 })
 
-describe("Update needed when the extension context fails (TASK-114)", () => {
+describe("Update needed when the extension context fails", () => {
   it("reads nothing, clears quietly, and treats an empty answer as no update", async () => {
     vi.mocked(chrome.storage.local.get).mockRejectedValueOnce(new Error("no context"))
     expect(await readUpdateRequired()).toBeNull()

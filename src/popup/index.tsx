@@ -34,11 +34,11 @@ import {
   type CaptureReceipt, type DestinationSource, type CaptureFailure, type CaptureDestination,
 } from "~src/services/capture"
 
-// The mode and look are on <html> before the first paint: popup.html's boot script (TASK-107).
+// The mode and look are on <html> before the first paint: popup.html's boot script.
 
 /**
- * The popup is a widget for the tab it was opened on (TASK-2, TASK-72,
- * TASK-75). One shape for every state: the tab's favicon as a tile, one
+ * The popup is a widget for the tab it was opened on. One shape for every
+ * state: the tab's favicon as a tile, one
  * sentence saying where the page stands, the place spelled out one level per
  * row, then a single box of short actions.
  *
@@ -79,7 +79,7 @@ function IndexPopup() {
   const { hydrated, error: hydrationError } = useHydrated()
   const { initialize, isLoading: authLoading } = useAuthStore()
   const { savedSpaces, activeSpaceId, activeProjectId, activeCategoryId } = useSavedSpacesStore()
-  // The workspace is always local and usable once hydrated (TASK-7).
+  // The workspace is always local and usable once hydrated.
   const usable = hydrated
 
   const [status, setStatus] = useState<Status>({ kind: "reading" })
@@ -162,7 +162,7 @@ function IndexPopup() {
         // named: picking a group is the first step.
         const suggestion = await loadSuggestedDestination({ spaceId: activeSpaceId, projectId: activeProjectId, categoryId: activeCategoryId })
         // An empty workspace has nothing to pick from: its one way is the new
-        // default space, named before saving (TASK-37).
+        // default space, named before saving.
         const named = suggestion.from === "recentGroup" || suggestion.from === "recentCategory" || yjs.getSpaces().length === 0
         const dest = named ? suggestion.destination : null
         setDestination(dest) // also where the window's tabs would go
@@ -421,8 +421,8 @@ function IndexPopup() {
         <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3">
           <PageTile done={ok}>{tile}</PageTile>
           {loading ? (
-            // Still reading the page: its sentence and detail as skeleton lines of their own type
-            // (TASK-106), so the real lines take their place without moving anything.
+            // Still reading the page: its sentence and detail as skeleton lines of their own type,
+            // so the real lines take their place without moving anything.
             <div className="min-w-0">
               <span className="sr-only">Loading…</span>
               <Skeleton line={24} width="72%" height={14} />
@@ -434,7 +434,7 @@ function IndexPopup() {
               const sentence = <p ref={headingRef} data-slot="page-sentence" className="line-clamp-2 text-popup-title font-semibold text-fg [overflow-wrap:anywhere] data-[lines=2]:text-popup data-[lines=2]:leading-5">{heading}</p>
               // A sentence naming the group shows its full path. The tooltip hangs off the
               // sentence's visible two lines: the group name alone would count a line the
-              // clamp hides, and the arrow would point at nothing (TASK-69).
+              // clamp hides, and the arrow would point at nothing.
               const namesGroup = !loading && (status.kind === "known" || status.kind === "saved" || status.kind === "already")
               return namesGroup && place.path ? <IconTooltip content={place.path}>{sentence}</IconTooltip> : sentence
             })()}
@@ -522,7 +522,7 @@ function findSavedCard(spaces: SavedSpace[], at: SavedLocation, url: string | un
 }
 
 /**
- * Where a suggested place comes from, in the person's words (TASK-75). Only
+ * Where a suggested place comes from, in the person's words. Only
  * places you saved to are suggested; "first" shows only in an empty workspace.
  */
 const SUGGESTED: Partial<Record<DestinationSource, string>> = {
@@ -550,8 +550,8 @@ function Steps({ steps, disabled }: { steps: Step[]; disabled: boolean }) {
 type Place = { path: string | null; space?: { name: string; abbreviation?: string; color?: string }; project?: { name: string }; category?: { name: string }; group?: { name: string; unsorted: boolean } }
 
 /**
- * The place a destination names, the way a save resolves it (TASK-20,
- * TASK-75): a missing level is the one the save would use or create
+ * The place a destination names, the way a save resolves it: a missing level
+ * is the one the save would use or create
  * ("Personal", "General", "Uncategorized"), and no group means the
  * category's Unsorted. So the panel names the place before anything exists.
  */
@@ -618,7 +618,7 @@ function rankContinuations(hits: Array<{ link: OpenLink; tab: SavedTab }>, page:
   return [first, ...byNumber.filter((i) => i !== first)]
 }
 
-/** The popup's root: its tooltips need a provider, with the new tab page's delay (TASK-69). */
+/** The popup's root: its tooltips need a provider, with the new tab page's delay. */
 function PopupRoot() {
   // The user's look while the popup is open (and kept for the next one).
   useTheme()

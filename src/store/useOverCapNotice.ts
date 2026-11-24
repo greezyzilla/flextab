@@ -1,6 +1,6 @@
 import { create } from "zustand"
 
-// Drives the over-cap notice (TASK-33): a first sign-in would upload more tabs
+// Drives the over-cap notice: a first sign-in would upload more tabs
 // than the account's plan syncs, so the person is told before the upload.
 interface OverCapNoticeState {
   pending: boolean

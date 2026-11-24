@@ -2,10 +2,10 @@ import { create } from "zustand"
 import type { Edge } from "~src/services/moveTo"
 
 /**
- * Where a dragged project or category would be inserted (TASK-64): the drop
+ * Where a dragged project or category would be inserted: the drop
  * zone id of the row it sits next to, and on which side. That row gets no
  * highlight, which would mean "inside"; the list shows the new order instead
- * (TASK-92, useContainerPreview).
+ * (useContainerPreview).
  */
 interface DropIndicatorState {
   zone: string | null

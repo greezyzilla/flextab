@@ -20,10 +20,10 @@ const preview = () => screen.getByRole("region", { name: "Preview" })
 // A group's tabs laid out as a grid (TabGroup sets its columns inline), not any element using CSS grid.
 const grid = () => preview().querySelector<HTMLElement>('.grid[style*="grid-template-columns"]')
 
-describe("AppearancePreview (TASK-30)", () => {
+describe("AppearancePreview", () => {
   it("shows the fixed sample to an empty account: the workspace in miniature", () => {
     render(<AppearancePreview />)
-    // The header's own search field (TASK-57), not a look-alike.
+    // The header's own search field, not a look-alike.
     const search = preview().querySelector<HTMLInputElement>("[data-search-field] input[aria-label='Search (preview)']")
     expect(search?.placeholder).toMatch(/^Search tabs, groups and spaces… \(/)
     expect(search?.readOnly).toBe(true)
@@ -50,7 +50,7 @@ describe("AppearancePreview (TASK-30)", () => {
     expect(reachable.every((el) => el.closest("[inert]") === sample)).toBe(true) // …all inside the inert sample
   })
 
-  it("shows the Duplicate tabs setting on the sample's duplicate pair, live (TASK-68)", async () => {
+  it("shows the Duplicate tabs setting on the sample's duplicate pair, live", async () => {
     render(<AppearancePreview />)
     const marks = () => [...preview().querySelectorAll<HTMLElement>('[data-duplicate-mark]')]
     // Ribbon by default: one on each copy of the same address.
@@ -64,7 +64,7 @@ describe("AppearancePreview (TASK-30)", () => {
     expect(marks().map((m) => m.textContent)).toEqual(["DUPE", "DUPE"])
   })
 
-  it("shows the duplicate mark's colour, corner and text choices on the sample (TASK-68)", async () => {
+  it("shows the duplicate mark's colour, corner and text choices on the sample", async () => {
     render(<AppearancePreview />)
     const marks = () => [...preview().querySelectorAll<HTMLElement>('[data-duplicate-mark]')]
     expect(marks().every((m) => m.className.includes("text-caution") && m.className.includes("-right-["))).toBe(true)

@@ -1,5 +1,5 @@
 /**
- * Settings topics (TASK-84). Each is one page; the left nav groups them under
+ * Settings topics. Each is one page; the left nav groups them under
  * headings, so every topic is one click away and no page has sub-tabs.
  */
 export type SettingsTab =
@@ -22,7 +22,7 @@ export const SETTINGS_GROUPS: { heading: string; topics: SettingsTab[] }[] = [
 
 export const SETTINGS_TABS: SettingsTab[] = SETTINGS_GROUPS.flatMap(g => g.topics);
 
-/** Pages that only exist with an account: a guest does not see them in Settings at all (TASK-84). */
+/** Pages that only exist with an account: a guest does not see them in Settings at all. */
 export const ACCOUNT_ONLY: SettingsTab[] = ["profile", "security", "plan"];
 
 /** The navigation a user sees: a guest's has no account pages (and no group left empty by that). */
@@ -33,7 +33,7 @@ export function settingsGroupsFor(signedIn: boolean) {
 
 export const SETTINGS_ROUTE = "/settings";
 
-/** Where a link from before TASK-84 lands: the page it named became these topics. */
+/** Where a link to an old Settings page lands: the page it named became these topics. */
 const LEGACY: Record<string, SettingsTab> = {
   appearance: "theme",
   account: "profile",

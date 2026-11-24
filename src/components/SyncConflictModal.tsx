@@ -14,7 +14,7 @@ type Choice = "merge" | "server" | "local"
 
 
 // Shown on sign-in when this device has local tabs AND the account already has
-// tabs, or when the device kept tabs from an earlier sign-out (TASK-11): then
+// tabs, or when the device kept tabs from an earlier sign-out: then
 // the account may be empty, and those tabs must not move into it unasked.
 // Nothing is overwritten until the user applies.
 export function SyncConflictModal() {
@@ -44,7 +44,7 @@ export function SyncConflictModal() {
         { id: "server", label: "Keep my account's", effect: `Removes this device's ${tabsLabel(deviceTabs)}` },
         { id: "local", label: "Keep this device's", effect: `Replaces the account's ${tabsLabel(accountTabs)}` },
       ]
-  // The plan's sync cap (TASK-9): say so before a choice uploads more tabs than
+  // The plan's sync cap: say so before a choice uploads more tabs than
   // the account may sync. Keeping the account's own tabs never grows it.
   const cap = tabCap(usePlanStore((s) => s.status))
   const resultTabs = choice === "merge" ? mergedTabs : choice === "local" ? deviceTabs : accountTabs

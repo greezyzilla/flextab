@@ -1,4 +1,4 @@
-// The marks on the toolbar icon (TASK-78): every state the FlexTab button shows
+// The marks on the toolbar icon: every state the FlexTab button shows
 // is drawn into the icon itself, never as a browser badge, whose box, padding
 // and font the browser fixes (too big, and out of proportion with the icon).
 //
@@ -91,7 +91,7 @@ export function defaultIconPaths(): Record<string, string> {
 const drawn = new Map<string, Promise<Record<number, ImageData>>>()
 
 /**
- * The icon at every toolbar size, in the accent when the look asks for it (TASK-107), with `mark`
+ * The icon at every toolbar size, in the accent when the look asks for it, with `mark`
  * on it or none (the resting icon). Drawn once per worker per mark and look, retried after a failure.
  */
 export function markedIconImages(mark: ToolbarMark | null, look?: AppIconLook): Promise<Record<number, ImageData>> {

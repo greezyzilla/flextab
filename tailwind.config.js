@@ -5,7 +5,7 @@ module.exports = {
   ],
   theme: {
     extend: {
-      // Type tokens (TASK-103.5): a size with its own line height, named by role, so no text
+      // Type tokens: a size with its own line height, named by role, so no text
       // inherits a line height by accident. Line heights are the whole pixel nearest what each
       // role rendered before. Keep these names in src/lib/utils.ts (tailwind-merge) too.
       fontSize: {
@@ -17,7 +17,7 @@ module.exports = {
         "popup-title": ["19px", "24px"], // the popup's page sentence
         display: ["3.25rem", "1.02"], // the empty workspace's headline
       },
-      // One-off geometry with a name (TASK-103.5).
+      // One-off geometry with a name.
       screens: {
         preview: "1440px", // Settings shows the Appearance previewer beside the controls from here
       },
@@ -42,12 +42,12 @@ module.exports = {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
-        // Group cards (TASK-32): follow Roundness and stay concentric with the
+        // Group cards: follow Roundness and stay concentric with the
         // rows inside them. 1.5x keeps today's 12px at the default 8, is square
         // at 0, and the card-row gap (radius / 2, max 8px) never exceeds the
         // card padding (8-12px).
         card: "calc(var(--radius) * 1.5)",
-        // The popup's own fixed scale (TASK-103.5): the popup does not follow Roundness
+        // The popup's own fixed scale: the popup does not follow Roundness
         // (it never sets --radius). Keep these names in src/lib/utils.ts (tailwind-merge) too.
         popup: "14px", // its boxes: Steps, the picker, the place card, the panel field
         "popup-tile": "13px", // the 44px page icon tile
@@ -58,7 +58,7 @@ module.exports = {
         // (one source of truth; see style.css). primary/destructive keep an
         // <alpha-value> form so bg-primary/90 etc. still work.
         border: "var(--color-black-700)",
-        // Control boundary (inputs, select triggers, switch tracks): ≥3:1, TASK-6.
+        // Control boundary (inputs, select triggers, switch tracks): ≥3:1.
         input: "var(--border-control)",
         ring: "var(--accent)",
         background: "var(--color-black-900)",
@@ -67,7 +67,7 @@ module.exports = {
         secondary: { DEFAULT: "var(--color-black-800)", foreground: "hsl(var(--ink) / 0.88)" },
         destructive: { DEFAULT: "hsl(0 72% 51% / <alpha-value>)", foreground: "hsl(0 0% 100%)" },
         muted: { DEFAULT: "var(--color-black-800)", foreground: "var(--text-tertiary)" },
-        // Text tiers (TASK-6, style.css): text-fg / -muted / -subtle / -disabled.
+        // Text tiers (style.css): text-fg / -muted / -subtle / -disabled.
         fg: {
           DEFAULT: "var(--text-primary)",
           muted: "var(--text-secondary)",

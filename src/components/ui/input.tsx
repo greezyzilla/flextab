@@ -6,7 +6,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "~src/lib/utils"
 
 /**
- * The one field box (TASK-57; TASK-84 made it one look everywhere): no fill and a
+ * The one field box, one look everywhere: no fill and a
  * 1px ink/25 edge, 6px radius, no shadow. Without a fill a field never adds a
  * layer to the surface it sits on (a Settings tile, a dialog, the header), and
  * the edge alone carries it. Its resting edge (1.69:1 light, 2.26:1 dark) stays
@@ -21,17 +21,17 @@ const fieldFrame = "rounded-md border border-ink/25 bg-transparent transition-co
 const inputVariants = cva("flex w-full font-sans outline-none disabled:cursor-not-allowed disabled:opacity-50", {
   variants: {
     variant: {
-      // Form field (TASK-57, TASK-84): the one field look for every field.
+      // Form field: the one field look for every field.
       default: `h-9 px-3 py-1 text-sm text-fg placeholder:text-fg-subtle ${fieldFrame} focus-visible:border-ink/50 aria-[invalid=true]:border-danger`,
       // The same field at the popup panel's size (44px, 15px text, like
-      // SearchField "panel"), for a page's one main field (TASK-98 clean slate).
+      // SearchField "panel"), for a page's one main field (the clean slate).
       // Pairs with Button size "xl".
       lg: `h-11 px-3.5 py-1 text-popup text-fg placeholder:text-fg-subtle ${fieldFrame} focus-visible:border-ink/50 aria-[invalid=true]:border-danger`,
-      // Inline create / rename (TASK-62): bare text that sits exactly where the
+      // Inline create / rename: bare text that sits exactly where the
       // row's label sits. The row around it draws the field (`inlineEditFrame`),
       // so the field adds no padding, height or accent of its own. Its size, weight
       // and line height are inherited from that row (the label's type, set on the
-      // row), so a call site passes no type classes (TASK-103.3, docs/ui-layering.md).
+      // row), so a call site passes no type classes (docs/ui-layering.md).
       inline:
         "h-auto min-w-0 border-0 bg-transparent p-0 text-fg shadow-none placeholder:text-fg-subtle",
     },
@@ -64,11 +64,11 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 Input.displayName = "Input"
 
 /**
- * A search/find field (TASK-57): the field box with a leading search icon
+ * A search/find field: the field box with a leading search icon
  * (what identifies a field that has no visible label) and an optional
  * trailing slot (a clear button). The input inside is bare; the box draws
  * the edge, the focus and the invalid state for it. "panel" is the popup's
- * size (TASK-72): 44px, 14px radius, 15px text.
+ * size: 44px, 14px radius, 15px text.
  */
 export interface SearchFieldProps extends Omit<InputProps, "size" | "variant"> {
   size?: "default" | "panel"

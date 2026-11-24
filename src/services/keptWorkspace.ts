@@ -1,5 +1,5 @@
 /**
- * "Keep tabs on this device" sign-out marker (TASK-11).
+ * "Keep tabs on this device" sign-out marker.
  *
  * After a kept sign-out the device still holds the previous account's tabs.
  * The next sign-in, to any account, must ask before those tabs go anywhere,

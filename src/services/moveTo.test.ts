@@ -22,7 +22,7 @@ beforeEach(async () => {
 const category = (id: string) => yjs.getSpaces()[0].projects[0].categories.find((c) => c.id === id)!
 const at = { spaceId: "s", projectId: "p" }
 
-describe("Move to… (TASK-5)", () => {
+describe("Move to…", () => {
   it("resolves the picked group, a new named group at the top, or Unsorted", () => {
     expect(resolvePickedGroup({ ...at, categoryId: "c1", groupId: "g2" })).toBe("g2")
     const created = resolvePickedGroup({ ...at, categoryId: "c1", newGroupName: " Ideas " })!
@@ -54,7 +54,7 @@ describe("Move to… (TASK-5)", () => {
   })
 })
 
-describe("moving a project or a category (TASK-59)", () => {
+describe("moving a project or a category", () => {
   const cat = (id: string) => ({ id, name: id, order: 0, groups: [] })
   const prj = (id: string, categories = [cat(`${id}c`)]) => ({ id, name: id, order: 0, categories })
   beforeEach(() => {
@@ -142,7 +142,7 @@ describe("moving a project or a category (TASK-59)", () => {
   })
 })
 
-describe("order within a parent (TASK-64)", () => {
+describe("order within a parent", () => {
   const prj = (id: string) => ({ id, name: id, order: 0, categories: [] as any[] })
   const cat = (id: string) => ({ id, name: id, order: 0, groups: [] })
   beforeEach(() => {

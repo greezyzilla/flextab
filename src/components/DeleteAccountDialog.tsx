@@ -12,11 +12,11 @@ type LocalData = "keep" | "remove";
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
 
 /**
- * Delete account (TASK-17). The person opening this has already decided, so it
+ * Delete account. The person opening this has already decided, so it
  * says one thing: type the email to delete it for good (the server checks the
  * email too). Tabs on this device stay unless they tick the one option; only
  * then is a backup offered. Paid time that ends is said only when there is any
- * (TASK-84: title, one line, field, one tick, two buttons).
+ * (title, one line, field, one tick, two buttons).
  */
 export function DeleteAccountDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const user = useAuthStore((s) => s.user);

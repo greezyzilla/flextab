@@ -16,8 +16,8 @@ beforeEach(() => {
   useAuthStore.setState({ user: { id: "u", email: "Me@Example.com", name: "Me" } as never, isAuthenticated: true, deleteAccount })
 })
 
-describe("DeleteAccountDialog (TASK-17)", () => {
-  it("deletes only after the account email is typed, keeping this device's tabs by default (one line, field, one tick: TASK-84)", async () => {
+describe("DeleteAccountDialog", () => {
+  it("deletes only after the account email is typed, keeping this device's tabs by default (one line, field, one tick)", async () => {
     const onOpenChange = vi.fn()
     deleteAccount.mockResolvedValue(undefined)
     render(<DeleteAccountDialog open onOpenChange={onOpenChange} />)
@@ -25,7 +25,7 @@ describe("DeleteAccountDialog (TASK-17)", () => {
     const button = screen.getByRole("button", { name: "Delete account" })
     expect(button).toBeDisabled()
     expect(screen.getByRole("checkbox", { name: "Also remove tabs from this device" })).not.toBeChecked()
-    // Never the email as a placeholder: that would read as already typed (TASK-36).
+    // Never the email as a placeholder: that would read as already typed.
     expect(screen.getByLabelText(/to confirm/)).not.toHaveAttribute("placeholder")
     // A backup is offered only once local tabs would go.
     expect(screen.queryByRole("button", { name: "Download backup" })).toBeNull()

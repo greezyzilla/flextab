@@ -1,5 +1,5 @@
 /**
- * Release channels (TASK-111): one codebase builds two permanent extension items,
+ * Release channels: one codebase builds two permanent extension items,
  * like Edge Beta next to Edge.
  *
  *   stable  "FlexTab", the public item. Exactly today's build: name and version
@@ -24,7 +24,7 @@ export const GECKO_IDS = {
 }
 
 /**
- * Where installed Firefox Beta copies look for updates (TASK-118): an asset of
+ * Where installed Firefox Beta copies look for updates: an asset of
  * the permanent `firefox-beta` release, overwritten by every beta release. A
  * fixed address, because GitHub's releases/latest skips pre-releases. Stable
  * Firefox updates through AMO (listed) and carries no update_url.
@@ -94,7 +94,7 @@ export function channelPlan(channel, { betaTag } = {}) {
         FLEXTAB_EXT_VERSION_NAME: versionName,
         FLEXTAB_GECKO_ID: GECKO_IDS.beta,
         FLEXTAB_GECKO_UPDATE_URL: BETA_UPDATE_URL,
-        // Inlined into the bundle: the channel the extension reports to the server (TASK-114).
+        // Inlined into the bundle: the channel the extension reports to the server.
         PLASMO_PUBLIC_FLEXTAB_CHANNEL: "beta",
       },
       version,
@@ -145,7 +145,7 @@ export function nextBetaTag({ stableTag, commitsSince, betaTags }) {
 }
 
 /**
- * Why a pushed beta tag must not be released, or null when it may (TASK-118):
+ * Why a pushed beta tag must not be released, or null when it may:
  * the format, a commit not on dev, or a version not above every earlier beta.
  * The beta workflow runs this before it builds anything.
  */

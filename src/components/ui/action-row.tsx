@@ -6,7 +6,7 @@ import { Skeleton } from "~src/components/ui/skeleton"
 import { cn } from "~src/lib/utils"
 
 /**
- * The popup's actions (TASK-103.4): one rounded box (ActionList) of full-width rows (ActionRow),
+ * The popup's actions: one rounded box (ActionList) of full-width rows (ActionRow),
  * an icon and a short label each, a hairline between rows. A row that opens something below it
  * (a picker) passes `expanded`: announced, and its fill held while open. Long labels wrap.
  */
@@ -38,7 +38,7 @@ const ActionRow = React.forwardRef<HTMLButtonElement, ActionRowProps>(({ icon, e
 ))
 ActionRow.displayName = "ActionRow"
 
-/** An ActionRow still loading (TASK-106): the same 44px row, the icon and label as skeletons. */
+/** An ActionRow still loading: the same 44px row, the icon and label as skeletons. */
 function ActionRowSkeleton() {
   return (
     <div aria-hidden className="grid min-h-11 w-full grid-cols-[20px_minmax(0,1fr)] items-center gap-x-3 px-3 py-[11px]">

@@ -4,7 +4,7 @@ import { DestinationPicker, describeTarget, type PickerValue } from "~src/compon
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
 
 /**
- * "Move to…" / "Save to…" (TASK-5): the non-drag way to put a tab or a group
+ * "Move to…" / "Save to…": the non-drag way to put a tab or a group
  * somewhere else, with the same destination picker as the save flows.
  */
 export function PickDestinationDialog({ title, description, groupLevel = false, initial, confirmLabel, onConfirm, onClose }: {

@@ -1,4 +1,4 @@
-// Gate for TASK-53: an icon-only button names itself with aria-label and explains itself with the
+// Gate: an icon-only button names itself with aria-label and explains itself with the
 // app Tooltip (IconButton's `tooltip` prop or a wrapping <Tooltip>), never with a native `title`,
 // whose look, size and delay differ from the tooltip on the button next to it.
 import { describe, expect, it } from "vitest"

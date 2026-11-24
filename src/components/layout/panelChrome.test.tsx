@@ -15,7 +15,7 @@ function withManifest(manifest: Partial<chrome.runtime.Manifest>) {
   runtime.getManifest = () => manifest as chrome.runtime.Manifest
 }
 
-describe("AppVersion (TASK-111)", () => {
+describe("AppVersion", () => {
   it("shows a beta build's version name", () => {
     withManifest({ version: "0.1.0.7", version_name: "0.1.0 Beta 7" })
     render(<AppVersion />)

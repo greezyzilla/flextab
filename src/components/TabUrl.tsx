@@ -4,7 +4,7 @@ import { fitLink, fitTail, splitDisplayUrl, type LinkCutScope } from "~src/lib/d
 const BASE = "text-fg-subtle text-count font-sans"
 
 /**
- * A saved tab's address line (TASK-54). The host stays first; when the line
+ * A saved tab's address line. The host stays first; when the line
  * is too long the rest is cut from its START, so its end (episode, slug, id),
  * the part that tells same-site tabs apart, stays visible:
  * "v18.site.test…season-2/episode/1".
@@ -15,7 +15,7 @@ const BASE = "text-fg-subtle text-count font-sans"
  * against the host. Without ResizeObserver it falls back to an end ellipsis.
  * `data-cut` tells the card's tooltip that the address was shortened.
  *
- * `pathShare` and `scope` (TASK-71, a saved tab's Link cut setting) choose
+ * `pathShare` and `scope` (a saved tab's Link cut setting) choose
  * where the "…" sits (0 keeps the end, 1 the start) and which part gives way:
  * the whole link, only the site, or only the path (see fitLink). Without them
  * the rest keeps its end behind a whole site, as before (Opened Tabs).

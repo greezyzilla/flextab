@@ -20,7 +20,7 @@ import {
 type Scope = "window" | "all"
 
 /**
- * "Save all tabs" (TASK-2): say what will be saved before saving it, and let
+ * "Save all tabs": say what will be saved before saving it, and let
  * the user pick this window or every window (one group per window).
  */
 export function SaveAllDialog() {
@@ -58,9 +58,9 @@ export function SaveAllDialog() {
   const chosen = scope === "window" ? (current ? [current] : []) : withTabs
   const chosenCount = chosen.reduce((n, w) => n + savable(w).length, 0)
   const destination = describeTarget(savedSpaces, target)
-  // No spaces at all (TASK-37): the save creates the default space.
+  // No spaces at all: the save creates the default space.
   const createsSpace = savedSpaces.length === 0
-  // Say before saving when this crosses the plan's sync cap (TASK-9). Saving
+  // Say before saving when this crosses the plan's sync cap. Saving
   // locally is never blocked; only sync pauses until tabs are removed.
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const cap = tabCap(usePlanStore((s) => s.status))
@@ -99,7 +99,7 @@ export function SaveAllDialog() {
           : `${total} tab${total === 1 ? "" : "s"} open in ${withTabs.length} window${withTabs.length === 1 ? "" : "s"}.`} />
       <ModalBody>
         <RadioGroup value={scope} onValueChange={(v) => setScope(v as Scope)} layout="stack" aria-label="What to save">
-          {/* A window with nothing savable is not a choice (TASK-42). */}
+          {/* A window with nothing savable is not a choice. */}
           {currentCount > 0 && (
             <ModalRadio id="save-all-window" value="window" count={`${currentCount} tab${currentCount === 1 ? "" : "s"}`}>This window</ModalRadio>
           )}

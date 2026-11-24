@@ -26,14 +26,14 @@ import { watchApiAccess } from "~src/services/apiAccess"
 import { watchUpdateRequired } from "~src/services/updateRequired"
 import { useSyncStore } from "~src/store/useSyncStore"
 
-// Before an update reload, the background asks this page to finish its writes (TASK-113).
+// Before an update reload, the background asks this page to finish its writes.
 installUpdatePrepareListener()
-// Sync needs access to the server, which the browser can take away (TASK-112).
+// Sync needs access to the server, which the browser can take away.
 watchApiAccess((allowed) => useSyncStore.getState().setApiAccess(allowed))
-// The server can refuse a version that is too old (TASK-114).
+// The server can refuse a version that is too old.
 watchUpdateRequired((required) => useSyncStore.getState().setUpdateRequired(required !== null))
 
-// The mode and look are on <html> before the first paint: newtab.html's boot script (TASK-107).
+// The mode and look are on <html> before the first paint: newtab.html's boot script.
 
 
 function NewTabPage() {
@@ -42,7 +42,7 @@ function NewTabPage() {
   const autoSync = useSettingsStore((s) => s.autoSync)
   const route = useRoute()
   const onSignInRoute = route === SIGN_IN_ROUTE
-  // The popup's "Open in FlexTab" (TASK-75).
+  // The popup's "Open in FlexTab".
   useRevealRequests(hydrated && !authLoading)
 
   useEffect(() => {
@@ -64,7 +64,7 @@ function NewTabPage() {
   // Realtime sync engine: only when signed in AND auto-sync is enabled.
   // Restarts when the account identity settles (/me after sign-in): that change
   // makes the running session stale and cancels its first reconcile, so without
-  // a restart the sign-in choice would wait for the next new tab (TASK-11).
+  // a restart the sign-in choice would wait for the next new tab.
   const userId = user?.id
   const apiAccess = useSyncStore((s) => s.apiAccess)
   const updateRequired = useSyncStore((s) => s.updateRequired)
@@ -83,11 +83,11 @@ function NewTabPage() {
   }, [isAuthenticated, user?.id])
 
   if (hydrationError) return <WorkspaceLoadError />
-  // The loading shell is the page that is coming: Settings on a Settings route (TASK-108), else the workspace.
+  // The loading shell is the page that is coming: Settings on a Settings route, else the workspace.
   if (authLoading || !hydrated) return isSettingsRoute(route) ? <SettingsSkeleton route={route} /> : <ShellSkeleton />
-  // The workspace is always local and usable, signed in or not (TASK-7).
+  // The workspace is always local and usable, signed in or not.
   // Sign-in is a place you go to (rail, popup, getting-started card): it opens
-  // over the workspace (TASK-79), never as a wall in front of it.
+  // over the workspace, never as a wall in front of it.
   return (
     <TooltipProvider delayDuration={300}>
       <ErrorBoundary>

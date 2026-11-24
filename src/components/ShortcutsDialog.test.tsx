@@ -12,13 +12,13 @@ beforeEach(() => {
   useUIStore.setState({ shortcutsOpen: true })
 })
 
-describe("ShortcutsDialog (TASK-13)", () => {
+describe("ShortcutsDialog", () => {
   it("lists the page's letters and the commands as Chrome has them set now", async () => {
     render(<ShortcutsDialog />)
     const dialog = screen.getByRole("dialog", { name: "Keyboard shortcuts" })
     const page = within(dialog).getByRole("region", { name: "In FlexTab" })
     expect(page).toHaveTextContent("New group in this category")
-    expect(page).toHaveTextContent("New space") // Alt+N (TASK-81)
+    expect(page).toHaveTextContent("New space") // Alt+N
     expect(page).toHaveTextContent("Search tabs, groups and spaces")
     expect(page).not.toHaveTextContent("Show these shortcuts") // you are already in it
     const anywhere = within(dialog).getByRole("region", { name: "Anywhere in Chrome" })
@@ -36,7 +36,7 @@ describe("ShortcutsDialog (TASK-13)", () => {
   })
 })
 
-describe("ShortcutsDialog in Firefox (TASK-112)", () => {
+describe("ShortcutsDialog in Firefox", () => {
   it("names Firefox and opens its own shortcut screen", async () => {
     const runtime = chrome.runtime as unknown as Record<string, unknown>
     const c = chrome as unknown as Record<string, unknown>

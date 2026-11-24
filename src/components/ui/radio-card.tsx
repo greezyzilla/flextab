@@ -5,7 +5,7 @@ import { RadioGroupItem } from "~src/components/ui/radio-group"
 import { cn } from "~src/lib/utils"
 
 /**
- * A choice drawn as a card (TASK-103.6; the merge conflict dialog's "which version to keep"): the
+ * A choice drawn as a card (the merge conflict dialog's "which version to keep"): the
  * whole card is the label, its radio sits on the first line, and the chosen card takes the accent
  * edge and fill. `wide` spans both columns of a RadioGroup layout="grid". Children: the choice's
  * own text.

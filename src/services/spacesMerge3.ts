@@ -13,13 +13,13 @@
 //   - delete on both                  → gone
 //   - add with a new id (incl. same name) → kept (no conflict — different ids)
 //   - moved to another parent on one side → it moves, and its content still
-//     merges 3-way at the new place (TASK-59)
+//     merges 3-way at the new place
 //   - moved to different parents on both sides → conflict on "location"
 //     (default: keep this device's place)
 //   - moved on one side, deleted on the other → delete-edit (a move is an edit)
 // `order` is never a conflict. Each list keeps the order of the side that
 // changed it since the base (this device's when both did); items added on
-// one side stay next to the neighbour they were added after (TASK-64).
+// one side stay next to the neighbour they were added after.
 //
 // See SYNC_CONFLICT.md for the design + test matrix.
 
@@ -209,7 +209,7 @@ function mergeList(
   return orderList(base ?? [], server, local, out).map((x, i) => ({ ...x, order: i }));
 }
 
-// --- Order (TASK-64) ---
+// --- Order ---
 //
 // Lists used to come out in the server's order, so a reorder made on this
 // device was lost whenever a merge ran (reconnect, another device's change,
@@ -250,7 +250,7 @@ function orderList(base: Node[], server: Node[], local: Node[], merged: Node[]):
   return ids.map((id) => byId.get(id)!);
 }
 
-// --- Moves (TASK-59) ---
+// --- Moves ---
 //
 // The per-level merge matches items inside one parent, so a move would read as
 // "deleted here, added there": with an edit or another move on the other side,

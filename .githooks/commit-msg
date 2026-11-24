@@ -1,5 +1,5 @@
 #!/bin/sh
-# Rejects a commit message that is not a Conventional Commit (TASK-116), before
+# Rejects a commit message that is not a Conventional Commit, before
 # the commit exists: history is never rewritten, so a bad subject cannot be fixed later.
 # Enable once per clone: npm run setup-hooks
 if ! command -v node >/dev/null 2>&1; then

@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-// Contrast guard (TASK-68), run in a real browser: the colour tokens use oklch
+// Contrast guard, run in a real browser: the colour tokens use oklch
 // relative colours, color-mix and translucent fills over tinted surfaces, which
 // only a rendering engine resolves. Rule: every Badge variant and every
 // duplicate mark reads at >= 4.5:1 (WCAG 1.4.3) against what it actually sits
@@ -152,7 +152,7 @@ function collect(): Probe[] {
   return out;
 }
 
-describe("contrast guard (TASK-68)", () => {
+describe("contrast guard", () => {
   it("measures every Badge variant in badge.tsx and every duplicate mark tone", () => {
     expect(VARIANTS).toEqual(["default", "secondary", "outline", "accent", "success", "warning"]);
     probes = collect();

@@ -2,9 +2,9 @@
 /**
  * Sends a Firefox build to AMO with the tag's source code attached (the build
  * is bundled and minified; git archive carries SOURCE_BUILD.md).
- *   listed    stable (TASK-117): a new version of the public listing; AMO review
+ *   listed    stable: a new version of the public listing; AMO review
  *             can take days, so the submission does not wait for it.
- *   unlisted  beta (TASK-118): AMO signs it for self-distribution within
+ *   unlisted  beta: AMO signs it for self-distribution within
  *             minutes; the signed .xpi is copied to --xpi-out.
  *
  *   AMO_JWT_ISSUER=… AMO_JWT_SECRET=… node scripts/amo-submit.mjs --tag=v0.2.0 [--source-dir=build/firefox-mv3-prod]

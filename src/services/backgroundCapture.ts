@@ -1,4 +1,4 @@
-// Capture from outside any FlexTab page (TASK-2): the global keyboard
+// Capture from outside any FlexTab page: the global keyboard
 // commands and the right-click menu, handled in the background service
 // worker. They save instantly to the last destination (same default as the
 // popup) and confirm on the toolbar icon; the popup then offers Undo for
@@ -47,7 +47,7 @@ export function commandKind(command: string): BackgroundCaptureKind | null {
 
 /**
  * Answer a capture on the toolbar icon of the tab it came from (the front tab
- * when there is none), TASK-78. A save is answered by the tab's resting state:
+ * when there is none). A save is answered by the tab's resting state:
  * the saved check when the page in front is now saved. A capture that did not
  * save shows its mark for a moment, then the tab returns to its resting state.
  */
@@ -73,8 +73,8 @@ async function openForChoice(): Promise<void> {
  * Save the page / link / window behind a command or menu click.
  * Before the first new tab has created the workspace it opens FlexTab
  * instead of saving. Inside a workspace a
- * save always lands: missing levels follow the default path (TASK-20), and
- * a workspace with no spaces gets the default space (TASK-37).
+ * save always lands: missing levels follow the default path, and
+ * a workspace with no spaces gets the default space.
  */
 export async function captureFromBackground(
   kind: BackgroundCaptureKind,
@@ -97,10 +97,10 @@ export async function captureFromBackground(
     tabs = context.tab ? [context.tab] : await chrome.tabs.query({ active: true, currentWindow: true })
   }
 
-  // Only a place you saved to before is used without asking (TASK-75). With
+  // Only a place you saved to before is used without asking. With
   // none (or "Remember where I last saved" off), nothing is guessed: the popup
   // opens to ask, holding the link when it was a link. An empty workspace has
-  // nothing to pick from, so it still gets its default space (TASK-37).
+  // nothing to pick from, so it still gets its default space.
   if (!tabs.some((t) => isSavableTabUrl(t.url))) {
     await confirm(context.tab, { mark: "unsavable", title: "FlexTab: this page can't be saved" })
     return "unsavable"

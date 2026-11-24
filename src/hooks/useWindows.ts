@@ -32,7 +32,7 @@ export function useWindows(options: {
       if (populate) {
         windows.forEach((window, i) => {
           if (window.tabs?.length) {
-            // A tab that has not committed yet has only a pendingUrl: still listed (TASK-73).
+            // A tab that has not committed yet has only a pendingUrl: still listed.
             windows[i].tabs = window.tabs.filter(tab => !!(tab.url || tab.pendingUrl));
           }
         });
@@ -72,7 +72,7 @@ export function useWindows(options: {
     TabEventManager.onTabCreated(handler);
     TabEventManager.onTabRemoved(handler);
     TabEventManager.onTabUpdated(handler);
-    // A tab moved within its window, or into another one (TASK-73).
+    // A tab moved within its window, or into another one.
     TabEventManager.onTabMoved(handler);
     chrome.tabs.onAttached?.addListener(handler);
 

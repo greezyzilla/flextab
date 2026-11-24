@@ -111,7 +111,7 @@ describe("package.json manifest placeholders", () => {
   })
 })
 
-describe("the Firefox manifest (TASK-112)", () => {
+describe("the Firefox manifest", () => {
   const firefox = builtManifest(channelPlan("stable"), "firefox")
   const chrome = builtManifest(channelPlan("stable"), "chrome")
 
@@ -131,7 +131,7 @@ describe("the Firefox manifest (TASK-112)", () => {
   })
 })
 
-describe("the channel the code reports (TASK-114)", () => {
+describe("the channel the code reports", () => {
   it("is stable or beta, inlined through a PLASMO_PUBLIC variable", () => {
     expect(channelPlan("stable").env.PLASMO_PUBLIC_FLEXTAB_CHANNEL).toBe("stable")
     expect(channelPlan("beta", { betaTag: "beta-v0.1.0.7" }).env.PLASMO_PUBLIC_FLEXTAB_CHANNEL).toBe("beta")

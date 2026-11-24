@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { ThemeTab, DisplayTab, LayoutTab, OpeningTab } from "./AppearanceTab";
 import { SettingsNav, SettingsContent } from "./SettingsShell";
 
-/** The three Appearance topics (TASK-84) together, as these tests cover them all;
+/** The three Appearance topics together, as these tests cover them all;
  * each ends with the same Reset appearance row. */
 function AppearanceTab() {
   return <><ThemeTab /><DisplayTab /><LayoutTab /></>;
@@ -57,7 +57,7 @@ describe("appearance control accessibility", () => {
     await user.keyboard("{ArrowRight}");
     expect(useSettingsStore.getState().uiScale).toBe(1.05);
     expect(scale).toHaveAttribute("aria-valuetext", "105 percent");
-    // Title and link cuts move in steps of 5 (TASK-71).
+    // Title and link cuts move in steps of 5.
     const titleCut = screen.getByRole("slider", { name: "Title cut" });
     titleCut.focus();
     await user.keyboard("{ArrowLeft}");
@@ -78,7 +78,7 @@ describe("appearance control accessibility", () => {
     expect(shorten).toHaveAccessibleDescription("Only the site is shortened, so the path stays whole. If the path alone doesn't fit, the whole link is shortened.");
   });
 
-  it("lets the cut tab preview open on hover or only while Alt is held, saying how in its description (TASK-80)", async () => {
+  it("lets the cut tab preview open on hover or only while Alt is held, saying how in its description", async () => {
     const user = userEvent.setup();
     useSettingsStore.setState({ tabPreview: "hover" });
     render(<TooltipProvider><AppearanceTab /></TooltipProvider>);
@@ -123,7 +123,7 @@ describe("appearance control accessibility", () => {
     for (const name of ["Mode", "Group layout", "Density"]) {
       expect(screen.getByRole("radiogroup", { name })).toHaveAccessibleDescription();
     }
-    // Font is a dropdown (a list that keeps growing, TASK-84), labelled and described like the rest.
+    // Font is a dropdown (a list that keeps growing), labelled and described like the rest.
     expect(screen.getByRole("combobox", { name: "Font" })).toHaveAccessibleDescription("The typeface used across the app.");
     await user.click(within(screen.getByRole("radiogroup", { name: "Group layout" })).getByRole("radio", { name: "Grid" }));
     const columns = screen.getByRole("radiogroup", { name: "Grid columns" });
@@ -132,7 +132,7 @@ describe("appearance control accessibility", () => {
     expect(useSettingsStore.getState().gridColumns).toBe(3);
   });
 
-  it("picks how duplicate tabs are marked, Ribbon by default, and resets to it (TASK-68)", async () => {
+  it("picks how duplicate tabs are marked, Ribbon by default, and resets to it", async () => {
     const user = userEvent.setup();
     render(<TooltipProvider><AppearanceTab /></TooltipProvider>);
     const mark = screen.getByRole("radiogroup", { name: "Mark" });
@@ -146,7 +146,7 @@ describe("appearance control accessibility", () => {
     expect(useSettingsStore.getState().duplicateMark).toBe("ribbon");
   });
 
-  it("offers colour for any mark, and corner and text only for the ribbon (TASK-68)", async () => {
+  it("offers colour for any mark, and corner and text only for the ribbon", async () => {
     const user = userEvent.setup();
     render(<TooltipProvider><AppearanceTab /></TooltipProvider>);
     const pick = (group: string, name: string) => user.click(within(screen.getByRole("radiogroup", { name: group })).getByRole("radio", { name }));
@@ -176,7 +176,7 @@ describe("appearance control accessibility", () => {
   });
 });
 
-describe("Open as tab groups (TASK-31)", () => {
+describe("Open as tab groups", () => {
   const c = chrome as unknown as Record<string, any>;
   afterEach(() => { delete c.tabs.group; delete c.permissions; useSettingsStore.setState({ openAsTabGroups: true }); });
   const supported = (answer: boolean) => {
@@ -184,7 +184,7 @@ describe("Open as tab groups (TASK-31)", () => {
     c.permissions = { request: vi.fn(async () => answer), remove: vi.fn(async () => true) };
   };
 
-  it("is not offered in a browser without tab groups: Saving & opening has no Opening section then (TASK-84)", () => {
+  it("is not offered in a browser without tab groups: Saving & opening has no Opening section then", () => {
     window.history.replaceState(null, "", "#/settings/saving");
     const { unmount } = render(<TooltipProvider><SettingsContent /></TooltipProvider>);
     expect(screen.queryByRole("region", { name: "Opening" })).not.toBeInTheDocument();

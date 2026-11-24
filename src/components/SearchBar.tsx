@@ -54,7 +54,7 @@ function hintFor(item: Item | undefined): ReactNode {
 }
 
 /**
- * ⌘K / "/" (TASK-14): one place to find open tabs, saved tabs and the spaces,
+ * ⌘K / "/": one place to find open tabs, saved tabs and the spaces,
  * projects, categories and groups they live in. Enter goes to the page (or the
  * place); ⇧Enter shows a saved tab where it lives in the workspace.
  * ARIA combobox: focus stays in the input, the list follows aria-activedescendant.
@@ -73,7 +73,7 @@ export function SearchBar() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // A modal owns the keyboard: no search behind it (TASK-47).
+      // A modal owns the keyboard: no search behind it.
       if (isInsideModal(e.target)) return;
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
@@ -141,7 +141,7 @@ export function SearchBar() {
       setTheme(hit.theme);
     } else if (hit.kind === "saved") {
       if (reveal) revealInWorkspace({ spaceId: hit.spaceId, projectId: hit.projectId, categoryId: hit.categoryId, flash: { kind: "tab", id: hit.tab.id } });
-      // Go to it if already open (TASK-4); remember where it came from (TASK-72).
+      // Go to it if already open; remember where it came from.
       else void openOrFocus(hit.tab.url, { spaceId: hit.spaceId, projectId: hit.projectId, categoryId: hit.categoryId, groupId: hit.groupId, tabId: hit.tab.id });
     } else {
       revealInWorkspace({

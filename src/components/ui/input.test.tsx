@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { fireEvent, render, screen } from "@testing-library/react"
 import { Input, PasswordField, SearchField, inlineEditFrame } from "./input"
 
-describe("text field spec (TASK-57)", () => {
+describe("text field spec", () => {
   it("a form field draws the approved search look with one neutral focus and an invalid edge", () => {
     render(<Input aria-label="Name" />)
     const field = screen.getByRole("textbox", { name: "Name" })
@@ -24,7 +24,7 @@ describe("text field spec (TASK-57)", () => {
     render(<SearchField size="panel" aria-label="Find a destination" boxClassName="w-full" />)
     const input = screen.getByRole("textbox", { name: "Find a destination" })
     expect(input.closest("[data-search-field]")).toHaveClass("h-11", "rounded-popup", "w-full")
-    expect(input).toHaveClass("text-popup") // 15px on a 22px line (TASK-103.5 type token)
+    expect(input).toHaveClass("text-popup") // 15px on a 22px line (type token)
   })
 
   it("an inline create/rename frame firms to the same focus edge", () => {

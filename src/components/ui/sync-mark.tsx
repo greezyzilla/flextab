@@ -1,7 +1,7 @@
 import type { LucideIcon } from "lucide-react"
 
 /**
- * The header's sync status (TASK-103.5): the state's glyph at 18px, a fixed 1.75 stroke (it is a
+ * The header's sync status: the state's glyph at 18px, a fixed 1.75 stroke (it is a
  * status, so it does not follow Settings › Icon weight), spinning while it syncs. `tone` is its
  * colour class. Sits in a `relative` button, with SyncDirtyDot as that button's last child.
  */

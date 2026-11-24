@@ -30,13 +30,13 @@ import { useOpenTabPreview } from "~src/store/useOpenTabPreview"
 
 type PointerDragEvent = Pick<DragMoveEvent, "active" | "over" | "activatorEvent" | "delta">
 
-/** What an Opened Tabs row or window header tells the drag about itself (TASK-73). */
+/** What an Opened Tabs row or window header tells the drag about itself. */
 export interface OpenTabZoneData { windowId: number; index: number; label: string }
 /** What a dragged open tab tells about itself. */
 export interface OpenTabDragData extends TabPlace { name: string }
 
 /**
- * Where a dragged open tab would land in Opened Tabs (TASK-73): beside the row
+ * Where a dragged open tab would land in Opened Tabs: beside the row
  * under the pointer, on the side the pointer is on, or at the end of a window
  * whose header it is over. Null off Opened Tabs, or where it would not move.
  */
@@ -55,7 +55,7 @@ function openTabSpot(event: PointerDragEvent): { slot: TabPlace; label: string; 
 }
 
 /**
- * Where an open tab dragged in Opened Tabs is shown (TASK-73): at the spot it
+ * Where an open tab dragged in Opened Tabs is shown: at the spot it
  * would land, or where it is (null). Undefined keeps the current preview: the
  * pointer is over the tab itself, already shown at its new spot.
  */
@@ -71,7 +71,7 @@ function openTabPreviewAt(event: PointerDragEvent): OpenTabPreview | null | unde
 }
 
 /**
- * An open tab over Opened Tabs (TASK-73) meets the row or window header under
+ * An open tab over Opened Tabs meets the row or window header under
  * the pointer, or the nearest one within 8px; empty panel space meets nothing,
  * so a drop there never reaches the workspace. Rects are read now, since the
  * rows move aside while dragging. Null: the pointer is not over the panel.
@@ -102,13 +102,13 @@ function openTabsCollision({ droppableContainers, droppableRects, pointerCoordin
 
 /**
  * Where a dragged project or category would go next to a row of its own
- * parent (TASK-64): that row's zone and the side the pointer is on. Null when
+ * parent: that row's zone and the side the pointer is on. Null when
  * the drop would move it instead, or not land at all.
  */
 function reorderSpot(event: PointerDragEvent): { zone: string; edge: Edge } | null {
   const container = parseContainerDrag(event.active.id)
   const over = event.over
-  // Spaces show their new order by moving aside (sortable), not by a line (TASK-66).
+  // Spaces show their new order by moving aside (sortable), not by a line.
   if (!container || container.kind === "space" || !over || !containerReorderTarget(container, over.id.toString())) return null
   return { zone: over.id.toString(), edge: edgeAt(over.rect, pointerY(event)) }
 }
@@ -130,7 +130,7 @@ function pointerY(event: PointerDragEvent): number {
 }
 
 /**
- * A saved tab or group dragged into another list (TASK-64): where it would
+ * A saved tab or group dragged into another list: where it would
  * land, so that list makes room for it while dragging. Undefined: keep the
  * current preview (the pointer is over the dragged item itself, already shown
  * in its new list).
@@ -202,7 +202,7 @@ export function useDragAndDrop() {
   }
 
   const collisionDetectionStrategy: CollisionDetection = (args) => {
-    // A project or category only meets the zones that take it (TASK-59).
+    // A project or category only meets the zones that take it.
     const container = activeId === null ? null : parseContainerDrag(activeId)
     if (container) {
       const zones = { ...args, droppableContainers: args.droppableContainers.filter((c) => containerMeets(container, c.id.toString())) }
@@ -210,7 +210,7 @@ export function useDragAndDrop() {
       return hits.length > 0 ? hits : rectIntersection(zones)
     }
     if (typeof activeId === "number") {
-      // Over Opened Tabs an open tab moves in the browser (TASK-73); it never
+      // Over Opened Tabs an open tab moves in the browser; it never
       // reaches past the panel into the workspace from there.
       const inPanel = openTabsCollision(args)
       if (inPanel) return inPanel
@@ -246,7 +246,7 @@ export function useDragAndDrop() {
   const showReorderSpot = (event: PointerDragEvent) => {
     const spot = reorderSpot(event)
     useDropIndicator.getState().show(spot?.zone ?? null, spot?.edge ?? null)
-    // A project or category within its own parent: the list shows the new order (TASK-92).
+    // A project or category within its own parent: the list shows the new order.
     const container = parseContainerDrag(event.active.id)
     if (container && container.kind !== "space") {
       // Over its own (moved) row the shown order stays, or the list would flip back under a still pointer.
@@ -262,7 +262,7 @@ export function useDragAndDrop() {
       useContainerPreview.getState().show(shown)
       return
     }
-    // An open tab in Opened Tabs: shown where it would land, the rows make room (TASK-73).
+    // An open tab in Opened Tabs: shown where it would land, the rows make room.
     const open = openTabPreviewAt(event)
     const shown = useOpenTabPreview.getState().preview
     if (open !== undefined && !(open?.tabId === shown?.tabId && open?.slot.windowId === shown?.slot.windowId && open?.slot.index === shown?.slot.index)) {
@@ -332,7 +332,7 @@ export function useDragAndDrop() {
 
     if (!over && !(shownOrder && parseContainerDrag(active.id))) return
 
-    // An open tab dropped in Opened Tabs moves in the browser, with Undo (TASK-73):
+    // An open tab dropped in Opened Tabs moves in the browser, with Undo:
     // to where it was shown, or, if nothing was shown yet, beside the row under it.
     if (typeof active.id === "number" && isOpenTabsZone(over.id.toString())) {
       const open = openPreview?.tabId === active.id ? openPreview : openTabSpot(event)
@@ -351,7 +351,7 @@ export function useDragAndDrop() {
 
     const container = parseContainerDrag(active.id)
     if (container) {
-      // Within its parent the drop lands where the list showed it (TASK-92); elsewhere as before.
+      // Within its parent the drop lands where the list showed it; elsewhere as before.
       const moved = shownOrder && container.kind !== "space"
         ? applyContainerDrop(container, containerZone(container, shownOrder.next), shownOrder.edge)
         : over ? applyContainerDrop(container, over.id.toString(), reorderSpot(event)?.edge) : null

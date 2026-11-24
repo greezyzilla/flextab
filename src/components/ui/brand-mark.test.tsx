@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest"
 import { render, screen } from "@testing-library/react"
 import { BrandMark } from "./brand-mark"
 
-describe("BrandMark (TASK-102)", () => {
+describe("BrandMark", () => {
   const runtime = chrome.runtime as unknown as { getManifest?: () => unknown }
   afterEach(() => { delete runtime.getManifest })
   const withIcon = () => { runtime.getManifest = () => ({ icons: { "128": "icon128.png" } }) }

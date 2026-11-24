@@ -11,7 +11,7 @@ import { useSettingsStore } from "~src/store/useSettingsStore";
 import { setSpaces } from "~src/lib/yjsDoc";
 import { syncActiveSelection, useSavedSpacesStore, useActiveGroups } from "~src/store/useSavedSpacesStore";
 
-// Tooltips open in these tests; their arrow needs a ResizeObserver (TASK-69).
+// Tooltips open in these tests; their arrow needs a ResizeObserver.
 stubResizeObserver();
 
 const { login } = vi.hoisted(() => ({ login: vi.fn() }));
@@ -118,7 +118,7 @@ describe("primary keyboard actions", () => {
 
   it("removes a saved tab with a named keyboard action without opening it", async () => {
     const user = setup(<GroupHarness />);
-    // Remove lives in the tab's "⋯" menu (TASK-5): Enter opens it, arrows pick, Enter runs.
+    // Remove lives in the tab's "⋯" menu: Enter opens it, arrows pick, Enter runs.
     await tabTo(user, screen.getByRole("button", { name: "Actions for Documentation" }));
     await user.keyboard("{Enter}");
     await screen.findByRole("menuitem", { name: "Move to…" });
@@ -150,7 +150,7 @@ describe("primary keyboard actions", () => {
     await waitFor(() => expect(chrome.tabs.create).toHaveBeenCalledWith({ url: "https://example.com", windowId: 7, active: false }));
   });
 
-  it("opens the group as a browser tab group named like it, and stops asking once declined (TASK-31)", async () => {
+  it("opens the group as a browser tab group named like it, and stops asking once declined", async () => {
     const c = chrome as unknown as Record<string, any>;
     let answer = true;
     c.tabs.group = vi.fn(async () => 5);

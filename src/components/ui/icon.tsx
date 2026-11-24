@@ -3,7 +3,7 @@ import { cn } from "~src/lib/utils"
 import { useSettingsStore } from "~src/store/useSettingsStore"
 
 /**
- * The one way FlexTab draws an icon (TASK-76, docs/icon-standard.md): a Lucide
+ * The one way FlexTab draws an icon (docs/icon-standard.md): a Lucide
  * glyph at a size from the scale and at the stroke weight chosen in Settings ›
  * Appearance. Colour comes from the text colour around it (currentColor), so
  * an icon follows its button's rest, hover, active and disabled states.
