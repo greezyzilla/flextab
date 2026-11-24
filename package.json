@@ -1,7 +1,7 @@
 {
   "name": "flextab",
   "displayName": "FlexTab",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Organize your tabs into spaces, projects, and groups. A beautiful new tab page that keeps your browsing life in order.",
   "author": "GreezyZilla",
   "scripts": {
@@ -97,8 +97,15 @@
         "id": "$FLEXTAB_GECKO_ID",
         "strict_min_version": "140.0",
         "data_collection_permissions": {
-          "required": ["none"],
-          "optional": ["personallyIdentifyingInfo", "authenticationInfo", "bookmarksInfo", "technicalAndInteraction"]
+          "required": [
+            "none"
+          ],
+          "optional": [
+            "personallyIdentifyingInfo",
+            "authenticationInfo",
+            "bookmarksInfo",
+            "technicalAndInteraction"
+          ]
         }
       }
     },
@@ -115,11 +122,15 @@
     ],
     "commands": {
       "save-page": {
-        "suggested_key": { "default": "Alt+Shift+S" },
+        "suggested_key": {
+          "default": "Alt+Shift+S"
+        },
         "description": "Save this page to FlexTab"
       },
       "save-window": {
-        "suggested_key": { "default": "Alt+Shift+W" },
+        "suggested_key": {
+          "default": "Alt+Shift+W"
+        },
         "description": "Save all tabs in this window to FlexTab"
       }
     },
@@ -128,7 +139,13 @@
     ],
     "overrides": {
       "firefox": {
-        "permissions": ["tabs", "storage", "unlimitedStorage", "alarms", "contextMenus"]
+        "permissions": [
+          "tabs",
+          "storage",
+          "unlimitedStorage",
+          "alarms",
+          "contextMenus"
+        ]
       }
     }
   },
