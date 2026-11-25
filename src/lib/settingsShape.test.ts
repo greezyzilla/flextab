@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest"
 
-import { SETTINGS_SHAPE_STORAGE_KEY, measureSettingsPage, readStoredSettingsShape, settingsColumnWidth, storeSettingsShape } from "./settingsShape"
+import { DEFAULT_APPEARANCE } from "./theme"
+import { SETTINGS_SHAPE_STORAGE_KEY, currentDensity, measureSettingsPage, readStoredSettingsShape, settingsColumnWidth, storeSettingsShape } from "./settingsShape"
 
 afterEach(() => localStorage.clear())
 
@@ -79,5 +80,18 @@ describe("measureSettingsPage reads the Settings page on screen", () => {
   it("has no preview when none is shown or it has no height", () => {
     expect(measureSettingsPage(page(), null, "compact").preview).toBeNull()
     expect(measureSettingsPage(page(), box(el("aside"), { height: 0 }), "compact").preview).toBeNull()
+  })
+})
+
+describe("currentDensity", () => {
+  afterEach(() => document.documentElement.classList.remove("density-compact"))
+
+  it("reads the density class on <html>", () => {
+    document.documentElement.classList.add("density-compact")
+    expect(currentDensity()).toBe("compact")
+  })
+
+  it("falls back to the default density when <html> has none", () => {
+    expect(currentDensity()).toBe(DEFAULT_APPEARANCE.density)
   })
 })
