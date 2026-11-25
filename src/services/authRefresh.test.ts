@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { apiFetch, clearTokens, loadTokens, pushSync, SESSION_EXPIRED_KEY } from './api';
 import { useAuthStore } from '../store/useAuthStore';
 import { getSpaces, setSpaces } from '../lib/yjsDoc';
@@ -10,7 +10,7 @@ const expired = () => ({ access_token: 'old', refresh_token: 'refresh-old', expi
 const fresh = () => ({ access_token: 'new', refresh_token: 'refresh-new', expires_at: Date.now() / 1000 + 3600 });
 let storage: Record<string, any>;
 let oldTokens: ReturnType<typeof expired>;
-let fetchMock: ReturnType<typeof vi.fn>;
+let fetchMock: Mock;
 
 beforeEach(async () => {
   vi.clearAllMocks();

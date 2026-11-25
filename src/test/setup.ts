@@ -1,4 +1,6 @@
-import '@testing-library/jest-dom';
+// The /vitest entry types the jsdom matchers (RegExp text, partial match) over
+// @vitest/browser's own browser-mode matchers, which share their names.
+import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
 
