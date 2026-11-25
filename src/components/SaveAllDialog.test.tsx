@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { mockedAsync } from "~src/test/chromeMocks"
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { SaveAllDialog } from "./SaveAllDialog"
 import { useUIStore } from "~src/store/useUIStore"
@@ -27,12 +28,12 @@ beforeEach(async () => {
   await yjs.clearState()
   yjs.setSpaces(tree())
   useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces(), activeSpaceId: "s", activeProjectId: "p", activeCategoryId: "c" })
-  vi.mocked(chrome.windows.getAll).mockResolvedValue([
+  mockedAsync<chrome.windows.Window[]>(chrome.windows.getAll).mockResolvedValue([
     { id: 1, tabs: [{ id: 11, windowId: 1, index: 0, url: "https://a.example" }, { id: 12, windowId: 1, index: 1, url: "chrome://newtab" }] },
     { id: 2, tabs: [{ id: 21, windowId: 2, index: 0, url: "https://b.example" }, { id: 22, windowId: 2, index: 1, url: "https://c.example" }] },
   ] as chrome.windows.Window[])
-  vi.mocked(chrome.windows.getCurrent).mockResolvedValue({ id: 1 } as chrome.windows.Window)
-  vi.mocked(chrome.tabs.query).mockResolvedValue([{ id: 99 }, { id: 98 }, { id: 97 }] as chrome.tabs.Tab[])
+  mockedAsync<chrome.windows.Window>(chrome.windows.getCurrent).mockResolvedValue({ id: 1 } as chrome.windows.Window)
+  mockedAsync<chrome.tabs.Tab[]>(chrome.tabs.query).mockResolvedValue([{ id: 99 }, { id: 98 }, { id: 97 }] as chrome.tabs.Tab[])
   useUIStore.setState({ saveAllOpen: true })
 })
 
@@ -66,14 +67,14 @@ describe("SaveAllDialog", () => {
   })
 
   it("starts from all windows when this window has nothing to save", async () => {
-    vi.mocked(chrome.windows.getCurrent).mockResolvedValue({ id: 3 } as chrome.windows.Window)
+    mockedAsync<chrome.windows.Window>(chrome.windows.getCurrent).mockResolvedValue({ id: 3 } as chrome.windows.Window)
     render(<SaveAllDialog />)
     expect(await screen.findByRole("button", { name: "Save 3 tabs" })).toBeEnabled()
     expect(screen.getByRole("radio", { name: /All windows/ })).toBeChecked()
   })
 
   it("explains when nothing can be saved", async () => {
-    vi.mocked(chrome.windows.getAll).mockResolvedValue([{ id: 1, tabs: [{ url: "chrome://newtab" }] }] as chrome.windows.Window[])
+    mockedAsync<chrome.windows.Window[]>(chrome.windows.getAll).mockResolvedValue([{ id: 1, tabs: [{ url: "chrome://newtab" }] }] as chrome.windows.Window[])
     render(<SaveAllDialog />)
     expect(await screen.findByText(/No savable tabs are open/)).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Save 0 tabs" })).toBeDisabled()

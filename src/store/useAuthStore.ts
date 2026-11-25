@@ -43,7 +43,7 @@ export const STORED_USER_KEY = "flextab_user";
 
 async function loadStoredUser(): Promise<User | null> {
   try {
-    const got = await chrome.storage.local.get(STORED_USER_KEY);
+    const got = await chrome.storage.local.get<Record<string, { id?: unknown } | undefined>>(STORED_USER_KEY);
     const u = got?.[STORED_USER_KEY];
     return u && typeof u.id === "string" ? (u as User) : null;
   } catch (_) { return null; }
@@ -233,7 +233,7 @@ if (chrome.storage?.onChanged) {
     if (changes.auth_tokens) {
       const { isAuthenticated } = useAuthStore.getState();
       if (changes.auth_tokens.newValue && !isAuthenticated) {
-        useAuthStore.getState().handleAuthCallback(changes.auth_tokens.newValue, true).catch(() => {});
+        useAuthStore.getState().handleAuthCallback(changes.auth_tokens.newValue as TokenData, true).catch(() => {});
       } else if (!changes.auth_tokens.newValue && isAuthenticated) {
         session++;
         useAuthStore.setState({ user: null, isAuthenticated: false });

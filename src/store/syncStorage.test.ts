@@ -8,7 +8,7 @@ beforeEach(() => {
   (chrome.storage.local.get as any).mockResolvedValue({});
   (chrome.storage.local.set as any).mockResolvedValue(undefined);
   (chrome.storage.local.remove as any).mockResolvedValue(undefined);
-  chrome.storage.sync = {
+  (chrome.storage as { sync: unknown }).sync = {
     get: vi.fn().mockResolvedValue({}),
     set: vi.fn().mockResolvedValue(undefined),
     remove: vi.fn().mockResolvedValue(undefined),

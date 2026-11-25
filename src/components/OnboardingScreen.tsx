@@ -179,7 +179,7 @@ export function OnboardingScreen({ onBack }: {
     setError('')
     await { google: loginWithGoogle, github: loginWithGithub, gitlab: loginWithGitlab, discord: loginWithDiscord }[provider]()
     try {
-      const pending = (await chrome.storage.session.get(OAUTH_PENDING_KEY))[OAUTH_PENDING_KEY]
+      const pending = (await chrome.storage.session.get<Record<string, { tabId?: unknown } | undefined>>(OAUTH_PENDING_KEY))[OAUTH_PENDING_KEY]
       if (typeof pending?.tabId === "number") setStep({ kind: "waiting", provider, tabId: pending.tabId })
     } catch (_) { /* no extension context: stay on the offer */ }
   }

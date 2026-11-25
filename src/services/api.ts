@@ -45,7 +45,7 @@ export async function getDeviceId(): Promise<string> {
 
 export async function loadTokens(): Promise<TokenData | null> {
   try {
-    const result = await chrome.storage.local.get("auth_tokens");
+    const result = await chrome.storage.local.get<{ auth_tokens?: TokenData }>("auth_tokens");
     tokenData = result.auth_tokens ?? null;
   } catch (_) {
     tokenData = null;

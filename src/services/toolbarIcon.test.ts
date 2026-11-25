@@ -179,7 +179,7 @@ describe("installToolbarIcon", () => {
   })
 
   it("repaints a tab whenever it navigates, a reload included, in front or behind; not for other changes", async () => {
-    const onUpdated = listener<(id: number, c: chrome.tabs.TabChangeInfo, t: chrome.tabs.Tab) => void>(chrome.tabs.onUpdated)
+    const onUpdated = listener<(id: number, c: chrome.tabs.OnUpdatedInfo, t: chrome.tabs.Tab) => void>(chrome.tabs.onUpdated)
     await vi.waitFor(() => expect(iconOf(1)).toBe("saved"))
     vi.mocked(chrome.action.setIcon).mockClear()
     // Chrome cleared the tab's own icon on the reload: it is painted again, still saved.

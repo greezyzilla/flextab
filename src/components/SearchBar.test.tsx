@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { mockedAsync } from "~src/test/chromeMocks"
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react"
 import { SearchBar } from "./SearchBar"
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore"
@@ -18,7 +19,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   window.location.hash = "#/"
   useSavedSpacesStore.setState({ savedSpaces: spaces, activeSpaceId: "s1", activeProjectId: "p1", activeCategoryId: "c1", expandedProjectIds: [] })
-  vi.mocked(chrome.tabs.query).mockResolvedValue([
+  mockedAsync<chrome.tabs.Tab[]>(chrome.tabs.query).mockResolvedValue([
     { id: 7, windowId: 1, title: "Docs on MDN", url: "https://developer.mozilla.org/", favIconUrl: "" },
     { id: 8, windowId: 1, title: "Docs a 0", url: "https://a.example/0" },
   ] as chrome.tabs.Tab[])

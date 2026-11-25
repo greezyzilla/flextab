@@ -43,7 +43,7 @@ export function useWatchMovedTabs(): void {
     const soon = () => { clearTimeout(timer); timer = setTimeout(() => void refresh(), 150) }
     soon()
 
-    const onUpdated = (_id: number, change: chrome.tabs.TabChangeInfo) => { if (change.url || change.title) soon() }
+    const onUpdated = (_id: number, change: chrome.tabs.OnUpdatedInfo) => { if (change.url || change.title) soon() }
     const onStorage = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
       if (area !== "session") return
       if (changes[OPEN_LINKS_KEY]) soon()

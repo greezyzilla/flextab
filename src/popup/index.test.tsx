@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { mockedAsync } from "~src/test/chromeMocks"
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import Popup from "./index";
 import { useAuthStore } from "~src/store/useAuthStore";
@@ -23,7 +24,7 @@ const storedGroups = (cat = 0) => yjs.decodeSpacesFromStorage(disk[yjs.PERSIST_K
 const pickAction = async (name: string | RegExp) => { fireEvent.click(await screen.findByRole("button", { name })); };
 // Opening writes nothing: saving is the "Save to <group>" row.
 const saveIt = async () => { await screen.findByText(/^Not saved|^Not in FlexTab|^Save a copy$/); await pickAction(/^Save (a copy )?to /); await screen.findByText(/^Saved to/); };
-const windowTabs = (tabs: Partial<chrome.tabs.Tab>[]) => vi.mocked(chrome.tabs.query).mockResolvedValue(tabs as chrome.tabs.Tab[]);
+const windowTabs = (tabs: Partial<chrome.tabs.Tab>[]) => mockedAsync<chrome.tabs.Tab[]>(chrome.tabs.query).mockResolvedValue(tabs as chrome.tabs.Tab[]);
 
 beforeEach(async () => {
   vi.clearAllMocks();

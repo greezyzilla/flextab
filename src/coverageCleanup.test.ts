@@ -64,7 +64,7 @@ describe('useAuthStore — storage catch branches', () => {
 describe('syncStorage — error branches', () => {
   it('warns when the debounced sync write fails', async () => {
     vi.useFakeTimers();
-    chrome.storage.sync = { get: vi.fn().mockResolvedValue({}), set: vi.fn().mockRejectedValue(new Error('quota')), remove: vi.fn() } as any;
+    (chrome.storage as { sync: unknown }).sync = { get: vi.fn().mockResolvedValue({}), set: vi.fn().mockRejectedValue(new Error('quota')), remove: vi.fn() } as any;
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const { storage } = await import('~src/store/syncStorage');
     await storage.setItem('k', JSON.stringify({ state: {}, version: 1 }));
@@ -74,7 +74,7 @@ describe('syncStorage — error branches', () => {
   });
 
   it('treats a non-JSON local value as timestamp 0 during cross-device merge', async () => {
-    chrome.storage.sync = {
+    (chrome.storage as { sync: unknown }).sync = {
       get: vi.fn().mockImplementation(async (key: string) =>
         key === 'store__meta' ? { store__meta: { chunks: 1, ts: 1 } } : { store__0: JSON.stringify({ state: { lastModified: 5 } }) }),
       set: vi.fn().mockResolvedValue(undefined), remove: vi.fn(),

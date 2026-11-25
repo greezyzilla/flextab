@@ -25,7 +25,7 @@ function base64url(bytes: Uint8Array): string {
 }
 
 async function pendingLogin(): Promise<PendingLogin | undefined> {
-  const result = await chrome.storage.session.get(OAUTH_PENDING_KEY);
+  const result = await chrome.storage.session.get<Record<string, PendingLogin | undefined>>(OAUTH_PENDING_KEY);
   return result[OAUTH_PENDING_KEY];
 }
 

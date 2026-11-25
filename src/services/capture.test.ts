@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { mockedAsync } from "~src/test/chromeMocks"
 import * as yjs from "~src/lib/yjsDoc"
 import type { ClosedTab } from "./capture"
 import type { SavedSpace } from "~src/types"
@@ -160,7 +161,7 @@ describe("undo and change", () => {
 
 describe("closing and reopening tabs", () => {
   it("closes saved tabs but never pinned or unsavable ones, keeping the window open", async () => {
-    vi.mocked(chrome.tabs.query).mockResolvedValue([{ id: 1 }, { id: 2 }] as chrome.tabs.Tab[])
+    mockedAsync<chrome.tabs.Tab[]>(chrome.tabs.query).mockResolvedValue([{ id: 1 }, { id: 2 }] as chrome.tabs.Tab[])
     const closed = await closeSavedTabs([
       { id: 1, url: "https://a.com", windowId: 7, index: 0 },
       { id: 2, url: "https://b.com", windowId: 7, index: 1 },
@@ -220,7 +221,7 @@ describe("closing and reopening tabs", () => {
   it("reopens a batch closed together in its order (Close after saving)", async () => {
     windowsAlive([])
     vi.mocked(chrome.windows.create).mockResolvedValueOnce({ id: 603 } as never)
-    vi.mocked(chrome.tabs.query).mockResolvedValue([{ id: 1 }, { id: 2 }, { id: 3 }] as chrome.tabs.Tab[])
+    mockedAsync<chrome.tabs.Tab[]>(chrome.tabs.query).mockResolvedValue([{ id: 1 }, { id: 2 }, { id: 3 }] as chrome.tabs.Tab[])
     const closed = await closeSavedTabs([
       { id: 1, url: "https://a.com", windowId: 25, index: 0 },
       { id: 2, url: "https://b.com", windowId: 25, index: 1 },
@@ -260,7 +261,7 @@ describe("closing and reopening tabs", () => {
   })
 
   it("logs a batch of tabs that carry no index", async () => {
-    vi.mocked(chrome.tabs.query).mockResolvedValue([{ id: 1 }, { id: 2 }, { id: 3 }] as chrome.tabs.Tab[])
+    mockedAsync<chrome.tabs.Tab[]>(chrome.tabs.query).mockResolvedValue([{ id: 1 }, { id: 2 }, { id: 3 }] as chrome.tabs.Tab[])
     const closed = await closeSavedTabs([{ id: 1, url: "https://x.com", windowId: 51 }, { id: 2, url: "https://y.com", windowId: 51 }])
     expect(closed.map((c) => c.index)).toEqual([0, 0])
     expect(closed.every((c) => typeof c.seq === "number")).toBe(true)

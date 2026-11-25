@@ -1,5 +1,6 @@
 import { webcrypto } from "node:crypto";
 import { beforeEach, afterEach, expect, it, vi } from "vitest";
+import { mockedAsync } from "~src/test/chromeMocks"
 
 let session: Record<string, any>;
 let local: Record<string, any>;
@@ -15,12 +16,12 @@ beforeEach(async () => {
   vi.stubEnv("PLASMO_PUBLIC_API_URL", api);
   vi.stubGlobal("crypto", webcrypto);
   session = {}; local = { workspace: "private guest work" }; tabs = new Map(); nextTab = 1;
-  vi.mocked(chrome.storage.session.get).mockImplementation(async key => ({ [key as string]: structuredClone(session[key as string]) }));
+  mockedAsync<Record<string, unknown>, [string]>(chrome.storage.session.get).mockImplementation(async key => ({ [key as string]: structuredClone(session[key as string]) }));
   vi.mocked(chrome.storage.session.set).mockImplementation(async data => { Object.assign(session, structuredClone(data)); });
-  vi.mocked(chrome.storage.session.remove).mockImplementation(async key => { delete session[key as string]; });
-  vi.mocked(chrome.storage.local.get).mockImplementation(async key => ({ [key as string]: structuredClone(local[key as string]) }));
+  mockedAsync<void, [string]>(chrome.storage.session.remove).mockImplementation(async key => { delete session[key as string]; });
+  mockedAsync<Record<string, unknown>, [string]>(chrome.storage.local.get).mockImplementation(async key => ({ [key as string]: structuredClone(local[key as string]) }));
   vi.mocked(chrome.storage.local.set).mockImplementation(async data => { Object.assign(local, structuredClone(data)); });
-  vi.mocked(chrome.storage.local.remove).mockImplementation(async key => { delete local[key as string]; });
+  mockedAsync<void, [string]>(chrome.storage.local.remove).mockImplementation(async key => { delete local[key as string]; });
   vi.mocked(chrome.tabs.create).mockImplementation(async ({ url }: any) => { const id = nextTab++; tabs.set(id, url); return { id } as any; });
   vi.mocked(chrome.tabs.update).mockImplementation(async (id: any, update: any) => { tabs.set(id, update.url); return { id } as any; });
   vi.mocked(chrome.tabs.get).mockImplementation(async (id: any) => { if (!tabs.has(id)) throw new Error("Tab closed"); return { id, url: tabs.get(id) } as any; });

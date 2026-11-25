@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { mockedAsync } from "~src/test/chromeMocks"
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DndContext } from "@dnd-kit/core";
@@ -91,7 +92,7 @@ describe("primary keyboard actions", () => {
   });
 
   it("opens a saved tab with Enter without starting a drag", async () => {
-    vi.mocked(chrome.tabs.query).mockResolvedValue([]);
+    mockedAsync<chrome.tabs.Tab[]>(chrome.tabs.query).mockResolvedValue([]);
     const drag = vi.fn();
     const user = setup(<GroupHarness />, drag);
     const link = screen.getByRole("link", { name: "Open Documentation" });
@@ -144,7 +145,7 @@ describe("primary keyboard actions", () => {
     await user.click(await screen.findByRole("menuitem", { name: "Open in new window" }));
     expect(chrome.windows.create).toHaveBeenCalledExactlyOnceWith({ url: ["https://example.com"] });
 
-    vi.mocked(chrome.windows.getCurrent).mockResolvedValue({ id: 7 } as chrome.windows.Window);
+    mockedAsync<chrome.windows.Window>(chrome.windows.getCurrent).mockResolvedValue({ id: 7 } as chrome.windows.Window);
     await user.click(screen.getByRole("button", { name: "Open all tabs in Reading" }));
     await user.click(await screen.findByRole("menuitem", { name: "Open in this window" }));
     await waitFor(() => expect(chrome.tabs.create).toHaveBeenCalledWith({ url: "https://example.com", windowId: 7, active: false }));

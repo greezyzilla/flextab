@@ -235,7 +235,7 @@ export function installExternalPersistBridge(): void {
         const current = await chrome.storage.local.get([PERSIST_KEY, PERSIST_ORIGIN_KEY]);
         if (sequence !== eventSequence ||
             JSON.stringify(current[PERSIST_KEY]) !== JSON.stringify(value)) return;
-        const origin = current[PERSIST_ORIGIN_KEY];
+        const origin = current[PERSIST_ORIGIN_KEY] as PersistOrigin | undefined;
         if (origin !== undefined && origin !== "page" && origin !== "snapshot") return;
         applyExternalPersistUpdate(update.data, origin ?? "page");
       } catch (_) { /* Never guess an origin after a failed storage read. */ }

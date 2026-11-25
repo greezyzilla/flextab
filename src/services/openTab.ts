@@ -106,7 +106,7 @@ export async function groupOpenedTabs({ tabIds, windowId }: Opened, look: GroupL
     return false
   }
   try {
-    await tabGroups.update(groupId, { title: look.title, color: (look.color ?? "grey") as chrome.tabGroups.ColorEnum })
+    await tabGroups.update(groupId, { title: look.title, color: (look.color ?? "grey") as `${chrome.tabGroups.Color}` })
     return true
   } catch {
     // No unnamed groups: an unnamed one is only a coloured dot in the tab strip.
