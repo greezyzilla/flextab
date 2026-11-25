@@ -30,6 +30,7 @@ dist/
 
 # plasmo
 .plasmo
+.plasmo-dev.lock
 
 # typescript
 *.tsbuildinfo

@@ -16,6 +16,8 @@ import { resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { parseEnv } from "node:util"
 
+import { removeDevLock, writeDevLock } from "./dev-lock.mjs"
+
 export const DEV_NAME = "FlexTab Dev"
 export const OPT_IN = "ALLOW_REMOTE_DEV_API"
 const KEYS = ["PLASMO_PUBLIC_API_URL", "PLASMO_PUBLIC_API_HOST", "FLEXTAB_EXT_NAME"]
@@ -98,7 +100,10 @@ function main() {
     for (const p of problems) console.warn(`${YELLOW}  • ${p}${RESET}`)
     console.warn("")
   }
+  // Builds refuse while this lock is held (scripts/dev-lock.mjs).
+  writeDevLock(process.cwd())
   const result = spawnSync("npx", ["plasmo", "dev", ...argv], { stdio: "inherit" })
+  removeDevLock(process.cwd())
   process.exit(result.status ?? 1)
 }
 

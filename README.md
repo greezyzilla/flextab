@@ -66,6 +66,19 @@ npm run build:zip -- --channel=stable
 Output: `build/chrome-mv3-prod.zip`. `PLASMO_PUBLIC_*` values end up in the
 public bundle, so never put secrets in them.
 
+A build stops while `npm run dev` runs in the same checkout: both use
+`.plasmo/`, and a build there can give the dev extension production values.
+To build while developing, use a separate worktree:
+
+```bash
+git worktree add ../flextab-build HEAD
+cd ../flextab-build && npm ci && npm run build:zip -- --channel=stable
+```
+
+The watcher holds `.plasmo-dev.lock` (its PID) while it runs; a lock left by a
+killed watcher is ignored. Start the watcher with `npm run dev`, not
+`npx plasmo dev`, or builds cannot see it.
+
 - Quality gates and coverage limits: [docs/quality-gates.md](docs/quality-gates.md)
 - Versions, releases and store submission: [RELEASING.md](RELEASING.md)
 - Building from source for store review: [SOURCE_BUILD.md](SOURCE_BUILD.md)
