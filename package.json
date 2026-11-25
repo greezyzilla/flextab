@@ -95,23 +95,6 @@
   },
   "manifest": {
     "name": "$FLEXTAB_EXT_NAME",
-    "browser_specific_settings": {
-      "gecko": {
-        "id": "$FLEXTAB_GECKO_ID",
-        "strict_min_version": "140.0",
-        "data_collection_permissions": {
-          "required": [
-            "none"
-          ],
-          "optional": [
-            "personallyIdentifyingInfo",
-            "authenticationInfo",
-            "bookmarksInfo",
-            "technicalAndInteraction"
-          ]
-        }
-      }
-    },
     "permissions": [
       "tabs",
       "storage",
@@ -142,6 +125,26 @@
     ],
     "overrides": {
       "firefox": {
+        "browser_specific_settings": {
+          "gecko": {
+            "id": "$FLEXTAB_GECKO_ID",
+            "strict_min_version": "140.0",
+            "data_collection_permissions": {
+              "required": [
+                "none"
+              ],
+              "optional": [
+                "personallyIdentifyingInfo",
+                "authenticationInfo",
+                "bookmarksInfo",
+                "technicalAndInteraction"
+              ]
+            }
+          },
+          "gecko_android": {
+            "strict_min_version": "142.0"
+          }
+        },
         "permissions": [
           "tabs",
           "storage",

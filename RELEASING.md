@@ -30,11 +30,14 @@ AMO.
 
 The same code builds for Firefox with `--target=firefox-mv3`. Plasmo turns the background service worker into Firefox's event
 page; package.json `manifest.overrides.firefox` drops the Chrome-only `favicon`
-permission; `browser_specific_settings.gecko` (kept for Firefox only) sets the
+permission and holds `browser_specific_settings` (Plasmo keeps only its `gecko` key
+outside an override, so `gecko_android` has to live there). `gecko` sets the
 add-on id, `strict_min_version` 140.0 (the ESR, and the first with
 built-in data consent) and `data_collection_permissions` (none required; account
 data, sign-in data, saved tabs and the device id optional, asked for at sign-in;
 the list in `src/services/apiAccess.ts` must match it, a test checks).
+`gecko_android` sets `strict_min_version` 142.0, the first Firefox for Android that
+reads `data_collection_permissions` (AMO warns otherwise).
 
 ```bash
 npm run build:zip -- --channel=stable --target=firefox-mv3   # build/firefox-mv3-prod.zip

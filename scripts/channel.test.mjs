@@ -10,7 +10,8 @@ const pkg = JSON.parse(readFileSync(resolve(__dirname, "../package.json"), "utf8
  * What Plasmo does with package.json `manifest` (0.90): a "$VAR" placeholder takes
  * the variable's value, an unset one is dropped, and the overrides land on top of
  * the manifest built from package.json name/version. Chrome builds drop
- * browser_specific_settings; a browser's `overrides` entry replaces keys for it.
+ * browser_specific_settings and Firefox builds keep only its `gecko` key; a browser's
+ * `overrides` entry then replaces whole top-level keys for it.
  */
 function builtManifest(plan, browser = "chrome") {
   const fill = (v) => {
@@ -22,9 +23,12 @@ function builtManifest(plan, browser = "chrome") {
     return v
   }
   const { optional_permissions, commands, host_permissions, overrides = {}, ...channelKeys } = pkg.manifest
-  const manifest = { name: pkg.displayName, version: pkg.version, ...fill(channelKeys), ...(overrides[browser] ?? {}) }
-  if (browser === "chrome") delete manifest.browser_specific_settings
-  return manifest
+  const manifest = { name: pkg.displayName, version: pkg.version, ...fill(channelKeys) }
+  if (manifest.browser_specific_settings) {
+    if (browser === "firefox") manifest.browser_specific_settings = { gecko: manifest.browser_specific_settings.gecko }
+    else delete manifest.browser_specific_settings
+  }
+  return { ...manifest, ...fill(overrides[browser] ?? {}) }
 }
 
 describe("resolveChannel", () => {
@@ -85,6 +89,10 @@ describe("the Firefox manifest", () => {
         optional: ["personallyIdentifyingInfo", "authenticationInfo", "bookmarksInfo", "technicalAndInteraction"],
       },
     })
+  })
+
+  it("asks for Firefox for Android 142, the first that reads data_collection_permissions", () => {
+    expect(firefox.browser_specific_settings.gecko_android).toEqual({ strict_min_version: "142.0" })
   })
 
   it("drops the Chrome-only favicon permission for Firefox and keeps the rest", () => {
