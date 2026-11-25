@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
-import { DEFAULT_CATEGORY_NAME, DEFAULT_PROJECT_NAME } from "~src/lib/defaultPath";
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { SavedSpace, SavedProject, SavedCategory, SavedGroup, SavedTab } from "../types";
-import { v7 as uuidv7 } from "uuid";
 import { storage } from './syncStorage';
 import type { Array as YArray, Map as YMap } from "yjs";
 import * as yjs from '~src/lib/yjsDoc';

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeTab, DisplayTab, LayoutTab, OpeningTab } from "./AppearanceTab";
-import { SettingsNav, SettingsContent } from "./SettingsShell";
+import { SettingsContent } from "./SettingsShell";
 
 /** The three Appearance topics together, as these tests cover them all;
  * each ends with the same Reset appearance row. */

@@ -6,7 +6,6 @@ import {
   apiChangePassword, apiForgotPassword, apiGetSignInOptions, apiUpdateProfile, apiListIdentities, apiUnbindIdentity,
   apiGetBindUrl, apiGetAuthProviders, ApiError, type LinkedIdentity,
 } from "~src/services/api";
-import { ConfirmDialog } from "~src/components/ui/confirm-dialog";
 import { Button } from "~src/components/ui/button";
 import { Input } from "~src/components/ui/input";
 import { Modal, ModalBody, ModalField, ModalFooter, ModalHeader } from "~src/components/ui/modal";

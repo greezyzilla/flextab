@@ -22,7 +22,7 @@ import type { SavedProject, SavedCategory } from "~src/types";
 import { useUIStore, type CreateRequest, type ScrollMode } from "~src/store/useUIStore";
 import { ProjectIcon, CategoryIcon } from "~src/components/levelIcons";
 import { Plus } from "lucide-react";
-import { Kbd, ShortcutTooltip } from "~src/components/ui/kbd";
+import { ShortcutTooltip } from "~src/components/ui/kbd";
 import { isUnsortedGroup } from "~src/lib/defaultPath";
 import { MoveContainerDialog } from "~src/components/MoveContainerDialog";
 import { describeContainerTarget, moveCategoryTo, moveProjectTo, shiftCategory, shiftProject, type ContainerTarget } from "~src/services/moveTo";

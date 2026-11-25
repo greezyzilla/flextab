@@ -50,8 +50,6 @@ beforeEach(async () => {
 describe("OCC conflict payload (FE-B3)", () => {
   it("saveOccConflictPayload stores base/server/local and sets conflict pending", async () => {
     const base = [space("S", [tab("base")])];
-    const server = [space("S", [tab("base"), tab("srv")])];
-    const local = [space("S", [tab("base"), tab("loc")])];
     // edit-edit on different tabs → may or may not conflict; force conflicts via same tab rename
     const serverEdit = [space("S", [{ ...tab("base"), title: "Server" }])];
     const localEdit = [space("S", [{ ...tab("base"), title: "Local" }])];

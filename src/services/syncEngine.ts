@@ -133,7 +133,6 @@ function hasRealData(spaces: SavedSpace[]): boolean {
 
 // --- hydration gate (read by the background worker before its structured push) ---
 
-let sessionHydrated = false;
 let engineRunning = false;
 // The server closed the socket as too old: no path reconnects it until
 // the engine starts again, which the page only does once the update arrived.
@@ -154,12 +153,10 @@ function automaticSyncActive() {
 
 function markHydrated() {
   if (!automaticSyncActive()) return;
-  sessionHydrated = true;
   try { void chrome.storage.local.set({ [SYNC_HYDRATED_KEY]: true }); } catch (_) { /* ok */ }
 }
 
 function clearHydrated() {
-  sessionHydrated = false;
   try { void chrome.storage.local.remove(SYNC_HYDRATED_KEY); } catch (_) { /* ok */ }
 }
 

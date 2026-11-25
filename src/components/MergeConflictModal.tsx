@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
-import { Icon } from "~src/components/ui/icon"
 import { useMergeConflict } from "~src/store/useMergeConflict"
 import { resolveMergeConflicts, dismissMergeConflicts } from "~src/services/syncEngine"
 import { merge3, type Conflict, type Resolutions } from "~src/services/spacesMerge3"

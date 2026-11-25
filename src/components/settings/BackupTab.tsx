@@ -1,5 +1,5 @@
 import { ArrowDownUp, Clock } from "lucide-react";
-import { useRef, useState, useEffect, useMemo, type ChangeEvent } from "react";
+import { useRef, useState, useEffect, type ChangeEvent } from "react";
 import { useAuthStore } from "~src/store/useAuthStore";
 import { formatRelativeTime } from "~src/store/useSyncStore";
 import { useSavedSpacesStore } from "~src/store/useSavedSpacesStore";
@@ -7,7 +7,6 @@ import { apiListSnapshots, apiGetSnapshot, apiRestoreSnapshot, type SnapshotInfo
 import { pullAndOverwrite } from "~src/services/syncEngine";
 import { parseImport, type ParsedImport } from "~src/services/importFormats";
 import type { SavedSpace } from "~src/types";
-import * as yjs from "~src/lib/yjsDoc";
 import { ConfirmDialog } from "~src/components/ui/confirm-dialog";
 import { Modal, ModalFooter, ModalHeader, ModalLink } from "~src/components/ui/modal";
 import { exportWorkspace } from "~src/services/exportWorkspace";
@@ -16,7 +15,7 @@ import { SourceColumn, SourceColumnSkeleton } from "~src/components/WorkspaceTre
 import { Button } from "~src/components/ui/button";
 import { Badge } from "~src/components/ui/badge";
 import { DoneLine } from "~src/components/ui/done-check";
-import { SettingRow, SettingsList, SettingsListRow, SettingsNotice, SettingsPage, SettingsSection, formatDate, formatBytes } from "./shared";
+import { SettingRow, SettingsList, SettingsListRow, SettingsNotice, SettingsPage, SettingsSection } from "./shared";
 
 // Backup groups the two "save & restore your workspace" surfaces: automatic
 // version history and manual export/import. (History needs sign-in; export/
@@ -312,7 +311,7 @@ function SnapshotPreviewModal({ snapshot, open, onOpenChange, onRestore, restore
       <div className="flex min-h-40 flex-1 flex-col">
         {tree === null
           ? failed
-            ? <p className="rounded-lg border border-ink/10 p-3 text-xs text-fg-subtle">Couldn't load this snapshot.</p>
+            ? <p className="rounded-lg border border-ink/10 p-3 text-xs text-fg-subtle">Couldn&apos;t load this snapshot.</p>
             : <SourceColumnSkeleton rows={snapshot.space_count} shape={snapshot.shape} label="Loading this version" />
           : <SourceColumn spaces={tree} includeEmpty emptyText="This snapshot is empty." />}
       </div>

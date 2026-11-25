@@ -63,7 +63,8 @@ ws.onmessage = (m) => {
   const p = msg.id && pending.get(msg.id)
   if (!p) return
   pending.delete(msg.id)
-  msg.type === "error" ? p.fail(new Error(`${msg.error}: ${msg.message}`)) : p.ok(msg.result)
+  if (msg.type === "error") p.fail(new Error(`${msg.error}: ${msg.message}`))
+  else p.ok(msg.result)
 }
 const send = (method, params = {}) => new Promise((ok, fail) => {
   const i = ++next

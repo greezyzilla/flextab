@@ -34,5 +34,5 @@
     if (matchMedia("(min-width: 1024px)").matches !== s.rightInline) return
     if (Math.max(innerHeight, (screen && screen.availHeight) || 0) !== s.height) return
     host.innerHTML = s.html
-  } catch (e) { /* no copy: the themed surface */ }
+  } catch (_e) { /* no copy: the themed surface */ }
 })()

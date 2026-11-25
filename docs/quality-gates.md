@@ -7,6 +7,7 @@ npm ci
 npx playwright install chromium   # once per machine: browser-mode tests
 npm run setup-hooks               # once per clone: Conventional Commit check on commit
 npm run typecheck
+npm run lint
 npm run test:coverage -- --run    # both projects; npm run test:browser runs the browser one alone
 # Supply the public API configuration described in RELEASING.md.
 npm run build:zip -- --channel=stable
@@ -20,6 +21,7 @@ install and browser-mode tests run locally and before anything is published.
 | Check | Push to main/dev, PR (`ci.yml`) | Release (`release.yml` → `verify.yml` with `browser: true`) | Locally |
 | --- | --- | --- | --- |
 | Typecheck | yes | yes | `npm run typecheck` |
+| ESLint (correctness rules only, no formatting) | yes | yes | `npm run lint` |
 | jsdom unit tests + coverage gates | yes (`--project unit`) | yes | `npm run test:coverage -- --run` |
 | Browser-mode tests (Chromium) | no | yes (`browser: true`) | `npm run test:browser` |
 | Stable build | yes | yes | `npm run build -- --channel=stable` |

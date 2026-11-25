@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* global chrome -- used inside sw.evaluate, which runs in the extension's service worker */
 /**
  * Captures what a released version leaves in browser storage, as a fixture for
  * src/test/storageFixtures.test.ts. Run once per release, from the

@@ -26,11 +26,6 @@ export function PlanTab() {
   const firstLoad = useRef<Promise<string | undefined> | null>(null);
   const checkAgain = useRef<() => void>(() => {});
 
-  const refetchBilling = () => {
-    apiGetBillingStatus().then(setBilling).catch(() => { /* no billing card */ });
-    apiGetPlan().then(s => { setStatus(s); planRef.current = s.plan; setFailed(false); }).catch(() => setFailed(true));
-  };
-
   /** Try again after the usage failed to load: only the plan, the billing card has its own quiet fallback. */
   const retryPlan = () => {
     setFailed(false);
@@ -136,7 +131,7 @@ export function PlanTab() {
 
   if (!isAuthenticated) {
     return (
-      <SettingsSection title="Plan" icon={CreditCard} subtitle="Your plan and what it includes." notice={<SettingsNotice>Sign in to see your plan and usage. Tabs on this device have no limit. Syncing them follows your plan's tab limit.</SettingsNotice>}>
+      <SettingsSection title="Plan" icon={CreditCard} subtitle="Your plan and what it includes." notice={<SettingsNotice>Sign in to see your plan and usage. Tabs on this device have no limit. Syncing them follows your plan&apos;s tab limit.</SettingsNotice>}>
         {null}
       </SettingsSection>
     );
@@ -159,7 +154,7 @@ export function PlanTab() {
         : confirm === 'late' ? <SettingsNotice>Your payment is still being confirmed. It can take a few minutes.{' '}
             <Button variant="link" size="inline" onClick={() => checkAgain.current()}>Check again</Button></SettingsNotice>
         : checkoutClosed ? <SettingsNotice>Paid plans open soon. Limits are generous while FlexTab is in beta.</SettingsNotice>
-        : <SettingsNotice>FlexTab is in beta, so limits are generous while we're in preview.</SettingsNotice>}
+        : <SettingsNotice>FlexTab is in beta, so limits are generous while we&apos;re in preview.</SettingsNotice>}
     >
       {/* Plans side by side so their limits compare line by line, as most billing pages
           do. Each card lists its own tier's limits from the server. */}
