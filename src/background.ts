@@ -4,6 +4,7 @@ import { loadTokens, getDeviceId, waitForTokenRefresh } from "~src/services/api"
 import { syncStructuredSnapshot } from "~src/services/structuredSync";
 import { merge3 } from "~src/services/spacesMerge3";
 import { getMergeBase } from "~src/services/mergeBase";
+import { canonicalSpaces } from "~src/lib/canonicalSpaces";
 import { isConflictPending, saveOccConflictPayload, clearConflictPending } from "~src/services/conflictState";
 import {
   PERSIST_KEY,
@@ -183,7 +184,8 @@ async function pushLatestStructuredData() {
     await readLatestSpaces(),
     readLatestSpaces,
     async (server, local) => {
-      const base = await getMergeBase();
+      const stored = await getMergeBase();
+      const base = stored ? canonicalSpaces(stored) : null;
       const srv = server as SavedSpace[];
       const loc = local as SavedSpace[];
       const { merged, conflicts } = merge3(base, srv, loc);

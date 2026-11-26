@@ -223,7 +223,7 @@ describe("production background push", () => {
     const second = deferred<any>();
     vi.mocked(api.pushSync).mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
     const a = [space("a")];
-    const b = [space("a", "B"), space("b")];
+    const b = [space("a", "B"), { ...space("b"), order: 1 }];
     await edit(a);
     const run = background.pushStructuredData();
     await until(() => vi.mocked(api.pushSync).mock.calls.length === 1);

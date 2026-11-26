@@ -183,7 +183,7 @@ export function applyExternalPersistUpdate(
     if (spacesSignature(next) === spacesSignature(getSpaces())) return false;
     suppressPersist = true;
     try {
-      setSpaces(next);
+      applySpaces(next);
     } finally {
       suppressPersist = false;
     }
@@ -383,6 +383,131 @@ export function setSpaces(spaces: SavedSpace[]) {
     spacesArray.delete(0, spacesArray.length);
     spacesArray.push(replacement);
   });
+}
+
+// =====================================================================
+// Apply a tree item by item (the sync path)
+// =====================================================================
+//
+// `setSpaces` deletes every space and inserts fresh copies. In a CRDT shared by
+// several contexts (each new tab, the popup, the background worker) that loses
+// work: a tab another context saves at the same moment lands inside a space map
+// this delete already removed, so it vanishes once the updates meet, and two
+// contexts rewriting at once leave the whole tree twice. Sync results therefore
+// go through `applySpaces`, which only touches what differs: it deletes items
+// the target no longer has, inserts the ones it lacks, sets changed fields, and
+// moves an item only when its position differs. Anything it never touches keeps
+// every concurrent edit, and it removes duplicate ids it finds on the way.
+
+type Scalar = { key: string; value: (x: Record<string, unknown>) => unknown };
+
+interface ApplyLevel {
+  scalars: Scalar[];
+  childrenKey?: string;
+  child?: ApplyLevel;
+  build: (x: never) => Y.Map<unknown>;
+}
+
+const field = (key: string): Scalar => ({ key, value: (x) => x[key] });
+const orderField: Scalar = { key: "order", value: (x) => (x.order as number | undefined) ?? 0 };
+
+const tabLevel: ApplyLevel = {
+  scalars: [field("url"), field("title"), field("favicon"), orderField],
+  build: tabToYMap as (x: never) => Y.Map<unknown>,
+};
+const groupLevel: ApplyLevel = {
+  scalars: [
+    field("name"),
+    orderField,
+    { key: "kind", value: (x) => (x.config as GroupConfig | undefined)?.kind },
+    { key: "color", value: (x) => (x.color as string | undefined) || undefined },
+  ],
+  childrenKey: "tabs",
+  child: tabLevel,
+  build: groupToYMap as (x: never) => Y.Map<unknown>,
+};
+const categoryLevel: ApplyLevel = { scalars: [field("name"), orderField], childrenKey: "groups", child: groupLevel, build: categoryToYMap as (x: never) => Y.Map<unknown> };
+const projectLevel: ApplyLevel = { scalars: [field("name"), orderField], childrenKey: "categories", child: categoryLevel, build: projectToYMap as (x: never) => Y.Map<unknown> };
+const spaceLevel: ApplyLevel = {
+  scalars: [
+    field("name"),
+    { key: "icon", value: (x) => (x.icon as string | undefined) || "" },
+    { key: "color", value: (x) => (x.color as string | undefined) || "" },
+    { key: "abbreviation", value: (x) => (x.abbreviation as string | undefined) || "" },
+    orderField,
+  ],
+  childrenKey: "projects",
+  child: projectLevel,
+  build: spaceToYMap as (x: never) => Y.Map<unknown>,
+};
+
+function applyNode(m: Y.Map<unknown>, target: Record<string, unknown>, level: ApplyLevel): void {
+  for (const s of level.scalars) {
+    const want = s.value(target);
+    if (want === undefined) {
+      if (m.has(s.key)) m.delete(s.key);
+    } else if (m.get(s.key) !== want) {
+      m.set(s.key, want);
+    }
+  }
+  if (level.childrenKey && level.child) {
+    let arr = m.get(level.childrenKey) as Y.Array<Y.Map<unknown>> | undefined;
+    if (!(arr instanceof Y.Array)) {
+      arr = new Y.Array<Y.Map<unknown>>();
+      m.set(level.childrenKey, arr);
+    }
+    applyList(arr, (target[level.childrenKey] as Record<string, unknown>[]) ?? [], level.child);
+  }
+}
+
+function applyList(arr: Y.Array<Y.Map<unknown>>, target: Record<string, unknown>[], level: ApplyLevel): void {
+  const want = new Set(target.map((t) => t.id as string));
+  // Drop what the target no longer has here, and any second copy of an id.
+  const seen = new Set<string>();
+  const drop: number[] = [];
+  arr.toArray().forEach((m, i) => {
+    const id = m.get("id") as string;
+    if (!want.has(id) || seen.has(id)) drop.push(i);
+    else seen.add(id);
+  });
+  for (let k = drop.length - 1; k >= 0; k--) arr.delete(drop[k], 1);
+  // Positions: insert what is missing, move only what is out of place.
+  target.forEach((t, i) => {
+    const id = t.id as string;
+    if (i < arr.length && arr.get(i).get("id") === id) return;
+    let j = i + 1;
+    while (j < arr.length && arr.get(j).get("id") !== id) j++;
+    if (j < arr.length) {
+      const json = arr.get(j).toJSON() as Record<string, unknown>;
+      arr.delete(j, 1);
+      arr.insert(i, [rebuildYMap(json)]);
+    } else {
+      arr.insert(i, [level.build(t as never)]);
+    }
+  });
+  target.forEach((t, i) => applyNode(arr.get(i), t, level));
+}
+
+/** Make the doc equal `spaces`, touching only what differs (see above). */
+export function applySpaces(spaces: SavedSpace[]): void {
+  // Yjs transactions do not roll back: convert the whole tree once up front so
+  // a malformed one throws before the live doc is touched.
+  spaces.map(spaceToYMap);
+  doc.transact(() => {
+    applyList(spacesArray, spaces as unknown as Record<string, unknown>[], spaceLevel);
+  });
+}
+
+/**
+ * Bring this context's doc up to everything durable in storage before it is
+ * read as "local" for a merge. A page's copy can trail storage by an update
+ * from another context; merging the trailing copy read the missing items as
+ * deleted here (a false conflict, or a delete of a tab just saved elsewhere).
+ */
+export async function catchUpFromStorage(): Promise<void> {
+  const result = await chrome.storage.local.get(PERSIST_KEY);
+  const update = readPersistedUpdate(result[PERSIST_KEY]);
+  if (update) applyExternalPersistUpdate(update.data, update.origin);
 }
 
 // =====================================================================

@@ -1,6 +1,13 @@
 import { pushSync, fetchSyncRevision } from "./api";
 import { getStoredRevision, setStoredRevision } from "./revision";
 import type { SyncLimitDetail } from "./syncLimit";
+import { canonicalSpaces } from "~src/lib/canonicalSpaces";
+import type { SavedSpace } from "~src/types";
+
+// Every tree on the wire is canonical (display order, `order` = position, ids
+// once): the server stores positions, so this keeps what lands equal to what
+// the merge base records. See lib/canonicalSpaces.
+const canon = (spaces: unknown[]) => canonicalSpaces(spaces as SavedSpace[]) as unknown[];
 
 const MAX_ATTEMPTS = 4;
 
@@ -31,8 +38,8 @@ export async function syncStructuredSnapshot(
   onLimit?: (message: string, detail: SyncLimitDetail) => void | Promise<void>,
   canPush?: () => Promise<boolean>,
 ): Promise<StructuredSyncResult> {
-  let spaces = initialSpaces;
-  let localAtAttempt = initialSpaces;
+  let spaces = canon(initialSpaces);
+  let localAtAttempt = spaces;
   let base = await getStoredRevision();
   if (base === null) {
     // An empty workspace needs a revision from reconciliation/earlier sync.
@@ -56,15 +63,15 @@ export async function syncStructuredSnapshot(
     }
     if (result.status === "conflict") {
       base = result.revision;
-      const local = await reReadSpaces();
-      const merged = mergeOnConflict ? await mergeOnConflict(result.spaces, local) : local;
+      const local = canon(await reReadSpaces());
+      const merged = mergeOnConflict ? await mergeOnConflict(canon(result.spaces), local) : local;
       if (merged === null) {
         // The caller durably saved the conflict before returning null.
         await setStoredRevision(base);
         return "skipped";
       }
       localAtAttempt = local;
-      spaces = merged;
+      spaces = canon(merged);
       continue;
     }
     if (result.status === "limit") {

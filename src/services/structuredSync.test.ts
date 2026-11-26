@@ -18,7 +18,7 @@ import { syncStructuredSnapshot } from './structuredSync';
 import { pushSync, fetchSyncRevision } from './api';
 import { getStoredRevision, setStoredRevision } from './revision';
 
-const SPACES = [{ id: 's1' }];
+const SPACES = [{ id: 's1', order: 0, projects: [] }];
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -68,7 +68,7 @@ describe('syncStructuredSnapshot', () => {
 
   it('on conflict: adopts the server revision, re-derives, and retries (no overwrite)', async () => {
     (getStoredRevision as any).mockResolvedValue(5);
-    const merged = [{ id: 's1', merged: true }];
+    const merged = [{ id: 's1', merged: true, order: 0, projects: [] }];
     const reRead = vi.fn().mockResolvedValue(merged);
     (pushSync as any)
       .mockResolvedValueOnce({ status: 'conflict', revision: 9, spaces: [] })
@@ -87,8 +87,8 @@ describe('syncStructuredSnapshot', () => {
 
   it('on conflict, merges the server payload with local before retrying (no lost update)', async () => {
     (getStoredRevision as any).mockResolvedValue(5);
-    const serverState = [{ id: 'server-change' }];
-    const localState = [{ id: 'local-change' }];
+    const serverState = [{ id: 'server-change', order: 0, projects: [] }];
+    const localState = [{ id: 'local-change', order: 0, projects: [] }];
     const mergeOnConflict = vi.fn((s: unknown[], l: unknown[]) => [...s, ...l]);
     (pushSync as any)
       .mockResolvedValueOnce({ status: 'conflict', revision: 9, spaces: serverState })
@@ -99,15 +99,16 @@ describe('syncStructuredSnapshot', () => {
     expect(result).toBe('ok');
     // The retry pushed the MERGED state (server's change + local's), not stale local.
     expect(mergeOnConflict).toHaveBeenCalledWith(serverState, localState);
-    expect(pushSync).toHaveBeenNthCalledWith(2, [...serverState, ...localState], 9);
+    // Canonical on the wire: the merged list is renumbered by position.
+    expect(pushSync).toHaveBeenNthCalledWith(2, [serverState[0], { ...localState[0], order: 1 }], 9);
   });
 
   it('defers (skipped) when mergeOnConflict returns null — a true conflict', async () => {
     (getStoredRevision as any).mockResolvedValue(5);
     const mergeOnConflict = vi.fn(() => null); // true conflict → needs interactive resolve
-    (pushSync as any).mockResolvedValue({ status: 'conflict', revision: 9, spaces: [{ id: 'x' }] });
+    (pushSync as any).mockResolvedValue({ status: 'conflict', revision: 9, spaces: [{ id: 'x', order: 0, projects: [] }] });
 
-    const result = await syncStructuredSnapshot([{ id: 's1' }], async () => [{ id: 's1' }], mergeOnConflict);
+    const result = await syncStructuredSnapshot([{ id: 's1', order: 0, projects: [] }], async () => [{ id: 's1', order: 0, projects: [] }], mergeOnConflict);
 
     expect(result).toBe('skipped');
     // Did not push again after the null (no silent auto-resolve of a true conflict).
@@ -116,13 +117,13 @@ describe('syncStructuredSnapshot', () => {
 
   it('awaits an async mergeOnConflict', async () => {
     (getStoredRevision as any).mockResolvedValue(5);
-    const merged = [{ id: 'm' }];
+    const merged = [{ id: 'm', order: 0, projects: [] }];
     const mergeOnConflict = vi.fn(async () => merged);
     (pushSync as any)
       .mockResolvedValueOnce({ status: 'conflict', revision: 9, spaces: [] })
       .mockResolvedValueOnce({ status: 'ok', revision: 10 });
 
-    const result = await syncStructuredSnapshot([{ id: 's1' }], async () => [{ id: 's1' }], mergeOnConflict);
+    const result = await syncStructuredSnapshot([{ id: 's1', order: 0, projects: [] }], async () => [{ id: 's1', order: 0, projects: [] }], mergeOnConflict);
 
     expect(result).toBe('ok');
     expect(pushSync).toHaveBeenNthCalledWith(2, merged, 9);

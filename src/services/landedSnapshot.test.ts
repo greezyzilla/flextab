@@ -132,7 +132,11 @@ describe("production landed acknowledgement", () => {
     const request = vi.fn(async (_name: string, run: () => Promise<void>) => run());
     Object.defineProperty(navigator, "locks", { configurable: true, value: { request } });
     try {
+      const a = [space("a")];
+      await recordLandedSnapshot([...a, space("peer")], a);
+      setSpaces(a);
       await applyPendingLandedSnapshot();
+      expect(request).toHaveBeenCalledWith("flextab-structured-sync", expect.any(Function));
       expect(request).toHaveBeenCalledWith("flextab-landed-snapshot", expect.any(Function));
     } finally {
       Object.defineProperty(navigator, "locks", { configurable: true, value: undefined });
