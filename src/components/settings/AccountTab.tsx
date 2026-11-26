@@ -235,10 +235,10 @@ export function SecurityTab() {
     setPwLoading(true);
     try {
       await apiChangePassword(currentPw, newPw);
-      setPwSuccess('Password updated. Sign in again to continue.');
+      setPwSuccess('Password updated. Your other devices are signed out.');
       setCurrentPw(''); setNewPw(''); setConfirmPw('');
       setPwOpen(false);
-      loadIdentities(); // Let the API handle the revoked session without clearing local spaces.
+      loadIdentities();
     } catch (err: unknown) {
       setPwError(err instanceof Error ? err.message : 'Failed to update password');
     } finally {
@@ -297,8 +297,8 @@ export function SecurityTab() {
         title="Email and password"
         meta={<>
           {hasPassword
-            ? 'Changing it signs out all devices.'
-            : `Not set. Lets you sign in with ${user?.email ?? 'your email'} too; setting one signs out all devices.`}
+            ? 'Changing it signs out your other devices.'
+            : `Not set. Lets you sign in with ${user?.email ?? 'your email'} too; setting one signs out your other devices.`}
           {pwSuccess && <DoneLine below>{pwSuccess}</DoneLine>}
         </>}
         action={
@@ -314,8 +314,8 @@ export function SecurityTab() {
           description={resetSent
             ? <>A reset link is on its way to <span className="text-fg">{resetSent}</span>.</>
             : hasPassword
-            ? 'Changing it signs out all devices.'
-            : `Lets you sign in with ${user?.email ?? 'your email'} too. Setting one signs out all devices.`} />
+            ? 'Changing it signs out your other devices.'
+            : `Lets you sign in with ${user?.email ?? 'your email'} too. Setting one signs out your other devices.`} />
         {!resetSent && <ModalBody>
           {/* Enter in any field submits, as the footer button is outside the form. */}
           <form onSubmit={handleChangePassword} onKeyDown={e => { if (e.key === 'Enter' && e.target instanceof HTMLInputElement) { e.preventDefault(); void handleChangePassword(); } }}
