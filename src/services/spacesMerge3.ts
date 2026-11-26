@@ -60,11 +60,15 @@ export interface Merge3Result {
 // Readers may still differ at the edges; normalize so shape noise is never a
 // content change (false delete-edit or false field conflict). FE-B2: scalar
 // merges use the same empty-as-absent rule via scalarEq.
+// Keys are compared in sorted order: a tree read back from chrome.storage
+// comes back with its keys sorted, while one mapped from the server has them
+// in the mapper's order. Unsorted, an untouched tab looked "changed on the
+// server", and deleting it on this device became a false delete-edit.
 function normalizeForCompare(x: unknown): unknown {
   if (Array.isArray(x)) return x.map(normalizeForCompare);
   if (x && typeof x === "object") {
     const out: Record<string, unknown> = {};
-    for (const k of Object.keys(x as Record<string, unknown>)) {
+    for (const k of Object.keys(x as Record<string, unknown>).sort()) {
       if (k === "order") continue;
       const v = (x as Record<string, unknown>)[k];
       if (v === "" || v === null || v === undefined) continue;

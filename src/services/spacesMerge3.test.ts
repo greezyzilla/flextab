@@ -59,6 +59,16 @@ describe("merge3 — deletion correctness (no resurrect)", () => {
     expect(r.conflicts).toHaveLength(0);
   });
 
+  it("delete on local, base read back from chrome.storage (sorted keys) → no conflict", () => {
+    // chrome.storage returns objects with their keys sorted; the server tree is
+    // mapped in another key order. Same tab, so deleting it is a plain delete.
+    const t = { id: "t1", url: "https://a.test/", title: "A", favicon: "data:x", order: 0 };
+    const sorted = { favicon: t.favicon, id: t.id, order: t.order, title: t.title, url: t.url };
+    const r = merge3(wrap([grp("g", "G", [sorted])]), wrap([grp("g", "G", [t])]), wrap([grp("g", "G", [])]));
+    expect(r.conflicts).toHaveLength(0);
+    expect(groupsOf(r.merged)[0].tabs).toEqual([]);
+  });
+
   it("delete on server, local unchanged → stays deleted", () => {
     const base = wrap([grp("a", "A"), grp("b", "B")]);
     const r = merge3(base, wrap([grp("a", "A")]), wrap([grp("a", "A"), grp("b", "B")]));
