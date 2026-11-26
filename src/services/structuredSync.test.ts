@@ -174,4 +174,36 @@ describe('syncStructuredSnapshot', () => {
     expect(onLimit).toHaveBeenCalledWith('total tab limit reached (501/500) on the free plan', { limit: 'max_tabs_total', cap: 500, got: 501 });
     expect((pushSync as any).mock.calls.length).toBe(1); // no retry — retrying can't help
   });
+
+  it('pauses without pushing when the push gate is closed before the first attempt', async () => {
+    vi.mocked(getStoredRevision).mockResolvedValue(2);
+    const canPush = vi.fn(async () => false);
+    const result = await syncStructuredSnapshot(SPACES, async () => SPACES, undefined, undefined, undefined, canPush);
+    expect(result).toBe('paused');
+    expect(pushSync).not.toHaveBeenCalled();
+    expect(setStoredRevision).not.toHaveBeenCalled();
+  });
+
+  it('pauses when the gate closes between conflict retries, keeping the adopted revision', async () => {
+    vi.mocked(getStoredRevision).mockResolvedValue(2);
+    vi.mocked(pushSync).mockResolvedValueOnce({ status: 'conflict', revision: 3, spaces: SPACES } as any);
+    const canPush = vi.fn().mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+    const result = await syncStructuredSnapshot(SPACES, async () => SPACES, (server) => server, undefined, undefined, canPush);
+    expect(result).toBe('paused');
+    expect(pushSync).toHaveBeenCalledTimes(1);
+    expect(pushSync).toHaveBeenCalledWith(SPACES, 2, canPush);
+  });
+
+  it('pauses when the gate closes during the request, without acknowledging anything', async () => {
+    vi.mocked(getStoredRevision).mockResolvedValue(2);
+    vi.mocked(pushSync).mockResolvedValue({ status: 'paused' } as any);
+    const onPushed = vi.fn();
+    const canPush = vi.fn(async () => true);
+    const result = await syncStructuredSnapshot(SPACES, async () => SPACES, undefined, onPushed, undefined, canPush);
+    expect(result).toBe('paused');
+    expect(pushSync).toHaveBeenCalledTimes(1);
+    expect(onPushed).not.toHaveBeenCalled();
+    expect(setStoredRevision).not.toHaveBeenCalled();
+  });
 });
+

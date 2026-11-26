@@ -186,3 +186,81 @@ it("authenticates message senders and accepts only top-frame callback messages",
   expect(await completed).toEqual({ ok: true });
   expect(local.auth_tokens.access_token).toBe("access");
 });
+
+it("starts a new login when the previous attempt's tab is already gone", async () => {
+  const old = await attempt();
+  vi.mocked(chrome.tabs.remove).mockRejectedValueOnce(new Error("No tab with id"));
+  const current = await attempt("github");
+  expect(chrome.tabs.remove).toHaveBeenCalledWith(old.pending.tabId);
+  expect(session[oauth.OAUTH_PENDING_KEY].nonce).toBe(current.pending.nonce);
+});
+
+it("refuses to start when the browser opens a tab without an id, keeping nothing pending", async () => {
+  vi.mocked(chrome.tabs.create).mockResolvedValueOnce({} as any);
+  await expect(oauth.startOAuthLogin("google")).rejects.toThrow("Could not open sign-in tab");
+  expect(session[oauth.OAUTH_PENDING_KEY]).toBeUndefined();
+});
+
+it.each(["storage", "navigation"])("closes the sign-in tab and forgets the attempt when %s fails while starting", async mode => {
+  if (mode === "storage") vi.mocked(chrome.storage.session.set).mockRejectedValueOnce(new Error("session storage full"));
+  if (mode === "navigation") vi.mocked(chrome.tabs.update).mockRejectedValueOnce(new Error("tab closed"));
+  // Closing the half-open tab may fail too (the user already closed it): the start error still wins.
+  vi.mocked(chrome.tabs.remove).mockRejectedValueOnce(new Error("No tab with id"));
+  await expect(oauth.startOAuthLogin("google")).rejects.toThrow(mode === "storage" ? "session storage full" : "tab closed");
+  expect(session[oauth.OAUTH_PENDING_KEY]).toBeUndefined();
+  expect(chrome.tabs.remove).toHaveBeenCalledWith(1);
+});
+
+it("gives up on an exchange that hangs, and requires a new attempt", async () => {
+  const { pending, callback } = await attempt(); tabs.set(pending.tabId, callback);
+  vi.useFakeTimers();
+  try {
+    vi.mocked(fetch).mockImplementation(((_: string, init: RequestInit) => new Promise((_, reject) => {
+      init.signal!.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
+    })) as never);
+    const result = oauth.completeOAuthLogin(pending.tabId, callback);
+    const settled = expect(result).rejects.toThrow("aborted");
+    await vi.advanceTimersByTimeAsync(10_000);
+    await settled;
+  } finally { vi.useRealTimers(); }
+  expect(local.auth_tokens).toBeUndefined();
+  expect(await oauth.completeOAuthLogin(pending.tabId, callback)).toBe(false);
+});
+
+it("signs in even when the finished sign-in tab can no longer be closed", async () => {
+  const { pending, callback } = await attempt(); tabs.set(pending.tabId, callback);
+  vi.mocked(chrome.tabs.remove).mockRejectedValueOnce(new Error("No tab with id"));
+  expect(await oauth.completeOAuthLogin(pending.tabId, callback)).toBe(true);
+  expect(local.auth_tokens.access_token).toBe("access");
+});
+
+it("answers other extension messages not at all, and refuses a start from a sender without a page", async () => {
+  oauth.registerOAuthMessages();
+  const listener = vi.mocked(chrome.runtime.onMessage.addListener).mock.calls[0][0];
+  const respond = vi.fn();
+  expect(listener({ type: "flextab.something.else" }, { id: chrome.runtime.id }, respond)).toBeUndefined();
+  expect(listener(undefined, { id: chrome.runtime.id }, respond)).toBeUndefined();
+  expect(listener({ type: oauth.OAUTH_START, provider: "google" }, { id: chrome.runtime.id }, respond)).toBeUndefined();
+  expect(respond).not.toHaveBeenCalled();
+  expect(chrome.tabs.create).not.toHaveBeenCalled();
+});
+
+it("tells the page when a start it asked for fails", async () => {
+  oauth.registerOAuthMessages();
+  const listener = vi.mocked(chrome.runtime.onMessage.addListener).mock.calls[0][0];
+  const answer = await new Promise<any>(resolve => listener({ type: oauth.OAUTH_START, provider: "apple" }, { id: chrome.runtime.id, url: chrome.runtime.getURL("popup.html") }, resolve));
+  expect(answer).toEqual({ ok: false, error: "Sign-in could not finish. Start sign-in again." });
+});
+
+it("forgets the attempt when its tab is closed, and survives storage failing while it does", async () => {
+  oauth.registerOAuthMessages();
+  const onRemoved = vi.mocked(chrome.tabs.onRemoved.addListener).mock.calls[0][0] as (tabId: number) => void;
+  const { pending } = await attempt();
+  onRemoved(pending.tabId);
+  await vi.waitFor(() => expect(session[oauth.OAUTH_PENDING_KEY]).toBeUndefined());
+  await attempt();
+  vi.mocked(chrome.storage.session.get).mockRejectedValueOnce(new Error("storage unavailable"));
+  onRemoved(999);
+  await new Promise(r => setTimeout(r, 0));
+  expect(session[oauth.OAUTH_PENDING_KEY]).toBeDefined();
+});

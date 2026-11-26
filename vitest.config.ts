@@ -61,35 +61,30 @@ export default defineConfig({
       // so adding covered code cannot dilute existing gaps. Critical files have
       // additional per-file floors. See docs/quality-gates.md before changing.
       thresholds: {
-        // Vitest 5 baseline (2026-11-25). Its V8 remapping counts never-run
-        // no-op callbacks, implicit else branches and defensive ifs that
-        // Vitest 3 skipped, so the same code measures lower than before.
-        statements: -229,
-        lines: -112,
-        functions: -52,
-        branches: -246,
+        // Vitest 5 measurement (2026-11-26), after behaviour tests brought the
+        // critical sync files back to the floors they had under Vitest 3.
+        statements: -171,
+        lines: -90,
+        functions: -33,
+        branches: -184,
         'src/services/{importWorkspace,landedSnapshot,syncPolicy,workspaceBackup}.ts': {
           statements: 100, lines: 100, functions: 100, branches: 100,
         },
         ...Object.fromEntries([
-          'services/revision', 'services/saveTabsAsGroup',
+          'services/mergeBase', 'services/revision', 'services/saveTabsAsGroup',
+          'services/settingsSync', 'services/spacesMerge3', 'services/structuredSync',
+          'store/syncStorage', 'store/useAuthStore',
         ].map(file => [`src/${file}.ts`, {
           statements: 100, lines: 100, functions: 100, branches: 90,
         }])),
-        'src/services/mergeBase.ts': { statements: 100, lines: 100, functions: 100, branches: 80 },
-        'src/services/settingsSync.ts': { statements: 100, lines: 100, functions: 96.42, branches: 90 },
-        'src/services/spacesMerge3.ts': { statements: 99.53, lines: 100, functions: 97.61, branches: 90 },
-        'src/services/structuredSync.ts': { statements: 97.29, lines: 100, functions: 100, branches: 90 },
-        'src/store/syncStorage.ts': { statements: 97.11, lines: 100, functions: 94.11, branches: 80.95 },
-        'src/store/useAuthStore.ts': { statements: 97.19, lines: 97.8, functions: 95.45, branches: 90 },
         'src/lib/yjsDoc.ts': {
-          statements: 94.7, lines: 98, functions: 98.92, branches: 82.78,
+          statements: 98, lines: 98, functions: 100, branches: 84,
         },
         'src/services/syncEngine.ts': {
-          statements: 85, lines: 85, functions: 89.15, branches: 81.62,
+          statements: 85, lines: 85, functions: 95, branches: 83,
         },
         'src/services/oauthLogin.ts': {
-          statements: 92.07, lines: 96, functions: 68.18, branches: 93,
+          statements: 96, lines: 96, functions: 100, branches: 93,
         },
       },
     },

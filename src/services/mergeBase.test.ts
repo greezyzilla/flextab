@@ -4,6 +4,11 @@ import type { SavedSpace } from "~src/types";
 
 const space = (id: string, name: string): SavedSpace => ({ id, name, order: 0, projects: [] });
 
+// The module registers its storage listener at import; take it before any
+// clearAllMocks wipes the recorded calls.
+type StorageListener = (changes: Record<string, chrome.storage.StorageChange>, area: string) => void;
+const onStorageChanged = (chrome.storage.onChanged.addListener as any).mock.calls.at(-1)[0] as StorageListener;
+
 describe("merge-base store", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -55,4 +60,55 @@ describe("merge-base store", () => {
     (chrome.storage.local.get as any).mockResolvedValue({});
     expect(await getMergeBase()).toBeNull();
   });
+
+  it("keeps the base in memory when a best-effort write fails", async () => {
+    (chrome.storage.local.set as any).mockRejectedValueOnce(new Error("quota"));
+    const spaces = [space("s", "Work")];
+    await expect(setMergeBase(spaces)).resolves.toBeUndefined();
+    expect(await getMergeBase()).toEqual(spaces);
+  });
+
+  it("fails a durable write when storage refuses it, and keeps the old base", async () => {
+    await setMergeBase([space("old", "Old")]);
+    (chrome.storage.local.set as any).mockRejectedValueOnce(new Error("quota"));
+    await expect(setMergeBase([space("new", "New")], true)).rejects.toThrow("quota");
+    expect((await getMergeBase())![0].id).toBe("old");
+  });
+
+  it("follows a base written by another context", async () => {
+    const fromWorker = [space("w", "From worker")];
+    onStorageChanged({ flextab_merge_base: { newValue: fromWorker } }, "local");
+    (chrome.storage.local.get as any).mockResolvedValue({});
+    expect(await getMergeBase()).toEqual(fromWorker);
+  });
+
+  it("forgets the base when another context removes it", async () => {
+    await setMergeBase([space("s", "Work")]);
+    onStorageChanged({ flextab_merge_base: { oldValue: [], newValue: undefined } }, "local");
+    expect(await getMergeBase()).toBeNull();
+  });
+
+  it("ignores changes to other keys and other storage areas", async () => {
+    const spaces = [space("s", "Work")];
+    await setMergeBase(spaces);
+    onStorageChanged({ other_key: { newValue: 1 } }, "local");
+    onStorageChanged({ flextab_merge_base: { newValue: [] } }, "sync");
+    expect(await getMergeBase()).toEqual(spaces);
+  });
 });
+
+describe("merge-base store without an extension context", () => {
+  it("loads and works when chrome.storage has no change events", async () => {
+    vi.resetModules();
+    const saved = chrome.storage.onChanged;
+    (chrome.storage as any).onChanged = undefined;
+    try {
+      const mod = await import("./mergeBase");
+      await mod.setMergeBase([space("s", "Work")]);
+      expect((await mod.getMergeBase())![0].id).toBe("s");
+    } finally {
+      (chrome.storage as any).onChanged = saved;
+    }
+  });
+});
+
