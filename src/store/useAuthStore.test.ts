@@ -369,3 +369,25 @@ describe('without an extension storage event source', () => {
     }
   });
 });
+
+describe('a token refresh in another context', () => {
+  it('is not a sign-in for a page still loading its session', async () => {
+    useAuthStore.setState({ isAuthenticated: false });
+    await fireChange({ auth_tokens: { oldValue: tokens(), newValue: { ...tokens(), refresh_token: 'r2' } } });
+    const set = (chrome.storage.local.set as any).mock.calls.map((c: any[]) => Object.keys(c[0])).flat();
+    const removed = (chrome.storage.local.remove as any).mock.calls.map((c: any[]) => c[0]).flat();
+    expect(set).not.toContain('flextab_fresh_login');
+    expect(removed).not.toContain('flextab_sync_hydrated');
+    expect(removed).not.toContain('flextab_sync_revision');
+  });
+
+  it('tokens appearing where there were none still sign this page in', async () => {
+    useAuthStore.setState({ isAuthenticated: false });
+    const received = tokens();
+    (chrome.storage.local.get as any).mockResolvedValue({ auth_tokens: received });
+    (global.fetch as any).mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: 'u', email: 'a@b.c', name: 'A' }) });
+    await fireChange({ auth_tokens: { newValue: received } });
+    await vi.waitFor(() => expect(useAuthStore.getState().isAuthenticated).toBe(true));
+  });
+});
+

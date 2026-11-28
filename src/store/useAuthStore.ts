@@ -232,7 +232,12 @@ if (chrome.storage?.onChanged) {
     if (areaName !== "local") return;
     if (changes.auth_tokens) {
       const { isAuthenticated } = useAuthStore.getState();
-      if (changes.auth_tokens.newValue && !isAuthenticated) {
+      // Only tokens appearing where there were none are a sign-in. A pair that
+      // replaces another is a refresh by another context; this page may still
+      // be loading its session (not authenticated yet), and treating that as a
+      // sign-in would wipe the revision, the hydration gate and the user, and
+      // ask the sign-in question again in the middle of a session.
+      if (changes.auth_tokens.newValue && !changes.auth_tokens.oldValue && !isAuthenticated) {
         useAuthStore.getState().handleAuthCallback(changes.auth_tokens.newValue as TokenData, true).catch(() => {});
       } else if (!changes.auth_tokens.newValue && isAuthenticated) {
         session++;
