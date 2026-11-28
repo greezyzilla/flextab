@@ -114,9 +114,10 @@ The rule:
    GitHub Release. Only then the release workflow runs the full verification
    (`verify.yml` with `browser: true` and the real API variables), builds the
    Chrome and Firefox zips once, attaches them to the GitHub Release, and:
-   - **Chrome Web Store:** `scripts/cws-publish.mjs` uploads and submits a
-     **staged publish** (API v2 `STAGED_PUBLISH`). After review it waits: press
-     **Publish** in the dashboard when you are ready.
+   - **Chrome Web Store:** `scripts/cws-publish.mjs --publish=default` uploads
+     and submits it to **go live as soon as review passes** (API v2
+     `DEFAULT_PUBLISH`), so the backend it needs is deployed before the
+     Release PR is merged.
    - **AMO:** `scripts/amo-submit.mjs` submits a **listed** version with the
      tag's source code (`git archive`, which carries `SOURCE_BUILD.md`), required
      because the build is bundled and minified. The build is reproducible: the
@@ -124,6 +125,16 @@ The rule:
      Every listed version carries its license (All Rights Reserved,
      `AMO_LICENSE`, sent with `--amo-metadata`): AMO refuses a listed version
      without one, which is what failed 0.1.1 and 0.1.2.
+   - **GitHub Release packages** (job `packages`, same run, after the stores):
+     the stores' own signed packages, so they carry the stores' extension ids
+     and keep updating from the stores. `flextab-X.Y.Z-firefox.xpi`, signed by
+     Mozilla after its automatic review (`scripts/amo-signed-xpi.mjs`, waits
+     up to 30 minutes; 0.1.3 took 3.5), and `flextab-X.Y.Z-chrome.crx`, signed
+     by Google once the store publishes the version
+     (`scripts/cws-signed-crx.mjs`, polls Chrome's update service up to 330
+     minutes; 0.1.3 was live within about 2.5 hours). If a store takes longer
+     the job goes red; rerun just that job once the version is live, it never
+     resubmits.
 5. **After the release, merge `main` back into `dev`** (a merge commit), so the
    version bump and the `vX.Y.Z` tag are in `dev`'s history.
 6. **A bad release is fixed forward.** The stores have no rollback: revert the

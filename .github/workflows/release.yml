@@ -3,9 +3,15 @@
 # Merging that PR is the one deliberate release step: it tags vX.Y.Z and makes
 # the GitHub Release; only then is anything built, once, and published:
 # - the verified Chrome and Firefox zips go on the GitHub Release;
-# - Chrome Web Store: uploaded and submitted as a STAGED publish, so after
-#   review it waits for you to press Publish (deploy the backend it needs first);
+# - Chrome Web Store: uploaded and submitted to go live as soon as review
+#   passes (deploy the backend it needs before merging the Release PR);
 # - AMO: submitted as a listed version with its source code.
+# Then, in the same run, the packages people install by hand go on the GitHub
+# Release: the .xpi Mozilla signs after its automatic review (minutes) and the
+# .crx Google signs when the store publishes the version (hours), both the
+# stores' own packages with the stores' extension ids. That job waits for them
+# (up to the 6-hour job limit) and is separate, so a rerun only waits again;
+# it never re-uploads to a store.
 # A store step without its secrets is skipped with a notice; the tag and the
 # GitHub Release still happen.
 name: Release
@@ -82,7 +88,7 @@ jobs:
           cp build/chrome-mv3-prod.zip "flextab-$version-chrome.zip"
           cp build/firefox-mv3-prod.zip "flextab-$version-firefox.zip"
           gh release upload "$TAG" "flextab-$version-chrome.zip" "flextab-$version-firefox.zip" --clobber
-      - name: Chrome Web Store (staged, you publish)
+      - name: Chrome Web Store (live once review passes)
         if: env.CWS_CONFIGURED == 'true'
         env:
           CWS_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
@@ -90,7 +96,7 @@ jobs:
           CWS_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
           CWS_PUBLISHER_ID: ${{ secrets.CWS_PUBLISHER_ID }}
           CWS_ITEM_ID: ${{ secrets.CWS_ITEM_ID }}
-        run: node scripts/cws-publish.mjs build/chrome-mv3-prod.zip
+        run: node scripts/cws-publish.mjs build/chrome-mv3-prod.zip --publish=default
       - if: env.CWS_CONFIGURED != 'true'
         run: |
           echo "::notice::Chrome Web Store skipped: CWS_* secrets are not set. Upload flextab-${TAG#v}-chrome.zip by hand."
@@ -107,3 +113,43 @@ jobs:
       - if: env.AMO_CONFIGURED != 'true'
         run: |
           echo "::notice::AMO skipped: AMO_JWT_* secrets are not set. Submit flextab-${TAG#v}-firefox.zip by hand."
+
+  packages:
+    needs: [release-please, publish]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ needs.release-please.outputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+      CWS_CONFIGURED: ${{ secrets.CWS_REFRESH_TOKEN != '' && secrets.CWS_ITEM_ID != '' }}
+      AMO_CONFIGURED: ${{ secrets.AMO_JWT_ISSUER != '' && secrets.AMO_JWT_SECRET != '' }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.release-please.outputs.tag }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+      - name: Firefox package (.xpi signed by Mozilla)
+        if: env.AMO_CONFIGURED == 'true'
+        run: |
+          version="${TAG#v}"
+          node scripts/amo-signed-xpi.mjs --tag="$TAG" --out="flextab-$version-firefox.xpi" --wait-minutes=30
+          gh release upload "$TAG" "flextab-$version-firefox.xpi" --clobber
+      - if: env.AMO_CONFIGURED != 'true'
+        run: |
+          echo "::notice::.xpi skipped: nothing was submitted to AMO (AMO_JWT_* secrets are not set)."
+      - name: Chromium package (.crx signed by Google)
+        if: env.CWS_CONFIGURED == 'true'
+        env:
+          CWS_ITEM_ID: ${{ secrets.CWS_ITEM_ID }}
+        run: |
+          version="${TAG#v}"
+          node scripts/cws-signed-crx.mjs --tag="$TAG" --out="flextab-$version-chrome.crx" --wait-minutes=330
+          gh release upload "$TAG" "flextab-$version-chrome.crx" --clobber
+      - if: env.CWS_CONFIGURED != 'true'
+        run: |
+          echo "::notice::.crx skipped: nothing was submitted to the Chrome Web Store (CWS_* secrets are not set)."
