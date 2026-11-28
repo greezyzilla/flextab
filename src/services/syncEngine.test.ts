@@ -770,11 +770,19 @@ describe('realtime + lifecycle', () => {
     expect(() => FakeWS.instances[0].onerror?.()).not.toThrow();
   });
 
-  it('stopSyncEngine disconnects, clears the hydrated flag, and pauses', async () => {
+  it('stopSyncEngine disconnects and pauses, and leaves the hydration gate of the sign-in alone', async () => {
     await connect();
     stopSyncEngine();
     expect(useSyncStore.getState().status).toBe('paused');
-    expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_sync_hydrated');
+    // A closed page must not hold the device's uploads: only sign-in and
+    // sign-out clear the gate.
+    expect(chrome.storage.local.remove).not.toHaveBeenCalledWith('flextab_sync_hydrated');
+  });
+
+  it('a page that starts does not clear the hydration gate an earlier reconcile set', async () => {
+    vi.mocked(chrome.storage.local.remove).mockClear();
+    await connect();
+    expect(chrome.storage.local.remove).not.toHaveBeenCalledWith('flextab_sync_hydrated');
   });
 
   it('stopSyncEngine does NOT clear the merge base — it runs on every auth drop (real or transient, e.g. a refresh-token race), not just a real sign-out', async () => {

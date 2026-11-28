@@ -158,10 +158,6 @@ function markHydrated() {
   try { void chrome.storage.local.set({ [SYNC_HYDRATED_KEY]: true }); } catch (_) { /* ok */ }
 }
 
-function clearHydrated() {
-  try { void chrome.storage.local.remove(SYNC_HYDRATED_KEY); } catch (_) { /* ok */ }
-}
-
 // --- reconcile ---
 
 let pendingServer: SavedSpace[] | null = null;
@@ -670,7 +666,10 @@ export async function startSyncEngine() {
   engineRunning = true;
   clientTooOld = false;
   listenForReconnectHints(true);
-  clearHydrated();
+  // The worker's hydration gate (flextab_sync_hydrated) belongs to the sign-in,
+  // not to a page: sign-in and sign-out clear it, the first reconcile of the
+  // session sets it. A page starting or stopping leaves it alone, or a new tab
+  // closed before its reconcile finished would hold every upload from this device.
   // Wait for persisted settings before using the default-on UI state.
   if (!useSettingsStore.persist.hasHydrated()) {
     await new Promise<void>(resolve => {
@@ -724,7 +723,6 @@ export function stopSyncEngine() {
   ++engineGeneration;
   listenForReconnectHints(false);
   disconnectWebSocket();
-  clearHydrated();
   // Torn down with a conflict still unresolved (e.g. auto-sync toggled off from
   // settings while the resolver was open, bypassing "Pause sync and decide later") → persist
   // the conflict flag so it isn't silently dropped. The dismiss path already set
