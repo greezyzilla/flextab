@@ -82,6 +82,22 @@ describe('the worker', () => {
     expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
+  it('says the session ended when the server refuses the refresh, and clears the stored pair', async () => {
+    disk.auth_tokens = { access_token: 'old', refresh_token: 'rt1', expires_at: past() };
+    (global.fetch as any).mockResolvedValueOnce(res({}, 401));
+    const ask = serve();
+    expect(await ask('rt1')).toEqual({ status: 'expired' });
+    expect(disk.auth_tokens).toBeUndefined();
+  });
+
+  it('says the server could not be reached, and keeps the stored pair for a retry', async () => {
+    disk.auth_tokens = { access_token: 'old', refresh_token: 'rt1', expires_at: past() };
+    (global.fetch as any).mockResolvedValueOnce(res({}, 503));
+    const ask = serve();
+    expect(await ask('rt1')).toEqual({ status: 'unavailable' });
+    expect(disk.auth_tokens.refresh_token).toBe('rt1');
+  });
+
   it('says the session ended when there is nothing stored', async () => {
     const ask = serve();
     expect(await ask('rt1')).toEqual({ status: 'expired' });

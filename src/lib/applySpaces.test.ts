@@ -120,3 +120,63 @@ describe('catchUpFromStorage', () => {
     expect(tabsOf(y.getSpaces())).toEqual(['t1', 'persisted-elsewhere']);
   });
 });
+
+describe('applySpaces edge cases', () => {
+  it('moves an item to its new place instead of dropping it', () => {
+    y.setSpaces(tree([tab('t1', 0), tab('t2', 1), tab('t3', 2)]));
+    y.applySpaces(tree([tab('t3', 0), tab('t1', 1), tab('t2', 2)]));
+    expect(tabsOf(y.getSpaces())).toEqual(['t3', 't1', 't2']);
+  });
+
+  it('gives a stored space without a project list one, then fills it', () => {
+    const bare = new Y.Map<unknown>();
+    bare.set('id', 's1');
+    bare.set('name', 'S1');
+    y.doc.transact(() => {
+      y.spacesArray.delete(0, y.spacesArray.length);
+      y.spacesArray.push([bare]);
+    });
+    y.applySpaces(tree());
+    expect(tabsOf(y.getSpaces())).toEqual(['t1']);
+  });
+
+  it('stores a missing order as 0', () => {
+    y.applySpaces(tree([{ ...tab('t1'), order: undefined as unknown as number }]));
+    expect(y.getSpaces()[0].projects[0].categories[0].groups[0].tabs[0].order).toBe(0);
+  });
+
+  it('refuses a malformed tree before touching the document', () => {
+    const broken = tree();
+    delete (broken[0].projects[0].categories[0].groups[0] as { tabs?: unknown }).tabs;
+    expect(() => y.applySpaces(broken)).toThrow();
+    expect(tabsOf(y.getSpaces())).toEqual(['t1']);
+  });
+});
+
+describe('an edit without an order keeps the stored one', () => {
+  beforeEach(() => {
+    y.setSpaces([{ id: 's1', name: 'S1', order: 0, projects: [{ id: 'p1', name: 'P1', order: 0, categories: [
+      { id: 'c1', name: 'C1', order: 3, groups: [{ id: 'g1', name: 'G1', order: 2, tabs: [tab('t1', 5)] }] },
+    ] }] }]);
+  });
+  const cat = () => y.getSpaces()[0].projects[0].categories[0];
+
+  it('for a category', () => {
+    y.updateCategory('s1', 'p1', { ...cat(), name: 'Renamed', order: undefined as unknown as number });
+    expect(cat().name).toBe('Renamed');
+    expect(cat().order).toBe(3);
+  });
+
+  it('for a group', () => {
+    y.updateGroup('s1', 'p1', 'c1', { ...cat().groups[0], name: 'Renamed', order: undefined as unknown as number });
+    expect(cat().groups[0].name).toBe('Renamed');
+    expect(cat().groups[0].order).toBe(2);
+  });
+
+  it('for a tab', () => {
+    y.updateTab('s1', 'p1', 'c1', 'g1', { ...tab('t1'), title: 'Renamed', order: undefined as unknown as number });
+    expect(cat().groups[0].tabs[0].title).toBe('Renamed');
+    expect(cat().groups[0].tabs[0].order).toBe(5);
+  });
+});
+
