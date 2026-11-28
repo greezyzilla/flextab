@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { describe, expect, it } from "vitest"
 
-import { GECKO_ID, channelPlan, resolveChannel } from "./channel.mjs"
+import { CHANNELS, DEV_API_URL, GECKO_ID, PROD_API_MATCH, channelPlan, patchManifest, resolveChannel } from "./channel.mjs"
 
 const pkg = JSON.parse(readFileSync(resolve(__dirname, "../package.json"), "utf8"))
 
@@ -10,7 +10,8 @@ const pkg = JSON.parse(readFileSync(resolve(__dirname, "../package.json"), "utf8
  * What Plasmo does with package.json `manifest` (0.90): a "$VAR" placeholder takes
  * the variable's value, an unset one is dropped, and the overrides land on top of
  * the manifest built from package.json name/version. Chrome builds drop
- * browser_specific_settings; a browser's `overrides` entry replaces keys for it.
+ * browser_specific_settings and Firefox builds keep only its `gecko` key; a browser's
+ * `overrides` entry then replaces whole top-level keys for it.
  */
 function builtManifest(plan, browser = "chrome") {
   const fill = (v) => {
@@ -22,9 +23,12 @@ function builtManifest(plan, browser = "chrome") {
     return v
   }
   const { optional_permissions, commands, host_permissions, overrides = {}, ...channelKeys } = pkg.manifest
-  const manifest = { name: pkg.displayName, version: pkg.version, ...fill(channelKeys), ...(overrides[browser] ?? {}) }
-  if (browser === "chrome") delete manifest.browser_specific_settings
-  return manifest
+  const manifest = { name: pkg.displayName, version: pkg.version, ...fill(channelKeys) }
+  if (manifest.browser_specific_settings) {
+    if (browser === "firefox") manifest.browser_specific_settings = { gecko: manifest.browser_specific_settings.gecko }
+    else delete manifest.browser_specific_settings
+  }
+  return { ...manifest, ...fill(overrides[browser] ?? {}) }
 }
 
 describe("resolveChannel", () => {
@@ -64,10 +68,41 @@ describe("the stable build", () => {
 })
 
 describe("package.json manifest placeholders", () => {
-  it("has a placeholder for every value the channel sets", () => {
+  it("has a placeholder for every value a channel sets", () => {
     const placeholders = JSON.stringify(pkg.manifest).match(/"\$FLEXTAB_\w+"/g).map((s) => s.slice(2, -1))
-    const used = new Set(Object.keys(channelPlan("stable").env).filter((k) => k.startsWith("FLEXTAB_")))
+    const used = new Set(CHANNELS.flatMap((c) => Object.keys(channelPlan(c).env)).filter((k) => k.startsWith("FLEXTAB_")))
     expect(new Set(placeholders)).toEqual(used)
+    // Stable keeps package.json's name.
+    expect(channelPlan("stable").env).not.toHaveProperty("FLEXTAB_EXT_NAME")
+  })
+})
+
+describe("the dev build", () => {
+  const plan = channelPlan("dev")
+
+  it("is FlexTab Dev in build/<target>-dev, against the dev API", () => {
+    expect(resolveChannel(["--channel=dev"], {})).toBe("dev")
+    expect(plan.tag).toBe("dev")
+    expect(builtManifest(plan).name).toBe("FlexTab Dev")
+    expect(DEV_API_URL).toBe("https://api-dev.flextabmanager.com")
+    expect(plan.env.PLASMO_PUBLIC_API_URL).toBe(DEV_API_URL)
+    expect(plan.env.PLASMO_PUBLIC_API_HOST).toBe(`${DEV_API_URL}/*`)
+    expect(plan.env.PLASMO_PUBLIC_FLEXTAB_CHANNEL).toBe("dev")
+  })
+
+  it("runs its content scripts on the dev API host, and stable keeps the production host", () => {
+    const built = { name: "x", content_scripts: [{ matches: [PROD_API_MATCH], js: ["a.js"] }, { matches: ["https://other.example/*"], js: ["b.js"] }] }
+    expect(patchManifest(built, "dev").content_scripts).toEqual([
+      { matches: [`${DEV_API_URL}/*`], js: ["a.js"] },
+      { matches: ["https://other.example/*"], js: ["b.js"] },
+    ])
+    expect(patchManifest(built, "stable")).toEqual(built)
+    // The content script the patch exists for is still written for the production host.
+    expect(readFileSync(resolve(__dirname, "../src/contents/auth-capture.ts"), "utf8")).toContain(`matches: ["${PROD_API_MATCH}"]`)
+  })
+
+  it("never carries the store's Firefox add-on id", () => {
+    expect(builtManifest(plan, "firefox").browser_specific_settings?.gecko?.id).toBeUndefined()
   })
 })
 
@@ -83,6 +118,10 @@ describe("the Firefox manifest", () => {
         optional: ["personallyIdentifyingInfo", "authenticationInfo", "bookmarksInfo", "technicalAndInteraction"],
       },
     })
+  })
+
+  it("asks for Firefox for Android 142, the first that reads data_collection_permissions", () => {
+    expect(firefox.browser_specific_settings.gecko_android).toEqual({ strict_min_version: "142.0" })
   })
 
   it("drops the Chrome-only favicon permission for Firefox and keeps the rest", () => {

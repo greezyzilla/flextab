@@ -6,6 +6,8 @@ vi.mock("~src/services/api", () => ({
   getDeviceId: vi.fn(async () => "device"),
   pushSync: vi.fn(),
   fetchSyncRevision: vi.fn(async () => 1),
+  serveTokenRefresh: vi.fn(),
+  waitForTokenRefresh: vi.fn(async () => {}),
 }));
 
 const deferred = <T,>() => {
@@ -102,6 +104,34 @@ describe("production background push", () => {
     await background.pushStructuredData();
     expect(api.pushSync).not.toHaveBeenCalled();
     expect(disk.flextab_push_pending).toBe(true);
+  });
+
+  it("marks a save pending, not failed, until the debounced upload runs", async () => {
+    await edit([space("new")]);
+    expect(disk.flextab_push_pending).toBe(true);
+    expect(disk.flextab_push_failed).toBeUndefined();
+    vi.mocked(api.pushSync).mockResolvedValueOnce({ status: "ok", revision: 2 });
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(disk.flextab_push_pending).toBeUndefined();
+    expect(disk.flextab_push_failed).toBeUndefined();
+  });
+
+  it("marks a failed upload and clears the mark once a push lands", async () => {
+    await edit([space("new")]);
+    vi.mocked(api.pushSync).mockResolvedValueOnce({ status: "error" });
+    await background.pushStructuredData();
+    expect(disk.flextab_push_failed).toBe(true);
+    vi.mocked(api.pushSync).mockResolvedValueOnce({ status: "ok", revision: 2 });
+    await background.pushStructuredData();
+    expect(disk.flextab_push_failed).toBeUndefined();
+  });
+
+  it("marks an upload that threw as failed", async () => {
+    await edit([space("new")]);
+    vi.mocked(api.pushSync).mockRejectedValueOnce(new Error("network"));
+    await background.pushStructuredData();
+    expect(disk.flextab_push_pending).toBe(true);
+    expect(disk.flextab_push_failed).toBe(true);
   });
 
   it("retains an offline empty deletion and retries it on worker startup", async () => {
@@ -223,7 +253,7 @@ describe("production background push", () => {
     const second = deferred<any>();
     vi.mocked(api.pushSync).mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
     const a = [space("a")];
-    const b = [space("a", "B"), space("b")];
+    const b = [space("a", "B"), { ...space("b"), order: 1 }];
     await edit(a);
     const run = background.pushStructuredData();
     await until(() => vi.mocked(api.pushSync).mock.calls.length === 1);

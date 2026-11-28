@@ -1,4 +1,5 @@
 import { configDefaults, defineConfig } from 'vitest/config';
+import { playwright } from '@vitest/browser-playwright';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
@@ -7,6 +8,9 @@ export default defineConfig({
   test: {
     globals: true,
     css: true,
+    // Vitest 5 clears mock calls before every test by default. Tests read the
+    // listeners modules register on chrome.* at import, so keep the calls.
+    clearMocks: false,
     // Two projects in one gate: the jsdom unit/component tests, and the few
     // checks that need a real rendering engine (`*.browser.test.tsx`, e.g. the
     // colour-contrast guard: oklch relative colours, color-mix and composited
@@ -28,7 +32,7 @@ export default defineConfig({
           include: ['src/**/*.browser.test.{ts,tsx}'],
           browser: {
             enabled: true,
-            provider: 'playwright',
+            provider: playwright(),
             headless: true,
             screenshotFailures: false,
             instances: [{ browser: 'chromium' }],
@@ -57,10 +61,12 @@ export default defineConfig({
       // so adding covered code cannot dilute existing gaps. Critical files have
       // additional per-file floors. See docs/quality-gates.md before changing.
       thresholds: {
-        statements: -328,
-        lines: -328,
-        functions: -23,
-        branches: -165,
+        // Vitest 5 measurement (2026-11-26), after behaviour tests brought the
+        // critical sync files back to the floors they had under Vitest 3.
+        statements: -171,
+        lines: -90,
+        functions: -33,
+        branches: -184,
         'src/services/{importWorkspace,landedSnapshot,syncPolicy,workspaceBackup}.ts': {
           statements: 100, lines: 100, functions: 100, branches: 100,
         },

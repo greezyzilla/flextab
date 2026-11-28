@@ -41,7 +41,9 @@ function pathParts(url: string): string[] {
 
 export function describeChange(before: { title: string; url: string }, after: { title?: string; url?: string }): Change {
   const a = words(before.title), b = words(after.title || before.title)
-  let { p, s } = diff(a, b)
+  const ends = diff(a, b)
+  let p = ends.p
+  const s = ends.s
   let from = a.slice(p, a.length - s), to = b.slice(p, b.length - s)
 
   if (from.length === 0 && to.length === 0) {

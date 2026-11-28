@@ -45,7 +45,7 @@ export async function getDeviceId(): Promise<string> {
 
 export async function loadTokens(): Promise<TokenData | null> {
   try {
-    const result = await chrome.storage.local.get("auth_tokens");
+    const result = await chrome.storage.local.get<{ auth_tokens?: TokenData }>("auth_tokens");
     tokenData = result.auth_tokens ?? null;
   } catch (_) {
     tokenData = null;
@@ -87,10 +87,75 @@ function isTokenExpired(): boolean {
   return Date.now() / 1000 >= tokenData.expires_at - 60;
 }
 
+// The background worker is the one context that refreshes the session. The
+// server rotates refresh tokens strictly: the old token stops working the moment
+// a refresh reaches it. A popup closes itself right after a save, and a new tab
+// can be closed at any time; a refresh sent from either can rotate the token on
+// the server and then lose the reply, leaving nothing stored that still works,
+// so the next refresh anywhere is refused and the device is signed out. The
+// worker outlives those pages: pages ask it and wait, it stores the new pair.
+const REFRESH_MESSAGE = "flextab:refresh-tokens";
+let refreshOwner = false;
+
+type RefreshReply = { status: "ok"; tokens: TokenData } | { status: "expired" } | { status: "unavailable" };
+
+function validPair(t: unknown): t is TokenData {
+  const x = t as TokenData | null;
+  return !!x && typeof x.access_token === "string" && !!x.access_token &&
+    typeof x.refresh_token === "string" && !!x.refresh_token &&
+    typeof x.expires_at === "number" && Number.isFinite(x.expires_at) && x.expires_at > Date.now() / 1000;
+}
+
+/** The worker's answer to a page whose token needs refreshing. Never rejects. */
+async function refreshForPage(attempted: unknown): Promise<RefreshReply> {
+  await loadTokens();
+  if (!tokenData?.refresh_token) return { status: "expired" };
+  // Another context already rotated the pair the page holds: hand it over.
+  if (tokenData.refresh_token !== attempted && !isTokenExpired()) return { status: "ok", tokens: tokenData };
+  if (!refreshPromise) {
+    refreshPromise = refreshTokensHere(tokenData.refresh_token).finally(() => { refreshPromise = null; });
+  }
+  try {
+    const tokens = await refreshPromise;
+    return tokens ? { status: "ok", tokens } : { status: "expired" };
+  } catch {
+    return { status: "unavailable" };
+  }
+}
+
+/** Called once by the background worker: it refreshes for every other context. */
+export function serveTokenRefresh(): void {
+  refreshOwner = true;
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message?.type !== REFRESH_MESSAGE || sender.id !== chrome.runtime.id) return;
+    void refreshForPage(message.attempted).then(sendResponse);
+    return true; // answers asynchronously
+  });
+}
+
+async function askWorkerToRefresh(attempted: string): Promise<RefreshReply | null> {
+  try {
+    const reply = await chrome.runtime.sendMessage({ type: REFRESH_MESSAGE, attempted });
+    if (reply?.status === "ok" && validPair(reply.tokens)) return reply as RefreshReply;
+    if (reply?.status === "expired" || reply?.status === "unavailable") return reply as RefreshReply;
+  } catch (_) { /* no worker answered */ }
+  return null;
+}
+
 async function refreshTokens(): Promise<TokenData | null> {
   if (!tokenData?.refresh_token) return null;
-  const attemptedRefreshToken = tokenData.refresh_token;
+  if (!refreshOwner) {
+    const reply = await askWorkerToRefresh(tokenData.refresh_token);
+    if (reply?.status === "ok") { tokenData = reply.tokens; return reply.tokens; }
+    // The worker already marked the session expired and cleared the stored pair.
+    if (reply?.status === "expired") { tokenData = null; return null; }
+    if (reply?.status === "unavailable") throw new RefreshUnavailableError();
+    // No worker answered (it should always be there): refresh here instead.
+  }
+  return refreshTokensHere(tokenData.refresh_token);
+}
 
+async function refreshTokensHere(attemptedRefreshToken: string): Promise<TokenData | null> {
   try {
     const res = await http(`${API_BASE_URL}/api/auth/refresh`, {
       method: "POST",
@@ -101,12 +166,7 @@ async function refreshTokens(): Promise<TokenData | null> {
 
     if (res.ok) {
       const newTokens: TokenData = await res.json();
-      if (!newTokens || typeof newTokens.access_token !== "string" || !newTokens.access_token ||
-          typeof newTokens.refresh_token !== "string" || !newTokens.refresh_token ||
-          typeof newTokens.expires_at !== "number" || !Number.isFinite(newTokens.expires_at) ||
-          newTokens.expires_at <= Date.now() / 1000) {
-        throw new RefreshUnavailableError();
-      }
+      if (!validPair(newTokens)) throw new RefreshUnavailableError();
       await saveTokens(newTokens);
       return newTokens;
     }

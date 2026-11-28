@@ -1,7 +1,6 @@
 import { render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it } from "vitest"
 
-import config from "../../../package.json"
 import { AppVersion } from "./panelChrome"
 
 const runtime = chrome.runtime as unknown as { getManifest?: () => chrome.runtime.Manifest }
@@ -28,9 +27,9 @@ describe("AppVersion", () => {
     expect(screen.getByText("FlexTab v0.2.0")).toBeInTheDocument()
   })
 
-  it("falls back to package.json outside the extension", () => {
+  it("shows 0.0.0 outside the extension, where there is no manifest", () => {
     runtime.getManifest = undefined
     render(<AppVersion />)
-    expect(screen.getByText(`FlexTab v${config.version}`)).toBeInTheDocument()
+    expect(screen.getByText("FlexTab v0.0.0")).toBeInTheDocument()
   })
 })

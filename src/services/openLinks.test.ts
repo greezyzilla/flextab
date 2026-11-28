@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { mockedAsync } from "~src/test/chromeMocks"
 import { bestSameHostMatch, continuationTabs, findLinkedTab, getOpenLink, noteJustUpdated, recordOpenLinks, restoreLinkedTab, sameHostTabs, updateLinkedTab, type OpenLink } from "./openLinks"
 import * as yjs from "~src/lib/yjsDoc"
 import { openGroupTabs, openOrFocus } from "./openTab"
@@ -16,7 +17,7 @@ beforeEach(() => {
 
 describe("open links", () => {
   it("records links and drops those of tabs that are gone", async () => {
-    vi.mocked(chrome.tabs.query).mockResolvedValue([{ id: 1 }, { id: 2 }] as chrome.tabs.Tab[])
+    mockedAsync<chrome.tabs.Tab[]>(chrome.tabs.query).mockResolvedValue([{ id: 1 }, { id: 2 }] as chrome.tabs.Tab[])
     await recordOpenLinks([[1, link("a")], [3, link("c")]])
     expect(await getOpenLink(1)).toEqual(link("a"))
     expect(await getOpenLink(3)).toBeNull()
@@ -42,12 +43,12 @@ describe("open links", () => {
   })
 
   it("openOrFocus and openGroupTabs remember which saved tab each browser tab came from", async () => {
-    vi.mocked(chrome.tabs.query).mockResolvedValue([{ id: 11 }, { id: 21 }, { id: 22 }] as chrome.tabs.Tab[])
+    mockedAsync<chrome.tabs.Tab[]>(chrome.tabs.query).mockResolvedValue([{ id: 11 }, { id: 21 }, { id: 22 }] as chrome.tabs.Tab[])
     vi.mocked(chrome.tabs.create).mockResolvedValueOnce({ id: 11 } as never)
     await openOrFocus("https://anime.test/show/episode/1", link("a"))
     expect(await getOpenLink(11)).toEqual(link("a"))
 
-    vi.mocked(chrome.windows.getCurrent).mockResolvedValue({ id: 9 } as chrome.windows.Window)
+    mockedAsync<chrome.windows.Window>(chrome.windows.getCurrent).mockResolvedValue({ id: 9 } as chrome.windows.Window)
     vi.mocked(chrome.tabs.create).mockResolvedValueOnce({ id: 21 } as never).mockResolvedValueOnce({ id: 22 } as never)
     await openGroupTabs(["https://x.test/1", "https://x.test/2"], "here", { title: "G" }, false, [link("b"), link("c")])
     expect(await getOpenLink(21)).toEqual(link("b"))

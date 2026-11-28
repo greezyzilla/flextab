@@ -364,3 +364,108 @@ describe('binary state + persistence', () => {
     expect(afterIds).toEqual(['peer-tab', 't1', 't2']);
   });
 });
+
+// A UI action can land after sync removed or moved its target (another device
+// deleted the group, a peer tab moved the tab). Each such action must leave the
+// workspace exactly as it is: no partial move, no recreated item, no write.
+describe('mutations aimed at items that are no longer there', () => {
+  const g = (id: string) => ({ id, name: id, order: 0, tabs: [] });
+  const c = (id: string) => ({ id, name: id, order: 0, groups: [] });
+  it.each<[string, () => void]>([
+    ['remove a missing space', () => y.removeSpace('ghost')],
+    ['remove a project from a missing space', () => y.removeProject('ghost', 'p1')],
+    ['remove a missing project', () => y.removeProject('s1', 'ghost')],
+    ['remove a category from a missing project', () => y.removeCategory('s1', 'ghost', 'c1')],
+    ['remove a missing category', () => y.removeCategory('s1', 'p1', 'ghost')],
+    ['update a category under a missing project', () => y.updateCategory('s1', 'ghost', c('c1'))],
+    ['update a missing category', () => y.updateCategory('s1', 'p1', c('ghost'))],
+    ['remove a group from a missing category', () => y.removeGroup('s1', 'p1', 'ghost', 'g1')],
+    ['remove a missing group', () => y.removeGroup('s1', 'p1', 'c1', 'ghost')],
+    ['update a group under a missing category', () => y.updateGroup('s1', 'p1', 'ghost', g('g1'))],
+    ['update a missing group', () => y.updateGroup('s1', 'p1', 'c1', g('ghost'))],
+    ['remove a tab from a missing group', () => y.removeTab('s1', 'p1', 'c1', 'ghost', 't1')],
+    ['remove a missing tab', () => y.removeTab('s1', 'p1', 'c1', 'g1', 'ghost')],
+    ['update a tab in a missing group', () => y.updateTab('s1', 'p1', 'c1', 'ghost', tab('t1'))],
+    ['move a tab within a missing category', () => y.moveTabBetweenGroups('s1', 'p1', 'ghost', 'g1', 'g2', 't1')],
+    ['move a tab to a missing group', () => y.moveTabBetweenGroups('s1', 'p1', 'c1', 'g1', 'ghost', 't1')],
+    ['move a tab that left its group', () => y.moveTabBetweenGroups('s1', 'p1', 'c1', 'g1', 'g2', 't3')],
+    ['move a group to a missing category', () => y.moveGroupToCategory('s1', 'p1', 'c1', 'g1', 's1', 'p1', 'ghost')],
+    ['move a group that left its category', () => y.moveGroupToCategory('s1', 'p1', 'c2', 'g1', 's1', 'p1', 'c1')],
+    ['move a tab across to a missing group', () => y.moveTabCrossBoundary('s1', 'p1', 'c1', 'g1', 't1', 's2', 'p3', 'c4', 'ghost')],
+    ['move a tab across that left its group', () => y.moveTabCrossBoundary('s1', 'p1', 'c1', 'g2', 't1', 's2', 'p3', 'c4', 'g3')],
+    ['move a category to a missing project', () => y.moveCategoryToProject('s1', 'p1', 'c1', 's1', 'ghost')],
+    ['move a category that left its project', () => y.moveCategoryToProject('s1', 'p2', 'c1', 's2', 'p3')],
+    ['move a project to a missing space', () => y.moveProjectToSpace('s1', 'p1', 'ghost')],
+    ['move a project that left its space', () => y.moveProjectToSpace('s2', 'p1', 's1')],
+  ])('%s', (_, act) => {
+    const before = y.getSpaces();
+    const before64 = y.encodeState().length;
+    act();
+    expect(y.getSpaces()).toEqual(before);
+    expect(y.encodeState().length).toBe(before64);
+  });
+});
+
+describe('external updates that cannot be applied', () => {
+  it('ignores an empty or malformed update', () => {
+    const before = y.getSpaces();
+    expect(y.applyExternalPersistUpdate([], 'page')).toBe(false);
+    expect(y.applyExternalPersistUpdate('not bytes' as unknown as number[], 'snapshot')).toBe(false);
+    expect(y.getSpaces()).toEqual(before);
+  });
+
+  it('keeps the live workspace when a snapshot cannot be decoded', () => {
+    const before = y.getSpaces();
+    expect(y.applyExternalPersistUpdate([1, 2, 3, 250, 251], 'snapshot')).toBe(false);
+    expect(y.getSpaces()).toEqual(before);
+  });
+
+  it('keeps the live workspace when a peer update is corrupt, and still saves later edits', async () => {
+    const before = y.getSpaces();
+    expect(y.applyExternalPersistUpdate([255, 255, 255, 255, 255, 255], 'page')).toBe(false);
+    expect(y.getSpaces()).toEqual(before);
+    (chrome.storage.local.set as any).mockClear();
+    await y.persistState();
+    expect(chrome.storage.local.set).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets a flush finish even when the write it waits for fails', async () => {
+    (chrome.storage.local.set as any).mockRejectedValueOnce(new Error('quota'));
+    const write = y.persistState().catch((e: Error) => e);
+    await expect(y.flushPersist()).resolves.toBeUndefined();
+    expect(await write).toBeInstanceOf(Error);
+  });
+});
+
+describe('the external persist bridge', () => {
+  it('does not install without storage change events', async () => {
+    vi.resetModules();
+    const saved = chrome.storage.onChanged;
+    const add = vi.fn();
+    (chrome.storage as any).onChanged = undefined;
+    try {
+      const fresh = await import('./yjsDoc');
+      fresh.installExternalPersistBridge();
+    } finally {
+      (chrome.storage as any).onChanged = saved;
+    }
+    expect(add).not.toHaveBeenCalled();
+  });
+
+  it('ignores a legacy update whose stored origin it does not recognise', async () => {
+    vi.resetModules();
+    const fresh = await import('./yjsDoc');
+    fresh.setSpaces(tree());
+    const add = chrome.storage.onChanged.addListener as any;
+    add.mockClear();
+    fresh.installExternalPersistBridge();
+    const listener = add.mock.calls[0][0];
+    const other = fresh.decodeSpacesFromStorage(fresh.encodeSpacesAsStorage(tree()));
+    other[0].name = 'Changed elsewhere';
+    const bytes = fresh.encodeSpacesAsStorage(other);
+    (chrome.storage.local.get as any).mockResolvedValueOnce({ [fresh.PERSIST_KEY]: bytes, [fresh.PERSIST_ORIGIN_KEY]: 'importer' });
+    listener({ [fresh.PERSIST_KEY]: { newValue: bytes } }, 'local');
+    await new Promise((r) => setTimeout(r, 0));
+    expect(fresh.getSpaces()[0].name).toBe('S1');
+  });
+});

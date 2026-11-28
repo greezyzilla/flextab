@@ -3,9 +3,7 @@ import { useSyncConflict } from "~src/store/useSyncConflict"
 import { tabCap, usePlanStore } from "~src/store/usePlanStore"
 import { resolveConflict } from "~src/services/syncEngine"
 import { mergeSpacesGuest } from "~src/services/spacesMerge"
-import { spaceTabCount } from "~src/services/spacesTree"
 import { exportWorkspace } from "~src/services/exportWorkspace"
-import type { SavedSpace } from "~src/types"
 import { RadioGroup } from "~src/components/ui/radio-group"
 import { SourceColumn, tabCount, tabsLabel } from "~src/components/WorkspaceTree"
 import { Modal, ModalFooter, ModalHeader, ModalLink, ModalOptionCard } from "~src/components/ui/modal"
@@ -87,7 +85,7 @@ export function SyncConflictModal() {
       {/* Lower the anxiety of removing: a copy first, in one click, kept apart
           from the destructive primary (start vs end). */}
       <ModalFooter
-        start={deviceRemoved ? <ModalLink onClick={() => exportWorkspace()}>Download this device's tabs first</ModalLink> : undefined}
+        start={deviceRemoved ? <ModalLink onClick={() => exportWorkspace()}>Download this device&apos;s tabs first</ModalLink> : undefined}
         primary={{ label: chosen.label, tone: deviceRemoved || accountRemoved ? "destructive" : "primary", onClick: () => resolveConflict(choice) }} />
     </Modal>
   )

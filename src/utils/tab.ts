@@ -8,7 +8,7 @@ export type TabInfo = chrome.tabs.Tab
 export interface TabGroup {
   id: number
   title?: string
-  color: chrome.tabGroups.ColorEnum
+  color: `${chrome.tabGroups.Color}`
   collapsed: boolean
   windowId: number
 }
@@ -17,11 +17,11 @@ export interface TabGroup {
  * Tab Event Listeners and Monitoring
  */
 export class TabEventManager {
-  static onTabUpdated(callback: (tabId: number, changeInfo: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab) => void): void {
+  static onTabUpdated(callback: (tabId: number, changeInfo: chrome.tabs.OnUpdatedInfo, tab: chrome.tabs.Tab) => void): void {
     chrome.tabs.onUpdated.addListener(callback)
   }
 
-  static removeTabUpdatedListener(callback: (tabId: number, changeInfo: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab) => void): void {
+  static removeTabUpdatedListener(callback: (tabId: number, changeInfo: chrome.tabs.OnUpdatedInfo, tab: chrome.tabs.Tab) => void): void {
     chrome.tabs.onUpdated.removeListener(callback)
   }
 
@@ -33,27 +33,27 @@ export class TabEventManager {
     chrome.tabs.onCreated.removeListener(callback)
   }
 
-  static onTabRemoved(callback: (tabId: number, removeInfo: chrome.tabs.TabRemoveInfo) => void): void {
+  static onTabRemoved(callback: (tabId: number, removeInfo: chrome.tabs.OnRemovedInfo) => void): void {
     chrome.tabs.onRemoved.addListener(callback)
   }
 
-  static removeTabRemovedListener(callback: (tabId: number, removeInfo: chrome.tabs.TabRemoveInfo) => void): void {
+  static removeTabRemovedListener(callback: (tabId: number, removeInfo: chrome.tabs.OnRemovedInfo) => void): void {
     chrome.tabs.onRemoved.removeListener(callback)
   }
 
-  static onTabActivated(callback: (activeInfo: chrome.tabs.TabActiveInfo) => void): void {
+  static onTabActivated(callback: (activeInfo: chrome.tabs.OnActivatedInfo) => void): void {
     chrome.tabs.onActivated.addListener(callback)
   }
 
-  static removeTabActivatedListener(callback: (activeInfo: chrome.tabs.TabActiveInfo) => void): void {
+  static removeTabActivatedListener(callback: (activeInfo: chrome.tabs.OnActivatedInfo) => void): void {
     chrome.tabs.onActivated.removeListener(callback)
   }
 
-  static onTabMoved(callback: (tabId: number, moveInfo: chrome.tabs.TabMoveInfo) => void): void {
+  static onTabMoved(callback: (tabId: number, moveInfo: chrome.tabs.OnMovedInfo) => void): void {
     chrome.tabs.onMoved.addListener(callback)
   }
 
-  static removeTabMovedListener(callback: (tabId: number, moveInfo: chrome.tabs.TabMoveInfo) => void): void {
+  static removeTabMovedListener(callback: (tabId: number, moveInfo: chrome.tabs.OnMovedInfo) => void): void {
     chrome.tabs.onMoved.removeListener(callback)
   }
 }

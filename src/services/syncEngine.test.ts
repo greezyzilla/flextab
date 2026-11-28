@@ -134,6 +134,28 @@ describe('startSyncEngine', () => {
     expect(useSyncStore.getState().dirty).toBe(false);
   });
 
+  it('waits for the saved settings before deciding whether auto-sync is on', async () => {
+    let finish!: () => void;
+    const unsub = vi.fn();
+    const hydrated = vi.spyOn(useSettingsStore.persist, 'hasHydrated').mockReturnValue(false);
+    const onFinish = vi.spyOn(useSettingsStore.persist, 'onFinishHydration').mockImplementation((fn) => { finish = () => fn(useSettingsStore.getState()); return unsub; });
+    try {
+      (apiFetch as any).mockResolvedValue({ spaces: [], revision: 1 });
+      const started = startSyncEngine();
+      await flush();
+      expect(apiFetch).not.toHaveBeenCalled();
+      useSettingsStore.setState({ autoSync: false }); // the saved choice turns out to be off
+      finish();
+      await started;
+      expect(unsub).toHaveBeenCalled();
+      expect(apiFetch).not.toHaveBeenCalled();
+      expect(FakeWS.instances).toHaveLength(0);
+    } finally {
+      hydrated.mockRestore();
+      onFinish.mockRestore();
+    }
+  });
+
   it('does nothing when unauthenticated', async () => {
     (useAuthStore.getState as any).mockReturnValue({ isAuthenticated: false });
     await startSyncEngine();
@@ -748,11 +770,19 @@ describe('realtime + lifecycle', () => {
     expect(() => FakeWS.instances[0].onerror?.()).not.toThrow();
   });
 
-  it('stopSyncEngine disconnects, clears the hydrated flag, and pauses', async () => {
+  it('stopSyncEngine disconnects and pauses, and leaves the hydration gate of the sign-in alone', async () => {
     await connect();
     stopSyncEngine();
     expect(useSyncStore.getState().status).toBe('paused');
-    expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_sync_hydrated');
+    // A closed page must not hold the device's uploads: only sign-in and
+    // sign-out clear the gate.
+    expect(chrome.storage.local.remove).not.toHaveBeenCalledWith('flextab_sync_hydrated');
+  });
+
+  it('a page that starts does not clear the hydration gate an earlier reconcile set', async () => {
+    vi.mocked(chrome.storage.local.remove).mockClear();
+    await connect();
+    expect(chrome.storage.local.remove).not.toHaveBeenCalledWith('flextab_sync_hydrated');
   });
 
   it('stopSyncEngine does NOT clear the merge base — it runs on every auth drop (real or transient, e.g. a refresh-token race), not just a real sign-out', async () => {
@@ -949,6 +979,48 @@ describe('syncNow', () => {
     expect(await getMergeBase()).toEqual(original);
     expect(useSyncStore.getState().dirty).toBe(true);
     expect(pushSync).toHaveBeenCalledTimes(1);
+  });
+
+  it('merges what another device pushed meanwhile and uploads both, when the upload meets a 409', async () => {
+    useSettingsStore.setState({ autoSync: false });
+    const disk: Record<string, unknown> = {};
+    (chrome.storage.local.get as any).mockImplementation(async (key: string | string[]) =>
+      Object.fromEntries([key].flat().filter(k => k in disk).map(k => [k, structuredClone(disk[k])])));
+    (chrome.storage.local.set as any).mockImplementation(async (values: Record<string, unknown>) => { Object.assign(disk, structuredClone(values)); });
+    (chrome.storage.local.remove as any).mockImplementation(async (key: string | string[]) => { for (const k of [key].flat()) delete disk[k]; });
+    setSpaces([localSpace('mine', [{ id: 't1' }])]);
+    (apiFetch as any).mockResolvedValue({ spaces: [], revision: 1 });
+    vi.mocked(pushSync)
+      .mockResolvedValueOnce({ status: 'conflict', revision: 3, spaces: [localSpace('theirs', [{ id: 't9' }])] } as any)
+      .mockResolvedValueOnce({ status: 'ok', revision: 4 });
+    expect(await syncNow()).toEqual({ status: 'ok' });
+    expect(pushSync).toHaveBeenCalledTimes(2);
+    const second = vi.mocked(pushSync).mock.calls[1];
+    expect((second[0] as any[]).map(s => s.id).sort()).toEqual(['mine', 'theirs']);
+    expect(second[1]).toBe(3);
+    expect(getSpaces().map(s => s.id).sort()).toEqual(['mine', 'theirs']);
+  });
+
+  it('stops and asks when the 409 holds an edit that clashes with this device', async () => {
+    useSettingsStore.setState({ autoSync: false });
+    const disk: Record<string, unknown> = {};
+    (chrome.storage.local.get as any).mockImplementation(async (key: string | string[]) =>
+      Object.fromEntries([key].flat().filter(k => k in disk).map(k => [k, structuredClone(disk[k])])));
+    (chrome.storage.local.set as any).mockImplementation(async (values: Record<string, unknown>) => { Object.assign(disk, structuredClone(values)); });
+    const titled = (title: string) => {
+      const space: any = localSpace('s', [{ id: 't1' }]);
+      space.projects[0].categories[0].groups[0].tabs[0].title = title;
+      return space;
+    };
+    setSpaces([titled('Base')]);
+    await setMergeBase(getSpaces());
+    setSpaces([titled('Mine')]);
+    (apiFetch as any).mockResolvedValue({ spaces: [{ ...beSpace('s', [{ id: 't1' }]), projects: titled('Base').projects }], revision: 1 });
+    vi.mocked(pushSync).mockResolvedValueOnce({ status: 'conflict', revision: 2, spaces: [titled('Theirs')] } as any);
+    expect(await syncNow()).toEqual({ status: 'conflict' });
+    expect(pushSync).toHaveBeenCalledTimes(1);
+    expect(getSpaces()[0].projects[0].categories[0].groups[0].tabs[0].title).toBe('Mine');
+    expect(disk.flextab_occ_conflict).toEqual(expect.objectContaining({ conflicts: [expect.objectContaining({ field: 'title' })] }));
   });
 
   it('reports signed_out when unauthenticated', async () => {
@@ -1177,6 +1249,31 @@ describe('local persistence', () => {
     (chrome.storage.local.set as any).mockClear();
     addSpace({ id: 'y', name: 'Y', order: 0, projects: [] });
     expect(chrome.storage.local.set).not.toHaveBeenCalledWith(expect.objectContaining({ flextab_yjs_state: expect.anything() }));
+  });
+
+  it('shows Local only, not Offline, once the session ends', async () => {
+    startLocalPersistence();
+    useSyncStore.getState().setStatus('offline');
+    const signedIn = { isAuthenticated: true }, signedOut = { isAuthenticated: false };
+    (useAuthStore.getState as any).mockReturnValue(signedOut);
+    authListeners.forEach(fn => fn(signedOut, signedIn));
+    expect(useSyncStore.getState().status).toBe('paused');
+    useSyncStore.getState().setStatus('online');
+    authListeners.forEach(fn => fn(signedOut, signedOut)); // no session change: status untouched
+    expect(useSyncStore.getState().status).toBe('online');
+    stopLocalPersistence();
+  });
+
+  it('re-checks unsynced changes when another context moves the merge-base', async () => {
+    startLocalPersistence();
+    addSpace(localSpace('a', [{ id: 't1' }]));
+    await flush();
+    expect(useSyncStore.getState().dirty).toBe(true);
+    await setMergeBase(getSpaces()); // what a background push landing does
+    const onChanged = vi.mocked(chrome.storage.onChanged.addListener).mock.calls.map(c => c[0]);
+    for (const listener of onChanged) listener({ flextab_merge_base: { newValue: getSpaces() } }, 'local');
+    await vi.waitFor(() => expect(useSyncStore.getState().dirty).toBe(false));
+    stopLocalPersistence();
   });
 
   it('flags dirty when local drifts from the merge-base, and never when signed out', async () => {

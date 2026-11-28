@@ -2,6 +2,7 @@ import { getSpaces, setSpaces } from "~src/lib/yjsDoc";
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useAuthStore } from './useAuthStore';
 import { clearTokens, saveTokens } from '~src/services/api';
+import { toast } from 'sonner';
 
 const GUEST_KEY = 'flextab_guest_mode';
 
@@ -38,7 +39,7 @@ describe('local-first sign-out', () => {
     await useAuthStore.getState().logout({ localData: 'keep' });
     expect(getSpaces()[0].name).toBe('Mine');
     expect(useAuthStore.getState().isAuthenticated).toBe(false);
-    expect(chrome.storage.local.remove).toHaveBeenCalledWith(['flextab_sync_hydrated', 'flextab_fresh_login', 'flextab_landed_snapshot', 'flextab_limit_notice', 'flextab_resolution_push']);
+    expect(chrome.storage.local.remove).toHaveBeenCalledWith(['flextab_sync_hydrated', 'flextab_fresh_login', 'flextab_landed_snapshot', 'flextab_limit_notice', 'flextab_resolution_push', 'flextab_push_failed']);
     expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_sync_revision');
     // No base afterwards: the next sign-in, to any account, reconciles explicitly,
     // and must ask before these tabs go anywhere.
@@ -50,7 +51,7 @@ describe('local-first sign-out', () => {
     setSpaces([{ id: 'local', name: 'Mine', projects: [] }]);
     await useAuthStore.getState().logout({ localData: 'remove' });
     expect(getSpaces()).toEqual([]);
-    expect(chrome.storage.local.remove).toHaveBeenCalledWith(['flextab_sync_hydrated', 'flextab_fresh_login', 'flextab_landed_snapshot', 'flextab_limit_notice', 'flextab_resolution_push', 'spaces']);
+    expect(chrome.storage.local.remove).toHaveBeenCalledWith(['flextab_sync_hydrated', 'flextab_fresh_login', 'flextab_landed_snapshot', 'flextab_limit_notice', 'flextab_resolution_push', 'flextab_push_failed', 'spaces']);
     expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_merge_base');
     expect(chrome.storage.local.remove).toHaveBeenCalledWith('flextab_kept_on_signout');
   });
@@ -99,6 +100,23 @@ describe('login flows', () => {
     expect(chrome.tabs.create).not.toHaveBeenCalled();
   });
 
+  it('tells the user when the worker refuses to start sign-in', async () => {
+    const error = vi.spyOn(toast, 'error').mockImplementation(() => 0 as any);
+    vi.mocked(chrome.runtime.sendMessage).mockResolvedValueOnce({ ok: false } as never);
+    await useAuthStore.getState().loginWithGoogle();
+    expect(error).toHaveBeenCalledWith('Sign-in could not start. Please try again.');
+    expect(useAuthStore.getState().isAuthenticated).toBe(false);
+    error.mockRestore();
+  });
+
+  it('tells the user when the worker cannot be reached', async () => {
+    const error = vi.spyOn(toast, 'error').mockImplementation(() => 0 as any);
+    vi.mocked(chrome.runtime.sendMessage).mockRejectedValueOnce(new Error('Receiving end does not exist.'));
+    await useAuthStore.getState().loginWithGithub();
+    expect(error).toHaveBeenCalledWith('Sign-in could not start. Please try again.');
+    error.mockRestore();
+  });
+
   it('loginWithEmail authenticates and flags a fresh login', async () => {
     (global.fetch as any)
       .mockResolvedValueOnce(jsonRes(tokens()))                                              // apiLogin
@@ -119,6 +137,33 @@ describe('chrome.storage.onChanged listener', () => {
     useAuthStore.setState({ isAuthenticated: true, user: { id: 'u' } as any });
     await fireChange({ auth_tokens: { newValue: null } });
     expect(useAuthStore.getState().isAuthenticated).toBe(false);
+  });
+
+  it('ignores local changes that do not touch the tokens', async () => {
+    useAuthStore.setState({ isAuthenticated: true, user: { id: 'u' } as any });
+    await fireChange({ flextab_user: { newValue: null } });
+    expect(useAuthStore.getState()).toMatchObject({ isAuthenticated: true, user: { id: 'u' } });
+  });
+
+  it('ignores a token removal while already signed out, and a new token while signed in', async () => {
+    useAuthStore.setState({ isAuthenticated: false, user: null });
+    await fireChange({ auth_tokens: { oldValue: tokens(), newValue: undefined } });
+    expect(useAuthStore.getState().isAuthenticated).toBe(false);
+    useAuthStore.setState({ isAuthenticated: true, user: { id: 'u' } as any });
+    await fireChange({ auth_tokens: { newValue: tokens() } });
+    expect(useAuthStore.getState()).toMatchObject({ isAuthenticated: true, user: { id: 'u' } });
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('signs in from a token written elsewhere even when /api/me is unreachable', async () => {
+    useAuthStore.setState({ isAuthenticated: false });
+    (global.fetch as any).mockRejectedValue(new TypeError('Failed to fetch'));
+    const received = tokens();
+    (chrome.storage.local.get as any).mockResolvedValue({ auth_tokens: received });
+    await fireChange({ auth_tokens: { newValue: received } });
+    await vi.waitFor(() => expect(global.fetch).toHaveBeenCalled());
+    await new Promise(r => setTimeout(r, 0));
+    expect(useAuthStore.getState()).toMatchObject({ isAuthenticated: true, user: null });
   });
 
   it('runs the callback when a token appears while unauthenticated', async () => {
@@ -261,6 +306,17 @@ describe('optimistic start from the stored profile', () => {
     expect(useAuthStore.getState().user?.name).toBe('Ayu (stored)');
   });
 
+  it('waits for /api/me when the stored profile cannot be read', async () => {
+    const read = (chrome.storage.local.get as any).getMockImplementation();
+    (chrome.storage.local.get as any).mockImplementation(async (k: any) => {
+      if (k === 'flextab_user') throw new Error('storage unavailable');
+      return read(k);
+    });
+    (global.fetch as any).mockResolvedValue(jsonRes(me));
+    await useAuthStore.getState().initialize();
+    expect(useAuthStore.getState()).toMatchObject({ isLoading: false, isAuthenticated: true, user: me });
+  });
+
   it('waits for /api/me when no profile is stored yet', async () => {
     delete store.flextab_user;
     let answer!: (r: Response) => void;
@@ -295,3 +351,43 @@ describe('optimistic start from the stored profile', () => {
     expect(store.flextab_user.name).toBe('Budi');
   });
 });
+
+describe('without an extension storage event source', () => {
+  it('loads and signs in by email without listening for changes', async () => {
+    vi.resetModules();
+    const saved = chrome.storage.onChanged;
+    (chrome.storage as any).onChanged = undefined;
+    try {
+      const { useAuthStore: fresh } = await import('./useAuthStore');
+      (global.fetch as any)
+        .mockResolvedValueOnce(jsonRes(tokens()))
+        .mockResolvedValueOnce(jsonRes({ id: 'u', email: 'e', name: 'n', avatar: '', provider: 'email', has_password: true }));
+      await fresh.getState().loginWithEmail('e', 'p');
+      expect(fresh.getState().user?.id).toBe('u');
+    } finally {
+      (chrome.storage as any).onChanged = saved;
+    }
+  });
+});
+
+describe('a token refresh in another context', () => {
+  it('is not a sign-in for a page still loading its session', async () => {
+    useAuthStore.setState({ isAuthenticated: false });
+    await fireChange({ auth_tokens: { oldValue: tokens(), newValue: { ...tokens(), refresh_token: 'r2' } } });
+    const set = (chrome.storage.local.set as any).mock.calls.map((c: any[]) => Object.keys(c[0])).flat();
+    const removed = (chrome.storage.local.remove as any).mock.calls.map((c: any[]) => c[0]).flat();
+    expect(set).not.toContain('flextab_fresh_login');
+    expect(removed).not.toContain('flextab_sync_hydrated');
+    expect(removed).not.toContain('flextab_sync_revision');
+  });
+
+  it('tokens appearing where there were none still sign this page in', async () => {
+    useAuthStore.setState({ isAuthenticated: false });
+    const received = tokens();
+    (chrome.storage.local.get as any).mockResolvedValue({ auth_tokens: received });
+    (global.fetch as any).mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: 'u', email: 'a@b.c', name: 'A' }) });
+    await fireChange({ auth_tokens: { newValue: received } });
+    await vi.waitFor(() => expect(useAuthStore.getState().isAuthenticated).toBe(true));
+  });
+});
+

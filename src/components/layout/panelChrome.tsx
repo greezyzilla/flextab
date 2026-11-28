@@ -1,4 +1,3 @@
-import config from "../../../package.json"
 import type { ReactNode } from "react"
 import { Kbd } from "~src/components/ui/kbd"
 import { useUIStore } from "~src/store/useUIStore"
@@ -56,11 +55,13 @@ export function PanelFooter({ start }: { start?: ReactNode }) {
 
 /**
  * The version people see: the manifest's version_name when the build has one,
- * else its version. Outside the extension (tests) it falls back to package.json.
+ * else its version. Outside the extension (tests) there is no manifest: 0.0.0,
+ * like clientVersion. Never import package.json for it: the bundler inlines the
+ * whole file (scripts, dependencies, overrides) into the page.
  */
 function versionText(): string {
   const manifest = typeof chrome !== "undefined" ? chrome.runtime?.getManifest?.() : undefined
-  return manifest?.version_name || manifest?.version || config.version || "0.0.1"
+  return manifest?.version_name || manifest?.version || "0.0.0"
 }
 
 /** "FlexTab v0.1.0", for the footer's left slot in the workspace and Settings. */

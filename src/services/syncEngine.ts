@@ -3,8 +3,8 @@ import { CLIENT_TOO_OLD_CLOSE_CODE, clientQuery, markClientTooOld } from "~src/u
 import { syncStructuredSnapshot } from "./structuredSync";
 import { clearLimitNotice, saveLimitNotice } from "./syncLimit";
 import { recordLandedSnapshot } from "./landedSnapshot";
-import { doc, getSpaces, setSpaces, persistState, installExternalPersistBridge } from "~src/lib/yjsDoc";
-import { spacesSignature } from "~src/lib/spacesSignature";
+import { doc, getSpaces, applySpaces, catchUpFromStorage, persistState, installExternalPersistBridge } from "~src/lib/yjsDoc";
+import { canonicalSpaces, sameTree } from "~src/lib/canonicalSpaces";
 import { isGroupColor } from "~src/lib/groupColors";
 export { spacesSignature } from "~src/lib/spacesSignature";
 import { useAuthStore } from "~src/store/useAuthStore";
@@ -66,7 +66,9 @@ async function recomputeDirty() {
     return;
   }
   const base = await getMergeBase();
-  const dirty = spacesSignature(getSpaces()) !== spacesSignature(base ?? []);
+  // Compared as shown: a list whose stored `order` values differ from the
+  // pushed (renumbered) tree but shows the same is not an unsynced change.
+  const dirty = !sameTree(getSpaces(), base);
   useSyncStore.getState().setDirty(dirty);
 }
 
@@ -133,7 +135,6 @@ function hasRealData(spaces: SavedSpace[]): boolean {
 
 // --- hydration gate (read by the background worker before its structured push) ---
 
-let sessionHydrated = false;
 let engineRunning = false;
 // The server closed the socket as too old: no path reconnects it until
 // the engine starts again, which the page only does once the update arrived.
@@ -154,13 +155,7 @@ function automaticSyncActive() {
 
 function markHydrated() {
   if (!automaticSyncActive()) return;
-  sessionHydrated = true;
   try { void chrome.storage.local.set({ [SYNC_HYDRATED_KEY]: true }); } catch (_) { /* ok */ }
-}
-
-function clearHydrated() {
-  sessionHydrated = false;
-  try { void chrome.storage.local.remove(SYNC_HYDRATED_KEY); } catch (_) { /* ok */ }
 }
 
 // --- reconcile ---
@@ -270,8 +265,15 @@ async function applyResolution(
   const { selectFirst = false, serverConfirmed = false } = opts;
   // Only rewrite the doc when the data actually changed; otherwise the rewrite
   // would persist → push → broadcast → re-pull → push, looping forever.
-  const changed = spacesSignature(spaces) !== spacesSignature(getSpaces());
-  if (changed) setSpaces(spaces);
+  // Item by item, never a whole-tree replace: a tab another context saves
+  // meanwhile must survive (see applySpaces). Persisted before returning, so
+  // the next context to take the sync lock reads this result from storage and
+  // does not insert the same server items a second time.
+  const changed = !sameTree(spaces, getSpaces());
+  if (changed) {
+    applySpaces(canonicalSpaces(spaces));
+    await persistState();
+  }
   // After login, jump to the first space/group; otherwise keep a valid selection.
   if (selectFirst || changed) syncActiveSelection(selectFirst);
   if (!opts.manual) markHydrated(); // enable the structured push → uploads when local still needs OCC
@@ -310,7 +312,7 @@ async function reconcileState(freshLogin: boolean, manual: boolean, allowed: () 
   try {
     const data = await apiFetch<{ spaces: BeSpace[]; revision: number }>("/api/sync");
     if (!allowed()) return "paused";
-    server = mapBeToLocal(data.spaces);
+    server = canonicalSpaces(mapBeToLocal(data.spaces));
     await setStoredRevision(data.revision);
   } catch (_) {
     // Offline — can't reconcile. Keep local; don't upload (would risk a blind
@@ -321,7 +323,8 @@ async function reconcileState(freshLogin: boolean, manual: boolean, allowed: () 
     return "offline";
   }
 
-  const base = await getMergeBase();
+  const storedBase = await getMergeBase();
+  const base = storedBase ? canonicalSpaces(storedBase) : null;
   const askBeforeUpload = await loadKeptOnSignOut();
   // The plan's cap decides whether a first upload needs a notice, so
   // it is known before deciding, not after the push is rejected.
@@ -330,7 +333,12 @@ async function reconcileState(freshLogin: boolean, manual: boolean, allowed: () 
   // "Sync paused"): the server enforces the cap, so this stays tolerant.
   if (freshLogin && !base) await loadPlanWithRetry();
   if (!allowed()) return "paused";
-  const local = getSpaces();
+  // This page's copy may trail storage (another new tab, the popup or the
+  // worker just saved): catch up first, so "local" is everything this device
+  // holds and a missing item is never read as deleted here.
+  await catchUpFromStorage();
+  if (!allowed()) return "paused";
+  const local = canonicalSpaces(getSpaces());
   const decision = decideReconciliation3(base, server, local, freshLogin, askBeforeUpload, tabCap(usePlanStore.getState().status));
 
   if (decision.kind === "over-cap") {
@@ -370,7 +378,7 @@ async function reconcileState(freshLogin: boolean, manual: boolean, allowed: () 
   await applyResolution(decision.spaces, {
     manual,
     selectFirst: freshLogin,
-    serverConfirmed: spacesSignature(decision.spaces) === spacesSignature(server),
+    serverConfirmed: sameTree(decision.spaces, server),
   });
   if (freshLogin) await clearFreshLogin(); // acted on
   if (askBeforeUpload && !base) await clearKeptOnSignOut(); // nothing local to ask about
@@ -658,7 +666,10 @@ export async function startSyncEngine() {
   engineRunning = true;
   clientTooOld = false;
   listenForReconnectHints(true);
-  clearHydrated();
+  // The worker's hydration gate (flextab_sync_hydrated) belongs to the sign-in,
+  // not to a page: sign-in and sign-out clear it, the first reconcile of the
+  // session sets it. A page starting or stopping leaves it alone, or a new tab
+  // closed before its reconcile finished would hold every upload from this device.
   // Wait for persisted settings before using the default-on UI state.
   if (!useSettingsStore.persist.hasHydrated()) {
     await new Promise<void>(resolve => {
@@ -712,7 +723,6 @@ export function stopSyncEngine() {
   ++engineGeneration;
   listenForReconnectHints(false);
   disconnectWebSocket();
-  clearHydrated();
   // Torn down with a conflict still unresolved (e.g. auto-sync toggled off from
   // settings while the resolver was open, bypassing "Pause sync and decide later") → persist
   // the conflict flag so it isn't silently dropped. The dismiss path already set
@@ -740,7 +750,7 @@ export function syncNow(): Promise<ManualSyncResult> {
     try {
       if (manualResolution) await manualResolution;
       if (!authorized()) return { status: "signed_out" };
-      await applyPendingLandedSnapshot();
+      await applyPendingLandedSnapshot(true);
       if (!authorized()) return { status: "signed_out" };
       if (await adoptStoredOccConflict()) { manualResolution = null; return { status: "conflict" }; }
       if (!authorized()) return { status: "signed_out" };
@@ -756,13 +766,14 @@ export function syncNow(): Promise<ManualSyncResult> {
       // acknowledged PUT; scheduling a worker upload is not a successful sync.
       const base = await getMergeBase();
       if (!authorized()) return { status: "signed_out" };
-      if (!manualResolution && spacesSignature(getSpaces()) === spacesSignature(base ?? [])) return { status: "ok" };
+      if (!manualResolution && sameTree(getSpaces(), base)) return { status: "ok" };
       let limitMessage = "Sync limit reached";
       const pushed = await syncStructuredSnapshot(
         getSpaces(),
         async () => getSpaces(),
         async (server, local) => {
-          const base = await getMergeBase();
+          const stored = await getMergeBase();
+          const base = stored ? canonicalSpaces(stored) : null;
           const { merged, conflicts } = merge3(base, server as SavedSpace[], local as SavedSpace[]);
           if (conflicts.length) {
             await saveOccConflictPayload({ base, server: server as SavedSpace[], local: local as SavedSpace[], conflicts }, true);
@@ -773,7 +784,7 @@ export function syncNow(): Promise<ManualSyncResult> {
         async (spaces, _revision, local) => {
           if (!authorized()) throw new Error("Session changed during sync");
           await recordLandedSnapshot(spaces as SavedSpace[], local as SavedSpace[]);
-          await applyPendingLandedSnapshot();
+          await applyPendingLandedSnapshot(true);
         },
         async (message, detail) => { limitMessage = message; await saveLimitNotice(message, detail); },
         async () => authorized(),

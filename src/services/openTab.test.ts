@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { mockedAsync } from "~src/test/chromeMocks"
 import { canGroupTabs, groupOpenedTabs, openGroupTabs, openInCurrentWindow, openOrFocus, releaseTabGroups, requestTabGroups } from "./openTab"
 
 beforeEach(() => vi.clearAllMocks())
 
 describe("openOrFocus", () => {
   it("focuses an open tab with the same URL and its window", async () => {
-    vi.mocked(chrome.tabs.query).mockResolvedValue([
+    mockedAsync<chrome.tabs.Tab[]>(chrome.tabs.query).mockResolvedValue([
       { id: 3, windowId: 9, url: "https://Example.com/a/" } as chrome.tabs.Tab,
     ])
     expect(await openOrFocus("https://example.com/a")).toBe("focused")
@@ -15,7 +16,7 @@ describe("openOrFocus", () => {
   })
 
   it("opens a new tab when the URL is not open", async () => {
-    vi.mocked(chrome.tabs.query).mockResolvedValue([{ id: 3, windowId: 9, url: "https://other.com" } as chrome.tabs.Tab])
+    mockedAsync<chrome.tabs.Tab[]>(chrome.tabs.query).mockResolvedValue([{ id: 3, windowId: 9, url: "https://other.com" } as chrome.tabs.Tab])
     expect(await openOrFocus("https://example.com/a")).toBe("opened")
     expect(chrome.tabs.create).toHaveBeenCalledWith({ url: "https://example.com/a" })
   })
@@ -23,7 +24,7 @@ describe("openOrFocus", () => {
 
 describe("openInCurrentWindow", () => {
   it("opens every URL as a background tab in this window", async () => {
-    vi.mocked(chrome.windows.getCurrent).mockResolvedValue({ id: 4 } as chrome.windows.Window)
+    mockedAsync<chrome.windows.Window>(chrome.windows.getCurrent).mockResolvedValue({ id: 4 } as chrome.windows.Window)
     await openInCurrentWindow(["https://a.com", "https://b.com"])
     expect(chrome.tabs.create).toHaveBeenNthCalledWith(1, { url: "https://a.com", windowId: 4, active: false })
     expect(chrome.tabs.create).toHaveBeenNthCalledWith(2, { url: "https://b.com", windowId: 4, active: false })
@@ -46,7 +47,7 @@ function withTabGroups({ answer = true }: { answer?: boolean | "reject" } = {}) 
   }
   let next = 10
   vi.mocked(chrome.tabs.create).mockImplementation((async () => ({ id: next++ })) as never)
-  vi.mocked(chrome.windows.getCurrent).mockResolvedValue({ id: 4 } as chrome.windows.Window)
+  mockedAsync<chrome.windows.Window>(chrome.windows.getCurrent).mockResolvedValue({ id: 4 } as chrome.windows.Window)
   vi.mocked(chrome.windows.create).mockResolvedValue({ id: 8, tabs: [{ id: 21 }, { id: 22 }] } as never)
 }
 
@@ -114,7 +115,7 @@ describe("openGroupTabs", () => {
   })
 
   it("opens plain tabs and never asks in a browser without tab groups", async () => {
-    vi.mocked(chrome.windows.getCurrent).mockResolvedValue({ id: 4 } as chrome.windows.Window)
+    mockedAsync<chrome.windows.Window>(chrome.windows.getCurrent).mockResolvedValue({ id: 4 } as chrome.windows.Window)
     expect(canGroupTabs()).toBe(false)
     expect(await openGroupTabs(["https://a.com", "https://b.com"], "here", look, true)).toEqual({ permission: "unavailable", grouped: false })
     expect(chrome.tabs.create).toHaveBeenCalledTimes(2)

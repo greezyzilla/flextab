@@ -213,7 +213,7 @@ export const useSettingsStore = create<SettingsState>()(
 chrome.storage?.onChanged?.addListener((changes, area) => {
   if (area !== "local" || !changes["flextab-settings"]?.newValue) return;
   try {
-    const stored = JSON.parse(changes["flextab-settings"].newValue)?.state as Record<string, unknown> | undefined;
+    const stored = JSON.parse(changes["flextab-settings"].newValue as string)?.state as Record<string, unknown> | undefined;
     if (!stored) return;
     const current = useSettingsStore.getState() as unknown as Record<string, unknown>;
     const stale = Object.entries(stored).some(([key, value]) =>

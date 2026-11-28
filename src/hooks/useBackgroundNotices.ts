@@ -7,14 +7,14 @@ import { useSyncStore } from "~src/store/useSyncStore"
 import { usePlanStore } from "~src/store/usePlanStore"
 import { LIMIT_NOTICE_KEY, limitSummary, parseLimitNotice } from "~src/services/syncLimit"
 import { navigate } from "~src/lib/route"
+import { PUSH_FAILED_KEY } from "~src/services/syncPolicy"
 const BILLING_RESULT_KEY = "flextab_billing_result"
 export const BILLING_TOAST_ID = "billing-result"
-const PUSH_PENDING_KEY = "flextab_push_pending"
 
 const WATCHED_KEYS = [
   LIMIT_NOTICE_KEY,
   BILLING_RESULT_KEY,
-  PUSH_PENDING_KEY,
+  PUSH_FAILED_KEY,
   SESSION_EXPIRED_KEY,
 ] as const
 
@@ -47,12 +47,13 @@ function showBillingResult(result: unknown) {
   }
 }
 
-// Reflect background push-failure as Sync error; clear only reverts from
-// "error" specifically so offline/paused is not clobbered.
+// Reflect a failed background upload as Sync error; clear only reverts from
+// "error" specifically so offline/paused is not clobbered. A push that is only
+// pending is not an error: the header shows it as the unsynced dot.
 // Guest / signed-out: never touch connection status (offline ≠ local-only).
-function applyPushPending(pending: unknown) {
+function applyPushFailed(failed: unknown) {
   if (!useAuthStore.getState().isAuthenticated) return
-  if (pending === true) {
+  if (failed === true) {
     useSyncStore.getState().setStatus("error")
   } else if (useSyncStore.getState().status === "error") {
     useSyncStore.getState().setStatus("online")
@@ -80,8 +81,8 @@ function applyKey(key: string, value: unknown, announce = false) {
     case BILLING_RESULT_KEY:
       showBillingResult(value)
       break
-    case PUSH_PENDING_KEY:
-      applyPushPending(value)
+    case PUSH_FAILED_KEY:
+      applyPushFailed(value)
       break
     case SESSION_EXPIRED_KEY:
       showSessionExpired(value)
@@ -91,14 +92,14 @@ function applyKey(key: string, value: unknown, announce = false) {
 
 /**
  * Surface background-worker notices that cannot render UI themselves.
- * Single multiplexed chrome.storage listener for limit, billing, push-pending,
+ * Single multiplexed chrome.storage listener for limit, billing, push-failed,
  * and session-expired keys (read once on mount + onChanged).
  */
 export function useBackgroundNotices() {
   useEffect(() => {
     try {
       void chrome.storage.local.get([...WATCHED_KEYS]).then((r) => {
-        // Always apply each key (missing → undefined) so push_pending clear
+        // Always apply each key (missing → undefined) so push_failed clear
         // semantics match the previous per-key bridges.
         for (const key of WATCHED_KEYS) {
           applyKey(key, r[key])
@@ -110,7 +111,7 @@ export function useBackgroundNotices() {
       if (area !== "local") return
       for (const key of WATCHED_KEYS) {
         if (key in changes) {
-          // push_pending: apply even when cleared (newValue undefined)
+          // push_failed: apply even when cleared (newValue undefined)
           applyKey(key, changes[key].newValue, true)
         }
       }

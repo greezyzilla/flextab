@@ -107,7 +107,10 @@ export function SyncStatusIndicator() {
   const tooOld = isAuthenticated && updateRequired
   const blocked = isAuthenticated && !apiAccess && !tooOld
   const showConflict = idle && conflictPending && !blocked && !tooOld
-  const showDirty = idle && dirty && !showConflict
+  // Unsynced local changes show the dot in every signed-in state, Connected
+  // included: a save is "not uploaded yet" for a few seconds before the
+  // worker's debounced push, which is not an error.
+  const showDirty = isAuthenticated && dirty && !showConflict
 
   const paused = isAuthenticated && limit !== null && !blocked && !tooOld
   if (tooOld) {
@@ -141,7 +144,9 @@ export function SyncStatusIndicator() {
     detail =
       status === "paused"
         ? "Unsynced changes. Turn on sync or use Sync now"
-        : "Unsynced changes. They will sync when reconnected"
+        : idle
+          ? "Unsynced changes. They will sync when reconnected"
+          : "Unsynced changes. They upload in a few seconds"
   }
 
   if (!isAuthenticated) {

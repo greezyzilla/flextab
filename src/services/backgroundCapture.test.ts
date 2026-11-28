@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { mockedAsync } from "~src/test/chromeMocks"
 import * as yjs from "~src/lib/yjsDoc"
 import type { SavedSpace } from "~src/types"
 import { resetWorkerHydration } from "./capture"
@@ -101,7 +102,7 @@ describe("captureFromBackground", () => {
       { id: 2, windowId: 3, index: 1, url: "https://b.example", pinned: true },
       { id: 3, windowId: 3, index: 2, url: "chrome-extension://x/newtab.html" },
     ] as chrome.tabs.Tab[]
-    vi.mocked(chrome.tabs.query).mockResolvedValue(tabs)
+    mockedAsync<chrome.tabs.Tab[]>(chrome.tabs.query).mockResolvedValue(tabs)
     expect(await captureFromBackground("window", { tab: tabs[0] })).toBe("saved")
     const groups = stored()
     expect(groups).toHaveLength(2)
@@ -114,7 +115,7 @@ describe("captureFromBackground", () => {
   it("closes the saved page when 'close after saving from the popup' is on; a link never closes anything", async () => {
     disk.flextab_close_after_popup = true
     const page = { id: 7, windowId: 3, index: 1, url: "https://p.example" } as chrome.tabs.Tab
-    vi.mocked(chrome.tabs.query).mockResolvedValue([page, { id: 8, windowId: 3, index: 0, url: "https://q.example" } as chrome.tabs.Tab])
+    mockedAsync<chrome.tabs.Tab[]>(chrome.tabs.query).mockResolvedValue([page, { id: 8, windowId: 3, index: 0, url: "https://q.example" } as chrome.tabs.Tab])
     expect(await captureFromBackground("page", { tab: page })).toBe("saved")
     expect(chrome.tabs.remove).toHaveBeenCalledWith([7])
     vi.mocked(chrome.tabs.remove).mockClear()
@@ -126,13 +127,13 @@ describe("captureFromBackground", () => {
     disk.flextab_close_after_save = true
     disk.flextab_close_after_window = false
     const tabs = [{ id: 1, windowId: 3, index: 0, url: "https://a.example" }] as chrome.tabs.Tab[]
-    vi.mocked(chrome.tabs.query).mockResolvedValue(tabs)
+    mockedAsync<chrome.tabs.Tab[]>(chrome.tabs.query).mockResolvedValue(tabs)
     expect(await captureFromBackground("window", { tab: tabs[0] })).toBe("saved")
     expect(chrome.tabs.remove).not.toHaveBeenCalled()
   })
 
   it("uses the active tab / current window when the event has no tab", async () => {
-    vi.mocked(chrome.tabs.query).mockResolvedValue([{ id: 1, url: "https://c.example" }] as chrome.tabs.Tab[])
+    mockedAsync<chrome.tabs.Tab[]>(chrome.tabs.query).mockResolvedValue([{ id: 1, url: "https://c.example" }] as chrome.tabs.Tab[])
     expect(await captureFromBackground("page", {})).toBe("saved")
     expect(await captureFromBackground("window", {})).toBe("saved")
     expect(chrome.tabs.query).toHaveBeenCalledWith({ currentWindow: true })
@@ -206,8 +207,8 @@ describe("closing the page the popup saved when the popup closes", () => {
   }
 
   it("closes the named tab when the popup goes, not after Undo cleared it, and ignores other ports", async () => {
-    vi.mocked(chrome.tabs.get).mockResolvedValue({ id: 5, windowId: 2, index: 0, url: "https://x.example" } as chrome.tabs.Tab)
-    vi.mocked(chrome.tabs.query).mockResolvedValue([{ id: 5 }, { id: 6 }] as chrome.tabs.Tab[])
+    mockedAsync<chrome.tabs.Tab>(chrome.tabs.get).mockResolvedValue({ id: 5, windowId: 2, index: 0, url: "https://x.example" } as chrome.tabs.Tab)
+    mockedAsync<chrome.tabs.Tab[]>(chrome.tabs.query).mockResolvedValue([{ id: 5 }, { id: 6 }] as chrome.tabs.Tab[])
     const a = connect()
     a.send({ close: 5 })
     a.close()

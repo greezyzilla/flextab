@@ -4,16 +4,21 @@ Runbook for cutting an extension release and uploading the ZIP to the CWS.
 
 ## The build
 
-One public item, FlexTab. Every build names its channel (`--channel=stable`);
-a build without one fails.
+One public item, FlexTab. Every build names its channel; a build without one
+fails. `dev` is for testing against the dev backend and is never published.
 
-| | `--channel=stable` |
-|---|---|
-| Name | package.json `displayName` |
-| Icon | `assets/icon.png` |
-| Manifest version | package.json `version` |
-| Firefox add-on id | `flextab@flextabmanager.com` |
-| Output | `build/<target>-prod[.zip]` |
+| | `--channel=stable` | `--channel=dev` (`npm run build:dev`) |
+|---|---|---|
+| Name | package.json `displayName` | FlexTab Dev |
+| API | `https://api.flextabmanager.com` (`.env.production`) | `https://api-dev.flextabmanager.com` (BE `dev` branch, iPaymu sandbox) |
+| Icon | `assets/icon.png` | `assets/icon.png` |
+| Manifest version | package.json `version` | package.json `version` |
+| Firefox add-on id | `flextab@flextabmanager.com` | none |
+| Output | `build/<target>-prod[.zip]` | `build/<target>-dev[.zip]` |
+
+`npm run dev` is neither: it is the local build (FlexTab Local, `plasmo dev`
+with the `local` tag, `build/<target>-local`), and it refuses to start unless
+the API is on localhost.
 
 ```bash
 npm run build:zip -- --channel=stable
@@ -30,11 +35,14 @@ AMO.
 
 The same code builds for Firefox with `--target=firefox-mv3`. Plasmo turns the background service worker into Firefox's event
 page; package.json `manifest.overrides.firefox` drops the Chrome-only `favicon`
-permission; `browser_specific_settings.gecko` (kept for Firefox only) sets the
+permission and holds `browser_specific_settings` (Plasmo keeps only its `gecko` key
+outside an override, so `gecko_android` has to live there). `gecko` sets the
 add-on id, `strict_min_version` 140.0 (the ESR, and the first with
 built-in data consent) and `data_collection_permissions` (none required; account
 data, sign-in data, saved tabs and the device id optional, asked for at sign-in;
 the list in `src/services/apiAccess.ts` must match it, a test checks).
+`gecko_android` sets `strict_min_version` 142.0, the first Firefox for Android that
+reads `data_collection_permissions` (AMO warns otherwise).
 
 ```bash
 npm run build:zip -- --channel=stable --target=firefox-mv3   # build/firefox-mv3-prod.zip

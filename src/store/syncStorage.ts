@@ -114,7 +114,7 @@ function extractTimestamp(value: string): number {
 export const storage: StateStorage = {
   getItem: async (name: string): Promise<string | null> => {
     try {
-      const result = await chrome.storage.local.get(name);
+      const result = await chrome.storage.local.get<Record<string, string | undefined>>(name);
       const localValue = result[name] ?? null;
 
       if (localValue) return localValue;
@@ -197,7 +197,7 @@ export function setupStorageSync(
       if (!syncValue) return;
 
       // Conflict resolution: last-write-wins by timestamp
-      const localResult = await chrome.storage.local.get(storeName);
+      const localResult = await chrome.storage.local.get<Record<string, string | undefined>>(storeName);
       const localValue = localResult[storeName];
 
       if (localValue) {

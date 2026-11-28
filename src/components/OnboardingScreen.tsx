@@ -179,7 +179,7 @@ export function OnboardingScreen({ onBack }: {
     setError('')
     await { google: loginWithGoogle, github: loginWithGithub, gitlab: loginWithGitlab, discord: loginWithDiscord }[provider]()
     try {
-      const pending = (await chrome.storage.session.get(OAUTH_PENDING_KEY))[OAUTH_PENDING_KEY]
+      const pending = (await chrome.storage.session.get<Record<string, { tabId?: unknown } | undefined>>(OAUTH_PENDING_KEY))[OAUTH_PENDING_KEY]
       if (typeof pending?.tabId === "number") setStep({ kind: "waiting", provider, tabId: pending.tabId })
     } catch (_) { /* no extension context: stay on the offer */ }
   }
@@ -505,7 +505,7 @@ function CheckEmail({ reason, email, created = false, trySignIn, onChangeEmail, 
       </StepHead>
       <div className="flex flex-col gap-2">
         {trySignIn
-          ? <Button variant="default" fullWidth onClick={() => void checkNow()}>I've opened the link</Button>
+          ? <Button variant="default" fullWidth onClick={() => void checkNow()}>I&apos;ve opened the link</Button>
           : <Button variant="default" fullWidth onClick={onBack}>Back to sign in</Button>}
         <Button variant="secondary" fullWidth disabled={left > 0 || sending} onClick={() => void resend()}>
           {sending ? "Sending…" : left > 0 ? `Resend email in ${left}s` : "Resend email"}
@@ -578,7 +578,7 @@ function Waiting({ provider, tabId, onCancel }: { provider: Provider; tabId: num
 }
 
 /** Signed in: what happened to the tabs, and the step that makes sync worth it. */
-function Done({ spaces, tabs, provider, onBack }: { spaces: number; tabs: number; provider?: string; onBack: () => void }) {
+function Done({ tabs, provider, onBack }: { spaces: number; tabs: number; provider?: string; onBack: () => void }) {
   const autoSync = useSettingsStore(s => s.autoSync)
   const lastSyncedAt = useSyncStore(s => s.lastSyncedAt)
   const [since] = useState(() => Date.now())

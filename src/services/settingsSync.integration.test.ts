@@ -579,6 +579,20 @@ describe('settings changes survive a reload before they are pushed', () => {
     expect(store.getState()).toMatchObject({ hue: 30, density: 'compact' });
   });
 
+  it('keeps saving the merge base after one write to storage fails', async () => {
+    const write = vi.mocked(chrome.storage.local.set).getMockImplementation() as unknown as (values: Record<string, unknown>) => Promise<void>;
+    let failures = 0;
+    vi.mocked(chrome.storage.local.set).mockImplementation((async (values: Record<string, unknown>) => {
+      if (failures === 0 && sync.SETTINGS_SYNC_STATE_KEY in values) { failures++; throw new Error('quota'); }
+      return write(values);
+    }) as never);
+    await signedInPage();
+    expect(failures).toBe(1);
+    store.getState().setHue(30);
+    await vi.advanceTimersByTimeAsync(800);
+    expect(disk[sync.SETTINGS_SYNC_STATE_KEY]).toMatchObject({ userId: 'A', base: expect.objectContaining({ hue: 30 }) });
+  });
+
   it('ignores a merge base stored for another account', async () => {
     await signedInPage();
     store.getState().setHue(30);

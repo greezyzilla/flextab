@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   apiFetch, pushSync, fetchSyncRevision, apiLogin, apiChangePassword,
-  getAuthUrl, getDeviceId, loadTokens, saveTokens, clearTokens, ApiError, RefreshUnavailableError,
+  getAuthUrl, loadTokens, saveTokens, clearTokens, ApiError, RefreshUnavailableError,
   waitForTokenRefresh, getOAuthUrl, apiGetAuthProviders, apiGetSignInOptions, apiRegister, apiResendVerification,
   apiForgotPassword, apiUpdateProfile, apiListIdentities, apiUnbindIdentity, apiGetBindUrl, apiGetPlan,
   apiGetCheckoutUrl, apiGetTransactions, apiGetSettings, apiPutSettings, apiLogout,

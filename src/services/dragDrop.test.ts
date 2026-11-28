@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
+import { mockedAsync } from "~src/test/chromeMocks"
 import {
   findTabLocation,
   findGroupLocation,
@@ -266,14 +267,14 @@ describe("applyDragEnd", () => {
   })
 
   it("saves an opened browser tab into a group of another category", async () => {
-    vi.mocked(chrome.tabs.get).mockResolvedValueOnce({ id: 7, url: "https://e.com", title: "E", favIconUrl: "" } as chrome.tabs.Tab)
+    mockedAsync<chrome.tabs.Tab>(chrome.tabs.get).mockResolvedValueOnce({ id: 7, url: "https://e.com", title: "E", favIconUrl: "" } as chrome.tabs.Tab)
     await applyDragEnd({ activeId: 7, overId: "droppable-g3", wasDraggingGroup: false })
     const g3 = yjs.getSpaces()[0].projects[0].categories.find((c) => c.id === "c2")!.groups[0]
     expect(g3.tabs.map((t) => t.url)).toEqual(["https://d.com", "https://e.com"])
   })
 
   it("tells where a dropped open tab's URL is already saved, and still saves it", async () => {
-    vi.mocked(chrome.tabs.get).mockResolvedValueOnce({ id: 9, url: "https://d.com/", title: "D", favIconUrl: "" } as chrome.tabs.Tab)
+    mockedAsync<chrome.tabs.Tab>(chrome.tabs.get).mockResolvedValueOnce({ id: 9, url: "https://d.com/", title: "D", favIconUrl: "" } as chrome.tabs.Tab)
     const outcome = await applyDragEnd({ activeId: 9, overId: "droppable-g1", wasDraggingGroup: false })
     expect(outcome).toMatchObject({ saved: { alsoIn: ["S1 › P1 › C2 › G3"], closed: [] } })
     const g1 = yjs.getSpaces()[0].projects[0].categories[0].groups.find((g) => g.id === "g1")!
@@ -281,7 +282,7 @@ describe("applyDragEnd", () => {
   })
 
   it("tells where an open tab dropped on a space is already saved", async () => {
-    vi.mocked(chrome.tabs.get).mockResolvedValueOnce({ id: 10, url: "https://d.com", title: "D", favIconUrl: "" } as chrome.tabs.Tab)
+    mockedAsync<chrome.tabs.Tab>(chrome.tabs.get).mockResolvedValueOnce({ id: 10, url: "https://d.com", title: "D", favIconUrl: "" } as chrome.tabs.Tab)
     const outcome = await applyDragEnd({ activeId: 10, overId: "space-drop:s2", wasDraggingGroup: false })
     expect(outcome).toMatchObject({ saved: { alsoIn: ["S1 › P1 › C2 › G3"], closed: [] } })
   })
@@ -289,8 +290,8 @@ describe("applyDragEnd", () => {
   it("closes a dragged-in open tab when 'Close after dragging a tab in' is on; Undo takes the save back and reopens it", async () => {
     vi.mocked(chrome.storage.local.get).mockImplementation((async (key: string) => (key === "flextab_close_after_drag" ? { [key]: true } : {})) as never)
     const tab = { id: 11, windowId: 4, index: 2, url: "https://z.com", title: "Z", favIconUrl: "" } as chrome.tabs.Tab
-    vi.mocked(chrome.tabs.get).mockResolvedValueOnce(tab)
-    vi.mocked(chrome.tabs.query).mockResolvedValue([tab, { id: 12 } as chrome.tabs.Tab])
+    mockedAsync<chrome.tabs.Tab>(chrome.tabs.get).mockResolvedValueOnce(tab)
+    mockedAsync<chrome.tabs.Tab[]>(chrome.tabs.query).mockResolvedValue([tab, { id: 12 } as chrome.tabs.Tab])
     const outcome = await applyDragEnd({ activeId: 11, overId: "droppable-g1", wasDraggingGroup: false })
     if (!outcome || !("saved" in outcome)) throw new Error("expected a save")
     expect(outcome.saved).toMatchObject({ title: "Z", closed: [{ windowId: 4, index: 2, url: "https://z.com" }] })
@@ -300,13 +301,13 @@ describe("applyDragEnd", () => {
     outcome.saved.undo()
     expect(g1().tabs.map((t) => t.url)).not.toContain("https://z.com")
     await vi.waitFor(() => expect(chrome.tabs.create).toHaveBeenCalledWith({ windowId: 4, index: 2, url: "https://z.com", active: false }))
-    vi.mocked(chrome.storage.local.get).mockImplementation((async () => ({})) as never)
+    mockedAsync<chrome.tabs.Tab>(chrome.storage.local.get).mockImplementation((async () => ({})) as never)
   })
 
   it("saves an opened tab into an empty section's Unsorted", async () => {
     yjs.addCategory("s1", "p1", { id: "c3", name: "C3", order: 2, groups: [] })
     useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces() })
-    vi.mocked(chrome.tabs.get).mockResolvedValueOnce({ id: 8, url: "https://f.com", title: "F", favIconUrl: "" } as chrome.tabs.Tab)
+    mockedAsync<chrome.tabs.Tab>(chrome.tabs.get).mockResolvedValueOnce({ id: 8, url: "https://f.com", title: "F", favIconUrl: "" } as chrome.tabs.Tab)
     await applyDragEnd({ activeId: 8, overId: "section-drop:s1:p1:c3", wasDraggingGroup: false })
     const c3 = yjs.getSpaces()[0].projects[0].categories.find((c) => c.id === "c3")!
     expect(c3.groups).toHaveLength(1)
@@ -358,14 +359,14 @@ describe("applyDragEnd", () => {
   it("refuses an unsavable open tab before creating anything", async () => {
     yjs.addCategory("s1", "p1", { id: "c3", name: "C3", order: 2, groups: [] })
     useSavedSpacesStore.setState({ savedSpaces: yjs.getSpaces() })
-    vi.mocked(chrome.tabs.get).mockResolvedValueOnce({ id: 9, url: "chrome-extension://abc/newtab.html", title: "Flextab" } as chrome.tabs.Tab)
+    mockedAsync<chrome.tabs.Tab>(chrome.tabs.get).mockResolvedValueOnce({ id: 9, url: "chrome-extension://abc/newtab.html", title: "Flextab" } as chrome.tabs.Tab)
     const outcome = await applyDragEnd({ activeId: 9, overId: "section-drop:s1:p1:c3", wasDraggingGroup: false })
     expect(outcome).toEqual({ unsavable: "Flextab" })
     expect(yjs.getSpaces()[0].projects[0].categories.find((c) => c.id === "c3")!.groups).toEqual([])
   })
 
   it("names an unsavable tab by title, then URL, then a generic label", async () => {
-    vi.mocked(chrome.tabs.get)
+    mockedAsync<chrome.tabs.Tab>(chrome.tabs.get)
       .mockResolvedValueOnce({ id: 11, url: "about:blank" } as chrome.tabs.Tab)
       .mockResolvedValueOnce({ id: 12 } as chrome.tabs.Tab)
     expect(await applyDragEnd({ activeId: 11, overId: "droppable-g1", wasDraggingGroup: false })).toEqual({ unsavable: "about:blank" })

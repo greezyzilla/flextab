@@ -44,6 +44,9 @@ npm run dev
 
 Load `build/chrome-mv3-dev` as an unpacked extension in Chrome. The development
 API defaults to localhost; configure `.env.development` for your backend.
+`npm run dev` stops before Plasmo starts if the dev build would point at a
+non-localhost API or not be named "FlexTab Dev"; `ALLOW_REMOTE_DEV_API=1`
+allows a remote API on purpose.
 
 The toolchain is pinned to Node 24.14.0 / npm 11.9.0 through `.nvmrc`,
 `package.json` `devEngines` and `packageManager`. Change them together. Use
@@ -62,6 +65,19 @@ npm run build:zip -- --channel=stable
 
 Output: `build/chrome-mv3-prod.zip`. `PLASMO_PUBLIC_*` values end up in the
 public bundle, so never put secrets in them.
+
+A build stops while `npm run dev` runs in the same checkout: both use
+`.plasmo/`, and a build there can give the dev extension production values.
+To build while developing, use a separate worktree:
+
+```bash
+git worktree add ../flextab-build HEAD
+cd ../flextab-build && npm ci && npm run build:zip -- --channel=stable
+```
+
+The watcher holds `.plasmo-dev.lock` (its PID) while it runs; a lock left by a
+killed watcher is ignored. Start the watcher with `npm run dev`, not
+`npx plasmo dev`, or builds cannot see it.
 
 - Quality gates and coverage limits: [docs/quality-gates.md](docs/quality-gates.md)
 - Versions, releases and store submission: [RELEASING.md](RELEASING.md)

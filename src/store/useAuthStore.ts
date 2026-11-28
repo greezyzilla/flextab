@@ -1,7 +1,7 @@
 import { clearKeptOnSignOut, markKeptOnSignOut } from "~src/services/keptWorkspace";
 import { toast } from "sonner";
 import { cancelPendingOAuth, OAUTH_START, type OAuthProvider } from "~src/services/oauthLogin";
-import { RESOLUTION_PUSH_KEY, withSyncWriteLock } from "~src/services/syncPolicy";
+import { PUSH_FAILED_KEY, RESOLUTION_PUSH_KEY, withSyncWriteLock } from "~src/services/syncPolicy";
 import { create } from "zustand";
 import { loadTokens, saveTokens, clearTokens, apiFetch, apiLogin, apiLogout, apiDeleteAccount, ApiError, type LinkedIdentity } from "~src/services/api";
 import { clearState } from "~src/lib/yjsDoc";
@@ -43,7 +43,7 @@ export const STORED_USER_KEY = "flextab_user";
 
 async function loadStoredUser(): Promise<User | null> {
   try {
-    const got = await chrome.storage.local.get(STORED_USER_KEY);
+    const got = await chrome.storage.local.get<Record<string, { id?: unknown } | undefined>>(STORED_USER_KEY);
     const u = got?.[STORED_USER_KEY];
     return u && typeof u.id === "string" ? (u as User) : null;
   } catch (_) { return null; }
@@ -119,7 +119,7 @@ async function forgetAccountHere(localData: "keep" | "remove"): Promise<void> {
   // local work and reconciles it explicitly, whichever account it is.
   await clearMergeBase();
   await clearConflictPending(); // per-account, like the merge base
-  const keys = [SYNC_HYDRATED_KEY, FRESH_LOGIN_KEY, LANDED_SNAPSHOT_KEY, LIMIT_NOTICE_KEY, RESOLUTION_PUSH_KEY]; // the limit is per-account too, and so is an unsent resolution
+  const keys = [SYNC_HYDRATED_KEY, FRESH_LOGIN_KEY, LANDED_SNAPSHOT_KEY, LIMIT_NOTICE_KEY, RESOLUTION_PUSH_KEY, PUSH_FAILED_KEY]; // the limit is per-account too, and so is an unsent resolution and a failed upload
   if (localData === "remove") keys.push("spaces");
   try { await chrome.storage.local.remove(keys); } catch (_) { /* ok */ }
 }
@@ -232,8 +232,13 @@ if (chrome.storage?.onChanged) {
     if (areaName !== "local") return;
     if (changes.auth_tokens) {
       const { isAuthenticated } = useAuthStore.getState();
-      if (changes.auth_tokens.newValue && !isAuthenticated) {
-        useAuthStore.getState().handleAuthCallback(changes.auth_tokens.newValue, true).catch(() => {});
+      // Only tokens appearing where there were none are a sign-in. A pair that
+      // replaces another is a refresh by another context; this page may still
+      // be loading its session (not authenticated yet), and treating that as a
+      // sign-in would wipe the revision, the hydration gate and the user, and
+      // ask the sign-in question again in the middle of a session.
+      if (changes.auth_tokens.newValue && !changes.auth_tokens.oldValue && !isAuthenticated) {
+        useAuthStore.getState().handleAuthCallback(changes.auth_tokens.newValue as TokenData, true).catch(() => {});
       } else if (!changes.auth_tokens.newValue && isAuthenticated) {
         session++;
         useAuthStore.setState({ user: null, isAuthenticated: false });

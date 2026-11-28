@@ -14,7 +14,7 @@
     mono: 'ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace',
   }
   var DENSITIES = ["compact", "cozy", "comfortable"]
-  function read(key) { try { return localStorage.getItem(key) } catch (e) { return null } }
+  function read(key) { try { return localStorage.getItem(key) } catch (_e) { return null } }
   function num(v) { return typeof v === "number" && isFinite(v) }
 
   var mode = read("flextab-theme")
@@ -28,7 +28,7 @@
     if (s && num(s.hue) && num(s.intensity) && num(s.groupTint) && num(s.radius) && num(s.uiScale) &&
         typeof s.fontFamily === "string" && Object.prototype.hasOwnProperty.call(FONTS, s.fontFamily) &&
         DENSITIES.indexOf(s.density) >= 0 && typeof s.reduceMotion === "boolean") a = s
-  } catch (e) { /* a broken copy: the defaults */ }
+  } catch (_e) { /* a broken copy: the defaults */ }
 
   root.style.setProperty("--hue", String(a.hue))
   root.style.setProperty("--intensity", String(a.intensity))
@@ -50,6 +50,6 @@
     try {
       var icon = JSON.parse(read("flextab-favicon") || "null")
       if (icon && icon.key === a.hue + "," + a.intensity && typeof icon.url === "string" && icon.url.indexOf("data:image/png") === 0) link.setAttribute("href", icon.url)
-    } catch (e) { /* drawn by the page */ }
+    } catch (_e) { /* drawn by the page */ }
   }
 })()

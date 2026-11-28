@@ -50,7 +50,7 @@ describe("tab icon copy", () => {
     const run = () => { document.head.innerHTML = '<link rel="icon" href="/assets/favicon.ico">'; new Function(boot)(); return document.head.querySelector("link")! }
     localStorage.setItem("flextab-appearance", JSON.stringify(look))
     localStorage.setItem("flextab-favicon", JSON.stringify({ key: "145,100", url: "data:image/png;base64,AAA" }))
-    let link = run()
+    const link = run()
     expect(link.getAttribute("href")).toBe("data:image/png;base64,AAA")
     expect(link.dataset.defaultHref).toBe("/assets/favicon.ico")
     localStorage.setItem("flextab-favicon", JSON.stringify({ key: "262,100", url: "data:image/png;base64,BBB" }))

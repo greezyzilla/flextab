@@ -59,6 +59,16 @@ describe("merge3 — deletion correctness (no resurrect)", () => {
     expect(r.conflicts).toHaveLength(0);
   });
 
+  it("delete on local, base read back from chrome.storage (sorted keys) → no conflict", () => {
+    // chrome.storage returns objects with their keys sorted; the server tree is
+    // mapped in another key order. Same tab, so deleting it is a plain delete.
+    const t = { id: "t1", url: "https://a.test/", title: "A", favicon: "data:x", order: 0 };
+    const sorted = { favicon: t.favicon, id: t.id, order: t.order, title: t.title, url: t.url };
+    const r = merge3(wrap([grp("g", "G", [sorted])]), wrap([grp("g", "G", [t])]), wrap([grp("g", "G", [])]));
+    expect(r.conflicts).toHaveLength(0);
+    expect(groupsOf(r.merged)[0].tabs).toEqual([]);
+  });
+
   it("delete on server, local unchanged → stays deleted", () => {
     const base = wrap([grp("a", "A"), grp("b", "B")]);
     const r = merge3(base, wrap([grp("a", "A")]), wrap([grp("a", "A"), grp("b", "B")]));
@@ -376,6 +386,24 @@ describe("merge3 — moves across parents", () => {
     unique(r.merged);
   });
 
+  it("moves a project and a group into it in one merge → both land, the group inside the moved project", () => {
+    // Base: project P in space A, group X in project Q (space A). This device moves P to space B
+    // and X into P's category. The group's move target only exists at its final place once the
+    // project has moved, so parent moves must apply first.
+    const q = (groups: SavedGroup[]) => prj("Q", "Other", [cat("Qc", "QC", groups)]);
+    const p = (groups: SavedGroup[]) => prj("P", "Test", [cat("Pc", "C", [grp("Pg", "G", [t1]), ...groups])]);
+    const x = grp("X", "Moved group", [t2]);
+    const base = [spc("A", "Hobby", [p([]), q([x])]), spc("B", "Personal", [])];
+    const local = [spc("A", "Hobby", [q([])]), spc("B", "Personal", [p([x])])];
+    const r = merge3(base, base, local);
+    expect(r.conflicts).toHaveLength(0);
+    expect(spaceOf(r.merged)).toEqual(["B"]);
+    const moved = r.merged.find((s) => s.id === "B")!.projects[0].categories[0].groups.map((g) => g.id);
+    expect(moved).toEqual(["Pg", "X"]);
+    expect(r.merged.find((s) => s.id === "A")!.projects[0].categories[0].groups).toEqual([]);
+    unique(r.merged);
+  });
+
   it("tolerates containers without a children list", () => {
     // B first, so finding P walks a space with no project list.
     const base = [{ id: "B", name: "Personal", order: 0 } as unknown as SavedSpace, spc("A", "Hobby", [project()])];
@@ -466,5 +494,19 @@ describe("merge3 — records missing optional fields (synced from older clients)
     const r = merge3([bare], [{ ...bare }], [{ ...bare, color: "red" } as unknown as SavedSpace]);
     expect(r.conflicts).toEqual([]);
     expect(r.merged).toEqual([expect.objectContaining({ id: "s", color: "red", projects: [] })]);
+  });
+
+  it("names conflicts inside unnamed containers with empty labels, never \"undefined\"", () => {
+    const unnamed = <T,>(x: T) => { const { name: _drop, ...rest } = x as any; return rest as T; };
+    const tree = (title: string) => [spc("s", "S", [unnamed(prj("p", "", [unnamed(cat("c", "", [unnamed(grp("g", "", [tab("t", title)]))]))]))])];
+    const r = merge3(tree("Base"), tree("Server"), tree("Local"));
+    expect(r.conflicts).toEqual([expect.objectContaining({ kind: "field", field: "title", name: "Server" })]);
+    expect(r.conflicts[0].path).toBe("S /  /  / ");
+  });
+
+  it("names a conflicting tab with neither title nor URL as empty", () => {
+    const bare = (favicon: string) => ({ id: "t", favicon, order: 0 }) as unknown as ReturnType<typeof tab>;
+    const r = merge3(wrap([grp("g", "G", [bare("a")])]), wrap([grp("g", "G", [bare("b")])]), wrap([grp("g", "G", [bare("c")])]));
+    expect(r.conflicts).toEqual([expect.objectContaining({ kind: "field", field: "favicon", name: "" })]);
   });
 });

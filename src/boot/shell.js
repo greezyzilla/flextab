@@ -5,9 +5,15 @@
 // until React draws the skeleton. React removes this copy in its first commit.
 // On a Settings route it puts in that Settings page's own copy instead (SettingsSkeleton
 // storeSettingsSkeletonMarkup); a page with no copy shows the themed surface.
+// The copy goes in through DOMParser, not innerHTML: the result is the same, and AMO's validator
+// flags every innerHTML assignment.
 ;(function () {
   var host = document.getElementById("boot-skeleton")
   if (!host) return
+  function put(html) {
+    var body = new DOMParser().parseFromString(html, "text/html").body
+    host.replaceChildren.apply(host, Array.prototype.slice.call(body.childNodes))
+  }
   try {
     var hash = location.hash || ""
     if (/^#\/settings(\/|$)/.test(hash)) {
@@ -24,7 +30,7 @@
       if (innerWidth !== page.width) return
       if (!document.documentElement.classList.contains("density-" + page.density)) return
       if (Math.max(innerHeight, (screen && screen.availHeight) || 0) !== page.height) return
-      host.innerHTML = page.html
+      put(page.html)
       return
     }
     var s = JSON.parse(localStorage.getItem("flextab-shell-skeleton") || "null")
@@ -33,6 +39,6 @@
     if (matchMedia("(min-width: 768px)").matches !== s.leftInline) return
     if (matchMedia("(min-width: 1024px)").matches !== s.rightInline) return
     if (Math.max(innerHeight, (screen && screen.availHeight) || 0) !== s.height) return
-    host.innerHTML = s.html
-  } catch (e) { /* no copy: the themed surface */ }
+    put(s.html)
+  } catch (_e) { /* no copy: the themed surface */ }
 })()

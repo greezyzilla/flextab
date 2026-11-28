@@ -39,7 +39,7 @@ describe("API access", () => {
 
   it("declares the same data in code as in the Firefox manifest", () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, "../../package.json"), "utf8"))
-    expect(DATA_COLLECTION).toEqual(pkg.manifest.browser_specific_settings.gecko.data_collection_permissions.optional)
+    expect(DATA_COLLECTION).toEqual(pkg.manifest.overrides.firefox.browser_specific_settings.gecko.data_collection_permissions.optional)
   })
 
   it("reports a refused or failed request as no access", async () => {

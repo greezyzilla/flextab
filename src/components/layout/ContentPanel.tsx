@@ -427,7 +427,7 @@ export function ContentPanel() {
     const current = useSavedSpacesStore.getState().activeCategoryId;
     if (!current || categories[0]?.id === current) { container.scrollTop = 0; return; }
     scrollToCategory(current, "auto");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Only when the project changes, not on every category update.
   }, [activeProject?.id]);
 
   // Scroll spy: the section at the top of the viewport is the current

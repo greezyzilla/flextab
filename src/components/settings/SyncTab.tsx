@@ -25,7 +25,7 @@ export function SyncTab() {
   // lives in the header's sync indicator; Settings holds what you set.
   if (!isAuthenticated) {
     return (
-      <SettingsSection title="Sync" icon={RefreshCw} subtitle="Keep your tabs the same on every device." notice={<SettingsNotice>You're using FlexTab locally on this device. Sign in to back up and sync your tabs across devices.</SettingsNotice>}>
+      <SettingsSection title="Sync" icon={RefreshCw} subtitle="Keep your tabs the same on every device." notice={<SettingsNotice>You&apos;re using FlexTab locally on this device. Sign in to back up and sync your tabs across devices.</SettingsNotice>}>
         {null}
       </SettingsSection>
     );

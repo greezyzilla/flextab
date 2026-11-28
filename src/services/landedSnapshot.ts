@@ -1,4 +1,6 @@
-import { doc, getSpaces, setSpaces, persistState } from "~src/lib/yjsDoc";
+import { doc, getSpaces, applySpaces, catchUpFromStorage, persistState } from "~src/lib/yjsDoc";
+import { canonicalSpaces } from "~src/lib/canonicalSpaces";
+import { withSyncWriteLock } from "./syncPolicy";
 import type { SavedSpace } from "~src/types";
 import { setMergeBase } from "./mergeBase";
 import { merge3 } from "./spacesMerge3";
@@ -29,15 +31,30 @@ export async function recordLandedSnapshot(landed: SavedSpace[], local: SavedSpa
 
 let inFlight: Promise<void> | null = null;
 
-/** Called only by a hydrated page, never by the worker's empty Y.Doc. */
-export function applyPendingLandedSnapshot(): Promise<void> {
-  if (inFlight) return inFlight;
+function consumeLocked(): Promise<void> {
   // Serialize receipt consumption across open extension pages as well. Chrome
   // provides Web Locks; the fallback supports non-browser test environments.
-  const work = globalThis.navigator?.locks
+  return Promise.resolve(globalThis.navigator?.locks
     ? navigator.locks.request("flextab-landed-snapshot", consume)
-    : consume();
-  inFlight = Promise.resolve(work).finally(() => { inFlight = null; });
+    : consume());
+}
+
+/**
+ * Called only by a hydrated page, never by the worker's empty Y.Doc.
+ * Applying a receipt writes the doc like a reconcile does, so it runs under the
+ * same sync lock: two pages must never insert the same server items at once.
+ * `syncLockHeld`: the caller (Sync now) already holds it; Web Locks are not
+ * re-entrant, so that call must neither wait for it nor join a flight that does.
+ */
+export function applyPendingLandedSnapshot(syncLockHeld = false): Promise<void> {
+  if (syncLockHeld) return consumeLocked();
+  if (inFlight) return inFlight;
+  inFlight = (async () => {
+    // Most calls find no receipt: do not queue behind a push or reconcile for nothing.
+    const stored = await chrome.storage.local.get(LANDED_SNAPSHOT_KEY);
+    if (!stored[LANDED_SNAPSHOT_KEY]) return;
+    await withSyncWriteLock(consumeLocked);
+  })().finally(() => { inFlight = null; });
   return inFlight;
 }
 
@@ -49,9 +66,12 @@ async function consume(): Promise<void> {
   // Persist the receipt id in the same Y.Doc as its applied result. A failed
   // write/reload must not reapply the delta and resurrect a subsequently deleted
   // remote item. Capture current local *after* the asynchronous storage read.
+  // Merge against everything this device holds, not a copy that trails
+  // storage; this also brings in the receipt id when another page applied it.
+  await catchUpFromStorage();
   const sync = doc.getMap("sync");
   if (sync.get("landedReceipt") !== receipt.id) {
-    const local = getSpaces();
+    const local = canonicalSpaces(getSpaces());
     const { merged, conflicts } = merge3(receipt.local, receipt.landed, local);
     if (conflicts.length > 0) {
       await saveOccConflictPayload({ base: receipt.local, server: receipt.landed, local, conflicts }, true);
@@ -60,7 +80,7 @@ async function consume(): Promise<void> {
     }
     // No await between reading current local state and applying its rebased tree.
     doc.transact(() => {
-      setSpaces(merged);
+      applySpaces(merged);
       sync.set("landedReceipt", receipt.id);
     });
   }

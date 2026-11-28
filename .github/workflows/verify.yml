@@ -44,6 +44,8 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Typecheck source, tests, and configuration
         run: npm run typecheck
+      - name: Lint
+        run: npm run lint
       # The coverage numbers are the same either way: the browser suite measures none of them.
       - name: Run regression tests and coverage gates
         id: coverage
