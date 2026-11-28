@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 /**
- * `npm run dev`: checks that the dev build will talk to a local API and carry
- * the dev name, then starts `plasmo dev` with the same arguments.
+ * `npm run dev`: the local build. Checks that it will talk to a local API, then
+ * starts `plasmo dev` as "FlexTab Local" with the `local` tag, so it lands in
+ * build/<target>-local. The dev build that talks to api-dev.flextabmanager.com
+ * is a separate channel: `npm run build:dev` (scripts/channel.mjs).
  *
  * The env is resolved the way Plasmo 0.90 does for `plasmo dev`: NODE_ENV is
  * forced to development, the shell's variables win, then the first env file
@@ -18,16 +20,17 @@ import { parseEnv } from "node:util"
 
 import { removeDevLock, writeDevLock } from "./dev-lock.mjs"
 
-export const DEV_NAME = "FlexTab Dev"
+export const DEV_NAME = "FlexTab Local"
+export const LOCAL_TAG = "local"
 export const OPT_IN = "ALLOW_REMOTE_DEV_API"
-const KEYS = ["PLASMO_PUBLIC_API_URL", "PLASMO_PUBLIC_API_HOST", "FLEXTAB_EXT_NAME"]
+const KEYS = ["PLASMO_PUBLIC_API_URL", "PLASMO_PUBLIC_API_HOST"]
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"])
 
 const flag = (argv, name) => argv.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3)
 
 /** The env files `plasmo dev` reads, first match first. */
 export function devEnvFiles(argv, env) {
-  const tag = flag(argv, "tag") || env.PLASMO_TAG || "dev"
+  const tag = flag(argv, "tag") || env.PLASMO_TAG || LOCAL_TAG
   const browser = (flag(argv, "target") || env.PLASMO_TARGET || "chrome-mv3").split("-")[0]
   const nodeEnv = "development" // plasmo dev sets it, whatever the shell says
   return [
@@ -56,7 +59,7 @@ const isLocal = (url) => {
   }
 }
 
-/** What would make this dev build something other than a local FlexTab Dev. */
+/** What would make this build talk to something other than a local API. */
 export function devEnvProblems(resolved) {
   const problems = []
   for (const key of ["PLASMO_PUBLIC_API_URL", "PLASMO_PUBLIC_API_HOST"]) {
@@ -64,11 +67,17 @@ export function devEnvProblems(resolved) {
     if (!r) problems.push(`${key} is not set by the shell or any dev env file.`)
     else if (!isLocal(r.value)) problems.push(`${key}=${r.value} (from ${r.from}) is not a localhost address.`)
   }
-  const name = resolved.FLEXTAB_EXT_NAME
-  if (name?.value !== DEV_NAME) {
-    problems.push(`FLEXTAB_EXT_NAME is ${name ? `"${name.value}" (from ${name.from})` : "not set"}, not "${DEV_NAME}".`)
-  }
   return problems
+}
+
+/** plasmo dev's arguments: the caller's, with the local tag unless one was given. */
+export function devArgs(argv, env) {
+  return flag(argv, "tag") || env.PLASMO_TAG ? argv : [...argv, `--tag=${LOCAL_TAG}`]
+}
+
+/** plasmo dev's env: the shell's, with the local build's name (the shell wins over env files). */
+export function devEnv(env) {
+  return { ...env, FLEXTAB_EXT_NAME: DEV_NAME }
 }
 
 /** "block" stops before plasmo starts, "warn" starts it after saying why (opt-in), "ok" just starts it. */
@@ -89,7 +98,7 @@ function main() {
   const problems = devEnvProblems(resolveDevEnv(process.env, files))
   const gate = devGate(problems, process.env)
   if (gate === "block") {
-    console.error(`\n${RED}✖ Dev blocked: this build would not be a local FlexTab Dev:${RESET}`)
+    console.error(`\n${RED}✖ Dev blocked: this build would not be a local ${DEV_NAME}:${RESET}`)
     for (const p of problems) console.error(`${RED}  • ${p}${RESET}`)
     console.error(`\n  Fix .env.development (see .env.example) or unset the shell variable.`)
     console.error(`${YELLOW}  To point dev at a remote API on purpose: ${OPT_IN}=1 npm run dev${RESET}\n`)
@@ -102,7 +111,7 @@ function main() {
   }
   // Builds refuse while this lock is held (scripts/dev-lock.mjs).
   writeDevLock(process.cwd())
-  const result = spawnSync("npx", ["plasmo", "dev", ...argv], { stdio: "inherit" })
+  const result = spawnSync("npx", ["plasmo", "dev", ...devArgs(argv, process.env)], { stdio: "inherit", env: devEnv(process.env) })
   removeDevLock(process.cwd())
   process.exit(result.status ?? 1)
 }

@@ -4,16 +4,21 @@ Runbook for cutting an extension release and uploading the ZIP to the CWS.
 
 ## The build
 
-One public item, FlexTab. Every build names its channel (`--channel=stable`);
-a build without one fails.
+One public item, FlexTab. Every build names its channel; a build without one
+fails. `dev` is for testing against the dev backend and is never published.
 
-| | `--channel=stable` |
-|---|---|
-| Name | package.json `displayName` |
-| Icon | `assets/icon.png` |
-| Manifest version | package.json `version` |
-| Firefox add-on id | `flextab@flextabmanager.com` |
-| Output | `build/<target>-prod[.zip]` |
+| | `--channel=stable` | `--channel=dev` (`npm run build:dev`) |
+|---|---|---|
+| Name | package.json `displayName` | FlexTab Dev |
+| API | `https://api.flextabmanager.com` (`.env.production`) | `https://api-dev.flextabmanager.com` (BE `dev` branch, iPaymu sandbox) |
+| Icon | `assets/icon.png` | `assets/icon.png` |
+| Manifest version | package.json `version` | package.json `version` |
+| Firefox add-on id | `flextab@flextabmanager.com` | none |
+| Output | `build/<target>-prod[.zip]` | `build/<target>-dev[.zip]` |
+
+`npm run dev` is neither: it is the local build (FlexTab Local, `plasmo dev`
+with the `local` tag, `build/<target>-local`), and it refuses to start unless
+the API is on localhost.
 
 ```bash
 npm run build:zip -- --channel=stable

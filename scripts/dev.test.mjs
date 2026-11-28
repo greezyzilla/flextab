@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { DEV_NAME, OPT_IN, devEnvFiles, devEnvProblems, devGate, resolveDevEnv } from "./dev.mjs"
+import { DEV_NAME, LOCAL_TAG, OPT_IN, devArgs, devEnv, devEnvFiles, devEnvProblems, devGate, resolveDevEnv } from "./dev.mjs"
 
 const DEVELOPMENT = `PLASMO_PUBLIC_API_URL=http://localhost:3000
 PLASMO_PUBLIC_API_HOST=http://localhost/*
@@ -14,8 +14,8 @@ const files = (names) => names.map(([name, contents]) => ({ name, contents }))
 describe("devEnvFiles", () => {
   it("lists the files plasmo dev reads, in Plasmo's order", () => {
     expect(devEnvFiles([], {})).toEqual([
-      ".env.chrome.local", ".env.dev.local", ".env.development.local", ".env.local",
-      ".env.chrome", ".env.dev", ".env.development", ".env",
+      ".env.chrome.local", ".env.local.local", ".env.development.local", ".env.local",
+      ".env.chrome", ".env.local", ".env.development", ".env",
     ])
   })
 
@@ -40,7 +40,6 @@ describe("resolveDevEnv", () => {
     ]))
     expect(r.PLASMO_PUBLIC_API_URL).toEqual({ value: "https://shell.example", from: "the shell" })
     expect(r.PLASMO_PUBLIC_API_HOST).toEqual({ value: "https://local.example/*", from: ".env.local" })
-    expect(r.FLEXTAB_EXT_NAME).toEqual({ value: DEV_NAME, from: ".env.development" })
   })
 })
 
@@ -54,7 +53,7 @@ describe("devGate", () => {
 })
 
 describe("devEnvProblems", () => {
-  it("passes a normal setup: .env.development against localhost with the dev name", () => {
+  it("passes a normal setup: .env.development against localhost", () => {
     expect(devEnvProblems(resolveDevEnv({ NODE_ENV: "production" }, files([[".env.development", DEVELOPMENT]])))).toEqual([])
   })
 
@@ -71,18 +70,30 @@ describe("devEnvProblems", () => {
     ])
   })
 
-  it("flags missing values and a build that would not be named FlexTab Dev", () => {
+  it("flags missing values", () => {
     expect(devEnvProblems({})).toEqual([
       "PLASMO_PUBLIC_API_URL is not set by the shell or any dev env file.",
       "PLASMO_PUBLIC_API_HOST is not set by the shell or any dev env file.",
-      'FLEXTAB_EXT_NAME is not set, not "FlexTab Dev".',
     ])
-    const named = resolveDevEnv({ FLEXTAB_EXT_NAME: "FlexTab" }, files([[".env.development", DEVELOPMENT]]))
-    expect(devEnvProblems(named)).toEqual(['FLEXTAB_EXT_NAME is "FlexTab" (from the shell), not "FlexTab Dev".'])
   })
 
   it("accepts 127.0.0.1 and [::1] as local", () => {
     const r = resolveDevEnv({ PLASMO_PUBLIC_API_URL: "http://127.0.0.1:3000", PLASMO_PUBLIC_API_HOST: "http://[::1]/*" }, files([[".env.development", DEVELOPMENT]]))
     expect(devEnvProblems(r)).toEqual([])
+  })
+})
+
+describe("the local build npm run dev starts", () => {
+  it("is tagged local, so it lands in build/<target>-local, unless a tag was given", () => {
+    expect(LOCAL_TAG).toBe("local")
+    expect(devArgs([], {})).toEqual(["--tag=local"])
+    expect(devArgs(["--target=firefox-mv3"], {})).toEqual(["--target=firefox-mv3", "--tag=local"])
+    expect(devArgs(["--tag=mine"], {})).toEqual(["--tag=mine"])
+    expect(devArgs([], { PLASMO_TAG: "mine" })).toEqual([])
+  })
+
+  it("is named FlexTab Local whatever an env file or the shell says", () => {
+    expect(DEV_NAME).toBe("FlexTab Local")
+    expect(devEnv({ FLEXTAB_EXT_NAME: "FlexTab Dev", PATH: "/bin" })).toEqual({ FLEXTAB_EXT_NAME: "FlexTab Local", PATH: "/bin" })
   })
 })

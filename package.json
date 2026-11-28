@@ -9,6 +9,8 @@
     "check-env": "node scripts/check-env.mjs",
     "build": "npm run check-env && node scripts/build.mjs",
     "build:zip": "npm run check-env && node scripts/build.mjs --zip",
+    "build:dev": "node scripts/build.mjs --channel=dev",
+    "build:dev:zip": "node scripts/build.mjs --channel=dev --zip",
     "package": "plasmo package",
     "test": "vitest",
     "typecheck": "tsc --noEmit --incremental false",

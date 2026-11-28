@@ -1,14 +1,15 @@
 #!/usr/bin/env node
 /**
- * Builds the release channel (see scripts/channel.mjs):
+ * Builds a channel (see scripts/channel.mjs):
  *
- *   node scripts/build.mjs --channel=stable [--zip] [--target=chrome-mv3]
+ *   node scripts/build.mjs --channel=stable|dev [--zip] [--target=chrome-mv3]
  *
- * Output: build/<target>-prod[.zip].
+ * Output: build/<target>-<tag>[.zip]: -prod for stable, -dev for dev.
  */
 import { spawnSync } from "node:child_process"
+import { readFileSync, writeFileSync } from "node:fs"
 
-import { channelPlan, resolveChannel } from "./channel.mjs"
+import { channelPlan, patchManifest, resolveChannel } from "./channel.mjs"
 import { runningWatcher } from "./dev-lock.mjs"
 
 const RED = "\x1b[31m"
@@ -46,4 +47,13 @@ const zip = argv.includes("--zip")
 
 console.log(`Building FlexTab ${plan.channel} (${target}, tag ${plan.tag})`)
 
-plasmo(["build", `--tag=${plan.tag}`, `--target=${target}`, ...(zip ? ["--zip"] : [])], plan.env)
+if (plan.channel === "stable") {
+  plasmo(["build", `--tag=${plan.tag}`, `--target=${target}`, ...(zip ? ["--zip"] : [])], plan.env)
+} else {
+  // Another channel's content scripts must match its own API host (patchManifest),
+  // so the manifest is fixed before the zip is made.
+  plasmo(["build", `--tag=${plan.tag}`, `--target=${target}`], plan.env)
+  const path = `build/${target}-${plan.tag}/manifest.json`
+  writeFileSync(path, JSON.stringify(patchManifest(JSON.parse(readFileSync(path, "utf8")), plan.channel), null, 2))
+  if (zip) plasmo(["package", `--tag=${plan.tag}`, `--target=${target}`], plan.env)
+}
