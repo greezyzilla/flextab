@@ -22,6 +22,13 @@ export async function automaticPushAllowed(): Promise<boolean> {
   } catch { return false; }
 }
 
+// Set by the worker when an upload actually failed (a network or server error,
+// or storage it could not read), cleared once a push lands or is deliberately
+// held. Pages show "Sync error" from this flag only. The pending marker
+// (flextab_push_pending) is set on every save before the debounced upload, so
+// it means "not uploaded yet", not "failed": pages show that as the unsynced dot.
+export const PUSH_FAILED_KEY = "flextab_push_failed";
+
 // A page asks the worker to upload now. The worker otherwise uploads only when
 // the local document changes, so a resolution that keeps the document as it is
 // (e.g. continuing past the over-cap notice) would wait for the

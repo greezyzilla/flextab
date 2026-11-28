@@ -55,6 +55,16 @@ describe("SyncStatusIndicator", () => {
     await waitFor(() => expect(window.location.hash).toBe("#/settings/sync"))
   })
 
+  it("shows unsynced changes as the dot while connected, not as an error", async () => {
+    useAuthStore.setState({ isAuthenticated: true, user: { id: "u1" } as never })
+    useSyncStore.setState({ status: "online", dirty: true })
+    const { container } = render(<TooltipProvider><SyncStatusIndicator /></TooltipProvider>)
+    expect(container.querySelector(".bg-amber-400")).not.toBeNull()
+    await userEvent.click(screen.getByRole("button", { name: "Sync status: Connected" }))
+    expect(await screen.findByText("Unsynced changes. They upload in a few seconds")).toBeInTheDocument()
+    expect(screen.queryByText("Sync error")).not.toBeInTheDocument()
+  })
+
   it("shows usage in the header near the cap", async () => {
     useAuthStore.setState({ isAuthenticated: true, user: { id: "u1" } as never })
     useSavedSpacesStore.setState({ savedSpaces: withTabs(130) })

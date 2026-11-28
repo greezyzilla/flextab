@@ -46,6 +46,26 @@ describe("useBackgroundNotices: plan limit", () => {
   })
 })
 
+describe("useBackgroundNotices: upload state", () => {
+  it("shows Sync error only for a failed upload, never for one that is only pending", async () => {
+    vi.mocked(chrome.storage.local.get).mockResolvedValueOnce({ flextab_push_pending: true } as never)
+    renderHook(() => useBackgroundNotices())
+    await waitFor(() => expect(chrome.storage.onChanged.addListener).toHaveBeenCalled())
+    listener()({ flextab_push_pending: { newValue: true } }, "local")
+    expect(useSyncStore.getState().status).toBe("online")
+    listener()({ flextab_push_failed: { newValue: true } }, "local")
+    expect(useSyncStore.getState().status).toBe("error")
+    listener()({ flextab_push_failed: { oldValue: true } }, "local")
+    expect(useSyncStore.getState().status).toBe("online")
+  })
+
+  it("restores a stored failure on open", async () => {
+    vi.mocked(chrome.storage.local.get).mockResolvedValueOnce({ flextab_push_failed: true } as never)
+    renderHook(() => useBackgroundNotices())
+    await waitFor(() => expect(useSyncStore.getState().status).toBe("error"))
+  })
+})
+
 describe("useBackgroundNotices: session expired", () => {
   it("toasts on the workspace, but not over the sign-in dialog that already says it", async () => {
     vi.mocked(chrome.storage.local.get).mockResolvedValueOnce({} as never)

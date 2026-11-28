@@ -1,5 +1,5 @@
 import { completeOAuthLogin, registerOAuthMessages } from "~src/services/oauthLogin";
-import { automaticPushAllowed, PUSH_REQUEST_KEY, SETTINGS_KEY, storedAutoSync, withSyncWriteLock } from "~src/services/syncPolicy";
+import { automaticPushAllowed, PUSH_FAILED_KEY, PUSH_REQUEST_KEY, SETTINGS_KEY, storedAutoSync, withSyncWriteLock } from "~src/services/syncPolicy";
 import { loadTokens, getDeviceId, waitForTokenRefresh } from "~src/services/api";
 import { syncStructuredSnapshot } from "~src/services/structuredSync";
 import { merge3 } from "~src/services/spacesMerge3";
@@ -148,7 +148,9 @@ export function pushStructuredData(): Promise<void> {
         await withSyncWriteLock(pushLatestStructuredData);
       } while (pushAgain);
     } catch (_) {
-      // Keep the durable pending flag for the retry alarm on storage/API failure.
+      // Keep the durable pending flag for the retry alarm on storage/API failure,
+      // and say it failed: pages show "Sync error" from this flag.
+      try { await chrome.storage.local.set({ [PUSH_FAILED_KEY]: true }); } catch (_) { /* ok */ }
     } finally {
       pushInFlight = null;
     }
@@ -206,6 +208,11 @@ async function pushLatestStructuredData() {
     automaticPushAllowed,
   );
   if (result === "ok") await clearLimitNotice();
+  // Only a real failure is a sync error; a paused attempt says nothing new.
+  try {
+    if (result === "error") await chrome.storage.local.set({ [PUSH_FAILED_KEY]: true });
+    else if (result !== "paused") await chrome.storage.local.remove(PUSH_FAILED_KEY);
+  } catch (_) { /* ok */ }
 
   // "error" / "paused" → keep PENDING_PUSH for a later allowed retry.
   // "ok" / "limit" / "skipped" → clear it: skipped is handled by conflictPending
