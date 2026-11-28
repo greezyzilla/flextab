@@ -169,11 +169,11 @@
     "content-security-policy-parser@<0.6.0": "0.6.0",
     "msgpackr@<1.10.1": "1.11.8",
     "picomatch@<2.3.2": "2.3.2",
-    "svelte@<4.2.19": "4.2.19",
     "plasmo": {
       "sharp": "0.35.5",
       "vue": "3.5.42"
-    }
+    },
+    "svelte@<5.55.7": "5.55.7"
   },
   "packageManager": "npm@11.9.0",
   "devEngines": {
