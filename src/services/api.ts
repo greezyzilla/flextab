@@ -106,14 +106,14 @@ function validPair(t: unknown): t is TokenData {
     typeof x.expires_at === "number" && Number.isFinite(x.expires_at) && x.expires_at > Date.now() / 1000;
 }
 
-/** The worker's answer to a page whose token needs refreshing. */
+/** The worker's answer to a page whose token needs refreshing. Never rejects. */
 async function refreshForPage(attempted: unknown): Promise<RefreshReply> {
   await loadTokens();
   if (!tokenData?.refresh_token) return { status: "expired" };
   // Another context already rotated the pair the page holds: hand it over.
   if (tokenData.refresh_token !== attempted && !isTokenExpired()) return { status: "ok", tokens: tokenData };
   if (!refreshPromise) {
-    refreshPromise = refreshTokensHere().finally(() => { refreshPromise = null; });
+    refreshPromise = refreshTokensHere(tokenData.refresh_token).finally(() => { refreshPromise = null; });
   }
   try {
     const tokens = await refreshPromise;
@@ -128,7 +128,7 @@ export function serveTokenRefresh(): void {
   refreshOwner = true;
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message?.type !== REFRESH_MESSAGE || sender.id !== chrome.runtime.id) return;
-    void refreshForPage(message.attempted).then(sendResponse, () => sendResponse({ status: "unavailable" }));
+    void refreshForPage(message.attempted).then(sendResponse);
     return true; // answers asynchronously
   });
 }
@@ -152,13 +152,10 @@ async function refreshTokens(): Promise<TokenData | null> {
     if (reply?.status === "unavailable") throw new RefreshUnavailableError();
     // No worker answered (it should always be there): refresh here instead.
   }
-  return refreshTokensHere();
+  return refreshTokensHere(tokenData.refresh_token);
 }
 
-async function refreshTokensHere(): Promise<TokenData | null> {
-  if (!tokenData?.refresh_token) return null;
-  const attemptedRefreshToken = tokenData.refresh_token;
-
+async function refreshTokensHere(attemptedRefreshToken: string): Promise<TokenData | null> {
   try {
     const res = await http(`${API_BASE_URL}/api/auth/refresh`, {
       method: "POST",
