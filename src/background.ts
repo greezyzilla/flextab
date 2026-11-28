@@ -1,6 +1,6 @@
 import { completeOAuthLogin, registerOAuthMessages } from "~src/services/oauthLogin";
 import { automaticPushAllowed, PUSH_FAILED_KEY, PUSH_REQUEST_KEY, SETTINGS_KEY, storedAutoSync, withSyncWriteLock } from "~src/services/syncPolicy";
-import { loadTokens, getDeviceId, waitForTokenRefresh } from "~src/services/api";
+import { loadTokens, getDeviceId, serveTokenRefresh, waitForTokenRefresh } from "~src/services/api";
 import { syncStructuredSnapshot } from "~src/services/structuredSync";
 import { merge3 } from "~src/services/spacesMerge3";
 import { getMergeBase } from "~src/services/mergeBase";
@@ -50,6 +50,8 @@ const RETRY_ALARM = "flextab_push_retry";
 // (installLifecycle) and on every worker start, so new-tab pages read it instead
 // of racing to generate one (which could register duplicate devices on a fresh install).
 void getDeviceId();
+// This worker refreshes the session for every page and the popup (see api.ts).
+serveTokenRefresh();
 
 // =====================================================================
 // Capture from anywhere: keyboard commands + right-click menu

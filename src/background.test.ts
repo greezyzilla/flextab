@@ -6,6 +6,8 @@ vi.mock("~src/services/api", () => ({
   getDeviceId: vi.fn(async () => "device"),
   pushSync: vi.fn(),
   fetchSyncRevision: vi.fn(async () => 1),
+  serveTokenRefresh: vi.fn(),
+  waitForTokenRefresh: vi.fn(async () => {}),
 }));
 
 const deferred = <T,>() => {

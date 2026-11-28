@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
-import { apiFetch, clearTokens, loadTokens, pushSync, SESSION_EXPIRED_KEY } from './api';
+import { apiFetch, clearTokens, loadTokens, pushSync, serveTokenRefresh, SESSION_EXPIRED_KEY } from './api';
 import { useAuthStore } from '../store/useAuthStore';
 import { getSpaces, setSpaces } from '../lib/yjsDoc';
 
@@ -11,6 +11,10 @@ const fresh = () => ({ access_token: 'new', refresh_token: 'refresh-new', expire
 let storage: Record<string, any>;
 let oldTokens: ReturnType<typeof expired>;
 let fetchMock: Mock;
+
+// These cases test the refresh itself, which the background worker performs
+// for every context: run as the worker (pages ask it; tokenRefreshOwner.test.ts).
+serveTokenRefresh();
 
 beforeEach(async () => {
   vi.clearAllMocks();
