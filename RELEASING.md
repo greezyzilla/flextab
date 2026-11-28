@@ -121,6 +121,9 @@ The rule:
      tag's source code (`git archive`, which carries `SOURCE_BUILD.md`), required
      because the build is bundled and minified. The build is reproducible: the
      same commands on another machine give byte-identical files.
+     Every listed version carries its license (All Rights Reserved,
+     `AMO_LICENSE`, sent with `--amo-metadata`): AMO refuses a listed version
+     without one, which is what failed 0.1.1 and 0.1.2.
 5. **After the release, merge `main` back into `dev`** (a merge commit), so the
    version bump and the `vX.Y.Z` tag are in `dev`'s history.
 6. **A bad release is fixed forward.** The stores have no rollback: revert the

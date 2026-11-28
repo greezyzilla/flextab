@@ -11,12 +11,24 @@
  * Developer Hub (listing details, categories); this adds later versions.
  */
 import { execFileSync } from "node:child_process"
-import { mkdtempSync, rmSync } from "node:fs"
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
 export const REQUIRED_ENV = ["AMO_JWT_ISSUER", "AMO_JWT_SECRET"]
+
+/**
+ * The license AMO shows on the listing. A listed version is refused without
+ * one ("This field, or custom_license, is required for listed versions."),
+ * which is what failed the 0.1.1 and 0.1.2 releases. FlexTab is proprietary.
+ */
+export const AMO_LICENSE = "all-rights-reserved"
+
+/** The version metadata sent with every listed submission (web-ext --amo-metadata). */
+export function amoMetadata() {
+  return { version: { license: AMO_LICENSE } }
+}
 const WEB_EXT = resolve("tools/web-ext/node_modules/.bin/web-ext")
 
 export function missingEnv(env) {
@@ -28,9 +40,9 @@ export function sourceArchiveArgs(tag, out) {
   return ["archive", "--format=zip", `--output=${out}`, tag]
 }
 
-/** `web-ext sign` arguments for the listed channel, with the source attached; it does not wait for the review. */
-export function signArgs({ sourceDir, sourceArchive, artifactsDir }) {
-  return ["sign", "--channel=listed", `--source-dir=${sourceDir}`, `--upload-source-code=${sourceArchive}`, `--artifacts-dir=${artifactsDir}`, "--approval-timeout=0"]
+/** `web-ext sign` arguments for the listed channel, with the source and the license attached; it does not wait for the review. */
+export function signArgs({ sourceDir, sourceArchive, artifactsDir, metadataFile }) {
+  return ["sign", "--channel=listed", `--source-dir=${sourceDir}`, `--upload-source-code=${sourceArchive}`, `--amo-metadata=${metadataFile}`, `--artifacts-dir=${artifactsDir}`, "--approval-timeout=0"]
 }
 
 /** The keys reach web-ext through its own environment variables, never the command line. */
@@ -56,7 +68,9 @@ function main() {
     const sourceArchive = join(work, `flextab-source-${tag}.zip`)
     execFileSync("git", sourceArchiveArgs(tag, sourceArchive), { stdio: "inherit" })
     const artifactsDir = join(work, "artifacts")
-    execFileSync(WEB_EXT, signArgs({ sourceDir, sourceArchive, artifactsDir }), { stdio: "inherit", env: signEnv(process.env) })
+    const metadataFile = join(work, "amo-metadata.json")
+    writeFileSync(metadataFile, JSON.stringify(amoMetadata()))
+    execFileSync(WEB_EXT, signArgs({ sourceDir, sourceArchive, artifactsDir, metadataFile }), { stdio: "inherit", env: signEnv(process.env) })
     console.log(`Submitted ${tag} to AMO as a listed version, with its source. Review happens on AMO.`)
   } catch (err) {
     console.error(`✖ AMO submission failed: ${err.message}`)
