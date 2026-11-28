@@ -169,7 +169,7 @@
     },
     "packageManager": {
       "name": "npm",
-      "version": ">=11.9.0 <12",
+      "version": ">=11.9.0 <13",
       "onFail": "error"
     }
   }
